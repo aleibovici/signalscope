@@ -138,7 +138,7 @@ export function Sidebar() {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              signOut({ callbackUrl: "/login" });
+              signOut({ redirectTo: "/login" });
             }}
             className="w-full cursor-pointer touch-manipulation rounded-md px-3 py-2.5 text-left text-sm text-gray-600 hover:bg-gray-100 active:bg-gray-200"
           >
