@@ -145,7 +145,7 @@ Reddit blocks cloud IPs, so the harvester runs locally via Docker with an embedd
 - **Dockerfile**: `Dockerfile.harvester-local` (includes Cloud SQL proxy)
 - **Compose file**: `docker-compose.harvest.yml`
 - **Service account key**: `sa-key.json` (gitignored, created by `gcp-setup.sh`)
-- **Cron schedule**: `0 */4 * * *` (every 4 hours, local crontab)
+- **Cron schedule**: `0 3 * * 2-6` (once daily, 30 min before market open — 9:00 AM ET = 3:00 AM NZDT next day, Tue-Sat local)
 - **Cloud Scheduler**: removed (Reddit blocks cloud IPs, harvester runs locally only)
 - **Dual-database writes**: When `DATABASE_URL_DEV` is set, the harvester mirrors all writes (Scan, Signal, ValidatedTicker) to a second database. Enabled by default in `docker-compose.harvest.yml` pointing at `host.docker.internal:5432`. Dev writes are best-effort — failures log warnings but don't abort the harvest. Requires `docker compose up db` running on the host.
 
