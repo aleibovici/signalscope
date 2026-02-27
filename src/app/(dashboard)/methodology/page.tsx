@@ -46,8 +46,8 @@ export default function MethodologyPage() {
               {
                 icon: "🐦",
                 name: "X / Twitter",
-                description: "Keyword search for ticker mentions over a 4-hour rolling window.",
-                params: "X API v2 · 4 h window · up to 300 tweets/run",
+                description: "Keyword search for ticker mentions from the past 24 hours, run once daily before market open.",
+                params: "X API v2 · 24 h lookback · up to 300 tweets/run",
                 active: true,
               },
               {
