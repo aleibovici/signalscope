@@ -18,11 +18,16 @@ npm run db:seed          # Seed database with default user (user_1)
 npm run harvest          # Run signal harvester scan
 ```
 
-Docker:
+Docker (local dev):
 ```bash
 docker compose up db         # PostgreSQL only
 docker compose up            # Web app + DB
-docker compose --profile harvest run harvester  # Run harvester container
+docker compose --profile harvest run harvester  # Run harvester (local DB)
+```
+
+Docker (production harvester — writes to Cloud SQL):
+```bash
+docker compose -f docker-compose.harvest.yml --env-file .env.production run --rm harvester
 ```
 
 ## Tech Stack
@@ -45,7 +50,7 @@ Sources (5 in parallel) → Aggregate by symbol → Fetch fundamentals (Yahoo Fi
 ```
 
 - `index.ts` — `orchestrateScan()` main orchestrator
-- `sources/` — reddit, stocktwits, sec-insider, options-flow, volume-spike
+- `sources/` — reddit, stocktwits (disabled), sec-insider, options-flow (disabled), volume-spike
 - `scoring.ts` — AI batch scoring with hard-rule overrides
 - `pnd-filter.ts` — Pump & dump detection (statistical flags + AI fallback)
 - `fundamentals.ts` — Yahoo Finance v8 for price/market cap
@@ -120,33 +125,58 @@ AI_PROVIDER_REPORT=anthropic
 
 - **Cloud Run** — web app (`signalscope-web`) serving Next.js standalone on port 3000
 - **Cloud SQL** — PostgreSQL 16 (`signalscope-db`, db-f1-micro), connected via Unix socket
-- **Cloud Run Jobs** — harvester (`signalscope-harvester`) triggered every 4h by Cloud Scheduler
 - **Secret Manager** — stores `DATABASE_URL`, `AUTH_SECRET`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`
 - **Artifact Registry** — Docker images (`signalscope` repo)
 - **GitHub Actions** — CI/CD on push to `main` (`.github/workflows/deploy.yml`)
+- **Workload Identity Federation** — keyless GitHub Actions → GCP auth
+
+### Harvester (runs locally)
+
+Reddit blocks cloud IPs, so the harvester runs locally via Docker with an embedded Cloud SQL Auth Proxy. It connects to Cloud SQL directly from the developer's machine.
+
+- **Dockerfile**: `Dockerfile.harvester-local` (includes Cloud SQL proxy)
+- **Compose file**: `docker-compose.harvest.yml`
+- **Service account key**: `sa-key.json` (gitignored, created by `gcp-setup.sh`)
+- **Cron schedule**: `0 */4 * * *` (every 4 hours, local crontab)
+- **Cloud Scheduler**: paused (was `signalscope-harvest-schedule`)
+
+```bash
+# Manual run
+docker compose -f docker-compose.harvest.yml --env-file .env.production run --rm harvester
+
+# Check logs
+tail -f /tmp/signalscope-harvest.log
+```
+
+### Source Status
+
+| Source | Status | Notes |
+|--------|--------|-------|
+| Reddit | Active | Uses `old.reddit.com` JSON, sequential with 1.5s delay, browser UA |
+| SEC Insider | Active | OpenInsider HTML + EDGAR RSS, filters C-suite $50K+ purchases |
+| Volume Spike | Active | Yahoo Finance, 110 symbols, 2x avg volume threshold |
+| StockTwits | Disabled | Cloudflare blocks all direct access |
+| Options Flow | Disabled | Requires paid API (Unusual Whales, FlowAlgo) |
 
 ### Initial Setup
 
 ```bash
-# Set required env vars, then run the provisioning script:
-export GCP_PROJECT_ID=your-project
-export DB_PASSWORD=$(openssl rand -base64 16)
-export AUTH_SECRET=$(openssl rand -base64 32)
-export OPENAI_API_KEY=sk-...
-export ANTHROPIC_API_KEY=sk-ant-...
-
+# 1. Fill in .env.production with GCP project ID, API keys, etc.
+# 2. Run provisioning (creates Cloud SQL, Cloud Run, secrets, WIF, sets GitHub vars)
 bash scripts/gcp-setup.sh
+
+# 3. Run Prisma migrations via Cloud SQL Auth Proxy
+cloud_sql_proxy -instances=PROJECT:REGION:signalscope-db=tcp:5433 &
+DATABASE_URL="postgresql://signalscope:PASS@localhost:5433/signalscope" npx prisma migrate deploy
+DATABASE_URL="postgresql://signalscope:PASS@localhost:5433/signalscope" npm run db:seed
+
+# 4. Push to main to trigger first CI/CD deploy
+git push origin main
 ```
-
-After setup, configure GitHub repo variables for CI/CD:
-- `GCP_PROJECT_ID`, `GCP_REGION` — repository variables
-- `WIF_PROVIDER`, `WIF_SERVICE_ACCOUNT` — Workload Identity Federation settings
-
-Then run Prisma migrations via Cloud SQL Auth Proxy and seed the database.
 
 ### CI/CD
 
-Push to `main` → GitHub Actions builds both images, pushes to Artifact Registry, deploys web to Cloud Run, and updates the harvester job.
+Push to `main` → GitHub Actions builds both images, pushes to Artifact Registry, deploys web to Cloud Run, and updates the harvester job image.
 
 ## Path Alias
 
