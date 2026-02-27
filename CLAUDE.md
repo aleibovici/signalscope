@@ -112,6 +112,9 @@ OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 AUTH_SECRET=<openssl rand -base64 32>
 
+# Optional: mirror harvest writes to local dev DB
+DATABASE_URL_DEV=postgresql://postgres:postgres@host.docker.internal:5432/signalscope
+
 # Optional per-call-point AI provider override (openai or anthropic):
 AI_PRIMARY_PROVIDER=openai
 AI_PROVIDER_SCORING=anthropic
@@ -139,9 +142,10 @@ Reddit blocks cloud IPs, so the harvester runs locally via Docker with an embedd
 - **Service account key**: `sa-key.json` (gitignored, created by `gcp-setup.sh`)
 - **Cron schedule**: `0 */4 * * *` (every 4 hours, local crontab)
 - **Cloud Scheduler**: paused (was `signalscope-harvest-schedule`)
+- **Dual-database writes**: When `DATABASE_URL_DEV` is set, the harvester mirrors all writes (Scan, Signal, ValidatedTicker) to a second database. Enabled by default in `docker-compose.harvest.yml` pointing at `host.docker.internal:5432`. Dev writes are best-effort — failures log warnings but don't abort the harvest. Requires `docker compose up db` running on the host.
 
 ```bash
-# Manual run
+# Manual run (writes to both production Cloud SQL and local dev DB)
 docker compose -f docker-compose.harvest.yml --env-file .env.production run --rm harvester
 
 # Check logs

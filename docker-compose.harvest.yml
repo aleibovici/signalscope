@@ -9,6 +9,7 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       AI_PRIMARY_PROVIDER: openai
+      DATABASE_URL_DEV: postgresql://postgres:postgres@host.docker.internal:5432/signalscope
     volumes:
       - ${SA_KEY_PATH:-./sa-key.json}:/secrets/sa-key.json:ro
     restart: "no"
