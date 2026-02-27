@@ -141,7 +141,7 @@ Reddit blocks cloud IPs, so the harvester runs locally via Docker with an embedd
 - **Compose file**: `docker-compose.harvest.yml`
 - **Service account key**: `sa-key.json` (gitignored, created by `gcp-setup.sh`)
 - **Cron schedule**: `0 */4 * * *` (every 4 hours, local crontab)
-- **Cloud Scheduler**: paused (was `signalscope-harvest-schedule`)
+- **Cloud Scheduler**: removed (Reddit blocks cloud IPs, harvester runs locally only)
 - **Dual-database writes**: When `DATABASE_URL_DEV` is set, the harvester mirrors all writes (Scan, Signal, ValidatedTicker) to a second database. Enabled by default in `docker-compose.harvest.yml` pointing at `host.docker.internal:5432`. Dev writes are best-effort — failures log warnings but don't abort the harvest. Requires `docker compose up db` running on the host.
 
 ```bash
@@ -180,7 +180,7 @@ git push origin main
 
 ### CI/CD
 
-Push to `main` → GitHub Actions builds both images, pushes to Artifact Registry, deploys web to Cloud Run, and updates the harvester job image.
+Push to `main` → GitHub Actions builds web image, pushes to Artifact Registry, and deploys to Cloud Run.
 
 ## API Error Handling
 

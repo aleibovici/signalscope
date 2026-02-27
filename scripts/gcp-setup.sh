@@ -42,9 +42,6 @@ WIF_POOL="github"
 WIF_PROVIDER="github-actions"
 REPO_NAME="signalscope"
 WEB_SERVICE="signalscope-web"
-HARVESTER_JOB="signalscope-harvester"
-SCHEDULER_JOB="signalscope-harvest-schedule"
-
 CLOUD_SQL_CONNECTION="${GCP_PROJECT_ID}:${GCP_REGION}:${DB_INSTANCE_NAME}"
 DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@localhost/${DB_NAME}?host=/cloudsql/${CLOUD_SQL_CONNECTION}"
 
@@ -58,7 +55,6 @@ gcloud services enable \
   sqladmin.googleapis.com \
   artifactregistry.googleapis.com \
   secretmanager.googleapis.com \
-  cloudscheduler.googleapis.com \
   iam.googleapis.com \
   iamcredentials.googleapis.com
 
@@ -142,31 +138,6 @@ gcloud run deploy "${WEB_SERVICE}" \
   --cpu-boost \
   --allow-unauthenticated \
   --quiet
-
-# ─── Cloud Run Job (harvester) ──────────────────────────────────────────────
-echo "==> Creating Cloud Run harvester job (placeholder image)"
-gcloud run jobs create "${HARVESTER_JOB}" \
-  --image="us-docker.pkg.dev/cloudrun/container/hello" \
-  --region="${GCP_REGION}" \
-  --service-account="${SA_EMAIL}" \
-  --set-cloudsql-instances="${CLOUD_SQL_CONNECTION}" \
-  --set-secrets="DATABASE_URL=DATABASE_URL:latest,AUTH_SECRET=AUTH_SECRET:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest" \
-  --set-env-vars="NODE_ENV=production,AI_PRIMARY_PROVIDER=openai" \
-  --memory=512Mi \
-  --cpu=1 \
-  --task-timeout=15m \
-  --max-retries=1 \
-  --quiet
-
-# ─── Cloud Scheduler ────────────────────────────────────────────────────────
-echo "==> Creating Cloud Scheduler job (every 4 hours)"
-gcloud scheduler jobs create http "${SCHEDULER_JOB}" \
-  --location="${GCP_REGION}" \
-  --schedule="0 */4 * * *" \
-  --uri="https://${GCP_REGION}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${GCP_PROJECT_ID}/jobs/${HARVESTER_JOB}:run" \
-  --http-method=POST \
-  --oauth-service-account-email="${SA_EMAIL}" \
-  --quiet || true
 
 # ─── Workload Identity Federation (GitHub Actions → GCP) ────────────────────
 echo "==> Setting up Workload Identity Federation for GitHub Actions"
