@@ -10,6 +10,7 @@ import Credentials from "next-auth/providers/credentials";
  * the full NextAuth() call that layers on the `authorize` callback.
  */
 export const authConfig = {
+  trustHost: true,
   providers: [
     Credentials({
       credentials: {
