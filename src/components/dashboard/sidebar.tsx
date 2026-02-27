@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { NextScanCountdown } from "@/components/dashboard/next-scan-countdown";
+import { StatsWidget } from "@/components/dashboard/stats-widget";
 
 const navItems = [
   { href: "/dashboard", label: "Signals", icon: "📡" },
@@ -117,6 +118,10 @@ export function Sidebar() {
             );
           })}
         </nav>
+
+        <div className="border-t border-gray-200 px-4 py-3">
+          <StatsWidget />
+        </div>
 
         <div className="border-t border-gray-200 px-4 py-3">
           <NextScanCountdown />
