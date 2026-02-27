@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String         @id @default(cuid())
+  email        String         @unique
+  name         String?
+  passwordHash String?
+  role         String         @default("user")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  positions    UserPosition[]
+}
+
+model Scan {
+  id               String            @id @default(cuid())
+  status           ScanStatus        @default(RUNNING)
+  startedAt        DateTime          @default(now())
+  completedAt      DateTime?
+  signalCount      Int               @default(0)
+  validatedCount   Int               @default(0)
+  filteredCount    Int               @default(0)
+  aiCost           Float             @default(0)
+  error            String?
+  signals          Signal[]
+  validatedTickers ValidatedTicker[]
+}
+
+enum ScanStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model Signal {
+  id            String       @id @default(cuid())
+  scanId        String
+  scan          Scan         @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  symbol        String
+  source        SignalSource
+  title         String?
+  body          String?      @db.Text
+  url           String?
+  author        String?
+  authorAge     Int?
+  authorKarma   Int?
+  upvotes       Int?
+  commentCount  Int?
+  velocityScore Float        @default(0)
+  sentiment     String?
+  pndFlagged    Boolean      @default(false)
+  pndFlags      String[]
+  pndScore      Int          @default(0)
+  createdAt     DateTime     @default(now())
+
+  @@index([scanId, symbol])
+  @@index([symbol])
+}
+
+enum SignalSource {
+  REDDIT
+  STOCKTWITS
+  SEC_INSIDER
+  OPTIONS_FLOW
+  VOLUME_SPIKE
+}
+
+model ValidatedTicker {
+  id             String      @id @default(cuid())
+  scanId         String
+  scan           Scan        @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  symbol         String
+  price          Float?
+  marketCap      Float?
+  shortFloat     Float?
+  catalyst       String?     @db.Text
+  risks          String?     @db.Text
+  recommendation String?
+  report         String?     @db.Text
+  aiScore        Int         @default(0)
+  stage          TickerStage @default(EARLY)
+  signalCount    Int         @default(0)
+  sourceCount    Int         @default(0)
+  avgSentiment   Float?
+  signalType     String?     // insider_buy | options_flow | multi_source | reddit_velocity
+  fiftyTwoWkRange String?   // e.g. "12.50 - 45.00"
+  exchange       String?     // NYSE, NASDAQ, OTC, etc.
+  createdAt      DateTime    @default(now())
+
+  @@unique([scanId, symbol])
+  @@index([symbol])
+  @@index([stage])
+}
+
+enum TickerStage {
+  EARLY
+  FORMING
+  CONFIRMED
+  FILTERED
+}
+
+model UserPosition {
+  id         String         @id @default(cuid())
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  symbol     String
+  entryPrice Float
+  shares     Float?
+  notes      String?
+  status     PositionStatus @default(OPEN)
+  openedAt   DateTime       @default(now())
+  closedAt   DateTime?
+  closePrice Float?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@index([userId, status])
+  @@index([symbol])
+}
+
+enum PositionStatus {
+  OPEN
+  CLOSED
+}
