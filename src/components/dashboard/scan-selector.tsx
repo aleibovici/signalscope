@@ -10,7 +10,7 @@ export function ScanSelector({
   selectedScanId: string | null;
   onSelect: (scanId: string) => void;
 }) {
-  const { data, isLoading } = useScans(1, 20);
+  const { data, isLoading } = useScans(1, 7);
 
   if (isLoading) return <Spinner />;
 
