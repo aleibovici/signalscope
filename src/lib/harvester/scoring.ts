@@ -12,6 +12,7 @@ export async function scoreSymbolBatch(
     return {
       symbol: s.symbol,
       sourceCount: s.sourceCount,
+      subredditCount: s.subredditCount,
       signalCount: s.signals.length,
       totalUpvotes: s.totalUpvotes,
       totalComments: s.totalComments,

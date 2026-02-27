@@ -25,9 +25,10 @@ function aggregateSignals(signals: RawSignal[]): AggregatedSymbol[] {
     .map(([symbol, sigs]) => ({
       symbol,
       signals: sigs,
-      sourceCount: new Set(sigs.map((s) =>
-        s.source === "REDDIT" && s.subreddit ? `REDDIT:${s.subreddit}` : s.source
-      )).size,
+      sourceCount: new Set(sigs.map((s) => s.source)).size,
+      subredditCount: new Set(
+        sigs.filter((s) => s.source === "REDDIT" && s.subreddit).map((s) => s.subreddit)
+      ).size,
       totalUpvotes: sigs.reduce((sum, s) => sum + (s.upvotes || 0), 0),
       totalComments: sigs.reduce((sum, s) => sum + (s.commentCount || 0), 0),
       avgVelocity: sigs.reduce((sum, s) => {
