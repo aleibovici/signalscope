@@ -1,18 +1,28 @@
 import type { RawSignal } from "../types";
 
 const SUBREDDIT_CONFIG: Array<{ name: string; sorts: Array<{ type: "new" | "rising"; limit: number }> }> = [
-  { name: "wallstreetbets",  sorts: [{ type: "new", limit: 25 }, { type: "rising", limit: 15 }] },
-  { name: "stocks",          sorts: [{ type: "new", limit: 20 }, { type: "rising", limit: 15 }] },
-  { name: "investing",       sorts: [{ type: "new", limit: 15 }] },
-  { name: "pennystocks",     sorts: [{ type: "new", limit: 15 }] },
-  { name: "smallstreetbets", sorts: [{ type: "new", limit: 15 }] },
-  { name: "options",         sorts: [{ type: "new", limit: 15 }] },
-  { name: "stockmarket",     sorts: [{ type: "new", limit: 15 }] },
-  { name: "Undervalued",     sorts: [{ type: "new", limit: 10 }] },
-  { name: "ValueInvesting",  sorts: [{ type: "new", limit: 10 }] },
-  { name: "spacs",           sorts: [{ type: "new", limit: 10 }] },
-  { name: "weedstocks",      sorts: [{ type: "new", limit: 10 }] },
+  { name: "wallstreetbets",       sorts: [{ type: "new", limit: 25 }, { type: "rising", limit: 15 }] },
+  { name: "stocks",               sorts: [{ type: "new", limit: 20 }, { type: "rising", limit: 15 }] },
+  { name: "investing",            sorts: [{ type: "new", limit: 15 }] },
+  { name: "pennystocks",          sorts: [{ type: "new", limit: 15 }, { type: "rising", limit: 10 }] },
+  { name: "smallstreetbets",      sorts: [{ type: "new", limit: 15 }, { type: "rising", limit: 10 }] },
+  { name: "options",              sorts: [{ type: "new", limit: 15 }, { type: "rising", limit: 10 }] },
+  { name: "stockmarket",          sorts: [{ type: "new", limit: 15 }] },
+  { name: "Undervalued",          sorts: [{ type: "new", limit: 10 }] },
+  { name: "ValueInvesting",       sorts: [{ type: "new", limit: 10 }] },
+  { name: "spacs",                sorts: [{ type: "new", limit: 10 }] },
+  { name: "weedstocks",           sorts: [{ type: "new", limit: 10 }] },
+  // Breakout/momentum-focused subreddits
+  { name: "Shortsqueeze",         sorts: [{ type: "new", limit: 15 }, { type: "rising", limit: 10 }] },
+  { name: "RobinHoodPennyStocks", sorts: [{ type: "new", limit: 15 }] },
+  { name: "Daytrading",           sorts: [{ type: "new", limit: 15 }, { type: "rising", limit: 10 }] },
+  { name: "SwingTrading",         sorts: [{ type: "new", limit: 10 }] },
+  { name: "biotech",              sorts: [{ type: "new", limit: 10 }] },
+  { name: "SecurityAnalysis",     sorts: [{ type: "new", limit: 10 }] },
+  { name: "MillennialBets",       sorts: [{ type: "new", limit: 10 }] },
 ];
+
+const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
 const TICKER_REGEX = /\b([A-Z]{1,5})\b/g;
 
@@ -51,6 +61,7 @@ const BLACKLIST = new Set([
   "SAME", "OPEN", "TELL", "TRUE", "TURN", "KEEP", "EVEN", "LAST", "MOVE",
   "PAYS", "SAFE", "SAVE", "WORK",
   // Common 3-5 letter words (expanded)
+  "TRIAL", "PHASE", "SHORT", "GAMMA", "DELTA", "THETA", "VEGA", "ENTRY", "EXIT",
   "WOW", "GOAT", "BEAT", "HYPE", "AUTO", "ALSO", "AWAY", "COME", "EACH",
   "ELSE", "FEEL", "FIND", "FIVE", "FOUR", "FULL", "GAVE", "GONE", "GROW",
   "HALF", "HAND", "HARD", "HEAD", "IDEA", "INTO", "KNEW", "KNOW", "LEFT",
@@ -72,12 +83,8 @@ function extractTickers(text: string): string[] {
   return [...new Set(matches.filter((t) => !BLACKLIST.has(t) && !MEGA_CAPS.has(t) && t.length >= 2))];
 }
 
-function computeVelocityScore(sortType: "new" | "rising", postAgeHours: number): number {
-  if (sortType === "rising") return 3;
-  if (postAgeHours < 3) return 2;
-  if (postAgeHours < 12) return 1;
-  return 0.5;
-}
+// Velocity scoring tiers (computed in index.ts aggregateSignals):
+// "rising" → 3, "comment" → 1.5, new <3h → 2, new <12h → 1, else → 0.5
 
 interface RedditPost {
   data: {
@@ -94,6 +101,28 @@ interface RedditPost {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+const MAX_COMMENT_FETCHES_PER_SUB = 3;
+const COMMENT_ENGAGEMENT_THRESHOLD = 25;
+
+async function fetchTopComments(permalink: string, limit: number = 10): Promise<string[]> {
+  const url = `https://old.reddit.com${permalink}.json?limit=${limit}&depth=1`;
+  try {
+    const res = await fetch(url, {
+      headers: { "User-Agent": UA, "Accept": "application/json" },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const comments = data[1]?.data?.children || [];
+    return comments
+      .filter((c: { kind: string }) => c.kind === "t1")
+      .map((c: { data?: { body?: string } }) => c.data?.body || "")
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 async function fetchSubreddit(
   subreddit: string,
   sort: "new" | "rising",
@@ -103,10 +132,7 @@ async function fetchSubreddit(
 
   try {
     const res = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-        "Accept": "application/json",
-      },
+      headers: { "User-Agent": UA, "Accept": "application/json" },
       signal: AbortSignal.timeout(15000),
     });
 
@@ -125,7 +151,6 @@ async function fetchSubreddit(
       const text = `${title} ${selftext}`;
       const tickers = extractTickers(text);
       const postAgeHours = (nowSeconds - created_utc) / 3600;
-      const velocityScore = computeVelocityScore(sort, postAgeHours);
 
       for (const symbol of tickers) {
         signals.push({
@@ -140,6 +165,39 @@ async function fetchSubreddit(
           subreddit: sub,
           postAge: postAgeHours,
           sortType: sort,
+        });
+      }
+    }
+
+    // Comment-level ticker scanning for high-engagement posts
+    const highEngagement = posts.filter((p) => p.data.num_comments >= COMMENT_ENGAGEMENT_THRESHOLD);
+    let commentFetches = 0;
+    for (const post of highEngagement) {
+      if (commentFetches >= MAX_COMMENT_FETCHES_PER_SUB) break;
+      const { title, permalink, author, ups, num_comments, subreddit: sub, created_utc } = post.data;
+      const postTickers = new Set(extractTickers(`${title} ${post.data.selftext}`));
+      const postAgeHours = (nowSeconds - created_utc) / 3600;
+
+      await sleep(2000);
+      const commentBodies = await fetchTopComments(permalink);
+      commentFetches++;
+
+      const commentText = commentBodies.join(" ");
+      const commentTickers = extractTickers(commentText).filter((t) => !postTickers.has(t));
+
+      for (const symbol of commentTickers) {
+        signals.push({
+          symbol,
+          source: "REDDIT",
+          title: `[comment] ${title}`,
+          body: commentText.slice(0, 2000),
+          url: `https://reddit.com${permalink}`,
+          author,
+          upvotes: ups,
+          commentCount: num_comments,
+          subreddit: sub,
+          postAge: postAgeHours,
+          sortType: "comment",
         });
       }
     }
@@ -166,7 +224,7 @@ export async function fetchRedditSignals(): Promise<RawSignal[]> {
     } catch (err) {
       console.warn(`Reddit ${task.name}/${task.sort} error:`, err);
     }
-    await sleep(1500);
+    await sleep(2000);
   }
 
   console.log(`Reddit: fetched ${signals.length} raw signals`);
