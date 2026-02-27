@@ -17,12 +17,12 @@ export function StageTabs({
   counts?: Record<string, number>;
 }) {
   return (
-    <div className="flex gap-1 rounded-lg bg-gray-100 p-1">
+    <div className="flex gap-1 overflow-x-auto rounded-lg bg-gray-100 p-1">
       {stages.map((stage) => (
         <button
           key={stage.key}
           onClick={() => onSelect(stage.key)}
-          className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+          className={`shrink-0 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
             selected === stage.key
               ? "bg-white text-gray-900 shadow-sm"
               : "text-gray-600 hover:text-gray-900"
