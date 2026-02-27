@@ -54,6 +54,30 @@ export const MEGA_CAPS = new Set([
   "SPY", "QQQ", "BRK", "JPM", "V", "MA", "UNH", "JNJ", "WMT", "PG",
 ]);
 
+// S&P 100 + popular ETFs and market movers (~110 liquid tickers)
+// Shared by volume-spike and options-flow sources
+export const SCAN_SYMBOLS = [
+  // Mega-cap tech
+  "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "AVGO", "ORCL", "ADBE",
+  "CRM", "AMD", "INTC", "CSCO", "QCOM", "TXN", "IBM", "NOW", "INTU", "AMAT",
+  // Financials
+  "JPM", "BAC", "WFC", "GS", "MS", "C", "BLK", "SCHW", "AXP", "USB",
+  // Healthcare
+  "UNH", "JNJ", "PFE", "ABBV", "MRK", "LLY", "TMO", "ABT", "BMY", "AMGN",
+  // Consumer
+  "WMT", "HD", "MCD", "NKE", "SBUX", "TGT", "COST", "LOW", "DIS", "NFLX",
+  // Energy
+  "XOM", "CVX", "COP", "SLB", "EOG", "OXY", "MPC", "PSX", "VLO", "HAL",
+  // Industrials
+  "CAT", "BA", "HON", "UPS", "GE", "RTX", "LMT", "DE", "MMM", "UNP",
+  // Other large caps
+  "V", "MA", "PYPL", "BRK-B", "T", "VZ", "CMCSA", "PEP", "KO", "PM",
+  // Popular ETFs
+  "SPY", "QQQ", "IWM", "DIA", "XLF", "XLE", "XLK", "XLV", "XLI", "ARKK",
+  // Meme / retail favorites
+  "GME", "AMC", "PLTR", "SOFI", "RIVN", "LCID", "NIO", "SNAP", "COIN", "HOOD",
+];
+
 export function extractTickers(text: string): string[] {
   const matches = text.match(TICKER_REGEX) || [];
   return [...new Set(matches.filter((t) => !BLACKLIST.has(t) && !MEGA_CAPS.has(t) && t.length >= 2))];
