@@ -1,14 +1,16 @@
 import { chatJSON } from "@/lib/ai";
-import type { AggregatedSymbol, AiScoreResult, FundamentalData } from "./types";
+import type { AggregatedSymbol, AiScoreResult, FundamentalData, NoveltyContext } from "./types";
 
 export async function scoreSymbolBatch(
   symbols: AggregatedSymbol[],
-  fundamentalsMap?: Map<string, FundamentalData>
+  fundamentalsMap?: Map<string, FundamentalData>,
+  noveltyMap?: Map<string, NoveltyContext>
 ): Promise<AiScoreResult[]> {
   if (symbols.length === 0) return [];
 
   const symbolSummaries = symbols.map((s) => {
     const fundamentals = fundamentalsMap?.get(s.symbol);
+    const novelty = noveltyMap?.get(s.symbol);
     return {
       symbol: s.symbol,
       sourceCount: s.sourceCount,
@@ -31,6 +33,13 @@ export async function scoreSymbolBatch(
             fiftyTwoWeekRange: fundamentals.fiftyTwoWeekRange,
           }
         : {}),
+      ...(novelty
+        ? {
+            isNovel: novelty.isNovel,
+            daysSinceFirstSeen: novelty.daysSinceFirstSeen,
+            priorAppearances: novelty.priorAppearances,
+          }
+        : {}),
     };
   });
 
@@ -51,7 +60,7 @@ HARD RULES:
 Scoring guidance:
 - 80-100: Real catalyst + multi-source corroboration + insider/options confirmation
 - 60-79: Real catalyst + at least 2 sources, or strong insider/options signal alone
-- 40-59: Social buzz with some catalyst indicators but not confirmed — high velocity + strong engagement can push toward 55-59
+- 40-49: Social buzz with some catalyst indicators but not confirmed — high velocity + strong engagement can push toward 45-49 but NEVER above 50 without a verifiable catalyst
 - 20-39: Social-only signal, no verifiable catalyst
 - 0-19: Likely noise or pump attempt
 
@@ -62,27 +71,33 @@ Also consider:
 - Pre-consensus (first appearance) vs already widely discussed
 - avgVelocity measures signal momentum: 3 = trending/rising, 2 = very fresh (<3h), 1 = recent (<12h), 0.5 = older.
   High velocity (≥2.0) with multiple mentions = potential early breakout. Weight this as a positive signal.
-- A high-velocity social signal with real engagement (high upvotes, comments) deserves 50-59 even without a confirmed catalyst — it may be the FIRST signal before institutional confirmation arrives.
+- A high-velocity social signal with real engagement (high upvotes, comments) can reach 45-49 without a confirmed catalyst — it may be the FIRST signal before institutional confirmation arrives, but social alone NEVER exceeds 50.
+
+Signal novelty (check isNovel, daysSinceFirstSeen, priorAppearances fields):
+- Novel tickers (first appearance, isNovel=true): apply +5 to +10 boost — potential early signals before consensus.
+- 1-2 prior appearances in last few days: no penalty, signal is still forming.
+- 3+ appearances or 7+ days old: apply -5 to -15 staleness penalty — signal may be played out.
+- Exception: a stale ticker with a NEW catalyst type (e.g. insider buy appearing for first time on a previously social-only ticker) should NOT be penalized.
 
 Return JSON: { "scores": [{ "symbol": "X", "score": 0-100, "sentiment": "bullish|bearish|neutral", "reasoning": "brief — state confidence level and what the score is based on" }] }`,
       userMessage: JSON.stringify(symbolSummaries),
     });
 
     const parsed = JSON.parse(response.content) as { scores: AiScoreResult[] };
-    return parsed.scores || symbols.map(defaultScore);
+    return parsed.scores || symbols.map((s) => defaultScore(s, noveltyMap?.get(s.symbol)));
   } catch (err) {
     console.error("AI scoring error:", err);
-    return symbols.map(defaultScore);
+    return symbols.map((s) => defaultScore(s, noveltyMap?.get(s.symbol)));
   }
 }
 
-function defaultScore(s: AggregatedSymbol): AiScoreResult {
+function defaultScore(s: AggregatedSymbol, novelty?: NoveltyContext): AiScoreResult {
   const sources = new Set(s.signals.map((sig) => sig.source));
   const hasInsider = sources.has("SEC_INSIDER");
   const hasOptions = sources.has("OPTIONS_FLOW");
   const hasCatalystSource = hasInsider || hasOptions;
 
-  // Insider/options signals get a strong base; pure social caps at 55
+  // Insider/options signals get a strong base; pure social caps at 50
   let base: number;
   if (hasCatalystSource && s.sourceCount >= 3) {
     base = 65; // multi-source with real catalyst
@@ -96,7 +111,17 @@ function defaultScore(s: AggregatedSymbol): AiScoreResult {
 
   const engagement = Math.min(Math.log2(s.totalUpvotes + s.totalComments + 1) * 1.5, 10);
   const velocityBoost = Math.min(s.avgVelocity * 3, 10);
-  const score = Math.min(Math.round(base + engagement + velocityBoost), hasCatalystSource ? 100 : 55);
+
+  // Novelty adjustment: +5 for novel, -10 for stale
+  let noveltyAdj = 0;
+  if (novelty?.isNovel) {
+    noveltyAdj = 5;
+  } else if (novelty && (novelty.priorAppearances >= 3 || (novelty.daysSinceFirstSeen != null && novelty.daysSinceFirstSeen >= 7))) {
+    noveltyAdj = -10;
+  }
+
+  const raw = base + engagement + velocityBoost + noveltyAdj;
+  const score = Math.min(Math.round(raw), hasCatalystSource ? 100 : 50);
 
   return {
     symbol: s.symbol,
