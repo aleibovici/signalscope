@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useScans, useScanDetail, type ValidatedTickerData } from "@/hooks/use-scans";
+import { useScrollRestore } from "@/hooks/use-scroll-restore";
 import { ScanSelector } from "@/components/dashboard/scan-selector";
 import { StageTabs } from "@/components/dashboard/stage-tabs";
 import { SignalCard } from "@/components/dashboard/signal-card";
@@ -15,6 +16,8 @@ export default function DashboardPage() {
     symbol: string;
     price: number;
   } | null>(null);
+
+  useScrollRestore("dashboard");
 
   const { data: scansData } = useScans(1, 1);
   const { data: scanDetail, isLoading } = useScanDetail(selectedScanId);
