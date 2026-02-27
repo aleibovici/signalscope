@@ -134,15 +134,16 @@ function determineStage(
   weightedSourceScore: number,
   avgVelocity: number,
   pndFlagged: boolean,
+  hasNonSocialSource: boolean,
   novelty?: NoveltyContext
 ): "EARLY" | "FORMING" | "CONFIRMED" | "FILTERED" {
   if (pndFlagged) return "FILTERED";
 
   const effectiveScore = novelty?.isNovel ? aiScore + 5 : aiScore;
 
-  if (effectiveScore >= 70 && sourceCount >= 3) return "CONFIRMED";
-  if (effectiveScore >= 65 && weightedSourceScore >= 4) return "CONFIRMED";
-  if (effectiveScore >= 65 && sourceCount >= 2 && avgVelocity >= 2.0) return "CONFIRMED";
+  if (hasNonSocialSource && effectiveScore >= 70 && sourceCount >= 3) return "CONFIRMED";
+  if (hasNonSocialSource && effectiveScore >= 65 && weightedSourceScore >= 4) return "CONFIRMED";
+  if (hasNonSocialSource && effectiveScore >= 65 && sourceCount >= 2 && avgVelocity >= 2.0) return "CONFIRMED";
   if (effectiveScore >= 50 && sourceCount >= 2) return "FORMING";
   if (effectiveScore >= 45 && avgVelocity >= 2.0) return "FORMING";
 
@@ -302,7 +303,9 @@ export async function orchestrateScan(): Promise<string> {
       const score = aiScore?.score ?? 30;
       const sentiment = aiScore?.sentiment ?? "neutral";
       const novelty = noveltyMap.get(agg.symbol);
-      const stage = determineStage(score, agg.sourceCount, agg.weightedSourceScore, agg.avgVelocity, finalPndFlagged, novelty);
+      const sources = new Set(agg.signals.map((s) => s.source));
+      const hasNonSocialSource = sources.has("SEC_INSIDER") || sources.has("OPTIONS_FLOW") || sources.has("VOLUME_SPIKE");
+      const stage = determineStage(score, agg.sourceCount, agg.weightedSourceScore, agg.avgVelocity, finalPndFlagged, hasNonSocialSource, novelty);
 
       const signalType = classifySignalType(agg);
 
