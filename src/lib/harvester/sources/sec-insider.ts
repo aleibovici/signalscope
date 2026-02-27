@@ -156,7 +156,7 @@ async function fetchFromEdgarRss(): Promise<RawSignal[]> {
       "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=4&dateb=&owner=include&count=40&search_text=&action=getcurrent&output=atom",
       {
         headers: { "User-Agent": "SignalScope admin@signalscope.dev" },
-        signal: AbortSignal.timeout(10000),
+        signal: AbortSignal.timeout(30000),
       }
     );
 

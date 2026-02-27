@@ -92,17 +92,22 @@ interface RedditPost {
   };
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 async function fetchSubreddit(
   subreddit: string,
   sort: "new" | "rising",
   limit: number
 ): Promise<RawSignal[]> {
-  const url = `https://www.reddit.com/r/${subreddit}/${sort}.json?limit=${limit}`;
+  const url = `https://old.reddit.com/r/${subreddit}/${sort}.json?limit=${limit}`;
 
   try {
     const res = await fetch(url, {
-      headers: { "User-Agent": "SignalScope/1.0" },
-      signal: AbortSignal.timeout(10000),
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+      },
+      signal: AbortSignal.timeout(15000),
     });
 
     if (!res.ok) {
@@ -147,17 +152,21 @@ async function fetchSubreddit(
 }
 
 export async function fetchRedditSignals(): Promise<RawSignal[]> {
-  const promises = SUBREDDIT_CONFIG.flatMap((config) =>
-    config.sorts.map((sort) => fetchSubreddit(config.name, sort.type, sort.limit))
+  const tasks = SUBREDDIT_CONFIG.flatMap((config) =>
+    config.sorts.map((sort) => ({ name: config.name, sort: sort.type as "new" | "rising", limit: sort.limit }))
   );
 
-  const results = await Promise.allSettled(promises);
   const signals: RawSignal[] = [];
 
-  for (const result of results) {
-    if (result.status === "fulfilled") {
-      signals.push(...result.value);
+  // Sequential with delay to avoid Reddit rate limiting from cloud IPs
+  for (const task of tasks) {
+    try {
+      const result = await fetchSubreddit(task.name, task.sort, task.limit);
+      signals.push(...result);
+    } catch (err) {
+      console.warn(`Reddit ${task.name}/${task.sort} error:`, err);
     }
+    await sleep(1500);
   }
 
   console.log(`Reddit: fetched ${signals.length} raw signals`);
