@@ -1,13 +1,13 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useTickerDetail } from "@/hooks/use-scans";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import Link from "next/link";
 
 export default function TickerDetailPage() {
+  const router = useRouter();
   const { symbol } = useParams<{ symbol: string }>();
   const { data, isLoading, error } = useTickerDetail(symbol);
 
@@ -32,12 +32,13 @@ export default function TickerDetailPage() {
   return (
     <div className="space-y-4 md:space-y-6">
       <div className="flex flex-wrap items-center gap-2 md:gap-4">
-        <Link
-          href="/dashboard"
+        <button
+          onClick={() => router.back()}
           className="text-sm text-blue-600 hover:underline"
+          type="button"
         >
           &larr; Back
-        </Link>
+        </button>
         <h1 className="text-xl font-bold md:text-2xl">{ticker.symbol}</h1>
         <Badge variant={ticker.stage === "CONFIRMED" ? "success" : ticker.stage === "FORMING" ? "warning" : "info"}>
           {ticker.stage}
