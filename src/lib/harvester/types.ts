@@ -76,6 +76,14 @@ export interface NoveltyContext {
   isNovel: boolean;
 }
 
+export interface MomentumBreakdown {
+  risingCount: number;
+  freshCount: number;       // postAge < 3h
+  recentCount: number;      // postAge 3-12h
+  commentDerivedCount: number;
+  staleCount: number;       // postAge > 12h
+}
+
 export interface AggregatedSymbol {
   symbol: string;
   signals: RawSignal[];
@@ -85,4 +93,5 @@ export interface AggregatedSymbol {
   totalUpvotes: number;
   totalComments: number;
   avgVelocity: number;
+  momentum: MomentumBreakdown;
 }
