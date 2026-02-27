@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { QueryProvider } from "@/lib/query-provider";
 import { AuthSessionProvider } from "@/lib/session-provider";
@@ -14,9 +14,25 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#ffffff",
+};
+
 export const metadata: Metadata = {
   title: "SignalScope",
   description: "Stock breakout detection — find breakout candidates before market consensus",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "SignalScope",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export default function RootLayout({

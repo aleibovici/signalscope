@@ -12,8 +12,8 @@ export default function HistoryPage() {
   const { data, isLoading } = useScans(page, 20);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Scan History</h1>
+    <div className="space-y-4 md:space-y-6">
+      <h1 className="text-xl font-bold text-gray-900 md:text-2xl">Scan History</h1>
 
       {isLoading ? (
         <div className="flex justify-center py-12">
@@ -25,7 +25,7 @@ export default function HistoryPage() {
             {(data?.scans || []).map((scan: ScanSummary) => (
               <Link key={scan.id} href={`/dashboard?scanId=${scan.id}`}>
                 <Card className="transition-shadow hover:shadow-md">
-                  <CardContent className="flex items-center justify-between">
+                  <CardContent className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="font-medium text-gray-900">
                         {new Date(scan.startedAt).toLocaleString()}
