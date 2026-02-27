@@ -65,6 +65,7 @@ export interface AggregatedSymbol {
   symbol: string;
   signals: RawSignal[];
   sourceCount: number;
+  subredditCount: number;
   totalUpvotes: number;
   totalComments: number;
   avgVelocity: number;
