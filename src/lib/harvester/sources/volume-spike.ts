@@ -1,27 +1,5 @@
 import type { RawSignal } from "../types";
-
-// S&P 100 + popular ETFs and market movers (~110 liquid tickers)
-const SCAN_SYMBOLS = [
-  // Mega-cap tech
-  "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "AVGO", "ORCL", "ADBE",
-  "CRM", "AMD", "INTC", "CSCO", "QCOM", "TXN", "IBM", "NOW", "INTU", "AMAT",
-  // Financials
-  "JPM", "BAC", "WFC", "GS", "MS", "C", "BLK", "SCHW", "AXP", "USB",
-  // Healthcare
-  "UNH", "JNJ", "PFE", "ABBV", "MRK", "LLY", "TMO", "ABT", "BMY", "AMGN",
-  // Consumer
-  "WMT", "HD", "MCD", "NKE", "SBUX", "TGT", "COST", "LOW", "DIS", "NFLX",
-  // Energy
-  "XOM", "CVX", "COP", "SLB", "EOG", "OXY", "MPC", "PSX", "VLO", "HAL",
-  // Industrials
-  "CAT", "BA", "HON", "UPS", "GE", "RTX", "LMT", "DE", "MMM", "UNP",
-  // Other large caps
-  "V", "MA", "PYPL", "BRK-B", "T", "VZ", "CMCSA", "PEP", "KO", "PM",
-  // Popular ETFs
-  "SPY", "QQQ", "IWM", "DIA", "XLF", "XLE", "XLK", "XLV", "XLI", "ARKK",
-  // Meme / retail favorites
-  "GME", "AMC", "PLTR", "SOFI", "RIVN", "LCID", "NIO", "SNAP", "COIN", "HOOD",
-];
+import { SCAN_SYMBOLS } from "./ticker-utils";
 
 const VOLUME_SPIKE_THRESHOLD = 2.0;
 
