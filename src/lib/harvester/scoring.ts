@@ -51,7 +51,7 @@ HARD RULES:
 Scoring guidance:
 - 80-100: Real catalyst + multi-source corroboration + insider/options confirmation
 - 60-79: Real catalyst + at least 2 sources, or strong insider/options signal alone
-- 40-59: Social buzz with some catalyst indicators but not confirmed
+- 40-59: Social buzz with some catalyst indicators but not confirmed — high velocity + strong engagement can push toward 55-59
 - 20-39: Social-only signal, no verifiable catalyst
 - 0-19: Likely noise or pump attempt
 
@@ -60,6 +60,9 @@ Also consider:
 - Price relative to 52-week range
 - Exchange quality — NYSE/NASDAQ preferred over OTC
 - Pre-consensus (first appearance) vs already widely discussed
+- avgVelocity measures signal momentum: 3 = trending/rising, 2 = very fresh (<3h), 1 = recent (<12h), 0.5 = older.
+  High velocity (≥2.0) with multiple mentions = potential early breakout. Weight this as a positive signal.
+- A high-velocity social signal with real engagement (high upvotes, comments) deserves 50-59 even without a confirmed catalyst — it may be the FIRST signal before institutional confirmation arrives.
 
 Return JSON: { "scores": [{ "symbol": "X", "score": 0-100, "sentiment": "bullish|bearish|neutral", "reasoning": "brief — state confidence level and what the score is based on" }] }`,
       userMessage: JSON.stringify(symbolSummaries),
@@ -79,7 +82,7 @@ function defaultScore(s: AggregatedSymbol): AiScoreResult {
   const hasOptions = sources.has("OPTIONS_FLOW");
   const hasCatalystSource = hasInsider || hasOptions;
 
-  // Insider/options signals get a strong base; pure social caps at 45
+  // Insider/options signals get a strong base; pure social caps at 55
   let base: number;
   if (hasCatalystSource && s.sourceCount >= 3) {
     base = 65; // multi-source with real catalyst
@@ -88,11 +91,12 @@ function defaultScore(s: AggregatedSymbol): AiScoreResult {
   } else if (hasOptions) {
     base = 50; // unusual options alone
   } else {
-    base = Math.min(s.sourceCount * 15, 35); // social-only, capped low
+    base = Math.min(s.sourceCount * 15, 40); // social-only, capped low
   }
 
-  const engagement = Math.min((s.totalUpvotes + s.totalComments) / 200, 10);
-  const score = Math.min(Math.round(base + engagement), hasCatalystSource ? 100 : 45);
+  const engagement = Math.min(Math.log2(s.totalUpvotes + s.totalComments + 1) * 1.5, 10);
+  const velocityBoost = Math.min(s.avgVelocity * 3, 10);
+  const score = Math.min(Math.round(base + engagement + velocityBoost), hasCatalystSource ? 100 : 55);
 
   return {
     symbol: s.symbol,
