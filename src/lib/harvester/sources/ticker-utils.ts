@@ -11,8 +11,17 @@ export const BLACKLIST = new Set([
   "EPS", "GDP", "CPI", "ATH", "ATL", "OTC", "NYSE", "NASDAQ",
   "USD", "EUR", "GBP", "JPY",
   "NFA", "DCA", "ROI", "DCF", "VWAP", "PCE", "YTD", "ITM", "OTM", "ATM",
-  "QQQ", "SPX", "SPY", "DJI", "VIX", "APY", "CFO", "CTO", "COO", "CMO",
+  "SPX", "DJI", "VIX", "APY", "CFO", "CTO", "COO", "CMO",
   "CFD", "NAV", "AUM", "RFP", "EOD", "REIT", "SPAC",
+  // ETFs — not candidates for breakout detection
+  "SPY", "QQQ", "IWM", "DIA", "MDY", "IJR", "VTI", "VOO", "VEA", "VWO",
+  "EEM", "EFA", "GLD", "SLV", "GDX", "GDXJ", "TLT", "IEF", "SHY", "LQD",
+  "HYG", "JNK", "XLF", "XLE", "XLK", "XLV", "XLI", "XLY", "XLP", "XLU",
+  "XLB", "XLRE", "XLC", "ARKK", "ARKG", "ARKW", "ARKF", "ARKQ", "ARKX",
+  "SOXL", "SOXS", "TQQQ", "SQQQ", "SPXL", "SPXS", "UVXY", "SVXY",
+  "IAU", "SLV", "USO", "UNG", "PDBC", "DBC", "FXI", "KWEB", "MCHI",
+  "RSP", "QQQM", "SCHD", "VIG", "DGRO", "DVY", "SDY", "VYM", "HDV",
+  "IEMG", "ACWI", "URTH", "VXUS", "BND", "AGG", "BNDX", "EMB", "MUB",
   // Reddit/internet slang
   "WSB", "HODL", "TLDR", "LMAO", "ROFL", "IMHO", "AFAIK", "NSFW", "TIL",
   "PSA", "IIRC", "FYI", "AMA",
@@ -51,11 +60,11 @@ export const BLACKLIST = new Set([
 
 export const MEGA_CAPS = new Set([
   "AAPL", "MSFT", "GOOG", "GOOGL", "AMZN", "META", "TSLA", "NVDA",
-  "SPY", "QQQ", "BRK", "JPM", "V", "MA", "UNH", "JNJ", "WMT", "PG",
+  "BRK", "JPM", "V", "MA", "UNH", "JNJ", "WMT", "PG",
 ]);
 
-// S&P 100 + popular ETFs and market movers (~110 liquid tickers)
-// Shared by volume-spike and options-flow sources
+// S&P 100 and high-liquidity individual stocks for volume-spike scanning
+// ETFs are excluded — volume spikes on ETFs don't indicate individual stock breakouts
 export const SCAN_SYMBOLS = [
   // Mega-cap tech
   "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "AVGO", "ORCL", "ADBE",
@@ -72,8 +81,6 @@ export const SCAN_SYMBOLS = [
   "CAT", "BA", "HON", "UPS", "GE", "RTX", "LMT", "DE", "MMM", "UNP",
   // Other large caps
   "V", "MA", "PYPL", "BRK-B", "T", "VZ", "CMCSA", "PEP", "KO", "PM",
-  // Popular ETFs
-  "SPY", "QQQ", "IWM", "DIA", "XLF", "XLE", "XLK", "XLV", "XLI", "ARKK",
   // Meme / retail favorites
   "GME", "AMC", "PLTR", "SOFI", "RIVN", "LCID", "NIO", "SNAP", "COIN", "HOOD",
 ];
