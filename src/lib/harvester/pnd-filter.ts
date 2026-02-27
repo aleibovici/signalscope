@@ -120,6 +120,36 @@ export function checkPndFlags(
     flags.push("new_account_promoters");
   }
 
+  // 10. Twitter bot promoters: ≥2 Twitter signals, ≥50% from accounts <90 days old AND <50 followers
+  const twitterSignals = agg.signals.filter((s) => s.source === "TWITTER");
+  if (twitterSignals.length >= 2) {
+    const botLike = twitterSignals.filter(
+      (s) =>
+        s.authorAge !== undefined && s.authorAge < 90 &&
+        s.followerCount !== undefined && s.followerCount < 50
+    );
+    if (botLike.length >= twitterSignals.length * 0.5) {
+      flags.push("twitter_bot_promoters");
+    }
+  }
+
+  // 11. Twitter coordinated pump: ≥3 Twitter signals, ≥40% with near-identical text (first 100 chars)
+  if (twitterSignals.length >= 3) {
+    const prefixes = twitterSignals
+      .filter((s) => s.body)
+      .map((s) => s.body!.slice(0, 100).toLowerCase().trim());
+    if (prefixes.length >= 3) {
+      const prefixCounts = new Map<string, number>();
+      for (const p of prefixes) {
+        prefixCounts.set(p, (prefixCounts.get(p) || 0) + 1);
+      }
+      const maxDupes = Math.max(...prefixCounts.values());
+      if (maxDupes >= prefixes.length * 0.4) {
+        flags.push("twitter_coordinated_pump");
+      }
+    }
+  }
+
   return {
     flagged: flags.length >= PND_THRESHOLD,
     flags,

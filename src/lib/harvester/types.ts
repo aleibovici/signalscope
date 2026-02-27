@@ -1,4 +1,4 @@
-export type Source = "REDDIT" | "STOCKTWITS" | "SEC_INSIDER" | "OPTIONS_FLOW" | "VOLUME_SPIKE";
+export type Source = "REDDIT" | "STOCKTWITS" | "SEC_INSIDER" | "OPTIONS_FLOW" | "VOLUME_SPIKE" | "TWITTER";
 
 export interface RawSignal {
   symbol: string;
@@ -22,6 +22,14 @@ export interface RawSignal {
   openInterest?: number;    // open interest
   volOiRatio?: number;      // volume / open interest ratio
   volumeRatio?: number;     // current volume / 10-day avg volume
+  // X/Twitter-specific fields
+  retweetCount?: number;
+  likeCount?: number;
+  replyCount?: number;
+  quoteCount?: number;
+  followerCount?: number;
+  isVerified?: boolean;
+  tweetType?: string;       // "cashtag" | "keyword"
 }
 
 export interface ScoredSignal extends RawSignal {
@@ -45,7 +53,7 @@ export interface FundamentalData {
   exchange?: string;
 }
 
-export type SignalType = "insider_buy" | "options_flow" | "multi_source" | "reddit_velocity";
+export type SignalType = "insider_buy" | "options_flow" | "multi_source" | "reddit_velocity" | "twitter_velocity";
 
 export interface AiScoreResult {
   symbol: string;

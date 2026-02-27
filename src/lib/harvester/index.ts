@@ -6,6 +6,7 @@ import { fetchStockTwitsSignals } from "./sources/stocktwits";
 import { fetchSecInsiderSignals } from "./sources/sec-insider";
 import { fetchOptionsFlowSignals } from "./sources/options-flow";
 import { fetchVolumeSpikeSignals } from "./sources/volume-spike";
+import { fetchTwitterSignals } from "./sources/twitter";
 import { scoreSymbolBatch } from "./scoring";
 import { checkPndFlags, aiPndAssessment } from "./pnd-filter";
 import { fetchFundamentals } from "./fundamentals";
@@ -16,6 +17,7 @@ const SOURCE_WEIGHTS: Record<string, number> = {
   SEC_INSIDER: 3,
   OPTIONS_FLOW: 2.5,
   VOLUME_SPIKE: 2,
+  TWITTER: 1.2,
   REDDIT: 1,
   STOCKTWITS: 1,
 };
@@ -80,12 +82,13 @@ function classifySignalType(agg: AggregatedSymbol): SignalType {
   const sources = new Set(agg.signals.map((s) => s.source));
   const hasReddit = sources.has("REDDIT");
   const hasStockTwits = sources.has("STOCKTWITS");
+  const hasTwitter = sources.has("TWITTER");
   const hasInsider = sources.has("SEC_INSIDER");
   const hasOptions = sources.has("OPTIONS_FLOW");
   const hasVolume = sources.has("VOLUME_SPIKE");
 
-  // Multi-source: Reddit + StockTwits + at least one of insider/options/volume
-  if ((hasReddit || hasStockTwits) && (hasInsider || hasOptions || hasVolume) && sources.size >= 3) {
+  // Multi-source: social (Reddit/StockTwits/Twitter) + at least one of insider/options/volume
+  if ((hasReddit || hasStockTwits || hasTwitter) && (hasInsider || hasOptions || hasVolume) && sources.size >= 3) {
     return "multi_source";
   }
 
@@ -97,6 +100,11 @@ function classifySignalType(agg: AggregatedSymbol): SignalType {
   // Options flow: unusual call sweep/volume
   if (hasOptions) {
     return "options_flow";
+  }
+
+  // Twitter velocity: Twitter-only signals
+  if (hasTwitter && !hasReddit && !hasStockTwits) {
+    return "twitter_velocity";
   }
 
   // Reddit velocity: Reddit-only but with strong velocity
@@ -137,13 +145,14 @@ export async function orchestrateScan(): Promise<string> {
   try {
     // 2. Fetch signals in parallel from all sources
     console.log("Fetching signals from all sources...");
-    const [reddit, stocktwits, secInsider, optionsFlow, volumeSpike] =
+    const [reddit, stocktwits, secInsider, optionsFlow, volumeSpike, twitter] =
       await Promise.allSettled([
         fetchRedditSignals(),
         fetchStockTwitsSignals(),
         fetchSecInsiderSignals(),
         fetchOptionsFlowSignals(),
         fetchVolumeSpikeSignals(),
+        fetchTwitterSignals(),
       ]);
 
     const allSignals: RawSignal[] = [
@@ -152,6 +161,7 @@ export async function orchestrateScan(): Promise<string> {
       ...(secInsider.status === "fulfilled" ? secInsider.value : []),
       ...(optionsFlow.status === "fulfilled" ? optionsFlow.value : []),
       ...(volumeSpike.status === "fulfilled" ? volumeSpike.value : []),
+      ...(twitter.status === "fulfilled" ? twitter.value : []),
     ];
 
     console.log(`Total raw signals: ${allSignals.length}`);

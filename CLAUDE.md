@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What is SignalScope
 
-SignalScope is a stock breakout signal detection platform. It harvests signals from multiple sources (Reddit, StockTwits, SEC insider filings, options flow, volume spikes), scores them with AI, filters pump-and-dump candidates, and presents validated tickers in a dashboard with portfolio tracking.
+SignalScope is a stock breakout signal detection platform. It harvests signals from multiple sources (Reddit, X/Twitter, StockTwits, SEC insider filings, options flow, volume spikes), scores them with AI, filters pump-and-dump candidates, and presents validated tickers in a dashboard with portfolio tracking.
 
 ## Commands
 
@@ -45,12 +45,13 @@ docker compose -f docker-compose.harvest.yml --env-file .env.production run --rm
 ### Signal Harvesting Pipeline (`src/lib/harvester/`)
 
 ```
-Sources (5 in parallel) → Aggregate by symbol → Fetch fundamentals (Yahoo Finance)
-→ AI Scoring → P&D Filter (9 flags + AI edge-case assessment) → Report Generation → DB
+Sources (6 in parallel) → Aggregate by symbol → Fetch fundamentals (Yahoo Finance)
+→ AI Scoring → P&D Filter (11 flags + AI edge-case assessment) → Report Generation → DB
 ```
 
 - `index.ts` — `orchestrateScan()` main orchestrator
-- `sources/` — reddit, stocktwits (disabled), sec-insider, options-flow (disabled), volume-spike
+- `sources/` — reddit, twitter, stocktwits (disabled), sec-insider, options-flow (disabled), volume-spike
+- `sources/ticker-utils.ts` — Shared ticker regex, blacklist, mega-caps, extraction functions
 - `scoring.ts` — AI batch scoring with hard-rule overrides
 - `pnd-filter.ts` — Pump & dump detection (statistical flags + AI fallback)
 - `fundamentals.ts` — Yahoo Finance v8 for price/market cap
@@ -112,6 +113,10 @@ OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 AUTH_SECRET=<openssl rand -base64 32>
 
+# Optional: X/Twitter API (skipped if not set, ~$9/day at 6 runs/day)
+X_BEARER_TOKEN=...
+X_MAX_TWEETS_PER_RUN=300
+
 # Optional: mirror harvest writes to local dev DB
 DATABASE_URL_DEV=postgresql://postgres:postgres@host.docker.internal:5432/signalscope
 
@@ -157,6 +162,7 @@ tail -f /tmp/signalscope-harvest.log
 | Source | Status | Notes |
 |--------|--------|-------|
 | Reddit | Active | Uses `old.reddit.com` JSON, sequential with 1.5s delay, browser UA |
+| X/Twitter | Active | X API v2 Recent Search (api.x.com), single keyword query, 1 req/15min on pay-per-use, requires `X_BEARER_TOKEN` |
 | SEC Insider | Active | OpenInsider HTML + EDGAR RSS, filters C-suite $50K+ purchases |
 | Volume Spike | Active | Yahoo Finance, 110 symbols, 2x avg volume threshold |
 | StockTwits | Disabled | Cloudflare blocks all direct access |
