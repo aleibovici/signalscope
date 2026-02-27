@@ -1,0 +1,14 @@
+services:
+  harvester:
+    build:
+      context: .
+      dockerfile: Dockerfile.harvester-local
+    environment:
+      DATABASE_URL: postgresql://signalscope:${DB_PASSWORD}@localhost:5432/signalscope
+      CLOUD_SQL_CONNECTION: ${GCP_PROJECT_ID}:${GCP_REGION}:signalscope-db
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      AI_PRIMARY_PROVIDER: openai
+    volumes:
+      - ${SA_KEY_PATH:-./sa-key.json}:/secrets/sa-key.json:ro
+    restart: "no"
