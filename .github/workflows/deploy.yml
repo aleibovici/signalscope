@@ -9,7 +9,6 @@ env:
   GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
   REPO_NAME: signalscope
   WEB_SERVICE: signalscope-web
-  HARVESTER_JOB: signalscope-harvester
 
 jobs:
   build-deploy:
@@ -40,20 +39,12 @@ jobs:
           SHA="${GITHUB_SHA::7}"
           echo "web=${IMAGE_BASE}/web:${SHA}" >> "$GITHUB_OUTPUT"
           echo "web_latest=${IMAGE_BASE}/web:latest" >> "$GITHUB_OUTPUT"
-          echo "harvester=${IMAGE_BASE}/harvester:${SHA}" >> "$GITHUB_OUTPUT"
-          echo "harvester_latest=${IMAGE_BASE}/harvester:latest" >> "$GITHUB_OUTPUT"
 
       - name: Build and push web image
         run: |
           docker build -t "${{ steps.tags.outputs.web }}" -t "${{ steps.tags.outputs.web_latest }}" -f Dockerfile .
           docker push "${{ steps.tags.outputs.web }}"
           docker push "${{ steps.tags.outputs.web_latest }}"
-
-      - name: Build and push harvester image
-        run: |
-          docker build -t "${{ steps.tags.outputs.harvester }}" -t "${{ steps.tags.outputs.harvester_latest }}" -f Dockerfile.harvester .
-          docker push "${{ steps.tags.outputs.harvester }}"
-          docker push "${{ steps.tags.outputs.harvester_latest }}"
 
       - name: Deploy web to Cloud Run
         run: |
@@ -70,20 +61,6 @@ jobs:
             --max-instances=3 \
             --cpu-boost \
             --allow-unauthenticated \
-            --quiet
-
-      - name: Update harvester Cloud Run Job
-        run: |
-          gcloud run jobs update "${HARVESTER_JOB}" \
-            --image="${{ steps.tags.outputs.harvester }}" \
-            --region="${GCP_REGION}" \
-            --set-cloudsql-instances="${GCP_PROJECT_ID}:${GCP_REGION}:signalscope-db" \
-            --set-secrets="DATABASE_URL=DATABASE_URL:latest,AUTH_SECRET=AUTH_SECRET:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest" \
-            --set-env-vars="NODE_ENV=production,AI_PRIMARY_PROVIDER=openai" \
-            --memory=512Mi \
-            --cpu=1 \
-            --task-timeout=15m \
-            --max-retries=1 \
             --quiet
 
       - name: Show deployed URL
