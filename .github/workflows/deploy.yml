@@ -1,0 +1,93 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches: [main]
+
+env:
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+  REPO_NAME: signalscope
+  WEB_SERVICE: signalscope-web
+  HARVESTER_JOB: signalscope-harvester
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write  # Required for Workload Identity Federation
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker "${{ env.GCP_REGION }}-docker.pkg.dev" --quiet
+
+      - name: Set image tags
+        id: tags
+        run: |
+          IMAGE_BASE="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${REPO_NAME}"
+          SHA="${GITHUB_SHA::7}"
+          echo "web=${IMAGE_BASE}/web:${SHA}" >> "$GITHUB_OUTPUT"
+          echo "web_latest=${IMAGE_BASE}/web:latest" >> "$GITHUB_OUTPUT"
+          echo "harvester=${IMAGE_BASE}/harvester:${SHA}" >> "$GITHUB_OUTPUT"
+          echo "harvester_latest=${IMAGE_BASE}/harvester:latest" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push web image
+        run: |
+          docker build -t "${{ steps.tags.outputs.web }}" -t "${{ steps.tags.outputs.web_latest }}" -f Dockerfile .
+          docker push "${{ steps.tags.outputs.web }}"
+          docker push "${{ steps.tags.outputs.web_latest }}"
+
+      - name: Build and push harvester image
+        run: |
+          docker build -t "${{ steps.tags.outputs.harvester }}" -t "${{ steps.tags.outputs.harvester_latest }}" -f Dockerfile.harvester .
+          docker push "${{ steps.tags.outputs.harvester }}"
+          docker push "${{ steps.tags.outputs.harvester_latest }}"
+
+      - name: Deploy web to Cloud Run
+        run: |
+          gcloud run deploy "${WEB_SERVICE}" \
+            --image="${{ steps.tags.outputs.web }}" \
+            --region="${GCP_REGION}" \
+            --add-cloudsql-instances="${GCP_PROJECT_ID}:${GCP_REGION}:signalscope-db" \
+            --set-secrets="DATABASE_URL=DATABASE_URL:latest,AUTH_SECRET=AUTH_SECRET:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest" \
+            --set-env-vars="NODE_ENV=production,AI_PRIMARY_PROVIDER=openai" \
+            --port=3000 \
+            --memory=512Mi \
+            --cpu=1 \
+            --min-instances=0 \
+            --max-instances=3 \
+            --cpu-boost \
+            --allow-unauthenticated \
+            --quiet
+
+      - name: Update harvester Cloud Run Job
+        run: |
+          gcloud run jobs update "${HARVESTER_JOB}" \
+            --image="${{ steps.tags.outputs.harvester }}" \
+            --region="${GCP_REGION}" \
+            --set-cloudsql-instances="${GCP_PROJECT_ID}:${GCP_REGION}:signalscope-db" \
+            --set-secrets="DATABASE_URL=DATABASE_URL:latest,AUTH_SECRET=AUTH_SECRET:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest" \
+            --set-env-vars="NODE_ENV=production,AI_PRIMARY_PROVIDER=openai" \
+            --memory=512Mi \
+            --cpu=1 \
+            --task-timeout=15m \
+            --max-retries=1 \
+            --quiet
+
+      - name: Show deployed URL
+        run: |
+          gcloud run services describe "${WEB_SERVICE}" \
+            --region="${GCP_REGION}" \
+            --format='value(status.url)'
