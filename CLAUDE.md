@@ -114,6 +114,40 @@ AI_PROVIDER_PND=anthropic
 AI_PROVIDER_REPORT=anthropic
 ```
 
+## GCP Deployment
+
+### Architecture
+
+- **Cloud Run** — web app (`signalscope-web`) serving Next.js standalone on port 3000
+- **Cloud SQL** — PostgreSQL 16 (`signalscope-db`, db-f1-micro), connected via Unix socket
+- **Cloud Run Jobs** — harvester (`signalscope-harvester`) triggered every 4h by Cloud Scheduler
+- **Secret Manager** — stores `DATABASE_URL`, `AUTH_SECRET`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`
+- **Artifact Registry** — Docker images (`signalscope` repo)
+- **GitHub Actions** — CI/CD on push to `main` (`.github/workflows/deploy.yml`)
+
+### Initial Setup
+
+```bash
+# Set required env vars, then run the provisioning script:
+export GCP_PROJECT_ID=your-project
+export DB_PASSWORD=$(openssl rand -base64 16)
+export AUTH_SECRET=$(openssl rand -base64 32)
+export OPENAI_API_KEY=sk-...
+export ANTHROPIC_API_KEY=sk-ant-...
+
+bash scripts/gcp-setup.sh
+```
+
+After setup, configure GitHub repo variables for CI/CD:
+- `GCP_PROJECT_ID`, `GCP_REGION` — repository variables
+- `WIF_PROVIDER`, `WIF_SERVICE_ACCOUNT` — Workload Identity Federation settings
+
+Then run Prisma migrations via Cloud SQL Auth Proxy and seed the database.
+
+### CI/CD
+
+Push to `main` → GitHub Actions builds both images, pushes to Artifact Registry, deploys web to Cloud Run, and updates the harvester job.
+
 ## Path Alias
 
 `@/*` maps to `./src/*`
