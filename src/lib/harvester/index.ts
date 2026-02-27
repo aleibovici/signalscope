@@ -12,6 +12,14 @@ import { fetchFundamentals } from "./fundamentals";
 import { generateTickerReport } from "./report";
 import { resetCostTracker, getTotalCost } from "@/lib/ai";
 
+const SOURCE_WEIGHTS: Record<string, number> = {
+  SEC_INSIDER: 3,
+  OPTIONS_FLOW: 2.5,
+  VOLUME_SPIKE: 2,
+  REDDIT: 1,
+  STOCKTWITS: 1,
+};
+
 function aggregateSignals(signals: RawSignal[]): AggregatedSymbol[] {
   const bySymbol = new Map<string, RawSignal[]>();
 
@@ -22,37 +30,49 @@ function aggregateSignals(signals: RawSignal[]): AggregatedSymbol[] {
   }
 
   return [...bySymbol.entries()]
-    .map(([symbol, sigs]) => ({
-      symbol,
-      signals: sigs,
-      sourceCount: new Set(sigs.map((s) => s.source)).size,
-      subredditCount: new Set(
-        sigs.filter((s) => s.source === "REDDIT" && s.subreddit).map((s) => s.subreddit)
-      ).size,
-      totalUpvotes: sigs.reduce((sum, s) => sum + (s.upvotes || 0), 0),
-      totalComments: sigs.reduce((sum, s) => sum + (s.commentCount || 0), 0),
-      avgVelocity: sigs.reduce((sum, s) => {
-        if (s.postAge != null && s.sortType) {
-          const sort = s.sortType as "new" | "rising";
-          if (sort === "rising") return sum + 3;
-          if (s.postAge < 3) return sum + 2;
-          if (s.postAge < 12) return sum + 1;
-          return sum + 0.5;
-        }
-        return sum;
-      }, 0) / (sigs.length || 1),
-    }))
+    .map(([symbol, sigs]) => {
+      const uniqueSources = [...new Set(sigs.map((s) => s.source))];
+      return {
+        symbol,
+        signals: sigs,
+        sourceCount: uniqueSources.length,
+        weightedSourceScore: uniqueSources.reduce(
+          (sum, src) => sum + (SOURCE_WEIGHTS[src] || 1),
+          0
+        ),
+        subredditCount: new Set(
+          sigs.filter((s) => s.source === "REDDIT" && s.subreddit).map((s) => s.subreddit)
+        ).size,
+        totalUpvotes: sigs.reduce((sum, s) => sum + (s.upvotes || 0), 0),
+        totalComments: sigs.reduce((sum, s) => sum + (s.commentCount || 0), 0),
+        avgVelocity: sigs.reduce((sum, s) => {
+          if (s.postAge != null && s.sortType) {
+            const sort = s.sortType as "new" | "rising";
+            if (sort === "rising") return sum + 3;
+            if (s.postAge < 3) return sum + 2;
+            if (s.postAge < 12) return sum + 1;
+            return sum + 0.5;
+          }
+          return sum;
+        }, 0) / (sigs.length || 1),
+      };
+    })
     .sort((a, b) => b.sourceCount - a.sourceCount || b.signals.length - a.signals.length);
 }
 
 function determineStage(
   aiScore: number,
   sourceCount: number,
+  weightedSourceScore: number,
+  avgVelocity: number,
   pndFlagged: boolean
 ): "EARLY" | "FORMING" | "CONFIRMED" | "FILTERED" {
   if (pndFlagged) return "FILTERED";
   if (aiScore >= 70 && sourceCount >= 3) return "CONFIRMED";
+  if (aiScore >= 65 && weightedSourceScore >= 4) return "CONFIRMED";
+  if (aiScore >= 65 && sourceCount >= 2 && avgVelocity >= 2.0) return "CONFIRMED";
   if (aiScore >= 50 && sourceCount >= 2) return "FORMING";
+  if (aiScore >= 45 && avgVelocity >= 2.0) return "FORMING";
   return "EARLY";
 }
 
@@ -189,7 +209,7 @@ export async function orchestrateScan(): Promise<string> {
       const aiScore = scoreMap.get(agg.symbol);
       const score = aiScore?.score ?? 30;
       const sentiment = aiScore?.sentiment ?? "neutral";
-      const stage = determineStage(score, agg.sourceCount, finalPndFlagged);
+      const stage = determineStage(score, agg.sourceCount, agg.weightedSourceScore, agg.avgVelocity, finalPndFlagged);
 
       const signalType = classifySignalType(agg);
 
