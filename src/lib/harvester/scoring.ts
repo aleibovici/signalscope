@@ -19,6 +19,7 @@ export async function scoreSymbolBatch(
       totalUpvotes: s.totalUpvotes,
       totalComments: s.totalComments,
       avgVelocity: s.avgVelocity,
+      momentum: s.momentum,
       sampleTitles: s.signals
         .slice(0, 3)
         .map((sig) => sig.title)
@@ -71,6 +72,9 @@ Also consider:
 - Pre-consensus (first appearance) vs already widely discussed
 - avgVelocity measures signal momentum: 3 = trending/rising, 2 = very fresh (<3h), 1 = recent (<12h), 0.5 = older.
   High velocity (≥2.0) with multiple mentions = potential early breakout. Weight this as a positive signal.
+- momentum breakdown (risingCount, freshCount, recentCount, commentDerivedCount, staleCount) shows the composition behind avgVelocity.
+  Multiple rising signals = strong trending evidence. commentDerivedCount > 0 means organic discussion (tickers mentioned in comments, not just post titles). High staleCount dilutes the signal.
+- subredditCount = number of unique subreddits mentioning the ticker. 3+ subreddits = broad consensus across communities (stronger signal, +3-5 boost). 1 subreddit = possible echo chamber (weaker).
 - A high-velocity social signal with real engagement (high upvotes, comments) can reach 45-49 without a confirmed catalyst — it may be the FIRST signal before institutional confirmation arrives, but social alone NEVER exceeds 50.
 
 Signal novelty (check isNovel, daysSinceFirstSeen, priorAppearances fields):

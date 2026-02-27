@@ -57,6 +57,19 @@ function aggregateSignals(signals: RawSignal[]): AggregatedSymbol[] {
           }
           return sum;
         }, 0) / (sigs.length || 1),
+        momentum: sigs.reduce(
+          (m, s) => {
+            if (s.postAge != null && s.sortType) {
+              if (s.sortType === "rising") m.risingCount++;
+              else if (s.sortType === "comment") m.commentDerivedCount++;
+              else if (s.postAge < 3) m.freshCount++;
+              else if (s.postAge < 12) m.recentCount++;
+              else m.staleCount++;
+            }
+            return m;
+          },
+          { risingCount: 0, freshCount: 0, recentCount: 0, commentDerivedCount: 0, staleCount: 0 }
+        ),
       };
     })
     .sort((a, b) => b.sourceCount - a.sourceCount || b.signals.length - a.signals.length);
