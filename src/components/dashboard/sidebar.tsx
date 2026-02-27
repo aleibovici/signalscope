@@ -68,7 +68,7 @@ export function Sidebar() {
       {open && (
         <div
           className="fixed inset-0 z-40 bg-black/50 md:hidden"
-          onClick={() => setOpen(false)}
+          onPointerDown={() => setOpen(false)}
           aria-hidden="true"
         />
       )}
@@ -129,8 +129,12 @@ export function Sidebar() {
             </div>
           )}
           <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            className="w-full rounded-md px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-100"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              signOut({ callbackUrl: "/login" });
+            }}
+            className="w-full cursor-pointer touch-manipulation rounded-md px-3 py-2.5 text-left text-sm text-gray-600 hover:bg-gray-100 active:bg-gray-200"
           >
             Sign out
           </button>
