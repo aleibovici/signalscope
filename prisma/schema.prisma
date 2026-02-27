@@ -69,6 +69,7 @@ enum SignalSource {
   SEC_INSIDER
   OPTIONS_FLOW
   VOLUME_SPIKE
+  TWITTER
 }
 
 model ValidatedTicker {
