@@ -3,7 +3,39 @@
 import { useState, useEffect } from "react";
 import { useScans } from "@/hooks/use-scans";
 
-const SCAN_INTERVAL_MS = 4 * 60 * 60 * 1000; // 4 hours
+// Scan runs Mon–Fri at 9:00 AM America/New_York
+function getNextScanTime(now: Date): Date {
+  for (let deltaDays = 0; deltaDays <= 7; deltaDays++) {
+    const probe = new Date(now.getTime() + deltaDays * 86_400_000);
+
+    const etParts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/New_York",
+      weekday: "short",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+    }).formatToParts(probe);
+
+    const weekday = etParts.find((p) => p.type === "weekday")!.value;
+    if (weekday === "Sat" || weekday === "Sun") continue;
+
+    const y = +etParts.find((p) => p.type === "year")!.value;
+    const mo = +etParts.find((p) => p.type === "month")!.value;
+    const d = +etParts.find((p) => p.type === "day")!.value;
+
+    // Try EST (UTC-5 → 14:00 UTC) then EDT (UTC-4 → 13:00 UTC)
+    for (const utcHour of [14, 13]) {
+      const candidate = new Date(Date.UTC(y, mo - 1, d, utcHour, 0, 0));
+      const etHour = +new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/New_York",
+        hour: "numeric",
+        hour12: false,
+      }).format(candidate);
+      if (etHour === 9 && candidate > now) return candidate;
+    }
+  }
+  return new Date(now.getTime() + 86_400_000);
+}
 
 function formatCountdown(ms: number): string {
   if (ms <= 0) return "due now";
@@ -31,19 +63,15 @@ export function NextScanCountdown() {
   }, []);
 
   const lastScanCompletedAt = data?.scans?.[0]?.completedAt ?? null;
-
-  if (!lastScanCompletedAt) {
-    return <p className="text-xs text-gray-400">No scans yet</p>;
-  }
-
-  const completedAt = new Date(lastScanCompletedAt).getTime();
-  const elapsed = now - completedAt;
-  const remaining = SCAN_INTERVAL_MS - elapsed;
+  const nextScan = getNextScanTime(new Date(now));
+  const remaining = nextScan.getTime() - now;
 
   return (
     <div className="text-xs leading-relaxed text-gray-400">
-      <p>Last scan {formatElapsed(elapsed)}</p>
-      <p>Next ~{formatCountdown(remaining)}</p>
+      {lastScanCompletedAt && (
+        <p>Last scan {formatElapsed(now - new Date(lastScanCompletedAt).getTime())}</p>
+      )}
+      <p>Next ~{formatCountdown(remaining)} (9 AM ET)</p>
     </div>
   );
 }
