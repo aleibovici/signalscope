@@ -1,4 +1,5 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, createDevPrismaClient } from "@/lib/prisma";
+import type { PrismaClient } from "@/generated/prisma/client";
 import type { AggregatedSymbol, RawSignal, SignalType } from "./types";
 import { fetchRedditSignals } from "./sources/reddit";
 import { fetchStockTwitsSignals } from "./sources/stocktwits";
@@ -81,13 +82,35 @@ function classifySignalType(agg: AggregatedSymbol): SignalType {
   return "reddit_velocity";
 }
 
+async function mirrorToDevDb(
+  devPrisma: PrismaClient | null,
+  label: string,
+  fn: (client: PrismaClient) => Promise<void>
+) {
+  if (!devPrisma) return;
+  try {
+    await fn(devPrisma);
+  } catch (err) {
+    console.warn(`[dev-db] Failed to mirror ${label}:`, err instanceof Error ? err.message : err);
+  }
+}
+
 export async function orchestrateScan(): Promise<string> {
   console.log("Starting scan...");
   resetCostTracker();
 
+  const devPrisma = createDevPrismaClient();
+  if (devPrisma) {
+    console.log("[dev-db] Dev database mirroring enabled");
+  }
+
   // 1. Create Scan record
   const scan = await prisma.scan.create({
     data: { status: "RUNNING" },
+  });
+
+  await mirrorToDevDb(devPrisma, "scan create", async (client) => {
+    await client.scan.create({ data: { id: scan.id, status: "RUNNING" } });
   });
 
   try {
@@ -204,60 +227,76 @@ export async function orchestrateScan(): Promise<string> {
     console.log("Storing results...");
 
     // Store signals
+    const signalDataList: Array<Record<string, unknown>> = [];
     for (const result of validatedResults) {
       for (const signal of result.agg.signals) {
-        await prisma.signal.create({
-          data: {
-            scanId: scan.id,
-            symbol: signal.symbol,
-            source: signal.source,
-            title: signal.title,
-            body: signal.body,
-            url: signal.url,
-            author: signal.author,
-            authorAge: signal.authorAge,
-            authorKarma: signal.authorKarma,
-            upvotes: signal.upvotes,
-            commentCount: signal.commentCount,
-            velocityScore: (signal.postAge != null && signal.sortType)
-              ? (signal.sortType === "rising" ? 3 : signal.postAge < 3 ? 2 : signal.postAge < 12 ? 1 : 0.5)
-              : 0,
-            sentiment: result.sentiment,
-            pndFlagged: result.pndFlagged,
-            pndFlags: result.pndFlags,
-            pndScore: result.pndScore,
-          },
-        });
+        const data = {
+          scanId: scan.id,
+          symbol: signal.symbol,
+          source: signal.source,
+          title: signal.title,
+          body: signal.body,
+          url: signal.url,
+          author: signal.author,
+          authorAge: signal.authorAge,
+          authorKarma: signal.authorKarma,
+          upvotes: signal.upvotes,
+          commentCount: signal.commentCount,
+          velocityScore: (signal.postAge != null && signal.sortType)
+            ? (signal.sortType === "rising" ? 3 : signal.postAge < 3 ? 2 : signal.postAge < 12 ? 1 : 0.5)
+            : 0,
+          sentiment: result.sentiment,
+          pndFlagged: result.pndFlagged,
+          pndFlags: result.pndFlags,
+          pndScore: result.pndScore,
+        };
+        await prisma.signal.create({ data });
+        signalDataList.push(data);
       }
     }
 
+    await mirrorToDevDb(devPrisma, "signals", async (client) => {
+      for (const data of signalDataList) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await client.signal.create({ data: data as any });
+      }
+    });
+
     // Store validated tickers
+    const tickerDataList: Array<Record<string, unknown>> = [];
     for (const result of validatedResults) {
       const fundamentals = fundamentalsMap.get(result.agg.symbol);
       const report = reports.get(result.agg.symbol);
 
-      await prisma.validatedTicker.create({
-        data: {
-          scanId: scan.id,
-          symbol: result.agg.symbol,
-          price: fundamentals?.price,
-          marketCap: fundamentals?.marketCap,
-          shortFloat: fundamentals?.shortFloat,
-          fiftyTwoWkRange: fundamentals?.fiftyTwoWeekRange,
-          exchange: fundamentals?.exchange,
-          catalyst: report?.catalyst,
-          risks: report?.risks,
-          recommendation: report?.recommendation,
-          report: report?.report,
-          aiScore: result.score,
-          stage: result.stage,
-          signalCount: result.agg.signals.length,
-          sourceCount: result.agg.sourceCount,
-          avgSentiment: result.sentiment === "bullish" ? 0.7 : result.sentiment === "bearish" ? 0.3 : 0.5,
-          signalType: result.signalType,
-        },
-      });
+      const data = {
+        scanId: scan.id,
+        symbol: result.agg.symbol,
+        price: fundamentals?.price,
+        marketCap: fundamentals?.marketCap,
+        shortFloat: fundamentals?.shortFloat,
+        fiftyTwoWkRange: fundamentals?.fiftyTwoWeekRange,
+        exchange: fundamentals?.exchange,
+        catalyst: report?.catalyst,
+        risks: report?.risks,
+        recommendation: report?.recommendation,
+        report: report?.report,
+        aiScore: result.score,
+        stage: result.stage,
+        signalCount: result.agg.signals.length,
+        sourceCount: result.agg.sourceCount,
+        avgSentiment: result.sentiment === "bullish" ? 0.7 : result.sentiment === "bearish" ? 0.3 : 0.5,
+        signalType: result.signalType,
+      };
+      await prisma.validatedTicker.create({ data });
+      tickerDataList.push(data);
     }
+
+    await mirrorToDevDb(devPrisma, "validated tickers", async (client) => {
+      for (const data of tickerDataList) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await client.validatedTicker.create({ data: data as any });
+      }
+    });
 
     // Update scan record
     const signalCount = validatedResults.reduce(
@@ -267,17 +306,27 @@ export async function orchestrateScan(): Promise<string> {
 
     const aiCost = getTotalCost();
 
+    const scanUpdateData = {
+      status: "COMPLETED" as const,
+      completedAt: new Date(),
+      signalCount,
+      validatedCount: validatedResults.filter((r) => !r.pndFlagged).length,
+      filteredCount,
+      aiCost,
+    };
+
     await prisma.scan.update({
       where: { id: scan.id },
-      data: {
-        status: "COMPLETED",
-        completedAt: new Date(),
-        signalCount,
-        validatedCount: validatedResults.filter((r) => !r.pndFlagged).length,
-        filteredCount,
-        aiCost,
-      },
+      data: scanUpdateData,
     });
+
+    await mirrorToDevDb(devPrisma, "scan complete", async (client) => {
+      await client.scan.update({ where: { id: scan.id }, data: scanUpdateData });
+    });
+
+    if (devPrisma) {
+      await devPrisma.$disconnect().catch(() => {});
+    }
 
     console.log(
       `Scan ${scan.id} completed: ${signalCount} signals, ${reportCandidates.length} validated, ${filteredCount} filtered`
@@ -294,6 +343,22 @@ export async function orchestrateScan(): Promise<string> {
         error: err instanceof Error ? err.message : String(err),
       },
     });
+
+    await mirrorToDevDb(devPrisma, "scan failed", async (client) => {
+      await client.scan.update({
+        where: { id: scan.id },
+        data: {
+          status: "FAILED",
+          completedAt: new Date(),
+          error: err instanceof Error ? err.message : String(err),
+        },
+      });
+    });
+
+    if (devPrisma) {
+      await devPrisma.$disconnect().catch(() => {});
+    }
+
     throw err;
   }
 }
