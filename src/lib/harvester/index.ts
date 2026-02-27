@@ -47,8 +47,8 @@ function aggregateSignals(signals: RawSignal[]): AggregatedSymbol[] {
         totalComments: sigs.reduce((sum, s) => sum + (s.commentCount || 0), 0),
         avgVelocity: sigs.reduce((sum, s) => {
           if (s.postAge != null && s.sortType) {
-            const sort = s.sortType as "new" | "rising";
-            if (sort === "rising") return sum + 3;
+            if (s.sortType === "rising") return sum + 3;
+            if (s.sortType === "comment") return sum + 1.5;
             if (s.postAge < 3) return sum + 2;
             if (s.postAge < 12) return sum + 1;
             return sum + 0.5;
@@ -264,7 +264,7 @@ export async function orchestrateScan(): Promise<string> {
           upvotes: signal.upvotes,
           commentCount: signal.commentCount,
           velocityScore: (signal.postAge != null && signal.sortType)
-            ? (signal.sortType === "rising" ? 3 : signal.postAge < 3 ? 2 : signal.postAge < 12 ? 1 : 0.5)
+            ? (signal.sortType === "rising" ? 3 : signal.sortType === "comment" ? 1.5 : signal.postAge < 3 ? 2 : signal.postAge < 12 ? 1 : 0.5)
             : 0,
           sentiment: result.sentiment,
           pndFlagged: result.pndFlagged,
