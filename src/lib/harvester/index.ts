@@ -1,6 +1,6 @@
 import { prisma, createDevPrismaClient } from "@/lib/prisma";
 import type { PrismaClient } from "@/generated/prisma/client";
-import type { AggregatedSymbol, RawSignal, SignalType } from "./types";
+import type { AggregatedSymbol, NoveltyContext, RawSignal, SignalType } from "./types";
 import { fetchRedditSignals } from "./sources/reddit";
 import { fetchStockTwitsSignals } from "./sources/stocktwits";
 import { fetchSecInsiderSignals } from "./sources/sec-insider";
@@ -62,19 +62,80 @@ function aggregateSignals(signals: RawSignal[]): AggregatedSymbol[] {
     .sort((a, b) => b.sourceCount - a.sourceCount || b.signals.length - a.signals.length);
 }
 
+async function lookupNovelty(
+  symbols: string[],
+  currentScanId: string
+): Promise<Map<string, NoveltyContext>> {
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const priorTickers = await prisma.validatedTicker.findMany({
+    where: {
+      symbol: { in: symbols },
+      createdAt: { gte: thirtyDaysAgo },
+      scanId: { not: currentScanId },
+    },
+    select: { symbol: true, createdAt: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const grouped = new Map<string, Date[]>();
+  for (const t of priorTickers) {
+    const dates = grouped.get(t.symbol) || [];
+    dates.push(t.createdAt);
+    grouped.set(t.symbol, dates);
+  }
+
+  const now = new Date();
+  const noveltyMap = new Map<string, NoveltyContext>();
+
+  for (const symbol of symbols) {
+    const dates = grouped.get(symbol);
+    if (!dates || dates.length === 0) {
+      noveltyMap.set(symbol, {
+        firstSeenAt: null,
+        daysSinceFirstSeen: null,
+        priorAppearances: 0,
+        isNovel: true,
+      });
+    } else {
+      const firstSeen = dates[0];
+      const daysSince = Math.floor(
+        (now.getTime() - firstSeen.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      noveltyMap.set(symbol, {
+        firstSeenAt: firstSeen,
+        daysSinceFirstSeen: daysSince,
+        priorAppearances: dates.length,
+        isNovel: false,
+      });
+    }
+  }
+
+  return noveltyMap;
+}
+
 function determineStage(
   aiScore: number,
   sourceCount: number,
   weightedSourceScore: number,
   avgVelocity: number,
-  pndFlagged: boolean
+  pndFlagged: boolean,
+  novelty?: NoveltyContext
 ): "EARLY" | "FORMING" | "CONFIRMED" | "FILTERED" {
   if (pndFlagged) return "FILTERED";
-  if (aiScore >= 70 && sourceCount >= 3) return "CONFIRMED";
-  if (aiScore >= 65 && weightedSourceScore >= 4) return "CONFIRMED";
-  if (aiScore >= 65 && sourceCount >= 2 && avgVelocity >= 2.0) return "CONFIRMED";
-  if (aiScore >= 50 && sourceCount >= 2) return "FORMING";
-  if (aiScore >= 45 && avgVelocity >= 2.0) return "FORMING";
+
+  const effectiveScore = novelty?.isNovel ? aiScore + 5 : aiScore;
+
+  if (effectiveScore >= 70 && sourceCount >= 3) return "CONFIRMED";
+  if (effectiveScore >= 65 && weightedSourceScore >= 4) return "CONFIRMED";
+  if (effectiveScore >= 65 && sourceCount >= 2 && avgVelocity >= 2.0) return "CONFIRMED";
+  if (effectiveScore >= 50 && sourceCount >= 2) return "FORMING";
+  if (effectiveScore >= 45 && avgVelocity >= 2.0) return "FORMING";
+
+  // Novel tickers with decent score and multi-source get promoted
+  if (novelty?.isNovel && aiScore >= 40 && sourceCount >= 2) return "FORMING";
+
   return "EARLY";
 }
 
@@ -181,11 +242,19 @@ export async function orchestrateScan(): Promise<string> {
       candidates.map((c) => c.symbol)
     );
 
-    // 5. AI scoring in batches of 15 (with fundamentals context)
+    // 5. Novelty lookup (30-day window)
+    const noveltyMap = await lookupNovelty(
+      candidates.map((c) => c.symbol),
+      scan.id
+    );
+    const novelCount = [...noveltyMap.values()].filter((n) => n.isNovel).length;
+    console.log(`Novelty: ${novelCount} novel, ${candidates.length - novelCount} recurring`);
+
+    // 6. AI scoring in batches of 15 (with fundamentals + novelty context)
     const scoreResults = [];
     for (let i = 0; i < candidates.length; i += 15) {
       const batch = candidates.slice(i, i + 15);
-      const scores = await scoreSymbolBatch(batch, fundamentalsMap);
+      const scores = await scoreSymbolBatch(batch, fundamentalsMap, noveltyMap);
       scoreResults.push(...scores);
     }
 
@@ -219,7 +288,8 @@ export async function orchestrateScan(): Promise<string> {
       const aiScore = scoreMap.get(agg.symbol);
       const score = aiScore?.score ?? 30;
       const sentiment = aiScore?.sentiment ?? "neutral";
-      const stage = determineStage(score, agg.sourceCount, agg.weightedSourceScore, agg.avgVelocity, finalPndFlagged);
+      const novelty = noveltyMap.get(agg.symbol);
+      const stage = determineStage(score, agg.sourceCount, agg.weightedSourceScore, agg.avgVelocity, finalPndFlagged, novelty);
 
       const signalType = classifySignalType(agg);
 
@@ -244,12 +314,14 @@ export async function orchestrateScan(): Promise<string> {
     const reports = new Map<string, Awaited<ReturnType<typeof generateTickerReport>>>();
     for (const r of reportCandidates) {
       const fundamentals = fundamentalsMap.get(r.agg.symbol) || null;
+      const novelty = noveltyMap.get(r.agg.symbol);
       const report = await generateTickerReport(
         r.agg.symbol,
         r.agg,
         fundamentals,
         r.score,
-        r.signalType
+        r.signalType,
+        novelty
       );
       reports.set(r.agg.symbol, report);
     }
@@ -298,6 +370,7 @@ export async function orchestrateScan(): Promise<string> {
     for (const result of validatedResults) {
       const fundamentals = fundamentalsMap.get(result.agg.symbol);
       const report = reports.get(result.agg.symbol);
+      const novelty = noveltyMap.get(result.agg.symbol);
 
       const data = {
         scanId: scan.id,
@@ -317,6 +390,8 @@ export async function orchestrateScan(): Promise<string> {
         sourceCount: result.agg.sourceCount,
         avgSentiment: result.sentiment === "bullish" ? 0.7 : result.sentiment === "bearish" ? 0.3 : 0.5,
         signalType: result.signalType,
+        firstSeenDaysAgo: novelty?.daysSinceFirstSeen ?? null,
+        priorAppearances: novelty?.priorAppearances ?? 0,
       };
       await prisma.validatedTicker.create({ data });
       tickerDataList.push(data);

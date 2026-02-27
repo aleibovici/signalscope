@@ -29,6 +29,8 @@ export interface ValidatedTickerData {
   sources: string[];
   shortFloat: number | null;
   avgSentiment: number | null;
+  firstSeenDaysAgo: number | null;
+  priorAppearances: number;
   createdAt: string;
 }
 

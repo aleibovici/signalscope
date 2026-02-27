@@ -69,6 +69,13 @@ export interface TickerReport {
   report: string;
 }
 
+export interface NoveltyContext {
+  firstSeenAt: Date | null;
+  daysSinceFirstSeen: number | null;
+  priorAppearances: number;
+  isNovel: boolean;
+}
+
 export interface AggregatedSymbol {
   symbol: string;
   signals: RawSignal[];

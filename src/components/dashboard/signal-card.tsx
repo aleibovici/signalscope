@@ -46,6 +46,14 @@ export function SignalCard({
                   {ticker.recommendation}
                 </Badge>
               )}
+              {ticker.firstSeenDaysAgo === null && (
+                <Badge variant="success">NEW</Badge>
+              )}
+              {ticker.priorAppearances >= 3 && (
+                <Badge variant="default">
+                  Seen {ticker.priorAppearances}x
+                </Badge>
+              )}
             </div>
           </div>
 

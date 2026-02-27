@@ -1,12 +1,13 @@
 import { chatJSON } from "@/lib/ai";
-import type { AggregatedSymbol, FundamentalData, SignalType, TickerReport } from "./types";
+import type { AggregatedSymbol, FundamentalData, NoveltyContext, SignalType, TickerReport } from "./types";
 
 export async function generateTickerReport(
   symbol: string,
   agg: AggregatedSymbol,
   fundamentals: FundamentalData | null,
   aiScore: number,
-  signalType?: SignalType
+  signalType?: SignalType,
+  novelty?: NoveltyContext
 ): Promise<TickerReport> {
   try {
     const response = await chatJSON({
@@ -30,7 +31,7 @@ Catalyst field format:
 Also analyze:
 - Short squeeze potential: high short float % + real catalyst = squeeze candidate
 - Price position relative to 52-week range
-- Pre-consensus (first appearance) vs already widely discussed
+- Signal novelty: first appearance (novel) signals may represent early detection before consensus; recurring signals (3+ appearances) may be stale unless a new catalyst type has appeared
 - Key risks and downside scenarios
 
 Recommendation guidance:
@@ -75,6 +76,15 @@ Return JSON:
           optionType: s.optionType,
           volOiRatio: s.volOiRatio,
         })),
+        ...(novelty
+          ? {
+              novelty: {
+                isNovel: novelty.isNovel,
+                daysSinceFirstSeen: novelty.daysSinceFirstSeen,
+                priorAppearances: novelty.priorAppearances,
+              },
+            }
+          : {}),
       }),
     });
 

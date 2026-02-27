@@ -89,10 +89,12 @@ model ValidatedTicker {
   signalCount    Int         @default(0)
   sourceCount    Int         @default(0)
   avgSentiment   Float?
-  signalType     String?     // insider_buy | options_flow | multi_source | reddit_velocity
-  fiftyTwoWkRange String?   // e.g. "12.50 - 45.00"
-  exchange       String?     // NYSE, NASDAQ, OTC, etc.
-  createdAt      DateTime    @default(now())
+  signalType       String?     // insider_buy | options_flow | multi_source | reddit_velocity
+  fiftyTwoWkRange  String?     // e.g. "12.50 - 45.00"
+  exchange         String?     // NYSE, NASDAQ, OTC, etc.
+  firstSeenDaysAgo Int?        // null = truly novel, 0 = first seen today, N = days ago
+  priorAppearances Int         @default(0) // count of previous ValidatedTicker rows in 30d window
+  createdAt        DateTime    @default(now())
 
   @@unique([scanId, symbol])
   @@index([symbol])
