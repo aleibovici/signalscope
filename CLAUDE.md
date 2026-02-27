@@ -88,7 +88,7 @@ All data fetching hooks are in `src/hooks/` using TanStack Query mutations/queri
 
 Multi-user email/password auth via Auth.js v5 (Credentials provider, JWT sessions).
 
-- `auth.config.ts` — Edge-safe config (no Node.js deps), imported by middleware
+- `auth.config.ts` — Edge-safe config (no Node.js deps), imported by middleware; `trustHost: true` required for Cloud Run reverse proxy
 - `auth.ts` — Full NextAuth instance with Prisma + bcrypt `authorize()`, exports `auth`, `handlers`, `getCurrentUserId()`
 - `getCurrentUserId()` is **async** — all callers must `await` it
 - `src/middleware.ts` — Protects dashboard routes (redirect to `/login`) and `/api/portfolio/**` (401 JSON)
@@ -177,6 +177,13 @@ git push origin main
 ### CI/CD
 
 Push to `main` → GitHub Actions builds both images, pushes to Artifact Registry, deploys web to Cloud Run, and updates the harvester job image.
+
+## API Error Handling
+
+All authenticated API routes (`/api/portfolio/**`) use try/catch with proper status codes:
+- 401 for auth failures (`getCurrentUserId()` throws "Not authenticated")
+- 400 for Zod validation errors (with `details` containing issues)
+- 500 for unexpected errors (logged via `console.error` for Cloud Run log inspection)
 
 ## Path Alias
 
