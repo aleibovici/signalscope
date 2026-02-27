@@ -83,10 +83,10 @@ export default function PortfolioPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Portfolio</h1>
+          <h1 className="text-xl font-bold text-gray-900 md:text-2xl">Portfolio</h1>
           {positions.length > 0 && (
             <p className="mt-1 text-sm text-gray-500">
               {positions.length} positions &middot; Overall avg gain:{" "}
@@ -112,7 +112,7 @@ export default function PortfolioPage() {
       {showAddForm && (
         <form
           onSubmit={handleAdd}
-          className="flex items-end gap-3 rounded-lg border border-gray-200 bg-white p-4"
+          className="flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-white p-4"
         >
           <div>
             <label className="mb-1 block text-xs font-medium text-gray-600">
@@ -225,10 +225,10 @@ export default function PortfolioPage() {
       )}
 
       {closingPosition && closingPos && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center">
           <form
             onSubmit={handleConfirmClose}
-            className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl"
+            className="w-full max-w-sm rounded-t-lg bg-white p-6 shadow-xl sm:rounded-lg"
           >
             <h3 className="text-lg font-semibold text-gray-900">
               Close {closingPos.symbol}

@@ -30,15 +30,15 @@ export default function TickerDetailPage() {
   const { ticker, signals } = data;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-wrap items-center gap-2 md:gap-4">
         <Link
           href="/dashboard"
           className="text-sm text-blue-600 hover:underline"
         >
           &larr; Back
         </Link>
-        <h1 className="text-2xl font-bold">{ticker.symbol}</h1>
+        <h1 className="text-xl font-bold md:text-2xl">{ticker.symbol}</h1>
         <Badge variant={ticker.stage === "CONFIRMED" ? "success" : ticker.stage === "FORMING" ? "warning" : "info"}>
           {ticker.stage}
         </Badge>
@@ -49,7 +49,7 @@ export default function TickerDetailPage() {
         )}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
         <Card>
           <CardHeader>
             <h3 className="font-semibold">Price & Score</h3>
@@ -136,14 +136,14 @@ export default function TickerDetailPage() {
                 className="flex items-start justify-between rounded-lg border border-gray-100 p-3"
               >
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="info">{signal.source}</Badge>
                     {signal.pndFlagged && (
                       <Badge variant="danger">P&D Flag</Badge>
                     )}
                   </div>
                   {signal.title && (
-                    <p className="mt-1 truncate text-sm font-medium">
+                    <p className="mt-1 break-words text-sm font-medium">
                       {signal.url ? (
                         <a
                           href={signal.url}
@@ -159,7 +159,7 @@ export default function TickerDetailPage() {
                     </p>
                   )}
                 </div>
-                <div className="ml-4 text-right text-xs text-gray-400">
+                <div className="ml-4 shrink-0 text-right text-xs text-gray-400">
                   {signal.upvotes != null && <span>{signal.upvotes} pts</span>}
                 </div>
               </div>

@@ -23,10 +23,10 @@ export default function FilteredPage() {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-xl font-bold text-gray-900 md:text-2xl">
             Filtered Tickers (P&D)
           </h1>
           <p className="mt-1 text-sm text-gray-500">
@@ -51,7 +51,7 @@ export default function FilteredPage() {
         <div className="space-y-3">
           {filtered.map((ticker: ValidatedTickerData) => (
             <Card key={ticker.id}>
-              <CardContent className="flex items-center justify-between">
+              <CardContent className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-gray-900">

@@ -29,8 +29,8 @@ export function AddPositionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center">
+      <div className="w-full max-w-md rounded-t-lg bg-white p-6 shadow-xl sm:rounded-lg">
         <h2 className="mb-4 text-lg font-bold">Add position — {symbol}</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
