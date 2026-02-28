@@ -3,22 +3,41 @@ import type { FundamentalData } from "./types";
 
 const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
+const FINVIZ_UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+
+async function fetchShortFloatFinviz(symbol: string): Promise<number | null> {
+  try {
+    const res = await fetch(`https://finviz.com/quote.ashx?t=${symbol}&ty=c&p=d&b=1`, {
+      headers: {
+        "User-Agent": FINVIZ_UA,
+        "Accept": "text/html,application/xhtml+xml",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer": "https://finviz.com/",
+      },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return null;
+
+    const html = await res.text();
+    // Find "Short Float" label, then grab the next table-cell value
+    const match = html.match(/Short Float[^<]*<\/td>\s*<td[^>]*>([^<]+)</);
+    if (!match) return null;
+
+    const raw = match[1].trim().replace("%", "");
+    const val = parseFloat(raw);
+    return isFinite(val) ? val / 100 : null;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchShortFloats(symbols: string[]): Promise<Map<string, number | null>> {
   const result = new Map<string, number | null>();
-  // Process in batches of 10 to avoid rate limiting
-  for (let i = 0; i < symbols.length; i += 10) {
-    const batch = symbols.slice(i, i + 10);
-    await Promise.allSettled(
-      batch.map(async (sym) => {
-        try {
-          const summary = await yf.quoteSummary(sym, { modules: ["defaultKeyStatistics"] });
-          const pct = summary.defaultKeyStatistics?.shortPercentOfFloat;
-          result.set(sym, pct != null ? Number(pct) : null);
-        } catch {
-          result.set(sym, null);
-        }
-      })
-    );
+  // Sequential with 300 ms gap to avoid rate-limiting Finviz
+  for (const sym of symbols) {
+    result.set(sym, await fetchShortFloatFinviz(sym));
+    await new Promise((r) => setTimeout(r, 300));
   }
   return result;
 }
