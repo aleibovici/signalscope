@@ -10,12 +10,22 @@ import { SignalCard } from "@/components/dashboard/signal-card";
 import { AddPositionModal } from "@/components/dashboard/add-position-modal";
 import { Spinner } from "@/components/ui/spinner";
 
+function getCookieStage(): string {
+  if (typeof document === "undefined") return "ALL";
+  const match = document.cookie.match(/(?:^|; )dashboard_stage=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : "ALL";
+}
+
+function setCookieStage(stage: string) {
+  document.cookie = `dashboard_stage=${encodeURIComponent(stage)}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+}
+
 function DashboardContent() {
   const searchParams = useSearchParams();
   const [selectedScanId, setSelectedScanId] = useState<string | null>(
     searchParams.get("scanId")
   );
-  const [selectedStage, setSelectedStage] = useState("ALL");
+  const [selectedStage, setSelectedStage] = useState<string>(() => getCookieStage());
   const [trackModal, setTrackModal] = useState<{
     symbol: string;
     price: number;
@@ -58,7 +68,7 @@ function DashboardContent() {
 
       <StageTabs
         selected={selectedStage}
-        onSelect={setSelectedStage}
+        onSelect={(stage) => { setSelectedStage(stage); setCookieStage(stage); }}
         counts={counts}
       />
 
