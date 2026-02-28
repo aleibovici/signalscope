@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTickerDetail, useTickerHistory } from "@/hooks/use-scans";
+import { useTickerPerformance } from "@/hooks/use-performance";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
@@ -13,6 +14,7 @@ export default function TickerDetailPage() {
   const { symbol } = useParams<{ symbol: string }>();
   const { data, isLoading, error } = useTickerDetail(symbol);
   const { data: historyData } = useTickerHistory(symbol);
+  const { data: perfData } = useTickerPerformance(symbol);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [signalsOpen, setSignalsOpen] = useState(false);
   const [livePrice, setLivePrice] = useState<number | null | undefined>(undefined);
@@ -155,6 +157,51 @@ export default function TickerDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {perfData?.latest && (
+        <Card>
+          <CardHeader>
+            <h3 className="font-semibold">Price Performance</h3>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-4 gap-4 text-center">
+              {([
+                { label: "1 Day", value: perfData.latest.return1d },
+                { label: "3 Day", value: perfData.latest.return3d },
+                { label: "7 Day", value: perfData.latest.return7d },
+                { label: "30 Day", value: perfData.latest.return30d },
+              ] as const).map((item) => (
+                <div key={item.label}>
+                  <p className="text-xs text-gray-500">{item.label}</p>
+                  <p
+                    className={`text-lg font-semibold ${
+                      item.value == null
+                        ? "text-gray-300"
+                        : item.value > 0
+                          ? "text-green-600"
+                          : item.value < 0
+                            ? "text-red-600"
+                            : "text-gray-600"
+                    }`}
+                  >
+                    {item.value != null
+                      ? `${item.value > 0 ? "+" : ""}${(item.value * 100).toFixed(1)}%`
+                      : "--"}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-xs text-gray-400">
+              Detection price: ${perfData.latest.detectionPrice.toFixed(2)} on{" "}
+              {new Date(perfData.latest.validatedTicker.createdAt).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {ticker.report && (
         <Card>

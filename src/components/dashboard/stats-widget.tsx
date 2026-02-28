@@ -37,6 +37,20 @@ export function StatsWidget() {
 
           <dt className="text-xs text-gray-500">AI Cost</dt>
           <dd className="text-right text-xs font-medium text-gray-700">${data!.totalAiCost.toFixed(2)}</dd>
+
+          {data!.trackedTickers > 0 && (
+            <>
+              <dt className="text-xs text-gray-500">Win Rate</dt>
+              <dd className="text-right text-xs font-medium text-green-600">
+                {(data!.winRate7d * 100).toFixed(0)}%
+              </dd>
+
+              <dt className="text-xs text-gray-500">Avg Return</dt>
+              <dd className={`text-right text-xs font-medium ${data!.avgReturn7d >= 0 ? "text-green-600" : "text-red-600"}`}>
+                {data!.avgReturn7d > 0 ? "+" : ""}{(data!.avgReturn7d * 100).toFixed(1)}%
+              </dd>
+            </>
+          )}
         </dl>
       )}
     </div>

@@ -18,6 +18,9 @@ export async function GET(
   const tickers = await prisma.validatedTicker.findMany({
     where: { scanId },
     orderBy: { aiScore: "desc" },
+    include: {
+      performance: { select: { return7d: true } },
+    },
   });
 
   // Fetch distinct sources per symbol for this scan
@@ -38,6 +41,8 @@ export async function GET(
 
   const tickersWithSources = tickers.map((t) => ({
     ...t,
+    return7d: t.performance?.return7d ?? null,
+    performance: undefined,
     sources: sourcesBySymbol.get(t.symbol) ?? [],
   }));
 

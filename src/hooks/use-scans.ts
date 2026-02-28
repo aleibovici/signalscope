@@ -31,6 +31,7 @@ export interface ValidatedTickerData {
   avgSentiment: number | null;
   firstSeenDaysAgo: number | null;
   priorAppearances: number;
+  return7d: number | null;
   createdAt: string;
 }
 

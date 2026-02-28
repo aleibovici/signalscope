@@ -95,10 +95,37 @@ model ValidatedTicker {
   firstSeenDaysAgo Int?        // null = truly novel, 0 = first seen today, N = days ago
   priorAppearances Int         @default(0) // count of previous ValidatedTicker rows in 30d window
   createdAt        DateTime    @default(now())
+  performance      TickerPerformance?
 
   @@unique([scanId, symbol])
   @@index([symbol])
   @@index([stage])
+}
+
+model TickerPerformance {
+  id                String          @id @default(cuid())
+  validatedTickerId String          @unique
+  validatedTicker   ValidatedTicker @relation(fields: [validatedTickerId], references: [id], onDelete: Cascade)
+  symbol            String
+  detectionPrice    Float
+
+  price1d           Float?
+  price3d           Float?
+  price7d           Float?
+  price30d          Float?
+  return1d          Float?
+  return3d          Float?
+  return7d          Float?
+  return30d         Float?
+  snapped1dAt       DateTime?
+  snapped3dAt       DateTime?
+  snapped7dAt       DateTime?
+  snapped30dAt      DateTime?
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([symbol])
 }
 
 enum TickerStage {

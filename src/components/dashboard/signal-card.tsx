@@ -59,9 +59,23 @@ export function SignalCard({
 
           <div className="text-right">
             {ticker.price && (
-              <p className="text-lg font-semibold">
-                ${ticker.price.toFixed(2)}
-              </p>
+              <div className="flex items-center justify-end gap-1.5">
+                <p className="text-lg font-semibold">
+                  ${ticker.price.toFixed(2)}
+                </p>
+                {ticker.return7d != null && (
+                  <span
+                    className={`rounded px-1 py-0.5 text-xs font-medium ${
+                      ticker.return7d > 0
+                        ? "bg-green-50 text-green-700"
+                        : "bg-red-50 text-red-700"
+                    }`}
+                  >
+                    {ticker.return7d > 0 ? "+" : ""}
+                    {(ticker.return7d * 100).toFixed(1)}%
+                  </span>
+                )}
+              </div>
             )}
             <p className="text-sm text-gray-500">
               Score: {ticker.aiScore}/100
