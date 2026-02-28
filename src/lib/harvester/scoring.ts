@@ -87,8 +87,29 @@ Return JSON: { "scores": [{ "symbol": "X", "score": 0-100, "sentiment": "bullish
       userMessage: JSON.stringify(symbolSummaries),
     });
 
-    const parsed = JSON.parse(response.content) as { scores: AiScoreResult[] };
-    return parsed.scores || symbols.map((s) => defaultScore(s, noveltyMap?.get(s.symbol)));
+    const parsed = JSON.parse(response.content);
+    const rawScores = Array.isArray(parsed?.scores) ? parsed.scores : null;
+    if (!rawScores) {
+      console.warn("AI scoring returned unexpected structure, using heuristic fallback");
+      return symbols.map((s) => defaultScore(s, noveltyMap?.get(s.symbol)));
+    }
+
+    // Map back to input symbols — use heuristic fallback for any missing/malformed entries
+    return symbols.map((s) => {
+      const item = rawScores.find(
+        (r: unknown) =>
+          typeof r === "object" && r !== null && (r as Record<string, unknown>).symbol === s.symbol
+      ) as AiScoreResult | undefined;
+      if (!item || typeof item.score !== "number" || typeof item.sentiment !== "string") {
+        return defaultScore(s, noveltyMap?.get(s.symbol));
+      }
+      return {
+        symbol: s.symbol,
+        score: Math.min(100, Math.max(0, Math.round(item.score))),
+        sentiment: item.sentiment,
+        reasoning: typeof item.reasoning === "string" ? item.reasoning : "",
+      };
+    });
   } catch (err) {
     console.error("AI scoring error:", err);
     return symbols.map((s) => defaultScore(s, noveltyMap?.get(s.symbol)));

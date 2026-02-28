@@ -30,9 +30,17 @@ export async function chatJSON(req: ChatJSONRequest): Promise<ChatJSONResponse> 
 
     if (secondary) {
       console.warn(`[ai] Falling back to ${secondary} for ${req.callPoint}`);
-      const result = await PROVIDERS[secondary](req);
-      if (result.cost) addCost(result.cost);
-      return result;
+      try {
+        const result = await PROVIDERS[secondary](req);
+        if (result.cost) addCost(result.cost);
+        return result;
+      } catch (fallbackErr) {
+        console.error(
+          `[ai] ${secondary} fallback also failed for ${req.callPoint}:`,
+          fallbackErr instanceof Error ? fallbackErr.message : fallbackErr
+        );
+        throw err; // throw original primary error, not the fallback error
+      }
     }
 
     throw err;
