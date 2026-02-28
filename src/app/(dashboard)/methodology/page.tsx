@@ -67,16 +67,16 @@ export default function MethodologyPage() {
               {
                 icon: "💎",
                 name: "Options Flow",
-                description: "Unusual options activity from institutional desks.",
-                params: "Requires paid API (Unusual Whales / FlowAlgo)",
-                active: false,
+                description: "Unusual call volume, heavy OTM calls, and call sweeps.",
+                params: "Yahoo Finance options chains · Free endpoint",
+                active: true,
               },
               {
                 icon: "📣",
                 name: "StockTwits",
-                description: "Social sentiment from StockTwits posts.",
-                params: "Blocked by Cloudflare — direct access unavailable",
-                active: false,
+                description: "Social sentiment from StockTwits posts via mirror.",
+                params: "TrendSpider mirror · Results depend on mirror availability",
+                active: true,
               },
             ].map((src) => (
               <div key={src.name} className="rounded-lg border border-gray-200 p-4">
