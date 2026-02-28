@@ -110,7 +110,7 @@ function parseOpenInsiderHtml(html: string): InsiderRow[] {
 async function fetchFromOpenInsider(): Promise<RawSignal[]> {
   try {
     // Fetch latest insider buying — open market purchases only, filed in last 7 days
-    const url = "http://openinsider.com/screener?s=&o=&pl=50&ph=&ll=&lh=&fd=7&fdr=&td=0&tdr=&feession=0&cession=0&sid=1&iession=0&ession=0&otype=&othertype=&ression=0&sortcol=0&cnt=100&page=1";
+    const url = "https://openinsider.com/screener?s=&o=&pl=50&ph=&ll=&lh=&fd=7&fdr=&td=0&tdr=&feession=0&cession=0&sid=1&iession=0&ession=0&otype=&othertype=&ression=0&sortcol=0&cnt=100&page=1";
 
     const res = await fetch(url, {
       headers: {
@@ -137,7 +137,7 @@ async function fetchFromOpenInsider(): Promise<RawSignal[]> {
       source: "SEC_INSIDER" as const,
       title: `Insider purchase: ${r.insiderName} (${r.insiderTitle}) bought $${r.value.toLocaleString()} of ${r.ticker}`,
       body: `Trade date: ${r.tradeDate}. Filed: ${r.filingDate}. ${r.qty.toLocaleString()} shares at $${r.price}. Company: ${r.companyName}`,
-      url: `http://openinsider.com/screener?s=${r.ticker}&o=&pl=&ph=&ll=&lh=&fd=0&fdr=&td=0&tdr=&feession=0&cession=0&sid=1&iession=0&ession=0&otype=&othertype=&ression=0&sortcol=0&cnt=100`,
+      url: `https://openinsider.com/screener?s=${r.ticker}&o=&pl=&ph=&ll=&lh=&fd=0&fdr=&td=0&tdr=&feession=0&cession=0&sid=1&iession=0&ession=0&otype=&othertype=&ression=0&sortcol=0&cnt=100`,
       author: r.insiderName,
       insiderTitle: r.insiderTitle,
       purchaseValue: r.value,
