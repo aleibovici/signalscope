@@ -10,7 +10,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "npx tsx prisma/seed.ts",
-    "harvest": "npx tsx --tsconfig tsconfig.scripts.json scripts/run-harvest.ts"
+    "harvest": "npx tsx --tsconfig tsconfig.scripts.json scripts/run-harvest.ts",
+    "snapshots": "npx tsx --tsconfig tsconfig.scripts.json scripts/run-snapshots.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",

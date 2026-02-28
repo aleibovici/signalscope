@@ -14,3 +14,17 @@ services:
     volumes:
       - ${SA_KEY_PATH:-./sa-key.json}:/secrets/sa-key.json:ro
     restart: "no"
+
+  snapshots:
+    profiles: [snapshots]
+    build:
+      context: .
+      dockerfile: Dockerfile.harvester-local
+    entrypoint: ["/bin/sh", "/app/scripts/entrypoint-snapshots.sh"]
+    environment:
+      DATABASE_URL: postgresql://signalscope:${DB_PASSWORD}@localhost:5432/signalscope
+      CLOUD_SQL_CONNECTION: ${GCP_PROJECT_ID}:${GCP_REGION}:signalscope-db
+      DATABASE_URL_DEV: postgresql://postgres:postgres@host.docker.internal:5432/signalscope
+    volumes:
+      - ${SA_KEY_PATH:-./sa-key.json}:/secrets/sa-key.json:ro
+    restart: "no"

@@ -8,6 +8,9 @@ export interface PlatformStats {
   signals: number;
   tickers: number;
   totalAiCost: number;
+  avgReturn7d: number;
+  winRate7d: number;
+  trackedTickers: number;
 }
 
 export function useStats() {
