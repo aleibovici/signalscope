@@ -174,14 +174,17 @@ async function fetchFromEdgarRss(): Promise<RawSignal[]> {
         .filter((t) => !BLACKLIST.has(t) && !MEGA_CAPS.has(t) && t.length >= 2)
     )];
 
+    // EDGAR RSS Form 4 filings include sales, grants, and exercises — not just buys.
+    // Use a weaker source tag so these don't get the high SEC_INSIDER weight or
+    // bypass P&D checks. Only validated OpenInsider purchase signals use SEC_INSIDER.
     const signals: RawSignal[] = tickers.slice(0, 20).map((symbol) => ({
       symbol,
-      source: "SEC_INSIDER" as const,
+      source: "SEC_FILING" as const,
       title: `Recent Form 4 filing for ${symbol}`,
       url: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=${symbol}&type=4&dateb=&owner=include&count=10`,
     }));
 
-    console.log(`SEC Insider: fetched ${signals.length} signals from RSS`);
+    console.log(`SEC EDGAR RSS: fetched ${signals.length} signals (unvalidated Form 4 filings)`);
     return signals;
   } catch (err) {
     console.warn("SEC RSS error:", err);

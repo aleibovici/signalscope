@@ -1,4 +1,4 @@
-export type Source = "REDDIT" | "STOCKTWITS" | "SEC_INSIDER" | "OPTIONS_FLOW" | "VOLUME_SPIKE" | "TWITTER";
+export type Source = "REDDIT" | "STOCKTWITS" | "SEC_INSIDER" | "SEC_FILING" | "OPTIONS_FLOW" | "VOLUME_SPIKE" | "TWITTER";
 
 export interface RawSignal {
   symbol: string;

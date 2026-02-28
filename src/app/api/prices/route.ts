@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { symbolsQuerySchema } from "@/lib/validators";
 import { fetchCurrentPrice } from "@/lib/harvester/fundamentals";
+import { getCurrentUserId } from "@/lib/auth";
 import { z } from "zod/v4";
 
 // Simple in-memory cache (5 min TTL, max 500 entries)
@@ -10,6 +11,7 @@ const CACHE_MAX = 500;
 
 export async function GET(request: NextRequest) {
   try {
+    await getCurrentUserId();
     const symbolsParam = request.nextUrl.searchParams.get("symbols");
     if (!symbolsParam) {
       return NextResponse.json({ error: "symbols query param required" }, { status: 400 });
@@ -40,6 +42,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ prices });
   } catch (err) {
+    if (err instanceof Error && err.message === "Not authenticated") {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid parameters", details: err.issues }, { status: 400 });
     }

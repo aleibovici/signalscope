@@ -12,6 +12,9 @@ export async function GET(
     const ticker = await prisma.validatedTicker.findFirst({
       where: { symbol: upperSymbol },
       orderBy: { createdAt: "desc" },
+      include: {
+        performance: { select: { return7d: true } },
+      },
     });
 
     if (!ticker) {
@@ -23,7 +26,18 @@ export async function GET(
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({ ticker, signals });
+    // Compute sources and return7d to match ValidatedTickerData interface
+    const sources = [...new Set(signals.map((s) => s.source))];
+
+    return NextResponse.json({
+      ticker: {
+        ...ticker,
+        return7d: ticker.performance?.return7d ?? null,
+        performance: undefined,
+        sources,
+      },
+      signals,
+    });
   } catch (err) {
     console.error("[/api/tickers/[symbol]] GET error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

@@ -21,7 +21,10 @@ export const updatePositionSchema = z.object({
   closePrice: z.number().positive().optional(),
   notes: z.string().max(500).optional(),
   shares: z.number().positive().optional(),
-});
+}).refine(
+  (data) => data.closePrice === undefined || data.status === "CLOSED",
+  { message: "closePrice can only be set when status is CLOSED", path: ["closePrice"] }
+);
 
 export const symbolSchema = z
   .string()

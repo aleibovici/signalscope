@@ -189,7 +189,7 @@ Return JSON: { "is_pnd": true/false, "confidence": 0-100, "reasoning": "brief ex
     const result = JSON.parse(response.content);
     return typeof result?.is_pnd === "boolean" ? result.is_pnd : false;
   } catch (err) {
-    console.error(`AI P&D assessment for ${symbol} error:`, err);
-    return false;
+    console.error(`AI P&D assessment for ${symbol} error — flagging borderline ticker as cautionary:`, err);
+    return true;
   }
 }
