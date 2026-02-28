@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { useScans, useScanDetail, type ValidatedTickerData } from "@/hooks/use-scans";
 import { useScrollRestore } from "@/hooks/use-scroll-restore";
 import { ScanSelector } from "@/components/dashboard/scan-selector";
@@ -9,8 +10,11 @@ import { SignalCard } from "@/components/dashboard/signal-card";
 import { AddPositionModal } from "@/components/dashboard/add-position-modal";
 import { Spinner } from "@/components/ui/spinner";
 
-export default function DashboardPage() {
-  const [selectedScanId, setSelectedScanId] = useState<string | null>(null);
+function DashboardContent() {
+  const searchParams = useSearchParams();
+  const [selectedScanId, setSelectedScanId] = useState<string | null>(
+    searchParams.get("scanId")
+  );
   const [selectedStage, setSelectedStage] = useState("ALL");
   const [trackModal, setTrackModal] = useState<{
     symbol: string;
@@ -22,7 +26,7 @@ export default function DashboardPage() {
   const { data: scansData } = useScans(1, 1);
   const { data: scanDetail, isLoading } = useScanDetail(selectedScanId);
 
-  // Auto-select the latest scan
+  // Auto-select the latest scan only if no scanId was provided via URL
   useEffect(() => {
     if (!selectedScanId && scansData?.scans?.[0]) {
       setSelectedScanId(scansData.scans[0].id);
@@ -90,5 +94,13 @@ export default function DashboardPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center py-12"><Spinner className="h-8 w-8 text-blue-600" /></div>}>
+      <DashboardContent />
+    </Suspense>
   );
 }
