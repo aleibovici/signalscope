@@ -41,42 +41,42 @@ export default function MethodologyPage() {
                 name: "Reddit",
                 description: "Monitors 17 investing subreddits for posts and high-engagement comments.",
                 params: "Posts + comments · 17 subreddits · 1.5 s delay between requests",
-                active: true,
+                status: "active" as const,
               },
               {
                 icon: "🐦",
                 name: "X / Twitter",
                 description: "Keyword search for ticker mentions from the past 24 hours, run once daily before market open.",
                 params: "X API v2 · 24 h lookback · up to 300 tweets/run",
-                active: true,
+                status: "active" as const,
               },
               {
                 icon: "📋",
                 name: "SEC Insider",
                 description: "C-suite open-market purchases of $50 K or more from OpenInsider and EDGAR.",
                 params: "C-suite only · $50 K+ purchases · open market only",
-                active: true,
+                status: "active" as const,
               },
               {
                 icon: "📈",
                 name: "Volume Spike",
                 description: "Flags symbols whose volume is ≥2× their 10-day average.",
                 params: "110 symbols · ≥2× 10-day avg · Yahoo Finance data",
-                active: true,
+                status: "active" as const,
               },
               {
                 icon: "💎",
                 name: "Options Flow",
                 description: "Unusual call volume, heavy OTM calls, and call sweeps.",
-                params: "Requires paid API (Unusual Whales, FlowAlgo)",
-                active: false,
+                params: "Unusual Whales · FlowAlgo",
+                status: "coming_soon" as const,
               },
               {
                 icon: "📣",
                 name: "StockTwits",
-                description: "Social sentiment from StockTwits posts via mirror.",
-                params: "Disabled — Cloudflare blocks all direct access",
-                active: false,
+                description: "Trending tickers from StockTwits via TrendSpider mirror (server-side rendered, no Cloudflare block).",
+                params: "TrendSpider mirror · trending symbols · price + day gain",
+                status: "active" as const,
               },
             ].map((src) => (
               <div key={src.name} className="rounded-lg border border-gray-200 p-4">
@@ -85,13 +85,17 @@ export default function MethodologyPage() {
                     <span>{src.icon}</span>
                     <span className="font-medium text-gray-900">{src.name}</span>
                   </div>
-                  {src.active ? (
+                  {src.status === "active" ? (
                     <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
                       Active
                     </span>
+                  ) : src.status === "coming_soon" ? (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                      Coming Soon
+                    </span>
                   ) : (
                     <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
-                      Coming Soon
+                      Disabled
                     </span>
                   )}
                 </div>
