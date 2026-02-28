@@ -87,6 +87,29 @@ export function useSignals(scanId: string | null, stage?: string) {
   });
 }
 
+export interface TickerHistoryEntry {
+  scanId: string;
+  startedAt: string;
+  aiScore: number;
+  stage: string;
+  price: number | null;
+  signalCount: number;
+  sourceCount: number;
+  recommendation: string | null;
+}
+
+export function useTickerHistory(symbol: string | null) {
+  return useQuery<{ history: TickerHistoryEntry[] }>({
+    queryKey: ["ticker-history", symbol],
+    queryFn: async () => {
+      const res = await fetch(`/api/tickers/${symbol}/history`);
+      if (!res.ok) throw new Error("Failed to fetch ticker history");
+      return res.json();
+    },
+    enabled: !!symbol,
+  });
+}
+
 export function useTickerDetail(symbol: string | null) {
   return useQuery<{ ticker: ValidatedTickerData; signals: SignalData[] }>({
     queryKey: ["ticker", symbol],
