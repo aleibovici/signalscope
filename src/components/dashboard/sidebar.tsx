@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { NextScanCountdown } from "@/components/dashboard/next-scan-countdown";
 import { StatsWidget } from "@/components/dashboard/stats-widget";
+import { TickerSearch } from "@/components/dashboard/ticker-search";
 
 const navItems = [
   { href: "/dashboard", label: "Signals", icon: "📡" },
@@ -99,6 +100,8 @@ export function Sidebar() {
             </svg>
           </button>
         </div>
+
+        <TickerSearch />
 
         <nav className="flex-1 space-y-1 px-3 py-4">
           {navItems.map((item) => {
