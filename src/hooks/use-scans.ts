@@ -50,11 +50,21 @@ export interface SignalData {
   createdAt: string;
 }
 
-export function useScans(page = 1, limit = 10) {
+export interface ScansFilter {
+  status?: string;
+  from?: string;
+  to?: string;
+}
+
+export function useScans(page = 1, limit = 10, filters?: ScansFilter) {
   return useQuery<{ scans: ScanSummary[]; total: number }>({
-    queryKey: ["scans", page, limit],
+    queryKey: ["scans", page, limit, filters],
     queryFn: async () => {
-      const res = await fetch(`/api/scans?page=${page}&limit=${limit}`);
+      const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+      if (filters?.status) params.set("status", filters.status);
+      if (filters?.from) params.set("from", filters.from);
+      if (filters?.to) params.set("to", filters.to);
+      const res = await fetch(`/api/scans?${params}`);
       if (!res.ok) throw new Error("Failed to fetch scans");
       return res.json();
     },
