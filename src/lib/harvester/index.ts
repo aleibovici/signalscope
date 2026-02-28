@@ -208,6 +208,18 @@ export async function orchestrateScan(): Promise<string> {
     console.log("[dev-db] Dev database mirroring enabled");
   }
 
+  // Clean up stale RUNNING scans from previous crashed runs (older than 1 hour)
+  const staleCount = await prisma.scan.updateMany({
+    where: {
+      status: "RUNNING",
+      startedAt: { lt: new Date(Date.now() - 60 * 60 * 1000) },
+    },
+    data: { status: "FAILED", error: "Abandoned — process crash" },
+  });
+  if (staleCount.count > 0) {
+    console.warn(`[cleanup] Marked ${staleCount.count} stale RUNNING scan(s) as FAILED`);
+  }
+
   // 1. Create Scan record
   const scan = await prisma.scan.create({
     data: { status: "RUNNING" },
@@ -378,13 +390,6 @@ export async function orchestrateScan(): Promise<string> {
       }))
     );
 
-    await prisma.signal.createMany({ data: signalDataList });
-
-    await mirrorToDevDb(devPrisma, "signals", async (client) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await client.signal.createMany({ data: signalDataList as any });
-    });
-
     // Store validated tickers
     const tickerDataList = validatedResults.map((result) => {
       const fundamentals = fundamentalsMap.get(result.agg.symbol);
@@ -414,14 +419,6 @@ export async function orchestrateScan(): Promise<string> {
       };
     });
 
-    await prisma.validatedTicker.createMany({ data: tickerDataList });
-
-    await mirrorToDevDb(devPrisma, "validated tickers", async (client) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await client.validatedTicker.createMany({ data: tickerDataList as any });
-    });
-
-    // Update scan record
     const signalCount = validatedResults.reduce(
       (sum, r) => sum + r.agg.signals.length,
       0
@@ -438,9 +435,21 @@ export async function orchestrateScan(): Promise<string> {
       aiCost,
     };
 
-    await prisma.scan.update({
-      where: { id: scan.id },
-      data: scanUpdateData,
+    // Wrap all writes in a transaction — if any step fails, nothing is committed
+    await prisma.$transaction(async (tx) => {
+      await tx.signal.createMany({ data: signalDataList });
+      await tx.validatedTicker.createMany({ data: tickerDataList, skipDuplicates: true });
+      await tx.scan.update({ where: { id: scan.id }, data: scanUpdateData });
+    });
+
+    await mirrorToDevDb(devPrisma, "signals", async (client) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await client.signal.createMany({ data: signalDataList as any });
+    });
+
+    await mirrorToDevDb(devPrisma, "validated tickers", async (client) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await client.validatedTicker.createMany({ data: tickerDataList as any, skipDuplicates: true });
     });
 
     await mirrorToDevDb(devPrisma, "scan complete", async (client) => {
