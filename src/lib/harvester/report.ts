@@ -88,7 +88,18 @@ Return JSON:
       }),
     });
 
-    return JSON.parse(response.content) as TickerReport;
+    const raw = JSON.parse(response.content);
+    if (
+      !raw ||
+      typeof raw.catalyst !== "string" ||
+      typeof raw.risks !== "string" ||
+      typeof raw.recommendation !== "string" ||
+      typeof raw.report !== "string"
+    ) {
+      console.warn(`Report for ${symbol} returned invalid structure, using default`);
+      return defaultReport(symbol);
+    }
+    return raw as TickerReport;
   } catch (err) {
     console.error(`Report generation for ${symbol} error:`, err);
     return defaultReport(symbol);
