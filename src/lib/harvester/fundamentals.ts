@@ -8,26 +8,39 @@ const FINVIZ_UA =
 
 async function fetchShortFloatFinviz(symbol: string): Promise<number | null> {
   try {
-    const res = await fetch(`https://finviz.com/quote.ashx?t=${symbol}&ty=c&p=d&b=1`, {
+    const res = await fetch(`https://finviz.com/quote.ashx?t=${symbol}`, {
       headers: {
         "User-Agent": FINVIZ_UA,
-        "Accept": "text/html,application/xhtml+xml",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.9",
         "Referer": "https://finviz.com/",
       },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(10000),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.warn(`[finviz] ${symbol}: HTTP ${res.status}`);
+      return null;
+    }
 
     const html = await res.text();
-    // Find "Short Float" label, then grab the next table-cell value
-    const match = html.match(/Short Float[^<]*<\/td>\s*<td[^>]*>([^<]+)</);
-    if (!match) return null;
 
-    const raw = match[1].trim().replace("%", "");
-    const val = parseFloat(raw);
+    // Use indexOf so the label is found regardless of surrounding tags (<b>, etc.)
+    const idx = html.indexOf("Short Float");
+    if (idx === -1) {
+      console.warn(`[finviz] ${symbol}: label not found`);
+      return null;
+    }
+
+    // The value cell contains the percentage inside nested tags e.g. <a><b>0.91%</b></a>
+    // Scan the next 400 chars for the first ">NUMBER%<" pattern
+    const after = html.slice(idx, idx + 400);
+    const pctMatch = after.match(/>([0-9]+\.?[0-9]*)%</);
+    if (!pctMatch) return null;
+
+    const val = parseFloat(pctMatch[1]);
     return isFinite(val) ? val / 100 : null;
-  } catch {
+  } catch (err) {
+    console.warn(`[finviz] ${symbol}: ${err instanceof Error ? err.message : err}`);
     return null;
   }
 }
