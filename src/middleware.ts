@@ -11,6 +11,7 @@ const publicPaths = [
   "/api/signals",
   "/api/tickers",
   "/api/health",
+  "/api/search",
 ];
 
 export default auth((req) => {
