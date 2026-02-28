@@ -103,8 +103,8 @@ function PerformersTable({
               </tr>
             </thead>
             <tbody>
-              {performers.map((p) => (
-                <tr key={p.symbol} className="border-b border-gray-50">
+              {performers.map((p, i) => (
+                <tr key={`${p.symbol}-${i}`} className="border-b border-gray-50">
                   <td className="py-1.5 pr-4 font-medium text-blue-600">
                     <a href={`/ticker/${p.symbol}`}>{p.symbol}</a>
                   </td>
