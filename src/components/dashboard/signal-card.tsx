@@ -19,13 +19,7 @@ const recColors: Record<string, "success" | "warning" | "info" | "danger"> = {
   Avoid: "danger",
 };
 
-export function SignalCard({
-  ticker,
-  onTrack,
-}: {
-  ticker: ValidatedTickerData;
-  onTrack?: (symbol: string, price: number) => void;
-}) {
+export function SignalCard({ ticker }: { ticker: ValidatedTickerData }) {
   return (
     <Card className="group relative flex h-full cursor-pointer flex-col transition-all hover:border-blue-300 hover:shadow-md">
       <CardContent className="flex flex-1 flex-col space-y-3">
@@ -114,18 +108,6 @@ export function SignalCard({
             {ticker.signalCount} signals
           </span>
           <div className="flex items-center gap-2">
-            {onTrack && ticker.price && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  onTrack(ticker.symbol, ticker.price!);
-                }}
-                className="relative z-10 rounded bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700"
-              >
-                Add position
-              </button>
-            )}
             <svg
               className="h-4 w-4 text-gray-300 transition-colors group-hover:text-blue-500"
               fill="none"
