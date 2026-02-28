@@ -19,13 +19,17 @@ export function AddPositionModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await addPosition.mutateAsync({
-      symbol,
-      entryPrice: parseFloat(entryPrice),
-      shares: shares ? parseFloat(shares) : undefined,
-      notes: notes || undefined,
-    });
-    onClose();
+    try {
+      await addPosition.mutateAsync({
+        symbol,
+        entryPrice: parseFloat(entryPrice),
+        shares: shares ? parseFloat(shares) : undefined,
+        notes: notes || undefined,
+      });
+      onClose();
+    } catch {
+      // addPosition.isError / addPosition.error surface the failure in the UI
+    }
   };
 
   return (
@@ -72,6 +76,12 @@ export function AddPositionModal({
               rows={2}
             />
           </div>
+
+          {addPosition.isError && (
+            <p className="text-sm text-red-600">
+              Failed to add position. Please try again.
+            </p>
+          )}
 
           <div className="flex justify-end gap-3">
             <button

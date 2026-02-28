@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth";
 import { addPositionSchema } from "@/lib/validators";
-import { fetchCurrentPrice } from "@/lib/harvester/fundamentals";
+import { fetchCurrentPrices } from "@/lib/harvester/fundamentals";
 
 export async function GET() {
   try {
@@ -14,18 +14,12 @@ export async function GET() {
       orderBy: { openedAt: "desc" },
     });
 
-    // Fetch current prices for open positions
+    // Batch-fetch current prices for all unique open symbols
     const openSymbols = [
       ...new Set(positions.filter((p) => p.status === "OPEN").map((p) => p.symbol)),
     ];
 
-    const priceMap = new Map<string, number | null>();
-    await Promise.all(
-      openSymbols.map(async (symbol) => {
-        const price = await fetchCurrentPrice(symbol);
-        priceMap.set(symbol, price);
-      })
-    );
+    const priceMap = await fetchCurrentPrices(openSymbols);
 
     const enriched = positions.map((p) => {
       const currentPrice = p.status === "OPEN" ? priceMap.get(p.symbol) ?? null : p.closePrice;
