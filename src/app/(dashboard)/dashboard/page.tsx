@@ -9,12 +9,6 @@ import { StageTabs } from "@/components/dashboard/stage-tabs";
 import { SignalCard } from "@/components/dashboard/signal-card";
 import { Spinner } from "@/components/ui/spinner";
 
-function getCookieStage(): string {
-  if (typeof document === "undefined") return "ALL";
-  const match = document.cookie.match(/(?:^|; )dashboard_stage=([^;]*)/);
-  return match ? decodeURIComponent(match[1]) : "ALL";
-}
-
 function setCookieStage(stage: string) {
   document.cookie = `dashboard_stage=${encodeURIComponent(stage)}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
 }
@@ -24,7 +18,13 @@ function DashboardContent() {
   const [selectedScanId, setSelectedScanId] = useState<string | null>(
     searchParams.get("scanId")
   );
-  const [selectedStage, setSelectedStage] = useState<string>(() => getCookieStage());
+  const [selectedStage, setSelectedStage] = useState("ALL");
+
+  // Restore stage from cookie after hydration to avoid SSR mismatch
+  useEffect(() => {
+    const match = document.cookie.match(/(?:^|; )dashboard_stage=([^;]*)/);
+    if (match) setSelectedStage(decodeURIComponent(match[1]));
+  }, []);
 
   useScrollRestore("dashboard");
 
