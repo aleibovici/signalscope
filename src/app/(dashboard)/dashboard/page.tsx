@@ -7,7 +7,6 @@ import { useScrollRestore } from "@/hooks/use-scroll-restore";
 import { ScanSelector } from "@/components/dashboard/scan-selector";
 import { StageTabs } from "@/components/dashboard/stage-tabs";
 import { SignalCard } from "@/components/dashboard/signal-card";
-import { AddPositionModal } from "@/components/dashboard/add-position-modal";
 import { Spinner } from "@/components/ui/spinner";
 
 function getCookieStage(): string {
@@ -26,10 +25,6 @@ function DashboardContent() {
     searchParams.get("scanId")
   );
   const [selectedStage, setSelectedStage] = useState<string>(() => getCookieStage());
-  const [trackModal, setTrackModal] = useState<{
-    symbol: string;
-    price: number;
-  } | null>(null);
 
   useScrollRestore("dashboard");
 
@@ -91,22 +86,12 @@ function DashboardContent() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((ticker: ValidatedTickerData) => (
-            <SignalCard
-              key={ticker.id}
-              ticker={ticker}
-              onTrack={(symbol, price) => setTrackModal({ symbol, price })}
-            />
+            <SignalCard key={ticker.id} ticker={ticker} />
           ))}
         </div>
       )}
 
-      {trackModal && (
-        <AddPositionModal
-          symbol={trackModal.symbol}
-          price={trackModal.price}
-          onClose={() => setTrackModal(null)}
-        />
-      )}
+
     </div>
   );
 }
