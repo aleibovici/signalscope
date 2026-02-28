@@ -9,6 +9,8 @@ import { StageTabs } from "@/components/dashboard/stage-tabs";
 import { SignalCard } from "@/components/dashboard/signal-card";
 import { Spinner } from "@/components/ui/spinner";
 
+const VALID_STAGES = new Set(["ALL", "EARLY", "FORMING", "CONFIRMED"]);
+
 function setCookieStage(stage: string) {
   document.cookie = `dashboard_stage=${encodeURIComponent(stage)}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
 }
@@ -23,7 +25,13 @@ function DashboardContent() {
   // Restore stage from cookie after hydration to avoid SSR mismatch
   useEffect(() => {
     const match = document.cookie.match(/(?:^|; )dashboard_stage=([^;]*)/);
-    if (match) setSelectedStage(decodeURIComponent(match[1]));
+    if (!match) return;
+    try {
+      const value = decodeURIComponent(match[1]);
+      if (VALID_STAGES.has(value)) setSelectedStage(value);
+    } catch {
+      // malformed cookie value — ignore and keep default
+    }
   }, []);
 
   useScrollRestore("dashboard");
@@ -90,8 +98,6 @@ function DashboardContent() {
           ))}
         </div>
       )}
-
-
     </div>
   );
 }
