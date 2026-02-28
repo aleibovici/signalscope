@@ -15,6 +15,22 @@ export default function TickerDetailPage() {
   const { data: historyData } = useTickerHistory(symbol);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [signalsOpen, setSignalsOpen] = useState(false);
+  const [livePrice, setLivePrice] = useState<number | null | undefined>(undefined);
+  const [priceRefreshing, setPriceRefreshing] = useState(false);
+
+  async function refreshPrice() {
+    if (priceRefreshing) return;
+    setPriceRefreshing(true);
+    try {
+      const res = await fetch(`/api/prices?symbols=${symbol}`);
+      if (res.ok) {
+        const json = await res.json();
+        setLivePrice(json.prices?.[symbol.toUpperCase()] ?? null);
+      }
+    } finally {
+      setPriceRefreshing(false);
+    }
+  }
 
   if (isLoading) {
     return (
@@ -61,11 +77,36 @@ export default function TickerDetailPage() {
             <h3 className="font-semibold">Price & Score</h3>
           </CardHeader>
           <CardContent className="space-y-2">
-            <div className="flex justify-between">
+            <div className="flex items-center justify-between">
               <span className="text-gray-500">Price</span>
-              <span className="font-medium">
-                {ticker.price ? `$${ticker.price.toFixed(2)}` : "N/A"}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="font-medium">
+                  {livePrice !== undefined
+                    ? livePrice !== null ? `$${livePrice.toFixed(2)}` : "N/A"
+                    : ticker.price ? `$${ticker.price.toFixed(2)}` : "N/A"}
+                </span>
+                {livePrice !== undefined && (
+                  <span className="rounded bg-green-50 px-1 py-0.5 text-xs font-medium text-green-600">
+                    live
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={refreshPrice}
+                  disabled={priceRefreshing}
+                  aria-label="Refresh price"
+                  className="flex h-5 w-5 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-40"
+                >
+                  {priceRefreshing ? (
+                    <Spinner className="h-3 w-3" />
+                  ) : (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3">
+                      <path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 12a9 9 0 0 1-15 6.7L3 16" />
+                      <path d="M21 3v5h-5M3 21v-5h5" />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Market Cap</span>
