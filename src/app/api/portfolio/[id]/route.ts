@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth";
 import { updatePositionSchema } from "@/lib/validators";
+import { handleApiError } from "@/lib/api-error";
 
 export async function PATCH(
   request: NextRequest,
@@ -40,14 +40,7 @@ export async function PATCH(
 
     return NextResponse.json({ position });
   } catch (error) {
-    if (error instanceof Error && error.message === "Not authenticated") {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "Validation failed", details: error.issues }, { status: 400 });
-    }
-    console.error("PATCH /api/portfolio/[id] error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return handleApiError(error, "/api/portfolio/[id] PATCH");
   }
 }
 
@@ -70,10 +63,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    if (error instanceof Error && error.message === "Not authenticated") {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-    console.error("DELETE /api/portfolio/[id] error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return handleApiError(error, "/api/portfolio/[id] DELETE");
   }
 }

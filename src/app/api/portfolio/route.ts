@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth";
 import { addPositionSchema } from "@/lib/validators";
 import { fetchCurrentPrices } from "@/lib/harvester/fundamentals";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET() {
   try {
@@ -33,11 +33,7 @@ export async function GET() {
 
     return NextResponse.json({ positions: enriched });
   } catch (error) {
-    if (error instanceof Error && error.message === "Not authenticated") {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-    console.error("GET /api/portfolio error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return handleApiError(error, "/api/portfolio GET");
   }
 }
 
@@ -59,13 +55,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ position }, { status: 201 });
   } catch (error) {
-    if (error instanceof Error && error.message === "Not authenticated") {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "Validation failed", details: error.issues }, { status: 400 });
-    }
-    console.error("POST /api/portfolio error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return handleApiError(error, "/api/portfolio POST");
   }
 }

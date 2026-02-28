@@ -23,16 +23,6 @@ export async function POST(request: NextRequest) {
     }
 
     const { email, password, name } = parsed.data;
-
-    // Fast-path check before expensive bcrypt hash
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) {
-      return NextResponse.json(
-        { error: "Registration failed. Please try a different email or contact support." },
-        { status: 400 }
-      );
-    }
-
     const passwordHash = await bcrypt.hash(password, 12);
 
     const user = await prisma.user.create({

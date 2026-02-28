@@ -1,5 +1,15 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
+type SourceStatus = "active" | "coming_soon" | "disabled";
+
+interface SignalSource {
+  icon: string;
+  name: string;
+  description: string;
+  params: string;
+  status: SourceStatus;
+}
+
 export default function MethodologyPage() {
   return (
     <div className="space-y-6 md:space-y-8">
@@ -35,50 +45,50 @@ export default function MethodologyPage() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {[
+            {([
               {
                 icon: "💬",
                 name: "Reddit",
                 description: "Monitors 17 investing subreddits for posts and high-engagement comments.",
                 params: "Posts + comments · 17 subreddits · 1.5 s delay between requests",
-                status: "active" as const,
+                status: "active",
               },
               {
                 icon: "🐦",
                 name: "X / Twitter",
                 description: "Keyword search for ticker mentions from the past 24 hours, run once daily before market open.",
                 params: "X API v2 · 24 h lookback · up to 300 tweets/run",
-                status: "active" as const,
+                status: "active",
               },
               {
                 icon: "📋",
                 name: "SEC Insider",
                 description: "C-suite open-market purchases of $50 K or more from OpenInsider and EDGAR.",
                 params: "C-suite only · $50 K+ purchases · open market only",
-                status: "active" as const,
+                status: "active",
               },
               {
                 icon: "📈",
                 name: "Volume Spike",
                 description: "Flags symbols whose volume is ≥2× their 10-day average.",
                 params: "110 symbols · ≥2× 10-day avg · Yahoo Finance data",
-                status: "active" as const,
+                status: "active",
               },
               {
                 icon: "💎",
                 name: "Options Flow",
                 description: "Unusual call volume, heavy OTM calls, and call sweeps.",
                 params: "Unusual Whales · FlowAlgo",
-                status: "coming_soon" as const,
+                status: "coming_soon",
               },
               {
                 icon: "📣",
                 name: "StockTwits",
                 description: "Trending tickers from StockTwits via TrendSpider mirror (server-side rendered, no Cloudflare block).",
                 params: "TrendSpider mirror · trending symbols · price + day gain",
-                status: "active" as const,
+                status: "active",
               },
-            ].map((src) => (
+            ] satisfies SignalSource[]).map((src) => (
               <div key={src.name} className="rounded-lg border border-gray-200 p-4">
                 <div className="mb-1 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
