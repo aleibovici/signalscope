@@ -346,49 +346,51 @@ export async function orchestrateScan(): Promise<string> {
     console.log("Storing results...");
 
     // Store signals
-    const signalDataList: Array<Record<string, unknown>> = [];
-    for (const result of validatedResults) {
-      for (const signal of result.agg.signals) {
-        const data = {
-          scanId: scan.id,
-          symbol: signal.symbol,
-          source: signal.source,
-          title: signal.title,
-          body: signal.body,
-          url: signal.url,
-          author: signal.author,
-          authorAge: signal.authorAge,
-          authorKarma: signal.authorKarma,
-          upvotes: signal.upvotes,
-          commentCount: signal.commentCount,
-          velocityScore: (signal.postAge != null && signal.sortType)
-            ? (signal.sortType === "rising" ? 3 : signal.sortType === "comment" ? 1.5 : signal.postAge < 3 ? 2 : signal.postAge < 12 ? 1 : 0.5)
+    const signalDataList = validatedResults.flatMap((result) =>
+      result.agg.signals.map((signal) => ({
+        scanId: scan.id,
+        symbol: signal.symbol,
+        source: signal.source,
+        title: signal.title,
+        body: signal.body,
+        url: signal.url,
+        author: signal.author,
+        authorAge: signal.authorAge,
+        authorKarma: signal.authorKarma,
+        upvotes: signal.upvotes,
+        commentCount: signal.commentCount,
+        velocityScore:
+          signal.postAge != null && signal.sortType
+            ? signal.sortType === "rising"
+              ? 3
+              : signal.sortType === "comment"
+                ? 1.5
+                : signal.postAge < 3
+                  ? 2
+                  : signal.postAge < 12
+                    ? 1
+                    : 0.5
             : 0,
-          sentiment: result.sentiment,
-          pndFlagged: result.pndFlagged,
-          pndFlags: result.pndFlags,
-          pndScore: result.pndScore,
-        };
-        await prisma.signal.create({ data });
-        signalDataList.push(data);
-      }
-    }
+        sentiment: result.sentiment,
+        pndFlagged: result.pndFlagged,
+        pndFlags: result.pndFlags,
+        pndScore: result.pndScore,
+      }))
+    );
+
+    await prisma.signal.createMany({ data: signalDataList });
 
     await mirrorToDevDb(devPrisma, "signals", async (client) => {
-      for (const data of signalDataList) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await client.signal.create({ data: data as any });
-      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await client.signal.createMany({ data: signalDataList as any });
     });
 
     // Store validated tickers
-    const tickerDataList: Array<Record<string, unknown>> = [];
-    for (const result of validatedResults) {
+    const tickerDataList = validatedResults.map((result) => {
       const fundamentals = fundamentalsMap.get(result.agg.symbol);
       const report = reports.get(result.agg.symbol);
       const novelty = noveltyMap.get(result.agg.symbol);
-
-      const data = {
+      return {
         scanId: scan.id,
         symbol: result.agg.symbol,
         price: fundamentals?.price,
@@ -404,20 +406,19 @@ export async function orchestrateScan(): Promise<string> {
         stage: result.stage,
         signalCount: result.agg.signals.length,
         sourceCount: result.agg.sourceCount,
-        avgSentiment: result.sentiment === "bullish" ? 0.7 : result.sentiment === "bearish" ? 0.3 : 0.5,
+        avgSentiment:
+          result.sentiment === "bullish" ? 0.7 : result.sentiment === "bearish" ? 0.3 : 0.5,
         signalType: result.signalType,
         firstSeenDaysAgo: novelty?.daysSinceFirstSeen ?? null,
         priorAppearances: novelty?.priorAppearances ?? 0,
       };
-      await prisma.validatedTicker.create({ data });
-      tickerDataList.push(data);
-    }
+    });
+
+    await prisma.validatedTicker.createMany({ data: tickerDataList });
 
     await mirrorToDevDb(devPrisma, "validated tickers", async (client) => {
-      for (const data of tickerDataList) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await client.validatedTicker.create({ data: data as any });
-      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await client.validatedTicker.createMany({ data: tickerDataList as any });
     });
 
     // Update scan record
