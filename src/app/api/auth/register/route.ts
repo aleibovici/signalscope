@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 const registerSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters").max(72, "Password must be at most 72 characters"),
   name: z.string().min(1).max(100).optional(),
 });
 
@@ -25,8 +25,8 @@ export async function POST(request: NextRequest) {
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
     return NextResponse.json(
-      { error: "An account with this email already exists" },
-      { status: 409 }
+      { error: "Registration failed. Please try a different email or contact support." },
+      { status: 400 }
     );
   }
 

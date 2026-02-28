@@ -1,4 +1,5 @@
 import type { RawSignal } from "../types";
+import { BLACKLIST, MEGA_CAPS } from "./ticker-utils";
 
 const C_SUITE_TITLES = new Set([
   "CEO", "CFO", "COO", "CTO", "CMO", "CIO", "CISO", "CLO",
@@ -167,7 +168,11 @@ async function fetchFromEdgarRss(): Promise<RawSignal[]> {
 
     const text = await res.text();
     const tickerMatches = text.match(/\(([A-Z]{1,5})\)/g) || [];
-    const tickers = [...new Set(tickerMatches.map((m) => m.replace(/[()]/g, "")))];
+    const tickers = [...new Set(
+      tickerMatches
+        .map((m) => m.replace(/[()]/g, ""))
+        .filter((t) => !BLACKLIST.has(t) && !MEGA_CAPS.has(t) && t.length >= 2)
+    )];
 
     const signals: RawSignal[] = tickers.slice(0, 20).map((symbol) => ({
       symbol,
