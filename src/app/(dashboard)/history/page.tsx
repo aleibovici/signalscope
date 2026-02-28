@@ -100,8 +100,7 @@ export default function HistoryPage() {
                       <p className="text-sm text-gray-500">
                         {scan.signalCount} signals &middot;{" "}
                         {scan.validatedCount} validated &middot;{" "}
-                        {scan.filteredCount} filtered &middot;{" "}
-                        AI cost: ${scan.aiCost.toFixed(4)}
+                        {scan.filteredCount} filtered
                       </p>
                     </div>
                     <Badge
