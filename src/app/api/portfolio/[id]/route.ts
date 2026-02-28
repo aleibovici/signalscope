@@ -21,6 +21,10 @@ export async function PATCH(
     if (data.notes !== undefined) updateData.notes = data.notes;
     if (data.shares !== undefined) updateData.shares = data.shares;
     if (data.status === "CLOSED") updateData.closedAt = new Date();
+    if (data.status === "OPEN") {
+      updateData.closedAt = null;
+      updateData.closePrice = null;
+    }
 
     // Atomic: ownership check + update in one query — no TOCTOU window
     const result = await prisma.userPosition.updateMany({

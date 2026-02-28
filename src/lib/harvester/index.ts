@@ -18,6 +18,7 @@ const SOURCE_WEIGHTS: Record<string, number> = {
   OPTIONS_FLOW: 2.5,
   VOLUME_SPIKE: 2,
   TWITTER: 1.2,
+  SEC_FILING: 1,
   REDDIT: 1,
   STOCKTWITS: 1,
 };

@@ -3,9 +3,12 @@ import { authConfig } from "@/lib/auth.config";
 
 const { auth } = NextAuth(authConfig);
 
-const publicPaths = [
-  "/login",
-  "/register",
+// Exact page paths (no sub-routes)
+const publicPages = new Set(["/login", "/register"]);
+
+// API prefixes — matched with a boundary check so /api/scans matches
+// /api/scans and /api/scans/abc but NOT /api/scans-admin
+const publicApiPrefixes = [
   "/api/auth",
   "/api/scans",
   "/api/signals",
@@ -15,11 +18,17 @@ const publicPaths = [
   "/api/performance",
 ];
 
+function isPublicPath(pathname: string): boolean {
+  if (publicPages.has(pathname)) return true;
+  return publicApiPrefixes.some(
+    (p) => pathname === p || pathname.startsWith(p + "/")
+  );
+}
+
 export default auth((req) => {
   const { pathname } = req.nextUrl;
 
-  const isPublic = publicPaths.some((p) => pathname.startsWith(p));
-  if (isPublic) return;
+  if (isPublicPath(pathname)) return;
 
   if (!req.auth) {
     if (pathname.startsWith("/api/")) {
