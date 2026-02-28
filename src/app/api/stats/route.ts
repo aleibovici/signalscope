@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET() {
   try {
@@ -33,10 +34,6 @@ export async function GET() {
       users,
     });
   } catch (err) {
-    if (err instanceof Error && err.message === "Not authenticated") {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-    console.error("[/api/stats] GET error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return handleApiError(err, "/api/stats GET");
   }
 }

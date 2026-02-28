@@ -8,43 +8,40 @@ export async function GET(
   try {
     const { scanId } = await params;
 
-    const scan = await prisma.scan.findUnique({
-      where: { id: scanId },
-    });
+    const [scan, tickers, signals] = await Promise.all([
+      prisma.scan.findUnique({ where: { id: scanId } }),
+      prisma.validatedTicker.findMany({
+        where: { scanId },
+        orderBy: { aiScore: "desc" },
+        include: {
+          performance: { select: { return7d: true } },
+        },
+      }),
+      prisma.signal.findMany({
+        where: { scanId },
+        select: { symbol: true, source: true },
+      }),
+    ]);
 
     if (!scan) {
       return NextResponse.json({ error: "Scan not found" }, { status: 404 });
     }
 
-    const tickers = await prisma.validatedTicker.findMany({
-      where: { scanId },
-      orderBy: { aiScore: "desc" },
-      include: {
-        performance: { select: { return7d: true } },
-      },
-    });
-
-    // Fetch distinct sources per symbol for this scan
-    const signals = await prisma.signal.findMany({
-      where: { scanId },
-      select: { symbol: true, source: true },
-    });
-
-    const sourcesBySymbol = new Map<string, string[]>();
+    const sourcesBySymbol = new Map<string, Set<string>>();
     for (const s of signals) {
-      const sources = sourcesBySymbol.get(s.symbol);
-      if (sources) {
-        if (!sources.includes(s.source)) sources.push(s.source);
-      } else {
-        sourcesBySymbol.set(s.symbol, [s.source]);
+      let set = sourcesBySymbol.get(s.symbol);
+      if (!set) {
+        set = new Set<string>();
+        sourcesBySymbol.set(s.symbol, set);
       }
+      set.add(s.source);
     }
 
     const tickersWithSources = tickers.map((t) => ({
       ...t,
       return7d: t.performance?.return7d ?? null,
       performance: undefined,
-      sources: sourcesBySymbol.get(t.symbol) ?? [],
+      sources: [...(sourcesBySymbol.get(t.symbol) ?? [])],
     }));
 
     return NextResponse.json({ scan, tickers: tickersWithSources });
