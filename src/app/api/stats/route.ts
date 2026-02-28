@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    const [scans, signals, tickerGroups, trackedTickers, perfAgg, wins] =
+    const [scans, signals, tickerGroups, trackedTickers, perfAgg, wins, users] =
       await Promise.all([
         prisma.scan.count({ where: { status: "COMPLETED" } }),
         prisma.signal.count(),
@@ -14,6 +14,7 @@ export async function GET() {
           where: { return7d: { not: null } },
         }),
         prisma.tickerPerformance.count({ where: { return7d: { gt: 0 } } }),
+        prisma.user.count(),
       ]);
 
     const avgReturn7d = perfAgg._avg.return7d ?? 0;
@@ -26,6 +27,7 @@ export async function GET() {
       avgReturn7d,
       winRate7d,
       trackedTickers,
+      users,
     });
   } catch (err) {
     console.error("[/api/stats] GET error:", err);

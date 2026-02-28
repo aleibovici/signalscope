@@ -9,6 +9,7 @@ export interface PlatformStats {
   avgReturn7d: number;
   winRate7d: number;
   trackedTickers: number;
+  users: number;
 }
 
 export function useStats() {
