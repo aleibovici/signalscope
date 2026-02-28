@@ -3,7 +3,6 @@
 import { useQuery } from "@tanstack/react-query";
 
 export interface PlatformStats {
-  users: number;
   scans: number;
   signals: number;
   tickers: number;

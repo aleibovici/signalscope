@@ -54,7 +54,12 @@ export function checkPndFlags(
     "revenue", "partnership", "clinical", "patent", "guidance",
     "buyout", "trial results", "sec filing", "10-k", "10-q", "8-k",
   ];
-  const hasNewsCatalyst = newsKeywords.some((kw) => texts.includes(kw));
+  // SEC insider buys and options flow are themselves catalysts — don't flag them for lacking news
+  const signalSources = new Set(agg.signals.map((s) => s.source));
+  const hasNewsCatalyst =
+    newsKeywords.some((kw) => texts.includes(kw)) ||
+    signalSources.has("SEC_INSIDER") ||
+    signalSources.has("OPTIONS_FLOW");
 
   if (fundamentals?.marketCap != null && fundamentals.marketCap < 50_000_000 && !hasNewsCatalyst) {
     flags.push("micro_cap_no_catalyst");

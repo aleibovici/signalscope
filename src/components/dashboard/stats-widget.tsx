@@ -23,9 +23,6 @@ export function StatsWidget() {
         </div>
       ) : (
         <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-          <dt className="text-xs text-gray-500">Users</dt>
-          <dd className="text-right text-xs font-medium text-gray-700">{data!.users}</dd>
-
           <dt className="text-xs text-gray-500">Scans</dt>
           <dd className="text-right text-xs font-medium text-gray-700">{data!.scans}</dd>
 
