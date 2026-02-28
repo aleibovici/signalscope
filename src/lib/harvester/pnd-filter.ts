@@ -115,17 +115,7 @@ export function checkPndFlags(
     }
   }
 
-  // 9. New accounts promoting (<30 days, <100 karma)
-  const newAccounts = agg.signals.filter(
-    (s) =>
-      (s.authorAge !== undefined && s.authorAge < 30) ||
-      (s.authorKarma !== undefined && s.authorKarma < 100)
-  );
-  if (newAccounts.length > 0 && newAccounts.length >= agg.signals.length * 0.5) {
-    flags.push("new_account_promoters");
-  }
-
-  // 10. Twitter bot promoters: ≥2 Twitter signals, ≥50% from accounts <90 days old AND <50 followers
+  // 9. Twitter bot promoters: ≥2 Twitter signals, ≥50% from accounts <90 days old AND <50 followers
   const twitterSignals = agg.signals.filter((s) => s.source === "TWITTER");
   if (twitterSignals.length >= 2) {
     const botLike = twitterSignals.filter(

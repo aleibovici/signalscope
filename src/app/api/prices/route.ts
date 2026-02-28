@@ -3,9 +3,10 @@ import { symbolsQuerySchema } from "@/lib/validators";
 import { fetchCurrentPrice } from "@/lib/harvester/fundamentals";
 import { z } from "zod/v4";
 
-// Simple in-memory cache (5 min TTL)
+// Simple in-memory cache (5 min TTL, max 500 entries)
 const priceCache = new Map<string, { price: number | null; ts: number }>();
 const CACHE_TTL = 5 * 60 * 1000;
+const CACHE_MAX = 500;
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,6 +28,11 @@ export async function GET(request: NextRequest) {
         }
 
         const price = await fetchCurrentPrice(symbol);
+        if (priceCache.size >= CACHE_MAX) {
+          // Evict oldest entry
+          const oldest = priceCache.keys().next().value;
+          if (oldest !== undefined) priceCache.delete(oldest);
+        }
         priceCache.set(symbol, { price, ts: now });
         prices[symbol] = price;
       })

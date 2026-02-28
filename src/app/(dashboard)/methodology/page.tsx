@@ -68,15 +68,15 @@ export default function MethodologyPage() {
                 icon: "💎",
                 name: "Options Flow",
                 description: "Unusual call volume, heavy OTM calls, and call sweeps.",
-                params: "Yahoo Finance options chains · Free endpoint",
-                active: true,
+                params: "Requires paid API (Unusual Whales, FlowAlgo)",
+                active: false,
               },
               {
                 icon: "📣",
                 name: "StockTwits",
                 description: "Social sentiment from StockTwits posts via mirror.",
-                params: "TrendSpider mirror · Results depend on mirror availability",
-                active: true,
+                params: "Disabled — Cloudflare blocks all direct access",
+                active: false,
               },
             ].map((src) => (
               <div key={src.name} className="rounded-lg border border-gray-200 p-4">
@@ -188,7 +188,7 @@ export default function MethodologyPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-gray-600">
-            Every candidate is checked against 11 statistical flags before scoring. A ticker that
+            Every candidate is checked against 10 statistical flags before scoring. A ticker that
             triggers ≥3 flags is moved to <strong>FILTERED</strong> status and quarantined. Exactly
             2 flags triggers an additional AI edge-case assessment.
           </p>
@@ -203,7 +203,6 @@ export default function MethodologyPage() {
               { flag: "coordinated_posts", desc: "≥50% near-identical post titles" },
               { flag: "no_news_catalyst", desc: "Multiple signals with no verifiable news" },
               { flag: "sudden_spike", desc: "≥3 Reddit signals all <3 h old AND avg upvotes <10" },
-              { flag: "new_account_promoters", desc: "≥50% from accounts <30 days old or <100 karma" },
               { flag: "twitter_bot_promoters", desc: "Coordinated low-credibility accounts on X" },
             ].map((item) => (
               <div key={item.flag} className="flex items-start gap-2">

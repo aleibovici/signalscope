@@ -87,7 +87,7 @@ export default function TickerDetailPage() {
                     ? livePrice !== null ? `$${livePrice.toFixed(2)}` : "N/A"
                     : ticker.price ? `$${ticker.price.toFixed(2)}` : "N/A"}
                 </span>
-                {livePrice !== undefined && (
+                {livePrice != null && (
                   <span className="rounded bg-green-50 px-1 py-0.5 text-xs font-medium text-green-600">
                     live
                   </span>
