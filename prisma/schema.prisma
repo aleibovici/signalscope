@@ -30,6 +30,9 @@ model Scan {
   error            String?
   signals          Signal[]
   validatedTickers ValidatedTicker[]
+
+  @@index([startedAt])
+  @@index([status])
 }
 
 enum ScanStatus {
@@ -100,6 +103,7 @@ model ValidatedTicker {
   @@unique([scanId, symbol])
   @@index([symbol])
   @@index([stage])
+  @@index([createdAt])
 }
 
 model TickerPerformance {
@@ -126,6 +130,7 @@ model TickerPerformance {
   updatedAt         DateTime        @updatedAt
 
   @@index([symbol])
+  @@index([createdAt])
 }
 
 enum TickerStage {
