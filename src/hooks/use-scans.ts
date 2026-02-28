@@ -10,7 +10,6 @@ export interface ScanSummary {
   signalCount: number;
   validatedCount: number;
   filteredCount: number;
-  aiCost: number;
 }
 
 export interface ValidatedTickerData {

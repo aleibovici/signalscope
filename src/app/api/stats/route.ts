@@ -2,13 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  const [users, scans, signals, tickerGroups, costAgg, trackedTickers, perfAgg, wins] =
+  const [users, scans, signals, tickerGroups, trackedTickers, perfAgg, wins] =
     await Promise.all([
       prisma.user.count(),
       prisma.scan.count({ where: { status: "COMPLETED" } }),
       prisma.signal.count(),
       prisma.validatedTicker.groupBy({ by: ["symbol"] }),
-      prisma.scan.aggregate({ _sum: { aiCost: true } }),
       prisma.tickerPerformance.count({ where: { return7d: { not: null } } }),
       prisma.tickerPerformance.aggregate({
         _avg: { return7d: true },
@@ -25,7 +24,6 @@ export async function GET() {
     scans,
     signals,
     tickers: tickerGroups.length,
-    totalAiCost: costAgg._sum.aiCost ?? 0,
     avgReturn7d,
     winRate7d,
     trackedTickers,

@@ -37,7 +37,6 @@ export async function GET(request: NextRequest) {
         signalCount: true,
         validatedCount: true,
         filteredCount: true,
-        aiCost: true,
       },
     }),
     prisma.scan.count({ where }),

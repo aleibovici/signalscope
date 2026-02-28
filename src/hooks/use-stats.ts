@@ -7,7 +7,6 @@ export interface PlatformStats {
   scans: number;
   signals: number;
   tickers: number;
-  totalAiCost: number;
   avgReturn7d: number;
   winRate7d: number;
   trackedTickers: number;

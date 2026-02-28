@@ -35,9 +35,6 @@ export function StatsWidget() {
           <dt className="text-xs text-gray-500">Tickers</dt>
           <dd className="text-right text-xs font-medium text-gray-700">{data!.tickers.toLocaleString()}</dd>
 
-          <dt className="text-xs text-gray-500">AI Cost</dt>
-          <dd className="text-right text-xs font-medium text-gray-700">${data!.totalAiCost.toFixed(2)}</dd>
-
           {data!.trackedTickers > 0 && (
             <>
               <dt className="text-xs text-gray-500">Win Rate</dt>
