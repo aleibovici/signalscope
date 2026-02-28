@@ -11,7 +11,7 @@ import { PositionCard } from "@/components/portfolio/position-card";
 import { Spinner } from "@/components/ui/spinner";
 
 export default function PortfolioPage() {
-  const { data, isLoading } = usePortfolio();
+  const { data, isLoading, isError } = usePortfolio();
   const updatePosition = useUpdatePosition();
   const deletePosition = useDeletePosition();
   const addPosition = useAddPosition();
@@ -57,29 +57,41 @@ export default function PortfolioPage() {
   const handleConfirmClose = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!closingPosition || !closePrice) return;
-    await updatePosition.mutateAsync({
-      id: closingPosition,
-      status: "CLOSED",
-      closePrice: parseFloat(closePrice),
-    });
-    setClosingPosition(null);
-    setClosePrice("");
+    try {
+      await updatePosition.mutateAsync({
+        id: closingPosition,
+        status: "CLOSED",
+        closePrice: parseFloat(closePrice),
+      });
+      setClosingPosition(null);
+      setClosePrice("");
+    } catch {
+      // updatePosition.isError surfaces the failure in the UI
+    }
   };
 
   const handleDelete = async (id: string) => {
-    await deletePosition.mutateAsync(id);
+    try {
+      await deletePosition.mutateAsync(id);
+    } catch {
+      // deletePosition.isError surfaces the failure in the UI
+    }
   };
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSymbol || !newPrice) return;
-    await addPosition.mutateAsync({
-      symbol: newSymbol.toUpperCase(),
-      entryPrice: parseFloat(newPrice),
-    });
-    setNewSymbol("");
-    setNewPrice("");
-    setShowAddForm(false);
+    try {
+      await addPosition.mutateAsync({
+        symbol: newSymbol.toUpperCase(),
+        entryPrice: parseFloat(newPrice),
+      });
+      setNewSymbol("");
+      setNewPrice("");
+      setShowAddForm(false);
+    } catch {
+      // addPosition.isError surfaces the failure in the UI
+    }
   };
 
   return (
@@ -148,12 +160,19 @@ export default function PortfolioPage() {
           >
             Add
           </button>
+          {addPosition.isError && (
+            <p className="w-full text-sm text-red-600">Failed to add position. Please try again.</p>
+          )}
         </form>
       )}
 
       {isLoading ? (
         <div className="flex justify-center py-12">
           <Spinner className="h-8 w-8 text-blue-600" />
+        </div>
+      ) : isError ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 py-12 text-center">
+          <p className="text-red-600">Failed to load portfolio. Please refresh and try again.</p>
         </div>
       ) : openPositions.length === 0 && closedPositions.length === 0 ? (
         <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center">
@@ -254,6 +273,9 @@ export default function PortfolioPage() {
                 required
               />
             </div>
+            {updatePosition.isError && (
+              <p className="mt-3 text-sm text-red-600">Failed to close position. Please try again.</p>
+            )}
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"

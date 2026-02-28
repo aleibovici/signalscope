@@ -13,11 +13,13 @@ interface IntervalConfig {
   returnField: "return1d" | "return3d" | "return7d" | "return30d";
 }
 
+// maxHours is set wide enough to survive weekend/holiday gaps (3-day weekends etc.)
+// 1d: 18h–120h (5 days), 3d: 60h–240h (10 days), 7d: 144h–480h (20 days), 30d: 672h–1344h (56 days)
 const INTERVALS: IntervalConfig[] = [
-  { field: "1d", minHours: 18, maxHours: 48, snappedField: "snapped1dAt", priceField: "price1d", returnField: "return1d" },
-  { field: "3d", minHours: 60, maxHours: 120, snappedField: "snapped3dAt", priceField: "price3d", returnField: "return3d" },
-  { field: "7d", minHours: 144, maxHours: 240, snappedField: "snapped7dAt", priceField: "price7d", returnField: "return7d" },
-  { field: "30d", minHours: 672, maxHours: 840, snappedField: "snapped30dAt", priceField: "price30d", returnField: "return30d" },
+  { field: "1d", minHours: 18, maxHours: 120, snappedField: "snapped1dAt", priceField: "price1d", returnField: "return1d" },
+  { field: "3d", minHours: 60, maxHours: 240, snappedField: "snapped3dAt", priceField: "price3d", returnField: "return3d" },
+  { field: "7d", minHours: 144, maxHours: 480, snappedField: "snapped7dAt", priceField: "price7d", returnField: "return7d" },
+  { field: "30d", minHours: 672, maxHours: 1344, snappedField: "snapped30dAt", priceField: "price30d", returnField: "return30d" },
 ];
 
 async function fetchPricesBatch(symbols: string[]): Promise<Map<string, number>> {

@@ -69,7 +69,7 @@ export async function fetchFundamentals(
       for (let i = 0; i < symbols.length; i += 50) {
         const batch = symbols.slice(i, i + 50);
         try {
-          const quotes = await yf.quote(batch);
+          const quotes = await withTimeout(yf.quote(batch), YF_TIMEOUT_MS);
           const list = Array.isArray(quotes) ? quotes : [quotes];
           quoteRows.push(...list);
         } catch (err) {
@@ -111,11 +111,48 @@ export async function fetchFundamentals(
   return result;
 }
 
+const YF_TIMEOUT_MS = 10_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`Yahoo Finance timeout after ${ms}ms`)), ms)
+    ),
+  ]);
+}
+
+export async function fetchCurrentPrices(
+  symbols: string[]
+): Promise<Map<string, number | null>> {
+  const priceMap = new Map<string, number | null>();
+  if (symbols.length === 0) return priceMap;
+
+  for (let i = 0; i < symbols.length; i += 50) {
+    const batch = symbols.slice(i, i + 50);
+    try {
+      const quotes = await withTimeout(yf.quote(batch), YF_TIMEOUT_MS);
+      const list = Array.isArray(quotes) ? quotes : [quotes];
+      for (const q of list) {
+        if (q.symbol) priceMap.set(q.symbol, q.regularMarketPrice ?? null);
+      }
+    } catch (err) {
+      console.warn(
+        `[fundamentals] Batch price fetch failed for ${batch.length} symbols:`,
+        err instanceof Error ? err.message : err
+      );
+      for (const sym of batch) priceMap.set(sym, null);
+    }
+  }
+
+  return priceMap;
+}
+
 export async function fetchCurrentPrice(
   symbol: string
 ): Promise<number | null> {
   try {
-    const q = await yf.quote(symbol);
+    const q = await withTimeout(yf.quote(symbol), YF_TIMEOUT_MS);
     return q.regularMarketPrice ?? null;
   } catch {
     return null;

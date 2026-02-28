@@ -12,7 +12,7 @@ const PAGE_SIZE = 10;
 export default function HistoryPage() {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<ScansFilter>({});
-  const { data, isLoading } = useScans(page, PAGE_SIZE, filters);
+  const { data, isLoading, isError } = useScans(page, PAGE_SIZE, filters);
 
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;
 
@@ -81,6 +81,10 @@ export default function HistoryPage() {
       {isLoading ? (
         <div className="flex justify-center py-12">
           <Spinner className="h-8 w-8 text-blue-600" />
+        </div>
+      ) : isError ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 py-12 text-center">
+          <p className="text-red-600">Failed to load scan history. Please refresh and try again.</p>
         </div>
       ) : !data?.scans.length ? (
         <p className="py-12 text-center text-sm text-gray-500">

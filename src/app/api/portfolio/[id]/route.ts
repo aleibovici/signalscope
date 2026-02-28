@@ -12,14 +12,6 @@ export async function PATCH(
     const { id } = await params;
     const userId = await getCurrentUserId();
 
-    const existing = await prisma.userPosition.findFirst({
-      where: { id, userId },
-    });
-
-    if (!existing) {
-      return NextResponse.json({ error: "Position not found" }, { status: 404 });
-    }
-
     const body = await request.json();
     const data = updatePositionSchema.parse(body);
 
@@ -30,10 +22,17 @@ export async function PATCH(
     if (data.shares !== undefined) updateData.shares = data.shares;
     if (data.status === "CLOSED") updateData.closedAt = new Date();
 
-    const position = await prisma.userPosition.update({
-      where: { id },
+    // Atomic: ownership check + update in one query — no TOCTOU window
+    const result = await prisma.userPosition.updateMany({
+      where: { id, userId },
       data: updateData,
     });
+
+    if (result.count === 0) {
+      return NextResponse.json({ error: "Position not found" }, { status: 404 });
+    }
+
+    const position = await prisma.userPosition.findUnique({ where: { id } });
 
     return NextResponse.json({ position });
   } catch (error) {
@@ -56,15 +55,14 @@ export async function DELETE(
     const { id } = await params;
     const userId = await getCurrentUserId();
 
-    const existing = await prisma.userPosition.findFirst({
+    // Atomic: ownership check + delete in one query — no TOCTOU window
+    const result = await prisma.userPosition.deleteMany({
       where: { id, userId },
     });
 
-    if (!existing) {
+    if (result.count === 0) {
       return NextResponse.json({ error: "Position not found" }, { status: 404 });
     }
-
-    await prisma.userPosition.delete({ where: { id } });
 
     return NextResponse.json({ success: true });
   } catch (error) {

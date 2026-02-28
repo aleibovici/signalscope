@@ -10,7 +10,7 @@ import { Spinner } from "@/components/ui/spinner";
 export default function FilteredPage() {
   const [selectedScanId, setSelectedScanId] = useState<string | null>(null);
   const { data: scansData } = useScans(1, 1);
-  const { data: scanDetail, isLoading } = useScanDetail(selectedScanId);
+  const { data: scanDetail, isLoading, isError } = useScanDetail(selectedScanId);
 
   useEffect(() => {
     if (!selectedScanId && scansData?.scans?.[0]) {
@@ -42,6 +42,10 @@ export default function FilteredPage() {
       {isLoading ? (
         <div className="flex justify-center py-12">
           <Spinner className="h-8 w-8 text-blue-600" />
+        </div>
+      ) : isError ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 py-12 text-center">
+          <p className="text-red-600">Failed to load filtered tickers. Please refresh and try again.</p>
         </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center">
