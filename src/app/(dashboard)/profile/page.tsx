@@ -11,7 +11,11 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    if (profile?.username) setInput(profile.username);
+    if (profile?.username) {
+      // Use setTimeout to avoid synchronous setState in effect
+      const timer = setTimeout(() => setInput(profile.username), 0);
+      return () => clearTimeout(timer);
+    }
   }, [profile?.username]);
 
   async function handleSubmit(e: React.FormEvent) {

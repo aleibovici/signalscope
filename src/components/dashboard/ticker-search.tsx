@@ -60,7 +60,9 @@ export function TickerSearch() {
   }, []);
 
   useEffect(() => {
-    setHighlighted(0);
+    // Use setTimeout to avoid synchronous setState in effect
+    const timer = setTimeout(() => setHighlighted(0), 0);
+    return () => clearTimeout(timer);
   }, [results]);
 
   const navigate = useCallback(

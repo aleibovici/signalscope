@@ -14,7 +14,9 @@ export default function FilteredPage() {
 
   useEffect(() => {
     if (!selectedScanId && scansData?.scans?.[0]) {
-      setSelectedScanId(scansData.scans[0].id);
+      // Use setTimeout to avoid synchronous setState in effect
+      const timer = setTimeout(() => setSelectedScanId(scansData.scans[0].id), 0);
+      return () => clearTimeout(timer);
     }
   }, [scansData, selectedScanId]);
 

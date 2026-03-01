@@ -25,7 +25,9 @@ export function Sidebar() {
 
   // Close sidebar on route change (mobile)
   useEffect(() => {
-    setOpen(false);
+    // Use setTimeout to avoid synchronous setState in effect
+    const timer = setTimeout(() => setOpen(false), 0);
+    return () => clearTimeout(timer);
   }, [pathname]);
 
   // Lock body scroll when sidebar is open on mobile
