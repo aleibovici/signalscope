@@ -46,7 +46,12 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const MAX_COMMENT_FETCHES_PER_SUB = 3;
 const COMMENT_ENGAGEMENT_THRESHOLD = 25;
 
-async function fetchTopComments(permalink: string, limit: number = 10): Promise<string[]> {
+interface RedditComment {
+  author: string;
+  body: string;
+}
+
+async function fetchTopComments(permalink: string, limit: number = 10): Promise<RedditComment[]> {
   const url = `https://old.reddit.com${permalink}.json?limit=${limit}&depth=1`;
   try {
     const res = await fetch(url, {
@@ -58,8 +63,11 @@ async function fetchTopComments(permalink: string, limit: number = 10): Promise<
     const comments = data[1]?.data?.children || [];
     return comments
       .filter((c: { kind: string }) => c.kind === "t1")
-      .map((c: { data?: { body?: string } }) => c.data?.body || "")
-      .filter(Boolean);
+      .map((c: { data?: { body?: string; author?: string } }) => ({
+        author: c.data?.author || "unknown",
+        body: c.data?.body || ""
+      }))
+      .filter((comment: RedditComment) => comment.body.length > 0);
   } catch {
     return [];
   }
@@ -116,31 +124,33 @@ async function fetchSubreddit(
     let commentFetches = 0;
     for (const post of highEngagement) {
       if (commentFetches >= MAX_COMMENT_FETCHES_PER_SUB) break;
-      const { title, permalink, author, ups, num_comments, subreddit: sub, created_utc } = post.data;
+      const { title, permalink, ups, num_comments, subreddit: sub, created_utc } = post.data;
       const postTickers = new Set(extractTickers(`${title} ${post.data.selftext}`));
       const postAgeHours = (nowSeconds - created_utc) / 3600;
 
       await sleep(2000);
-      const commentBodies = await fetchTopComments(permalink);
+      const comments = await fetchTopComments(permalink);
       commentFetches++;
 
-      const commentText = commentBodies.join(" ");
-      const commentTickers = extractTickers(commentText).filter((t) => !postTickers.has(t));
-
-      for (const symbol of commentTickers) {
-        signals.push({
-          symbol,
-          source: "REDDIT",
-          title: `[comment] ${title}`,
-          body: commentText.slice(0, 2000),
-          url: `https://reddit.com${permalink}`,
-          author,
-          upvotes: ups,
-          commentCount: num_comments,
-          subreddit: sub,
-          postAge: postAgeHours,
-          sortType: "comment",
-        });
+      // Process each comment individually to preserve author and body data
+      for (const comment of comments) {
+        const commentTickers = extractTickers(comment.body).filter((t) => !postTickers.has(t));
+        
+        for (const symbol of commentTickers) {
+          signals.push({
+            symbol,
+            source: "REDDIT",
+            title: `[comment] ${title}`,
+            body: comment.body.slice(0, 2000),
+            url: `https://reddit.com${permalink}`,
+            author: comment.author,
+            upvotes: ups,
+            commentCount: num_comments,
+            subreddit: sub,
+            postAge: postAgeHours,
+            sortType: "comment",
+          });
+        }
       }
     }
 
