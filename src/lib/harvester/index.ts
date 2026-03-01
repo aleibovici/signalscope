@@ -462,7 +462,7 @@ export async function orchestrateScan(): Promise<string> {
     }
 
     console.log(
-      `Scan ${scan.id} completed: ${signalCount} signals, ${reportCandidates.length} validated, ${filteredCount} filtered`
+      `Scan ${scan.id} completed: ${signalCount} signals, ${scanUpdateData.validatedCount} validated, ${filteredCount} filtered`
     );
 
     return scan.id;
