@@ -15,6 +15,7 @@ const navItems = [
   { href: "/filtered", label: "Filtered (P&D)", icon: "🚫" },
   { href: "/performance", label: "Performance", icon: "🎯" },
   { href: "/methodology", label: "How It Works", icon: "ℹ️" },
+  { href: "/profile", label: "Profile", icon: "⚙️" },
 ];
 
 export function Sidebar() {

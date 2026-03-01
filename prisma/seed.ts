@@ -18,6 +18,7 @@ async function main() {
       id: "user_1",
       email: "user@signalscope.dev",
       name: "Default User",
+      username: "signal_hawk_001",
       role: "admin",
       passwordHash,
     },
