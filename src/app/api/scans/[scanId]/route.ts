@@ -11,7 +11,10 @@ export async function GET(
     const [scan, tickers, signals] = await Promise.all([
       prisma.scan.findUnique({ where: { id: scanId } }),
       prisma.validatedTicker.findMany({
-        where: { scanId },
+        where: { 
+          scanId,
+          stage: { not: "FILTERED" }
+        },
         orderBy: { aiScore: "desc" },
         include: {
           performance: { select: { return7d: true } },
