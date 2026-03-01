@@ -14,8 +14,6 @@ const publicApiPrefixes = [
   "/api/signals",
   "/api/tickers",
   "/api/health",
-  "/api/search",
-  "/api/performance",
 ];
 
 function isPublicPath(pathname: string): boolean {

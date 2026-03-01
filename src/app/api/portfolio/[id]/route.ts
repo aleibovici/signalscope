@@ -36,7 +36,10 @@ export async function PATCH(
       return NextResponse.json({ error: "Position not found" }, { status: 404 });
     }
 
-    const position = await prisma.userPosition.findUnique({ where: { id } });
+    const position = await prisma.userPosition.findUnique({ where: { id, userId } });
+    if (!position) {
+      return NextResponse.json({ error: "Position not found" }, { status: 404 });
+    }
 
     return NextResponse.json({ position });
   } catch (error) {

@@ -358,38 +358,36 @@ export async function orchestrateScan(): Promise<string> {
     // 8. Store everything in database
     console.log("Storing results...");
 
-    // Store signals
-    const signalDataList = validatedResults.flatMap((result) =>
-      result.agg.signals.map((signal) => ({
-        scanId: scan.id,
-        symbol: signal.symbol,
-        source: signal.source,
-        title: signal.title,
-        body: signal.body,
-        url: signal.url,
-        author: signal.author,
-        authorAge: signal.authorAge,
-        authorKarma: signal.authorKarma,
-        upvotes: signal.upvotes,
-        commentCount: signal.commentCount,
-        velocityScore:
-          signal.postAge != null && signal.sortType
-            ? signal.sortType === "rising"
-              ? 3
-              : signal.sortType === "comment"
-                ? 1.5
-                : signal.postAge < 3
-                  ? 2
-                  : signal.postAge < 12
-                    ? 1
-                    : 0.5
-            : 0,
-        sentiment: result.sentiment,
-        pndFlagged: result.pndFlagged,
-        pndFlags: result.pndFlags,
-        pndScore: result.pndScore,
-      }))
-    );
+    // Store ALL signals first (including single-mention symbols) with neutral defaults
+    const allSignalData = allSignals.map((signal) => ({
+      scanId: scan.id,
+      symbol: signal.symbol,
+      source: signal.source,
+      title: signal.title,
+      body: signal.body,
+      url: signal.url,
+      author: signal.author,
+      authorAge: signal.authorAge,
+      authorKarma: signal.authorKarma,
+      upvotes: signal.upvotes,
+      commentCount: signal.commentCount,
+      velocityScore:
+        signal.postAge != null && signal.sortType
+          ? signal.sortType === "rising"
+            ? 3
+            : signal.sortType === "comment"
+              ? 1.5
+              : signal.postAge < 3
+                ? 2
+                : signal.postAge < 12
+                  ? 1
+                  : 0.5
+          : 0,
+      sentiment: "neutral", // Default for single-mention symbols
+      pndFlagged: false,    // Default for single-mention symbols
+      pndFlags: [],         // Default for single-mention symbols
+      pndScore: 0,          // Default for single-mention symbols
+    }));
 
     // Store validated tickers
     const tickerDataList = validatedResults.map((result) => {
@@ -420,10 +418,7 @@ export async function orchestrateScan(): Promise<string> {
       };
     });
 
-    const signalCount = validatedResults.reduce(
-      (sum, r) => sum + r.agg.signals.length,
-      0
-    );
+    const signalCount = allSignals.length;
 
     const aiCost = getTotalCost();
 
@@ -438,14 +433,59 @@ export async function orchestrateScan(): Promise<string> {
 
     // Wrap all writes in a transaction — if any step fails, nothing is committed
     await prisma.$transaction(async (tx) => {
-      await tx.signal.createMany({ data: signalDataList });
+      // Store all signals first (including single-mention symbols)
+      await tx.signal.createMany({ data: allSignalData });
+
+      // Update signals from validated candidates with proper AI scoring and P&D flags
+      for (const result of validatedResults) {
+        const symbolSignals = result.agg.signals;
+        for (const signal of symbolSignals) {
+          await tx.signal.updateMany({
+            where: {
+              scanId: scan.id,
+              symbol: signal.symbol,
+              source: signal.source,
+              title: signal.title,
+            },
+            data: {
+              sentiment: result.sentiment,
+              pndFlagged: result.pndFlagged,
+              pndFlags: result.pndFlags,
+              pndScore: result.pndScore,
+            },
+          });
+        }
+      }
+
       await tx.validatedTicker.createMany({ data: tickerDataList, skipDuplicates: true });
       await tx.scan.update({ where: { id: scan.id }, data: scanUpdateData });
     });
 
     await mirrorToDevDb(devPrisma, "signals", async (client) => {
+      // Store all signals first (including single-mention symbols)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await client.signal.createMany({ data: signalDataList as any });
+      await client.signal.createMany({ data: allSignalData as any });
+
+      // Update signals from validated candidates with proper AI scoring and P&D flags
+      for (const result of validatedResults) {
+        const symbolSignals = result.agg.signals;
+        for (const signal of symbolSignals) {
+          await client.signal.updateMany({
+            where: {
+              scanId: scan.id,
+              symbol: signal.symbol,
+              source: signal.source,
+              title: signal.title,
+            },
+            data: {
+              sentiment: result.sentiment,
+              pndFlagged: result.pndFlagged,
+              pndFlags: result.pndFlags,
+              pndScore: result.pndScore,
+            },
+          });
+        }
+      }
     });
 
     await mirrorToDevDb(devPrisma, "validated tickers", async (client) => {
@@ -462,7 +502,7 @@ export async function orchestrateScan(): Promise<string> {
     }
 
     console.log(
-      `Scan ${scan.id} completed: ${signalCount} signals, ${reportCandidates.length} validated, ${filteredCount} filtered`
+      `Scan ${scan.id} completed: ${signalCount} signals, ${scanUpdateData.validatedCount} validated, ${filteredCount} filtered`
     );
 
     return scan.id;
