@@ -23,8 +23,66 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "SignalScope",
-  description: "Stock breakout detection — find breakout candidates before market consensus",
+  metadataBase: new URL("https://signalscopes.com"),
+  title: {
+    default: "SignalScope — Stock Breakout Signal Detection",
+    template: "%s — SignalScope",
+  },
+  description: "Find breakout stock candidates before market consensus. SignalScope harvests signals from Reddit, X/Twitter, SEC insider filings, and volume spikes — scored by AI, filtered for pump-and-dumps.",
+  keywords: [
+    "stock breakout",
+    "stock signals",
+    "breakout detection",
+    "stock alerts",
+    "stock screening",
+    "pump and dump filter",
+    "SEC insider trading",
+    "volume spike stocks",
+    "AI stock analysis",
+    "stock market signals",
+  ],
+  authors: [{ name: "SignalScope" }],
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
+  },
+  alternates: {
+    canonical: "https://signalscopes.com",
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://signalscopes.com",
+    siteName: "SignalScope",
+    title: "SignalScope — Stock Breakout Signal Detection",
+    description: "Find breakout stock candidates before market consensus. AI-scored signals from Reddit, X/Twitter, SEC filings, and volume spikes.",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "SignalScope — Stock Breakout Signal Detection",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SignalScope — Stock Breakout Signal Detection",
+    description: "Find breakout stock candidates before market consensus. AI-scored signals from Reddit, X/Twitter, SEC filings, and volume spikes.",
+    images: ["/opengraph-image"],
+  },
+  verification: {
+    ...(process.env.GOOGLE_SITE_VERIFICATION && {
+      google: process.env.GOOGLE_SITE_VERIFICATION,
+    }),
+    ...(process.env.BING_SITE_VERIFICATION && {
+      other: { "msvalidate.01": process.env.BING_SITE_VERIFICATION },
+    }),
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
