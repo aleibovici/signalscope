@@ -8,15 +8,16 @@ datasource db {
 }
 
 model User {
-  id           String         @id @default(cuid())
-  email        String         @unique
-  username     String?        @unique
+  id           String          @id @default(cuid())
+  email        String          @unique
+  username     String?         @unique
   name         String?
   passwordHash String?
-  role         String         @default("user")
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  role         String          @default("user")
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
   positions    UserPosition[]
+  watchlist    UserWatchlist[]
 }
 
 model Scan {
@@ -164,4 +165,15 @@ model UserPosition {
 enum PositionStatus {
   OPEN
   CLOSED
+}
+
+model UserWatchlist {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  symbol    String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, symbol])
+  @@index([userId])
 }
