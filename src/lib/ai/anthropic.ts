@@ -47,7 +47,7 @@ export async function chatJSONAnthropic(
     throw new Error("Anthropic returned no text content");
   }
 
-  const raw = "{" + textBlock.text;
+  const raw = textBlock.text.trim().startsWith("{") ? textBlock.text.trim() : "{" + textBlock.text;
   JSON.parse(raw); // validate — throws if invalid
 
   const cost = computeCost(model, response.usage.input_tokens, response.usage.output_tokens);
