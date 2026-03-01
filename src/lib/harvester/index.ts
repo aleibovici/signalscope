@@ -23,7 +23,7 @@ const SOURCE_WEIGHTS: Record<string, number> = {
   STOCKTWITS: 1,
 };
 
-function aggregateSignals(signals: RawSignal[]): AggregatedSymbol[] {
+export function aggregateSignals(signals: RawSignal[]): AggregatedSymbol[] {
   const bySymbol = new Map<string, RawSignal[]>();
 
   for (const signal of signals) {
