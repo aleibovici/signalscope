@@ -1,0 +1,42 @@
+name: CI — Build & Push
+
+on:
+  push:
+    branches: [main]
+
+env:
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+  REPO_NAME: signalscope
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write  # Required for Workload Identity Federation
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker "${{ env.GCP_REGION }}-docker.pkg.dev" --quiet
+
+      - name: Build and push web image
+        run: |
+          IMAGE_BASE="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${REPO_NAME}"
+          SHA="${GITHUB_SHA::7}"
+          docker build \
+            -t "${IMAGE_BASE}/web:${SHA}" \
+            -t "${IMAGE_BASE}/web:latest" \
+            -f Dockerfile .
+          docker push "${IMAGE_BASE}/web:${SHA}"
+          docker push "${IMAGE_BASE}/web:latest"

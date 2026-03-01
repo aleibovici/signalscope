@@ -1,8 +1,7 @@
 name: Deploy to Cloud Run
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 env:
   GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
@@ -11,7 +10,7 @@ env:
   WEB_SERVICE: signalscope-web
 
 jobs:
-  build-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     permissions:
@@ -19,37 +18,17 @@ jobs:
       id-token: write  # Required for Workload Identity Federation
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Authenticate to Google Cloud
-        id: auth
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ vars.WIF_PROVIDER }}
           service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
 
-      - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker "${{ env.GCP_REGION }}-docker.pkg.dev" --quiet
-
-      - name: Set image tags
-        id: tags
-        run: |
-          IMAGE_BASE="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${REPO_NAME}"
-          SHA="${GITHUB_SHA::7}"
-          echo "web=${IMAGE_BASE}/web:${SHA}" >> "$GITHUB_OUTPUT"
-          echo "web_latest=${IMAGE_BASE}/web:latest" >> "$GITHUB_OUTPUT"
-
-      - name: Build and push web image
-        run: |
-          docker build -t "${{ steps.tags.outputs.web }}" -t "${{ steps.tags.outputs.web_latest }}" -f Dockerfile .
-          docker push "${{ steps.tags.outputs.web }}"
-          docker push "${{ steps.tags.outputs.web_latest }}"
-
       - name: Deploy web to Cloud Run
         run: |
+          IMAGE="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${REPO_NAME}/web:latest"
           gcloud run deploy "${WEB_SERVICE}" \
-            --image="${{ steps.tags.outputs.web }}" \
+            --image="${IMAGE}" \
             --region="${GCP_REGION}" \
             --add-cloudsql-instances="${GCP_PROJECT_ID}:${GCP_REGION}:signalscope-db" \
             --set-secrets="DATABASE_URL=DATABASE_URL:latest,AUTH_SECRET=AUTH_SECRET:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest" \
