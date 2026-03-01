@@ -186,7 +186,11 @@ git push origin main
 
 ### CI/CD
 
-Push to `main` → GitHub Actions builds web image, pushes to Artifact Registry, and deploys to Cloud Run.
+Push to `main` → GitHub Actions builds web image and pushes to Artifact Registry (`CI — Build & Push` workflow). To deploy to Cloud Run, manually trigger the `Deploy to Cloud Run` workflow:
+
+```bash
+gh workflow run "Deploy to Cloud Run" --ref main
+```
 
 ## API Error Handling
 
