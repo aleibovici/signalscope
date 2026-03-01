@@ -10,8 +10,51 @@ const registerSchema = z.object({
   name: z.string().min(1).max(100).optional(),
 });
 
+// Simple in-memory rate limit (for single-instance deployments)
+const attempts = new Map<string, { count: number; resetAt: number }>();
+const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const MAX_ATTEMPTS = 5;
+
+function getClientIP(request: NextRequest): string {
+  // Handle proxied requests (Cloud Run, load balancers)
+  const xForwardedFor = request.headers.get("x-forwarded-for");
+  if (xForwardedFor) {
+    return xForwardedFor.split(",")[0].trim();
+  }
+  
+  const xRealIP = request.headers.get("x-real-ip");
+  if (xRealIP) {
+    return xRealIP.trim();
+  }
+
+  // Fallback - NextRequest doesn't expose raw IP, use a placeholder
+  return "unknown";
+}
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = attempts.get(ip);
+  
+  if (!entry || now > entry.resetAt) {
+    attempts.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+    return false;
+  }
+  
+  entry.count++;
+  return entry.count > MAX_ATTEMPTS;
+}
+
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting check
+    const clientIP = getClientIP(request);
+    if (isRateLimited(clientIP)) {
+      return NextResponse.json(
+        { error: "Too many registration attempts. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const parsed = registerSchema.safeParse(body);
 
@@ -23,7 +66,22 @@ export async function POST(request: NextRequest) {
     }
 
     const { email, password, name } = parsed.data;
+
+    // Check if email exists BEFORE hashing password to prevent timing oracle
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+
+    // Always hash password to maintain consistent timing regardless of email status
     const passwordHash = await bcrypt.hash(password, 12);
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: "Registration failed. Please try a different email or contact support." },
+        { status: 400 }
+      );
+    }
 
     const user = await prisma.user.create({
       data: { email, passwordHash, name },
