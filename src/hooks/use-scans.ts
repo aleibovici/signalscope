@@ -70,11 +70,14 @@ export function useScans(page = 1, limit = 10, filters?: ScansFilter) {
   });
 }
 
-export function useScanDetail(scanId: string | null) {
+export function useScanDetail(scanId: string | null, includeFiltered = false) {
   return useQuery<{ scan: ScanSummary; tickers: ValidatedTickerData[] }>({
-    queryKey: ["scan", scanId],
+    queryKey: ["scan", scanId, includeFiltered],
     queryFn: async () => {
-      const res = await fetch(`/api/scans/${scanId}`);
+      const url = includeFiltered
+        ? `/api/scans/${scanId}?includeFiltered=true`
+        : `/api/scans/${scanId}`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to fetch scan detail");
       return res.json();
     },
