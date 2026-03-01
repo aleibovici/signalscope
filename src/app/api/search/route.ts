@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUserId } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    await getCurrentUserId();
     const q = request.nextUrl.searchParams.get("q")?.trim().toUpperCase() ?? "";
     if (q.length < 1) return NextResponse.json({ results: [] });
     if (q.length > 20) return NextResponse.json({ error: "Query too long" }, { status: 400 });
@@ -51,6 +53,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ results });
   } catch (err) {
+    if (err instanceof Error && err.message === "Not authenticated") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("[/api/search] GET error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

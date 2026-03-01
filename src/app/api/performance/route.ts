@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUserId } from "@/lib/auth";
 
 const VALID_DAYS = new Set([1, 3, 7, 30]);
 
 export async function GET(request: NextRequest) {
   try {
+    await getCurrentUserId();
     const daysParam = request.nextUrl.searchParams.get("days");
     const days = daysParam ? parseInt(daysParam, 10) : 7;
 
@@ -130,6 +132,9 @@ export async function GET(request: NextRequest) {
       worstPerformers,
     });
   } catch (err) {
+    if (err instanceof Error && err.message === "Not authenticated") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("[/api/performance] GET error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
