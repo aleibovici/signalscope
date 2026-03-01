@@ -13,7 +13,10 @@ export async function GET() {
     dbLatencyMs = Math.round(performance.now() - start);
   } catch (err) {
     dbStatus = "error";
-    dbError = err instanceof Error ? err.message : "Unknown database error";
+    if (err instanceof Error) {
+      console.error("[/api/health] DB error:", err.message);
+    }
+    dbError = "Database connection failed";
   }
 
   const healthy = dbStatus === "ok";
