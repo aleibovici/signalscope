@@ -2,18 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ scanId: string }> }
 ) {
   try {
     const { scanId } = await params;
+    const includeFiltered = request.nextUrl.searchParams.get("includeFiltered") === "true";
 
     const [scan, tickers, signals] = await Promise.all([
       prisma.scan.findUnique({ where: { id: scanId } }),
       prisma.validatedTicker.findMany({
-        where: { 
+        where: {
           scanId,
-          stage: { not: "FILTERED" }
+          ...(includeFiltered ? {} : { stage: { not: "FILTERED" } }),
         },
         orderBy: { aiScore: "desc" },
         include: {

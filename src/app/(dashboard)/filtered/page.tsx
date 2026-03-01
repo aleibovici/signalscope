@@ -10,7 +10,7 @@ import { Spinner } from "@/components/ui/spinner";
 export default function FilteredPage() {
   const [selectedScanId, setSelectedScanId] = useState<string | null>(null);
   const { data: scansData } = useScans(1, 1);
-  const { data: scanDetail, isLoading, isError } = useScanDetail(selectedScanId);
+  const { data: scanDetail, isLoading, isError } = useScanDetail(selectedScanId, true);
 
   useEffect(() => {
     if (!selectedScanId && scansData?.scans?.[0]) {
