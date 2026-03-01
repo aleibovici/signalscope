@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { generateUsername } from "@/lib/username-generator";
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -83,12 +84,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await prisma.user.create({
-      data: { email, passwordHash, name },
-    });
+    let user;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        user = await prisma.user.create({
+          data: { email, passwordHash, name, username: generateUsername() },
+        });
+        break;
+      } catch (err) {
+        if (
+          err instanceof Prisma.PrismaClientKnownRequestError &&
+          err.code === "P2002" &&
+          attempt < 4
+        ) {
+          // Username collision — retry with a new one
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    if (!user) {
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
 
     return NextResponse.json(
-      { user: { id: user.id, email: user.email, name: user.name } },
+      { user: { id: user.id, email: user.email, name: user.name, username: user.username } },
       { status: 201 }
     );
   } catch (error) {
