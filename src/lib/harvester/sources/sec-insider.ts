@@ -36,12 +36,15 @@ function isCsuiteOrDirector(title: string): boolean {
 
 function extractTicker(cellHtml: string): string {
   // Ticker cells contain JS tooltip junk like onmouseout="UnTip()" etc.
-  // Extract the ticker from an <a> tag or plain text
-  const anchorMatch = cellHtml.match(/>([A-Z]{1,5})<\/a>/);
-  if (anchorMatch) return anchorMatch[1];
-  // Fallback: find uppercase ticker pattern after stripping tags
+  // Try all anchors, pick the first that looks like a valid ticker (not blacklisted)
+  const allMatches = [...cellHtml.matchAll(/>([A-Z]{1,5})<\/a>/g)];
+  for (const m of allMatches) {
+    const candidate = m[1];
+    if (candidate.length >= 1 && !BLACKLIST.has(candidate)) return candidate;
+  }
+  // Fallback: strip tags, find uppercase word anchored to start
   const stripped = cellHtml.replace(/<[^>]*>/g, "").trim();
-  const tickerMatch = stripped.match(/\b([A-Z]{1,5})\b/);
+  const tickerMatch = stripped.match(/^([A-Z]{1,5})\b/);
   return tickerMatch ? tickerMatch[1] : stripped;
 }
 

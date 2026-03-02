@@ -16,14 +16,24 @@ function otherProvider(p: AiProvider): AiProvider {
   return p === "openai" ? "anthropic" : "openai";
 }
 
+const VALID_PROVIDERS: AiProvider[] = ["openai", "anthropic"];
+
+function validateProvider(envVar: string, value: string | undefined): AiProvider | undefined {
+  if (!value) return undefined;
+  if (VALID_PROVIDERS.includes(value as AiProvider)) return value as AiProvider;
+  console.warn(`[ai] Invalid ${envVar}="${value}", ignoring (valid: ${VALID_PROVIDERS.join(", ")})`);
+  return undefined;
+}
+
 export function resolveProviderOrder(
   callPoint: AiCallPoint
 ): [AiProvider, AiProvider | null] {
-  const override = process.env[CALL_POINT_ENV[callPoint]] as
-    | AiProvider
-    | undefined;
+  const override = validateProvider(
+    CALL_POINT_ENV[callPoint],
+    process.env[CALL_POINT_ENV[callPoint]]
+  );
   const globalPrimary =
-    (process.env.AI_PRIMARY_PROVIDER as AiProvider | undefined) ?? "openai";
+    validateProvider("AI_PRIMARY_PROVIDER", process.env.AI_PRIMARY_PROVIDER) ?? "openai";
 
   const primary = override ?? globalPrimary;
   const secondary = otherProvider(primary);

@@ -183,6 +183,11 @@ function classifySignalType(agg: AggregatedSymbol): SignalType {
     return "twitter_velocity";
   }
 
+  // StockTwits velocity: StockTwits-only signals
+  if (hasStockTwits && !hasReddit && !hasTwitter) {
+    return "twitter_velocity"; // closest existing type
+  }
+
   // Reddit velocity: Reddit-only but with strong velocity
   return "reddit_velocity";
 }
@@ -233,24 +238,26 @@ export async function orchestrateScan(): Promise<string> {
   try {
     // 2. Fetch signals in parallel from all sources
     console.log("Fetching signals from all sources...");
-    const [reddit, stocktwits, secInsider, optionsFlow, volumeSpike, twitter] =
-      await Promise.allSettled([
-        fetchRedditSignals(),
-        fetchStockTwitsSignals(),
-        fetchSecInsiderSignals(),
-        fetchOptionsFlowSignals(),
-        fetchVolumeSpikeSignals(),
-        fetchTwitterSignals(),
-      ]);
+    const sourceNames = ["reddit", "stocktwits", "secInsider", "optionsFlow", "volumeSpike", "twitter"] as const;
+    const sourceResults = await Promise.allSettled([
+      fetchRedditSignals(),
+      fetchStockTwitsSignals(),
+      fetchSecInsiderSignals(),
+      fetchOptionsFlowSignals(),
+      fetchVolumeSpikeSignals(),
+      fetchTwitterSignals(),
+    ]);
 
-    const allSignals: RawSignal[] = [
-      ...(reddit.status === "fulfilled" ? reddit.value : []),
-      ...(stocktwits.status === "fulfilled" ? stocktwits.value : []),
-      ...(secInsider.status === "fulfilled" ? secInsider.value : []),
-      ...(optionsFlow.status === "fulfilled" ? optionsFlow.value : []),
-      ...(volumeSpike.status === "fulfilled" ? volumeSpike.value : []),
-      ...(twitter.status === "fulfilled" ? twitter.value : []),
-    ];
+    // Log any source that rejected unexpectedly
+    sourceResults.forEach((r, i) => {
+      if (r.status === "rejected") {
+        console.error(`[harvest] Source "${sourceNames[i]}" threw an unexpected error:`, r.reason);
+      }
+    });
+
+    const allSignals: RawSignal[] = sourceResults.flatMap((r) =>
+      r.status === "fulfilled" ? r.value : []
+    );
 
     console.log(`Total raw signals: ${allSignals.length}`);
 
@@ -264,26 +271,25 @@ export async function orchestrateScan(): Promise<string> {
     );
     console.log(`Candidates after filtering: ${candidates.length}`);
 
-    // 4. Fetch fundamentals for all candidates
-    const fundamentalsMap = await fetchFundamentals(
-      candidates.map((c) => c.symbol)
-    );
-
-    // 5. Novelty lookup (30-day window)
-    const noveltyMap = await lookupNovelty(
-      candidates.map((c) => c.symbol),
-      scan.id
-    );
+    // 4. Fetch fundamentals + novelty in parallel (independent operations)
+    const candidateSymbols = candidates.map((c) => c.symbol);
+    const [fundamentalsMap, noveltyMap] = await Promise.all([
+      fetchFundamentals(candidateSymbols),
+      lookupNovelty(candidateSymbols, scan.id),
+    ]);
     const novelCount = [...noveltyMap.values()].filter((n) => n.isNovel).length;
     console.log(`Novelty: ${novelCount} novel, ${candidates.length - novelCount} recurring`);
 
-    // 6. AI scoring in batches of 15 (with fundamentals + novelty context)
-    const scoreResults = [];
+    // 6. AI scoring in batches of 15 (parallelized)
+    const scoreBatches: AggregatedSymbol[][] = [];
     for (let i = 0; i < candidates.length; i += 15) {
-      const batch = candidates.slice(i, i + 15);
-      const scores = await scoreSymbolBatch(batch, fundamentalsMap, noveltyMap);
-      scoreResults.push(...scores);
+      scoreBatches.push(candidates.slice(i, i + 15));
     }
+    const scoreResults = (
+      await Promise.all(
+        scoreBatches.map((batch) => scoreSymbolBatch(batch, fundamentalsMap, noveltyMap))
+      )
+    ).flat();
 
     const scoreMap = new Map(scoreResults.map((s) => [s.symbol, s]));
 
@@ -307,7 +313,12 @@ export async function orchestrateScan(): Promise<string> {
       // AI assessment for borderline cases (2 flags)
       let finalPndFlagged = pnd.flagged;
       if (pnd.score === 2) {
-        finalPndFlagged = await aiPndAssessment(agg.symbol, agg, pnd.flags);
+        try {
+          finalPndFlagged = await aiPndAssessment(agg.symbol, agg, pnd.flags);
+        } catch (err) {
+          console.warn(`[pnd] AI assessment failed for ${agg.symbol}, defaulting to flagged:`, err);
+          finalPndFlagged = true; // conservative default
+        }
       }
 
       if (finalPndFlagged) filteredCount++;
@@ -341,18 +352,27 @@ export async function orchestrateScan(): Promise<string> {
       .slice(0, 20);
 
     const reports = new Map<string, Awaited<ReturnType<typeof generateTickerReport>>>();
-    for (const r of reportCandidates) {
-      const fundamentals = fundamentalsMap.get(r.agg.symbol) || null;
-      const novelty = noveltyMap.get(r.agg.symbol);
-      const report = await generateTickerReport(
-        r.agg.symbol,
-        r.agg,
-        fundamentals,
-        r.score,
-        r.signalType,
-        novelty
-      );
-      reports.set(r.agg.symbol, report);
+    const reportEntries = await Promise.allSettled(
+      reportCandidates.map(async (r) => {
+        const fundamentals = fundamentalsMap.get(r.agg.symbol) || null;
+        const novelty = noveltyMap.get(r.agg.symbol);
+        const report = await generateTickerReport(
+          r.agg.symbol,
+          r.agg,
+          fundamentals,
+          r.score,
+          r.signalType,
+          novelty
+        );
+        return { symbol: r.agg.symbol, report };
+      })
+    );
+    for (const entry of reportEntries) {
+      if (entry.status === "fulfilled") {
+        reports.set(entry.value.symbol, entry.value.report);
+      } else {
+        console.warn(`[report] Generation failed:`, entry.reason);
+      }
     }
 
     // 8. Store everything in database
@@ -436,16 +456,24 @@ export async function orchestrateScan(): Promise<string> {
       // Store all signals first (including single-mention symbols)
       await tx.signal.createMany({ data: allSignalData });
 
-      // Update all signals per symbol in one query (instead of per-signal)
+      // Batch signal updates: group by identical values to minimize round-trips
+      const updateGroups = new Map<string, string[]>();
       for (const result of validatedResults) {
+        const key = JSON.stringify({
+          sentiment: result.sentiment,
+          pndFlagged: result.pndFlagged,
+          pndFlags: result.pndFlags,
+          pndScore: result.pndScore,
+        });
+        const symbols = updateGroups.get(key) ?? [];
+        symbols.push(result.agg.symbol);
+        updateGroups.set(key, symbols);
+      }
+      for (const [keyStr, symbols] of updateGroups) {
+        const data = JSON.parse(keyStr);
         await tx.signal.updateMany({
-          where: { scanId: scan.id, symbol: result.agg.symbol },
-          data: {
-            sentiment: result.sentiment,
-            pndFlagged: result.pndFlagged,
-            pndFlags: result.pndFlags,
-            pndScore: result.pndScore,
-          },
+          where: { scanId: scan.id, symbol: { in: symbols } },
+          data,
         });
       }
 
@@ -481,10 +509,6 @@ export async function orchestrateScan(): Promise<string> {
       await client.scan.update({ where: { id: scan.id }, data: scanUpdateData });
     });
 
-    if (devPrisma) {
-      await devPrisma.$disconnect().catch(() => {});
-    }
-
     console.log(
       `Scan ${scan.id} completed: ${signalCount} signals, ${scanUpdateData.validatedCount} validated, ${filteredCount} filtered`
     );
@@ -512,10 +536,10 @@ export async function orchestrateScan(): Promise<string> {
       });
     });
 
+    throw err;
+  } finally {
     if (devPrisma) {
       await devPrisma.$disconnect().catch(() => {});
     }
-
-    throw err;
   }
 }
