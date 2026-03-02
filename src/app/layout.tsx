@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import { QueryProvider } from "@/lib/query-provider";
 import { AuthSessionProvider } from "@/lib/session-provider";
 import "./globals.css";
@@ -103,6 +104,18 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-TFSF1MJ97V"
+          strategy="afterInteractive"
+        />
+        <Script id="ga-init" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-TFSF1MJ97V');
+          `}
+        </Script>
         <AuthSessionProvider>
           <QueryProvider>{children}</QueryProvider>
         </AuthSessionProvider>
