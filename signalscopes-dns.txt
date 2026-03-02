@@ -1,0 +1,9 @@
+localhost:3000. 1 IN A 216.239.32.21
+localhost:3000. 1 IN A 216.239.34.21
+localhost:3000. 1 IN A 216.239.36.21
+localhost:3000. 1 IN A 216.239.38.21
+localhost:3000. 1 IN AAAA 2001:4860:4802:32::15
+localhost:3000. 1 IN AAAA 2001:4860:4802:34::15
+localhost:3000. 1 IN AAAA 2001:4860:4802:36::15
+localhost:3000. 1 IN AAAA 2001:4860:4802:38::15
+www.localhost:3000. 1 IN CNAME ghs.googlehosted.com.
