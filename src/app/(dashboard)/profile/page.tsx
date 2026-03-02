@@ -1,23 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useUserProfile, useUpdateUsername } from "@/hooks/use-user-profile";
 
 export default function ProfilePage() {
   const { data: profile, isLoading } = useUserProfile();
   const updateUsername = useUpdateUsername();
 
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-
-  useEffect(() => {
-    if (profile?.username) setInput(profile.username);
-  }, [profile?.username]);
+  const value = input ?? profile?.username ?? "";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSuccess(false);
-    updateUsername.mutate(input.trim(), {
+    updateUsername.mutate(value.trim(), {
       onSuccess: () => setSuccess(true),
     });
   }
@@ -46,7 +43,7 @@ export default function ProfilePage() {
                 <input
                   id="username"
                   type="text"
-                  value={input}
+                  value={value}
                   onChange={(e) => {
                     setInput(e.target.value);
                     setSuccess(false);
@@ -72,7 +69,7 @@ export default function ProfilePage() {
 
               <button
                 type="submit"
-                disabled={updateUsername.isPending || !input.trim()}
+                disabled={updateUsername.isPending || !value.trim()}
                 className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
               >
                 {updateUsername.isPending ? "Saving…" : "Save username"}

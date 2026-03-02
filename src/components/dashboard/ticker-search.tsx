@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 
@@ -47,7 +47,7 @@ export function TickerSearch() {
     staleTime: 30_000,
   });
 
-  const results = data?.results ?? [];
+  const results = useMemo(() => data?.results ?? [], [data]);
 
   useEffect(() => {
     function onMouseDown(e: MouseEvent) {
@@ -58,10 +58,6 @@ export function TickerSearch() {
     document.addEventListener("mousedown", onMouseDown);
     return () => document.removeEventListener("mousedown", onMouseDown);
   }, []);
-
-  useEffect(() => {
-    setHighlighted(0);
-  }, [results]);
 
   const navigate = useCallback(
     (symbol: string) => {
@@ -112,6 +108,7 @@ export function TickerSearch() {
           onChange={(e) => {
             setQuery(e.target.value);
             setOpen(true);
+            setHighlighted(0);
           }}
           onFocus={() => query.length >= 1 && setOpen(true)}
           onKeyDown={handleKeyDown}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useScans, useScanDetail, type ValidatedTickerData } from "@/hooks/use-scans";
 import { ScanSelector } from "@/components/dashboard/scan-selector";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,13 +10,8 @@ import { Spinner } from "@/components/ui/spinner";
 export default function FilteredPage() {
   const [selectedScanId, setSelectedScanId] = useState<string | null>(null);
   const { data: scansData } = useScans(1, 1);
-  const { data: scanDetail, isLoading, isError } = useScanDetail(selectedScanId, true);
-
-  useEffect(() => {
-    if (!selectedScanId && scansData?.scans?.[0]) {
-      setSelectedScanId(scansData.scans[0].id);
-    }
-  }, [scansData, selectedScanId]);
+  const effectiveScanId = selectedScanId ?? scansData?.scans?.[0]?.id ?? null;
+  const { data: scanDetail, isLoading, isError } = useScanDetail(effectiveScanId, true);
 
   const filtered = (scanDetail?.tickers || []).filter(
     (t) => t.stage === "FILTERED"
@@ -34,7 +29,7 @@ export default function FilteredPage() {
           </p>
         </div>
         <ScanSelector
-          selectedScanId={selectedScanId}
+          selectedScanId={effectiveScanId}
           onSelect={setSelectedScanId}
         />
       </div>
