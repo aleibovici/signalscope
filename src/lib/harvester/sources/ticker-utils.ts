@@ -58,6 +58,24 @@ export const BLACKLIST = new Set([
   "BTC", "ETH", "SOL", "DOGE", "XRP", "ADA", "AVAX", "DOT", "SHIB", "PEPE",
   // EDGAR RSS / XML structural tokens that regex-match as tickers
   "CIK", "UTC", "DIV", "RSS", "XML", "HTTP", "ATOM", "HREF", "HTML",
+  // Common English words seen as false-positive tickers in production harvests
+  "AFTER", "AGAIN", "AGENT", "ABOVE", "BELOW", "CALLS", "COOL", "DEAL",
+  "DEBT", "MORE", "OUTTA", "PAID", "RIGHT", "SAFER", "SPLIT", "START",
+  "STILL", "THANK", "THESE", "BEING", "COULD", "DOING", "EVERY", "GOING",
+  "GREAT", "LEAST", "NEVER", "OTHER", "SHALL", "SINCE", "THEIR", "THERE",
+  "THING", "THINK", "THOSE", "UNTIL", "WATCH", "WHERE", "WHICH", "WHILE",
+  "WORLD", "WOULD", "ABOUT", "POINT", "MIGHT", "MONEY", "PRICE", "SHARE",
+  "STOCK", "TODAY", "TRADE", "VALUE", "WORTH", "WHOLE", "FIRST", "GIVEN",
+  // Financial/media acronyms that aren't tradeable tickers
+  "CNBC", "FOMC", "OPEC", "OPEX", "MACD", "FINRA", "GAAP", "CAGR", "MOASS",
+  "COMEX", "WSJ", "GOP", "NATO", "DOJ", "ECB", "DXY", "DARPA", "IEEPA",
+  "HYSA", "IFRS",
+  // Two-letter words missed in original list
+  "DR", "ER", "IM", "IV", "OP", "PT", "SA", "SI", "TL", "DA", "FX",
+  "HR", "PS", "WW",
+  // More false-positive English/slang words from production harvests
+  "SHIT", "POSTS", "HINT", "IRAN", "UAE", "BMW", "BASF",
+  "LOTTO", "PIPE", "VLCC", "ISM", "GMT", "NPV", "FCF",
 ]);
 
 export const MEGA_CAPS = new Set([

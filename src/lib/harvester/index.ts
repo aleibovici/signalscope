@@ -452,7 +452,9 @@ export async function orchestrateScan(): Promise<string> {
     };
 
     // Wrap all writes in a transaction — if any step fails, nothing is committed
-    await prisma.$transaction(async (tx) => {
+    // Increase timeout for large signal batches (default 5s is too short for 500+ signals)
+    await prisma.$transaction(
+      async (tx) => {
       // Store all signals first (including single-mention symbols)
       await tx.signal.createMany({ data: allSignalData });
 
@@ -479,7 +481,9 @@ export async function orchestrateScan(): Promise<string> {
 
       await tx.validatedTicker.createMany({ data: tickerDataList, skipDuplicates: true });
       await tx.scan.update({ where: { id: scan.id }, data: scanUpdateData });
-    });
+    },
+      { timeout: 30000 }
+    );
 
     await mirrorToDevDb(devPrisma, "signals", async (client) => {
       // Store all signals first (including single-mention symbols)
