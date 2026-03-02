@@ -17,27 +17,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Invalid stage value" }, { status: 400 });
     }
 
-    // If stage filter, get symbols from ValidatedTicker first
-    let symbolFilter: string[] | undefined;
-    if (stage) {
-      const tickers = await prisma.validatedTicker.findMany({
-        where: { scanId, stage: stage as Prisma.EnumTickerStageFilter["equals"] },
-        select: { symbol: true },
-      });
-      symbolFilter = tickers.map((t) => t.symbol);
-    }
+    // Single query for both stage filtering and sourceCount lookup
+    const tickers = await prisma.validatedTicker.findMany({
+      where: { scanId },
+      select: { symbol: true, sourceCount: true, stage: true },
+    });
+    const sourceCountMap = new Map(tickers.map((t) => [t.symbol, t.sourceCount]));
+
+    const symbolFilter = stage
+      ? tickers.filter((t) => t.stage === stage).map((t) => t.symbol)
+      : undefined;
 
     const where: Prisma.SignalWhereInput = {
       scanId,
       ...(symbolFilter ? { symbol: { in: symbolFilter } } : {}),
     };
-
-    // Build a sourceCount lookup from ValidatedTicker for this scan
-    const tickers = await prisma.validatedTicker.findMany({
-      where: { scanId },
-      select: { symbol: true, sourceCount: true },
-    });
-    const sourceCountMap = new Map(tickers.map((t) => [t.symbol, t.sourceCount]));
 
     const signals = await prisma.signal.findMany({
       where,

@@ -25,7 +25,7 @@ export async function GET() {
       const currentPrice = p.status === "OPEN" ? priceMap.get(p.symbol) ?? null : p.closePrice;
       const gainPct =
         currentPrice != null
-          ? ((currentPrice - p.entryPrice) / p.entryPrice) * 100
+          ? Math.round(((currentPrice - p.entryPrice) / p.entryPrice) * 10000) / 100
           : null;
 
       return { ...p, currentPrice, gainPct };

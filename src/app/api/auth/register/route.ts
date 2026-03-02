@@ -4,6 +4,7 @@ import { z } from "zod";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { generateUsername } from "@/lib/username-generator";
+import { getClientIP, isRateLimited } from "@/lib/rate-limit";
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -11,55 +12,14 @@ const registerSchema = z.object({
   name: z.string().min(1).max(100).optional(),
 });
 
-// Simple in-memory rate limit (for single-instance deployments)
-const attempts = new Map<string, { count: number; resetAt: number }>();
-const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-const MAX_ATTEMPTS = 5;
-const MAX_ENTRIES = 10_000;
-
-function getClientIP(request: NextRequest): string {
-  // On Cloud Run / reverse proxies, each hop appends to X-Forwarded-For.
-  // The rightmost entry is the load balancer; the second-to-last is the real client IP.
-  const xForwardedFor = request.headers.get("x-forwarded-for");
-  if (xForwardedFor) {
-    const parts = xForwardedFor.split(",").map((s) => s.trim());
-    return parts.length >= 2 ? parts[parts.length - 2] : parts[0];
-  }
-
-  const xRealIP = request.headers.get("x-real-ip");
-  if (xRealIP) {
-    return xRealIP.trim();
-  }
-
-  // Fallback - NextRequest doesn't expose raw IP, use a placeholder
-  return "unknown";
-}
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const entry = attempts.get(ip);
-
-  // Periodically purge expired entries to prevent unbounded memory growth
-  if (attempts.size > MAX_ENTRIES) {
-    for (const [key, val] of attempts) {
-      if (now > val.resetAt) attempts.delete(key);
-    }
-  }
-
-  if (!entry || now > entry.resetAt) {
-    attempts.set(ip, { count: 1, resetAt: now + WINDOW_MS });
-    return false;
-  }
-
-  entry.count++;
-  return entry.count > MAX_ATTEMPTS;
-}
+const REGISTER_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const REGISTER_MAX_ATTEMPTS = 5;
 
 export async function POST(request: NextRequest) {
   try {
     // Rate limiting check
     const clientIP = getClientIP(request);
-    if (isRateLimited(clientIP)) {
+    if (isRateLimited(`register:${clientIP}`, REGISTER_WINDOW_MS, REGISTER_MAX_ATTEMPTS)) {
       return NextResponse.json(
         { error: "Too many registration attempts. Please try again later." },
         { status: 429 }

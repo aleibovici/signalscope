@@ -371,7 +371,7 @@ export default function TickerDetailPage() {
                   </div>
                   {signal.title && (
                     <p className="mt-1 break-words text-sm font-medium">
-                      {signal.url ? (
+                      {signal.url && /^https?:\/\//.test(signal.url) ? (
                         <a
                           href={signal.url}
                           target="_blank"

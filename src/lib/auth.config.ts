@@ -10,6 +10,8 @@ import Credentials from "next-auth/providers/credentials";
  * the full NextAuth() call that layers on the `authorize` callback.
  */
 export const authConfig = {
+  // trustHost is required for Cloud Run reverse proxy. Set AUTH_URL in env
+  // to pin the canonical base URL and prevent host header injection.
   trustHost: true,
   providers: [
     Credentials({

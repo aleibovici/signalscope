@@ -24,6 +24,7 @@ export async function GET(
       prisma.signal.findMany({
         where: { scanId },
         select: { symbol: true, source: true },
+        distinct: ["symbol", "source"],
       }),
     ]);
 
