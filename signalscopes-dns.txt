@@ -1,0 +1,9 @@
+signalscopes.com. 1 IN A 216.239.32.21
+signalscopes.com. 1 IN A 216.239.34.21
+signalscopes.com. 1 IN A 216.239.36.21
+signalscopes.com. 1 IN A 216.239.38.21
+signalscopes.com. 1 IN AAAA 2001:4860:4802:32::15
+signalscopes.com. 1 IN AAAA 2001:4860:4802:34::15
+signalscopes.com. 1 IN AAAA 2001:4860:4802:36::15
+signalscopes.com. 1 IN AAAA 2001:4860:4802:38::15
+www.signalscopes.com. 1 IN CNAME ghs.googlehosted.com.
