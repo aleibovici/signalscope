@@ -14,7 +14,7 @@ export function ScanSelector({
 
   if (isLoading) return <Spinner />;
 
-  const scans = data?.scans || [];
+  const scans = (data?.scans || []).filter(scan => scan.signalCount > 0);
 
   if (scans.length === 0) {
     return (
