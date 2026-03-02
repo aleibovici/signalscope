@@ -24,6 +24,9 @@ export const updatePositionSchema = z.object({
 }).refine(
   (data) => data.closePrice === undefined || data.status === "CLOSED",
   { message: "closePrice can only be set when status is CLOSED", path: ["closePrice"] }
+).refine(
+  (data) => data.status !== "CLOSED" || data.closePrice !== undefined,
+  { message: "closePrice is required when closing a position", path: ["closePrice"] }
 );
 
 export const symbolSchema = z

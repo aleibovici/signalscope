@@ -15,14 +15,17 @@ const registerSchema = z.object({
 const attempts = new Map<string, { count: number; resetAt: number }>();
 const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const MAX_ATTEMPTS = 5;
+const MAX_ENTRIES = 10_000;
 
 function getClientIP(request: NextRequest): string {
-  // Handle proxied requests (Cloud Run, load balancers)
+  // On Cloud Run / reverse proxies, each hop appends to X-Forwarded-For.
+  // The rightmost entry is the load balancer; the second-to-last is the real client IP.
   const xForwardedFor = request.headers.get("x-forwarded-for");
   if (xForwardedFor) {
-    return xForwardedFor.split(",")[0].trim();
+    const parts = xForwardedFor.split(",").map((s) => s.trim());
+    return parts.length >= 2 ? parts[parts.length - 2] : parts[0];
   }
-  
+
   const xRealIP = request.headers.get("x-real-ip");
   if (xRealIP) {
     return xRealIP.trim();
@@ -35,12 +38,19 @@ function getClientIP(request: NextRequest): string {
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
   const entry = attempts.get(ip);
-  
+
+  // Periodically purge expired entries to prevent unbounded memory growth
+  if (attempts.size > MAX_ENTRIES) {
+    for (const [key, val] of attempts) {
+      if (now > val.resetAt) attempts.delete(key);
+    }
+  }
+
   if (!entry || now > entry.resetAt) {
     attempts.set(ip, { count: 1, resetAt: now + WINDOW_MS });
     return false;
   }
-  
+
   entry.count++;
   return entry.count > MAX_ATTEMPTS;
 }
