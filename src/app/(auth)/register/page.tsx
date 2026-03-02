@@ -39,6 +39,7 @@ export default function RegisterPage() {
       setError("Account created but sign-in failed. Please log in manually.");
       setLoading(false);
     } else {
+      window.gtag?.("event", "sign_up", { method: "credentials" });
       window.location.href = "/dashboard";
     }
   }
