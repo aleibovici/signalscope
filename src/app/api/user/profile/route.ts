@@ -56,7 +56,12 @@ const updateSchema = z.object({
 export async function PATCH(request: NextRequest) {
   try {
     const userId = await getCurrentUserId();
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
     const parsed = updateSchema.safeParse(body);
 
     if (!parsed.success) {
