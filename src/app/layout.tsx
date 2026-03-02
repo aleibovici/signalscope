@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
+import { Suspense } from "react";
 import { QueryProvider } from "@/lib/query-provider";
 import { AuthSessionProvider } from "@/lib/session-provider";
+import { GoogleAnalyticsPageView } from "@/lib/google-analytics";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -116,6 +118,9 @@ export default function RootLayout({
             gtag('config', 'G-TFSF1MJ97V');
           `}
         </Script>
+        <Suspense fallback={null}>
+          <GoogleAnalyticsPageView />
+        </Suspense>
         <AuthSessionProvider>
           <QueryProvider>{children}</QueryProvider>
         </AuthSessionProvider>
