@@ -56,6 +56,8 @@ export const BLACKLIST = new Set([
   "WORD", "YEAR", "ZERO",
   // Crypto tickers (X/Twitter has heavy crypto discussion)
   "BTC", "ETH", "SOL", "DOGE", "XRP", "ADA", "AVAX", "DOT", "SHIB", "PEPE",
+  // EDGAR RSS / XML structural tokens that regex-match as tickers
+  "CIK", "UTC", "DIV", "RSS", "XML", "HTTP", "ATOM", "HREF", "HTML",
 ]);
 
 export const MEGA_CAPS = new Set([
@@ -80,7 +82,7 @@ export const SCAN_SYMBOLS = [
   // Industrials
   "CAT", "BA", "HON", "UPS", "GE", "RTX", "LMT", "DE", "MMM", "UNP",
   // Other large caps
-  "V", "MA", "PYPL", "BRK-B", "T", "VZ", "CMCSA", "PEP", "KO", "PM",
+  "V", "MA", "PYPL", "T", "VZ", "CMCSA", "PEP", "KO", "PM",
   // Meme / retail favorites
   "GME", "AMC", "PLTR", "SOFI", "RIVN", "LCID", "NIO", "SNAP", "COIN", "HOOD",
 ];

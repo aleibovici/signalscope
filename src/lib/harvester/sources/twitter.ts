@@ -97,7 +97,8 @@ export async function fetchTwitterSignals(): Promise<RawSignal[]> {
     return [];
   }
 
-  const maxResults = Math.min(parseInt(process.env.X_MAX_TWEETS_PER_RUN || "100", 10), 100);
+  // X API v2 requires max_results between 10 and 100
+  const maxResults = Math.max(10, Math.min(parseInt(process.env.X_MAX_TWEETS_PER_RUN || "100", 10), 100));
 
   // 4 hours ago to match harvest interval
   const startTime = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();

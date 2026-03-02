@@ -73,6 +73,73 @@ async function fetchTopComments(permalink: string, limit: number = 10): Promise<
   }
 }
 
+async function processRedditPosts(
+  posts: RedditPost[],
+  sort: "new" | "rising"
+): Promise<RawSignal[]> {
+  const signals: RawSignal[] = [];
+  const nowSeconds = Date.now() / 1000;
+
+  for (const post of posts) {
+    const { title, selftext, author, ups, num_comments, permalink, subreddit: sub, created_utc } = post.data;
+    const text = `${title} ${selftext}`;
+    const tickers = extractTickers(text);
+    const postAgeHours = (nowSeconds - created_utc) / 3600;
+
+    for (const symbol of tickers) {
+      signals.push({
+        symbol,
+        source: "REDDIT",
+        title,
+        body: selftext.slice(0, 2000),
+        url: `https://reddit.com${permalink}`,
+        author,
+        upvotes: ups,
+        commentCount: num_comments,
+        subreddit: sub,
+        postAge: postAgeHours,
+        sortType: sort,
+      });
+    }
+  }
+
+  // Comment-level ticker scanning for high-engagement posts
+  const highEngagement = posts.filter((p) => p.data.num_comments >= COMMENT_ENGAGEMENT_THRESHOLD);
+  let commentFetches = 0;
+  for (const post of highEngagement) {
+    if (commentFetches >= MAX_COMMENT_FETCHES_PER_SUB) break;
+    const { title, permalink, ups, num_comments, subreddit: sub, created_utc } = post.data;
+    const postTickers = new Set(extractTickers(`${title} ${post.data.selftext}`));
+    const postAgeHours = (nowSeconds - created_utc) / 3600;
+
+    await sleep(2000);
+    const comments = await fetchTopComments(permalink);
+    commentFetches++;
+
+    for (const comment of comments) {
+      const commentTickers = extractTickers(comment.body).filter((t) => !postTickers.has(t));
+
+      for (const symbol of commentTickers) {
+        signals.push({
+          symbol,
+          source: "REDDIT",
+          title: `[comment] ${title}`,
+          body: comment.body.slice(0, 2000),
+          url: `https://reddit.com${permalink}`,
+          author: comment.author,
+          upvotes: ups,
+          commentCount: num_comments,
+          subreddit: sub,
+          postAge: postAgeHours,
+          sortType: "comment",
+        });
+      }
+    }
+  }
+
+  return signals;
+}
+
 async function fetchSubreddit(
   subreddit: string,
   sort: "new" | "rising",
@@ -86,6 +153,23 @@ async function fetchSubreddit(
       signal: AbortSignal.timeout(15000),
     });
 
+    if (res.status === 429 || res.status === 503) {
+      // Retry once with backoff for rate-limiting / temporary outages
+      console.warn(`Reddit ${subreddit}/${sort}: ${res.status}, retrying after backoff...`);
+      await sleep(5000 + Math.random() * 3000);
+      const retryRes = await fetch(url, {
+        headers: { "User-Agent": UA, "Accept": "application/json" },
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!retryRes.ok) {
+        console.warn(`Reddit ${subreddit}/${sort}: retry failed with ${retryRes.status}`);
+        return [];
+      }
+      const retryJson = await retryRes.json();
+      const retryPosts: RedditPost[] = retryJson?.data?.children || [];
+      return processRedditPosts(retryPosts, sort);
+    }
+
     if (!res.ok) {
       console.warn(`Reddit ${subreddit}/${sort}: ${res.status}`);
       return [];
@@ -93,68 +177,7 @@ async function fetchSubreddit(
 
     const json = await res.json();
     const posts: RedditPost[] = json?.data?.children || [];
-    const signals: RawSignal[] = [];
-    const nowSeconds = Date.now() / 1000;
-
-    for (const post of posts) {
-      const { title, selftext, author, ups, num_comments, permalink, subreddit: sub, created_utc } = post.data;
-      const text = `${title} ${selftext}`;
-      const tickers = extractTickers(text);
-      const postAgeHours = (nowSeconds - created_utc) / 3600;
-
-      for (const symbol of tickers) {
-        signals.push({
-          symbol,
-          source: "REDDIT",
-          title,
-          body: selftext.slice(0, 2000),
-          url: `https://reddit.com${permalink}`,
-          author,
-          upvotes: ups,
-          commentCount: num_comments,
-          subreddit: sub,
-          postAge: postAgeHours,
-          sortType: sort,
-        });
-      }
-    }
-
-    // Comment-level ticker scanning for high-engagement posts
-    const highEngagement = posts.filter((p) => p.data.num_comments >= COMMENT_ENGAGEMENT_THRESHOLD);
-    let commentFetches = 0;
-    for (const post of highEngagement) {
-      if (commentFetches >= MAX_COMMENT_FETCHES_PER_SUB) break;
-      const { title, permalink, ups, num_comments, subreddit: sub, created_utc } = post.data;
-      const postTickers = new Set(extractTickers(`${title} ${post.data.selftext}`));
-      const postAgeHours = (nowSeconds - created_utc) / 3600;
-
-      await sleep(2000);
-      const comments = await fetchTopComments(permalink);
-      commentFetches++;
-
-      // Process each comment individually to preserve author and body data
-      for (const comment of comments) {
-        const commentTickers = extractTickers(comment.body).filter((t) => !postTickers.has(t));
-        
-        for (const symbol of commentTickers) {
-          signals.push({
-            symbol,
-            source: "REDDIT",
-            title: `[comment] ${title}`,
-            body: comment.body.slice(0, 2000),
-            url: `https://reddit.com${permalink}`,
-            author: comment.author,
-            upvotes: ups,
-            commentCount: num_comments,
-            subreddit: sub,
-            postAge: postAgeHours,
-            sortType: "comment",
-          });
-        }
-      }
-    }
-
-    return signals;
+    return processRedditPosts(posts, sort);
   } catch (err) {
     console.warn(`Reddit ${subreddit}/${sort} error:`, err);
     return [];
@@ -166,19 +189,23 @@ export async function fetchRedditSignals(): Promise<RawSignal[]> {
     config.sorts.map((sort) => ({ name: config.name, sort: sort.type as "new" | "rising", limit: sort.limit }))
   );
 
-  const signals: RawSignal[] = [];
+  // Batch 3 concurrent requests with 2s between batches to respect Reddit rate limits
+  const CONCURRENCY = 3;
+  const allResults: RawSignal[][] = [];
 
-  // Sequential with delay to avoid Reddit rate limiting from cloud IPs
-  for (const task of tasks) {
-    try {
-      const result = await fetchSubreddit(task.name, task.sort, task.limit);
-      signals.push(...result);
-    } catch (err) {
-      console.warn(`Reddit ${task.name}/${task.sort} error:`, err);
-    }
-    await sleep(2000);
+  for (let i = 0; i < tasks.length; i += CONCURRENCY) {
+    const batch = tasks.slice(i, i + CONCURRENCY);
+    const results = await Promise.all(
+      batch.map((t) => fetchSubreddit(t.name, t.sort, t.limit).catch((err) => {
+        console.warn(`Reddit ${t.name}/${t.sort} error:`, err);
+        return [] as RawSignal[];
+      }))
+    );
+    allResults.push(...results);
+    if (i + CONCURRENCY < tasks.length) await sleep(2000);
   }
 
+  const signals = allResults.flat();
   console.log(`Reddit: fetched ${signals.length} raw signals`);
   return signals;
 }

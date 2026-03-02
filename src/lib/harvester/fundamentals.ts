@@ -47,11 +47,29 @@ async function fetchShortFloatFinviz(symbol: string): Promise<number | null> {
 
 async function fetchShortFloats(symbols: string[]): Promise<Map<string, number | null>> {
   const result = new Map<string, number | null>();
-  // Sequential with 300 ms gap to avoid rate-limiting Finviz
-  for (const sym of symbols) {
-    result.set(sym, await fetchShortFloatFinviz(sym));
-    await new Promise((r) => setTimeout(r, 300));
+  // Batch 3 concurrent requests with 500ms between batches to respect Finviz rate limits
+  const BATCH_SIZE = 3;
+  for (let i = 0; i < symbols.length; i += BATCH_SIZE) {
+    const batch = symbols.slice(i, i + BATCH_SIZE);
+    const values = await Promise.all(batch.map((sym) => fetchShortFloatFinviz(sym)));
+    for (let j = 0; j < batch.length; j++) {
+      result.set(batch[j], values[j]);
+    }
+    if (i + BATCH_SIZE < symbols.length) {
+      await new Promise((r) => setTimeout(r, 500));
+    }
   }
+
+  // Canary check: warn if Finviz scraping may be broken
+  if (symbols.length >= 4) {
+    const nullCount = [...result.values()].filter((v) => v === null).length;
+    if (nullCount > symbols.length * 0.5) {
+      console.error(
+        `[finviz] WARNING: ${nullCount}/${symbols.length} symbols returned null for short float — Finviz scraping may be broken`
+      );
+    }
+  }
+
   return result;
 }
 
@@ -114,11 +132,13 @@ export async function fetchFundamentals(
 const YF_TIMEOUT_MS = 10_000;
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timerId: ReturnType<typeof setTimeout>;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timerId = setTimeout(() => reject(new Error(`Yahoo Finance timeout after ${ms}ms`)), ms);
+  });
   return Promise.race([
-    promise,
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error(`Yahoo Finance timeout after ${ms}ms`)), ms)
-    ),
+    promise.then((v) => { clearTimeout(timerId); return v; }),
+    timeoutPromise,
   ]);
 }
 
