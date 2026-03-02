@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useScans, useScanDetail, type ValidatedTickerData } from "@/hooks/use-scans";
 import { useScrollRestore } from "@/hooks/use-scroll-restore";
-import { useWatchlist, useToggleWatchlist } from "@/hooks/use-watchlist";
+import { useWatchlist, useToggleWatchlist, useWatchlistTickers } from "@/hooks/use-watchlist";
 import { ScanSelector } from "@/components/dashboard/scan-selector";
 import { StageTabs } from "@/components/dashboard/stage-tabs";
 import { SignalCard } from "@/components/dashboard/signal-card";
@@ -41,6 +41,7 @@ function DashboardContent() {
   const { data: scanDetail, isLoading, isError } = useScanDetail(selectedScanId);
   const { data: bookmarkedSymbols = new Set<string>() } = useWatchlist();
   const { mutate: toggleWatchlist } = useToggleWatchlist();
+  const { data: watchlistTickersData } = useWatchlistTickers();
 
   // Auto-select the latest scan only if no scanId was provided via URL
   useEffect(() => {
@@ -61,6 +62,12 @@ function DashboardContent() {
     const bB = bookmarkedSymbols.has(b.symbol) ? 0 : 1;
     return aB - bB;
   });
+
+  // Watchlisted tickers missing from the current scan
+  const scanSymbols = new Set(tickers.map((t) => t.symbol));
+  const missingWatchlisted = (watchlistTickersData?.tickers ?? []).filter(
+    (t) => !scanSymbols.has(t.symbol) && bookmarkedSymbols.has(t.symbol)
+  );
 
   const counts: Record<string, number> = {
     ALL: tickers.filter((t) => t.stage !== "FILTERED").length,
@@ -84,6 +91,28 @@ function DashboardContent() {
         onSelect={(stage) => { setSelectedStage(stage); setCookieStage(stage); }}
         counts={counts}
       />
+
+      {missingWatchlisted.length > 0 && !isLoading && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+              Watchlist
+            </h2>
+            <span className="text-xs text-gray-400">From previous scans</span>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {missingWatchlisted.map((ticker: ValidatedTickerData) => (
+              <div key={ticker.id} className="opacity-75">
+                <SignalCard
+                  ticker={ticker}
+                  isBookmarked={true}
+                  onToggle={(symbol, isCurrent) => toggleWatchlist({ symbol, isBookmarked: isCurrent })}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="flex justify-center py-12">

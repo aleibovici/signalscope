@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { ValidatedTickerData } from "@/hooks/use-scans";
 
 interface WatchlistEntry {
   symbol: string;
@@ -62,6 +63,19 @@ export function useToggleWatchlist() {
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["watchlist"] });
+      qc.invalidateQueries({ queryKey: ["watchlist-tickers"] });
     },
+  });
+}
+
+export function useWatchlistTickers() {
+  return useQuery<{ tickers: ValidatedTickerData[] }>({
+    queryKey: ["watchlist-tickers"],
+    queryFn: async () => {
+      const res = await fetch("/api/watchlist/tickers");
+      if (!res.ok) throw new Error("Failed to fetch watchlist tickers");
+      return res.json();
+    },
+    staleTime: 60_000,
   });
 }
