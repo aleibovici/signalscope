@@ -12,6 +12,8 @@ SignalScope is a stock breakout signal detection platform. It harvests signals f
 npm run dev              # Next.js dev server (port 3000)
 npm run build            # Production build
 npm run lint             # ESLint
+npm test                 # Run Vitest unit tests (175 tests, 9 files)
+npm run test:watch       # Vitest watch mode
 npm run db:generate      # Generate Prisma client (run after schema changes)
 npm run db:migrate       # Run Prisma migrations (dev)
 npm run db:seed          # Seed database with default user (user_1)
@@ -73,15 +75,25 @@ Entry point: `scripts/run-harvest.ts`
 | `/api/scans/[scanId]` | GET | Scan detail with validated tickers |
 | `/api/signals` | GET | Signals filtered by scanId and stage |
 | `/api/tickers/[symbol]` | GET | Latest ticker + raw signals |
+| `/api/tickers/[symbol]/history` | GET | Historical appearances for a ticker |
+| `/api/tickers/[symbol]/performance` | GET | Performance data for a ticker |
 | `/api/portfolio` | GET/POST | List or add positions |
 | `/api/portfolio/[id]` | PATCH/DELETE | Update or delete position |
+| `/api/watchlist` | GET/POST | List or add watchlist items |
+| `/api/watchlist/[symbol]` | DELETE | Remove from watchlist |
+| `/api/prices` | GET | Current prices for given symbols (query: `symbols`) |
+| `/api/search` | GET | Search tickers by symbol/name |
+| `/api/stats` | GET | Platform-wide stats (scan counts, ticker counts) |
+| `/api/performance` | GET | Portfolio performance over time (query: `days`) |
+| `/api/user/profile` | GET/PATCH | Get or update current user profile |
 | `/api/health` | GET | Health check |
+| `/api/indexnow` | GET | IndexNow SEO submission endpoint |
 | `/api/auth/[...nextauth]` | GET/POST | Auth.js handlers (login/logout/session) |
 | `/api/auth/register` | POST | User registration (email, password, name) |
 
 ### Frontend (`src/app/(dashboard)/`)
 
-Dashboard pages: signals (main), portfolio, history, filtered, ticker detail. Uses route group `(dashboard)` with shared sidebar layout.
+Dashboard pages: signals (main), portfolio, history, filtered, ticker detail, performance, methodology, profile, subscription. Uses route group `(dashboard)` with shared sidebar layout.
 
 All data fetching hooks are in `src/hooks/` using TanStack Query mutations/queries.
 
@@ -92,8 +104,8 @@ Multi-user email/password auth via Auth.js v5 (Credentials provider, JWT session
 - `auth.config.ts` — Edge-safe config (no Node.js deps), imported by middleware; `trustHost: true` required for Cloud Run reverse proxy
 - `auth.ts` — Full NextAuth instance with Prisma + bcrypt `authorize()`, exports `auth`, `handlers`, `getCurrentUserId()`
 - `getCurrentUserId()` is **async** — all callers must `await` it
-- `src/middleware.ts` — Protects dashboard routes (redirect to `/login`) and `/api/portfolio/**` (401 JSON)
-- Public routes: `/login`, `/register`, `/api/auth/**`, `/api/scans/**`, `/api/signals/**`, `/api/tickers/**`, `/api/health`
+- `src/middleware.ts` — Protects dashboard routes (redirect to `/login`) and `/api/portfolio/**`, `/api/watchlist/**`, `/api/user/**` (401 JSON); matcher allows `.txt`/`.xml` static files through
+- Public routes: `/login`, `/register`, `/api/auth/**`, `/api/scans/**`, `/api/signals/**`, `/api/tickers/**`, `/api/health`, `/api/search`, `/api/stats`
 - Auth pages use route group `(auth)` with centered layout (no sidebar)
 - `SessionProvider` wrapped in `src/lib/session-provider.tsx`, added to root layout
 - Type augmentations in `src/types/next-auth.d.ts` (adds `id` and `role` to Session/JWT)
@@ -101,7 +113,7 @@ Multi-user email/password auth via Auth.js v5 (Credentials provider, JWT session
 
 ### Database Models
 
-Key models in `prisma/schema.prisma`: **User**, **Scan** (harvest run), **Signal** (raw from sources), **ValidatedTicker** (scored candidates with fundamentals/report), **UserPosition** (portfolio).
+Key models in `prisma/schema.prisma`: **User**, **Scan** (harvest run), **Signal** (raw from sources), **ValidatedTicker** (scored candidates with fundamentals/report), **TickerPerformance** (post-scan price performance tracking), **UserPosition** (portfolio), **UserWatchlist** (bookmarked tickers).
 
 Signal stages: `EARLY | FORMING | CONFIRMED | FILTERED`
 
@@ -192,9 +204,31 @@ Push to `main` → GitHub Actions builds web image and pushes to Artifact Regist
 gh workflow run "Deploy to Cloud Run" --ref main
 ```
 
+## Tests
+
+**Vitest** (v4.0.18) with `@vitest/coverage-v8`. Config: `vitest.config.ts` at project root. Tests in `src/__tests__/`.
+
+| File | Coverage |
+|------|---------|
+| `ticker-utils.test.ts` | `extractTickers`, `extractCashtagTickers`, BLACKLIST, MEGA_CAPS |
+| `pnd-filter.test.ts` | `checkPndFlags` — all 11 flag types + threshold logic |
+| `ai-config.test.ts` | `resolveProviderOrder` — env var overrides, fallback logic |
+| `ai-chatjson.test.ts` | `chatJSON` — primary/fallback, cost tracking |
+| `cost-tracker.test.ts` | Cost accumulation and reporting |
+| `aggregate-signals.test.ts` | `aggregateSignals` — velocity, momentum, sorting |
+| `api-error.test.ts` | `handleApiError` — status code mapping |
+| `validators.test.ts` | Zod schemas — pagination, portfolio, watchlist, symbols |
+| `scoring.test.ts` | `scoreSymbolBatch` heuristic fallback (chatJSON mocked to fail) |
+
+Key gotchas:
+- `BUY` is NOT in BLACKLIST (but `SELL`, `HOLD` are)
+- TICKER_REGEX is `{1,5}` — 6+ char words never match
+- P&D threshold: `flags.length >= 3` to flag as pump-and-dump
+- `coordinated_posts`: duplicateRatio = `1 - uniqueTitles/totalTitles >= 0.5`
+
 ## API Error Handling
 
-All authenticated API routes (`/api/portfolio/**`) use try/catch with proper status codes:
+All authenticated API routes use `handleApiError()` from `src/lib/api-error.ts` (or try/catch with proper status codes):
 - 401 for auth failures (`getCurrentUserId()` throws "Not authenticated")
 - 400 for Zod validation errors (with `details` containing issues)
 - 500 for unexpected errors (logged via `console.error` for Cloud Run log inspection)
