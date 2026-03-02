@@ -31,9 +31,18 @@ export async function GET(request: NextRequest) {
 
         const price = await fetchCurrentPrice(symbol);
         if (priceCache.size >= CACHE_MAX) {
-          // Evict oldest entry
-          const oldest = priceCache.keys().next().value;
-          if (oldest !== undefined) priceCache.delete(oldest);
+          // Evict expired entries first, then oldest by timestamp if still over limit
+          for (const [k, v] of priceCache) {
+            if (now - v.ts >= CACHE_TTL) priceCache.delete(k);
+          }
+          if (priceCache.size >= CACHE_MAX) {
+            let oldestKey: string | undefined;
+            let oldestTs = Infinity;
+            for (const [k, v] of priceCache) {
+              if (v.ts < oldestTs) { oldestTs = v.ts; oldestKey = k; }
+            }
+            if (oldestKey !== undefined) priceCache.delete(oldestKey);
+          }
         }
         priceCache.set(symbol, { price, ts: now });
         prices[symbol] = price;

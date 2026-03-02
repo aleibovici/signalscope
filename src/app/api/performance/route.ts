@@ -8,9 +8,9 @@ export async function GET(request: NextRequest) {
   try {
     await getCurrentUserId();
     const daysParam = request.nextUrl.searchParams.get("days");
-    const days = daysParam ? parseInt(daysParam, 10) : 7;
+    const days = daysParam ? Number(daysParam) : 7;
 
-    if (!VALID_DAYS.has(days)) {
+    if (!Number.isInteger(days) || !VALID_DAYS.has(days)) {
       return NextResponse.json(
         { error: "Invalid days parameter. Valid values: 1, 3, 7, 30" },
         { status: 400 }
