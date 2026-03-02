@@ -96,6 +96,54 @@ export const metadata: Metadata = {
   },
 };
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://signalscopes.com/#organization",
+      "name": "SignalScope",
+      "url": "https://signalscopes.com",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://signalscopes.com/apple-touch-icon.png",
+      },
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://signalscopes.com/#website",
+      "url": "https://signalscopes.com",
+      "name": "SignalScope",
+      "description": "Stock breakout signal detection platform",
+      "publisher": { "@id": "https://signalscopes.com/#organization" },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://signalscopes.com/ticker/{search_term_string}",
+        },
+        "query-input": "required name=search_term_string",
+      },
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://signalscopes.com/#app",
+      "name": "SignalScope",
+      "url": "https://signalscopes.com",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Web",
+      "description":
+        "Find breakout stock candidates before market consensus. SignalScope harvests signals from Reddit, X/Twitter, SEC insider filings, and volume spikes — scored by AI, filtered for pump-and-dumps.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+      },
+      "publisher": { "@id": "https://signalscopes.com/#organization" },
+    },
+  ],
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -103,6 +151,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
