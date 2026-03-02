@@ -96,6 +96,54 @@ export const metadata: Metadata = {
   },
 };
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "http://localhost:3000/#organization",
+      "name": "SignalScope",
+      "url": "http://localhost:3000",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "http://localhost:3000/apple-touch-icon.png",
+      },
+    },
+    {
+      "@type": "WebSite",
+      "@id": "http://localhost:3000/#website",
+      "url": "http://localhost:3000",
+      "name": "SignalScope",
+      "description": "Stock breakout signal detection platform",
+      "publisher": { "@id": "http://localhost:3000/#organization" },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "http://localhost:3000/ticker/{search_term_string}",
+        },
+        "query-input": "required name=search_term_string",
+      },
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "http://localhost:3000/#app",
+      "name": "SignalScope",
+      "url": "http://localhost:3000",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Web",
+      "description":
+        "Find breakout stock candidates before market consensus. SignalScope harvests signals from Reddit, X/Twitter, SEC insider filings, and volume spikes — scored by AI, filtered for pump-and-dumps.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+      },
+      "publisher": { "@id": "http://localhost:3000/#organization" },
+    },
+  ],
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -103,6 +151,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
