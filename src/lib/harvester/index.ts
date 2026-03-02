@@ -436,25 +436,17 @@ export async function orchestrateScan(): Promise<string> {
       // Store all signals first (including single-mention symbols)
       await tx.signal.createMany({ data: allSignalData });
 
-      // Update signals from validated candidates with proper AI scoring and P&D flags
+      // Update all signals per symbol in one query (instead of per-signal)
       for (const result of validatedResults) {
-        const symbolSignals = result.agg.signals;
-        for (const signal of symbolSignals) {
-          await tx.signal.updateMany({
-            where: {
-              scanId: scan.id,
-              symbol: signal.symbol,
-              source: signal.source,
-              title: signal.title,
-            },
-            data: {
-              sentiment: result.sentiment,
-              pndFlagged: result.pndFlagged,
-              pndFlags: result.pndFlags,
-              pndScore: result.pndScore,
-            },
-          });
-        }
+        await tx.signal.updateMany({
+          where: { scanId: scan.id, symbol: result.agg.symbol },
+          data: {
+            sentiment: result.sentiment,
+            pndFlagged: result.pndFlagged,
+            pndFlags: result.pndFlags,
+            pndScore: result.pndScore,
+          },
+        });
       }
 
       await tx.validatedTicker.createMany({ data: tickerDataList, skipDuplicates: true });
@@ -466,25 +458,17 @@ export async function orchestrateScan(): Promise<string> {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await client.signal.createMany({ data: allSignalData as any });
 
-      // Update signals from validated candidates with proper AI scoring and P&D flags
+      // Update all signals per symbol in one query (instead of per-signal)
       for (const result of validatedResults) {
-        const symbolSignals = result.agg.signals;
-        for (const signal of symbolSignals) {
-          await client.signal.updateMany({
-            where: {
-              scanId: scan.id,
-              symbol: signal.symbol,
-              source: signal.source,
-              title: signal.title,
-            },
-            data: {
-              sentiment: result.sentiment,
-              pndFlagged: result.pndFlagged,
-              pndFlags: result.pndFlags,
-              pndScore: result.pndScore,
-            },
-          });
-        }
+        await client.signal.updateMany({
+          where: { scanId: scan.id, symbol: result.agg.symbol },
+          data: {
+            sentiment: result.sentiment,
+            pndFlagged: result.pndFlagged,
+            pndFlags: result.pndFlags,
+            pndScore: result.pndScore,
+          },
+        });
       }
     });
 

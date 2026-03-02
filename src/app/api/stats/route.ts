@@ -6,12 +6,13 @@ import { handleApiError } from "@/lib/api-error";
 export async function GET() {
   try {
     await getCurrentUserId();
-
-    const [scans, signals, tickerGroups, trackedTickers, perfAgg, wins, users] =
+    const [scans, signals, tickerCount, trackedTickers, perfAgg, wins, users] =
       await Promise.all([
         prisma.scan.count({ where: { status: "COMPLETED" } }),
         prisma.signal.count(),
-        prisma.validatedTicker.groupBy({ by: ["symbol"] }),
+        prisma.$queryRaw<[{ count: bigint }]>`SELECT COUNT(DISTINCT symbol) as count FROM "ValidatedTicker"`.then(
+          (rows) => Number(rows[0].count)
+        ),
         prisma.tickerPerformance.count({ where: { return7d: { not: null } } }),
         prisma.tickerPerformance.aggregate({
           _avg: { return7d: true },
@@ -27,7 +28,7 @@ export async function GET() {
     return NextResponse.json({
       scans,
       signals,
-      tickers: tickerGroups.length,
+      tickers: tickerCount,
       avgReturn7d,
       winRate7d,
       trackedTickers,
