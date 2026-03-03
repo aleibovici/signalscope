@@ -89,27 +89,26 @@ export async function sendConfirmedTickerAlerts(
 
   console.log(`[email] Sending digest to ${users.length} user(s)...`);
 
-  const results = await Promise.allSettled(
-    users.map((user) =>
-      resend.emails.send({
-        from: "SignalScope Alerts <REDACTED>",
-        to: user.email,
-        subject,
-        html,
-      })
-    )
-  );
+  const batch = users.map((user) => ({
+    from: "SignalScope Alerts <REDACTED>",
+    to: user.email,
+    subject,
+    html,
+  }));
 
-  let sent = 0;
-  let failed = 0;
-  for (const result of results) {
-    if (result.status === "fulfilled") {
-      sent++;
-    } else {
-      failed++;
-      console.warn("[email] Send failed:", result.reason);
-    }
+  const { data, error } = await resend.batch.send(batch);
+
+  if (error) {
+    console.warn("[email] Batch send failed:", error);
+    console.log(`[email] Done: 0 sent, ${users.length} failed`);
+    return;
   }
 
-  console.log(`[email] Done: ${sent} sent, ${failed} failed`);
+  const sent = data?.data?.length ?? 0;
+  for (let i = 0; i < users.length; i++) {
+    const id = data?.data?.[i]?.id ?? "unknown";
+    console.log(`[email] Sent to ${users[i].email} (id: ${id})`);
+  }
+
+  console.log(`[email] Done: ${sent} sent, 0 failed`);
 }
