@@ -163,13 +163,12 @@ export default function MethodologyPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-gray-600">
-            Each candidate is scored by an AI model (GPT-4o or Claude 3.5 Sonnet) using source
-            weights, catalyst quality, novelty, and cross-source corroboration. Pure social signals
-            (Reddit / StockTwits / Twitter only) are hard-capped at 50 — this is enforced
-            programmatically regardless of what the AI returns. Only tickers with a verifiable
-            catalyst source (SEC Insider or Options Flow) can score above 50. First-appearance
-            tickers receive a +5–10 novelty boost; tickers seen 3+ times or older than 7 days
-            receive a staleness penalty.
+            Each candidate is scored by AI using source weights, catalyst quality, novelty, and
+            cross-source corroboration. Pure social signals (Reddit / StockTwits / Twitter only)
+            are hard-capped at 50 — this is enforced programmatically regardless of what the AI
+            returns. Only tickers with a verifiable catalyst source (SEC Insider or Options Flow)
+            can score above 50. First-appearance tickers receive a +5–10 novelty boost; tickers
+            seen 3+ times or older than 7 days receive a staleness penalty.
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
