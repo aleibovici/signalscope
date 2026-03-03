@@ -185,10 +185,11 @@ export default function PerformancePage() {
               <CardContent className="pt-6 text-center">
                 <p className="text-sm text-gray-500">Win Rate</p>
                 <p className="text-3xl font-bold text-green-600">
-                  {data.overall.count > 0
-                    ? `${(data.overall.winRate * 100).toFixed(0)}%`
+                  {data.confirmed.count > 0
+                    ? `${(data.confirmed.winRate * 100).toFixed(0)}%`
                     : "--"}
                 </p>
+                <p className="mt-1 text-xs text-gray-400">confirmed signals only</p>
               </CardContent>
             </Card>
             <Card>
@@ -196,17 +197,18 @@ export default function PerformancePage() {
                 <p className="text-sm text-gray-500">Avg Return</p>
                 <p
                   className={`text-3xl font-bold ${
-                    data.overall.avgReturn > 0
+                    data.confirmed.avgReturn > 0
                       ? "text-green-600"
-                      : data.overall.avgReturn < 0
+                      : data.confirmed.avgReturn < 0
                         ? "text-red-600"
                         : "text-gray-900"
                   }`}
                 >
-                  {data.overall.count > 0
-                    ? formatPct(data.overall.avgReturn)
+                  {data.confirmed.count > 0
+                    ? formatPct(data.confirmed.avgReturn)
                     : "--"}
                 </p>
+                <p className="mt-1 text-xs text-gray-400">confirmed signals only</p>
               </CardContent>
             </Card>
           </div>

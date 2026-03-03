@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
     if (records.length === 0) {
       return NextResponse.json({
         overall: { count: 0, winRate: 0, avgReturn: 0 },
+        confirmed: { count: 0, winRate: 0, avgReturn: 0 },
         byStage: {},
         byType: {},
         byScoreRange: {},
@@ -58,6 +59,10 @@ export async function GET(request: NextRequest) {
 
     // Overall
     const overall = computeStats(records);
+
+    // Confirmed-only stats (for headline win rate and avg return)
+    const confirmedRecords = records.filter((r) => r.validatedTicker.stage === "CONFIRMED");
+    const confirmed = computeStats(confirmedRecords);
 
     // By stage
     const byStage: Record<string, ReturnType<typeof computeStats>> = {};
@@ -132,6 +137,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       overall,
+      confirmed,
       byStage,
       byType,
       byScoreRange,
