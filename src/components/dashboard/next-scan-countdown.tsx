@@ -55,14 +55,18 @@ function formatElapsed(ms: number): string {
 
 export function NextScanCountdown() {
   const { data } = useScans(1, 1);
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
+    setNow(Date.now());
     const id = setInterval(() => setNow(Date.now()), 60_000);
     return () => clearInterval(id);
   }, []);
 
   const lastScanCompletedAt = data?.scans?.[0]?.completedAt ?? null;
+
+  if (now === null) return null;
+
   const nextScan = getNextScanTime(new Date(now));
   const remaining = nextScan.getTime() - now;
 
