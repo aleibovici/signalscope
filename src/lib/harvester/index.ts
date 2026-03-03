@@ -48,20 +48,24 @@ export function aggregateSignals(signals: RawSignal[]): AggregatedSymbol[] {
         ).size,
         totalUpvotes: sigs.reduce((sum, s) => sum + (s.upvotes || 0), 0),
         totalComments: sigs.reduce((sum, s) => sum + (s.commentCount || 0), 0),
-        avgVelocity: sigs.reduce((sum, s) => {
-          if (s.postAge != null && s.sortType) {
+        avgVelocity: (() => {
+          const socialSigs = sigs.filter((s) => s.postAge != null && s.sortType);
+          if (socialSigs.length === 0) return 0;
+          const velocitySum = socialSigs.reduce((sum, s) => {
             if (s.sortType === "rising") return sum + 3;
+            if (s.sortType === "trending") return sum + 1.5;
             if (s.sortType === "comment") return sum + 1.5;
-            if (s.postAge < 3) return sum + 2;
-            if (s.postAge < 12) return sum + 1;
+            if (s.postAge! < 3) return sum + 2;
+            if (s.postAge! < 12) return sum + 1;
             return sum + 0.5;
-          }
-          return sum;
-        }, 0) / (sigs.length || 1),
+          }, 0);
+          return velocitySum / socialSigs.length;
+        })(),
         momentum: sigs.reduce(
           (m, s) => {
             if (s.postAge != null && s.sortType) {
               if (s.sortType === "rising") m.risingCount++;
+              else if (s.sortType === "trending") m.recentCount++;
               else if (s.sortType === "comment") m.commentDerivedCount++;
               else if (s.postAge < 3) m.freshCount++;
               else if (s.postAge < 12) m.recentCount++;
@@ -265,9 +269,9 @@ export async function orchestrateScan(): Promise<string> {
     const aggregated = aggregateSignals(allSignals);
     console.log(`Unique symbols: ${aggregated.length}`);
 
-    // Filter to symbols with at least 2 signals or multi-source
+    // Filter to symbols with at least 2 signals, multi-source, or high-value single source
     const candidates = aggregated.filter(
-      (a) => a.signals.length >= 2 || a.sourceCount >= 2
+      (a) => a.signals.length >= 2 || a.sourceCount >= 2 || a.weightedSourceScore >= 2
     );
     console.log(`Candidates after filtering: ${candidates.length}`);
 
@@ -395,13 +399,15 @@ export async function orchestrateScan(): Promise<string> {
         signal.postAge != null && signal.sortType
           ? signal.sortType === "rising"
             ? 3
-            : signal.sortType === "comment"
+            : signal.sortType === "trending"
               ? 1.5
-              : signal.postAge < 3
-                ? 2
-                : signal.postAge < 12
-                  ? 1
-                  : 0.5
+              : signal.sortType === "comment"
+                ? 1.5
+                : signal.postAge < 3
+                  ? 2
+                  : signal.postAge < 12
+                    ? 1
+                    : 0.5
           : 0,
       sentiment: "neutral", // Default for single-mention symbols
       pndFlagged: false,    // Default for single-mention symbols

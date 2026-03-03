@@ -103,9 +103,16 @@ Return JSON: { "scores": [{ "symbol": "X", "score": 0-100, "sentiment": "bullish
       if (!item || typeof item.score !== "number" || typeof item.sentiment !== "string") {
         return defaultScore(s, noveltyMap?.get(s.symbol));
       }
+
+      // Enforce social-only cap: tickers without a catalyst source (SEC_INSIDER/OPTIONS_FLOW)
+      // should never score above 50, regardless of what the AI returns
+      const sources = new Set(s.signals.map((sig) => sig.source));
+      const hasCatalystSource = sources.has("SEC_INSIDER") || sources.has("OPTIONS_FLOW");
+      const maxScore = hasCatalystSource ? 100 : 50;
+
       return {
         symbol: s.symbol,
-        score: Math.min(100, Math.max(0, Math.round(item.score))),
+        score: Math.min(maxScore, Math.max(0, Math.round(item.score))),
         sentiment: item.sentiment,
         reasoning: typeof item.reasoning === "string" ? item.reasoning : "",
       };

@@ -296,6 +296,34 @@ describe("checkPndFlags — no_news_catalyst", () => {
     const result = checkPndFlags(agg, makeFundamentals());
     expect(result.flags).not.toContain("no_news_catalyst");
   });
+
+  it.each([
+    ["buyback", "TEST announces $500M buyback program"],
+    ["dividend", "TEST declares special dividend"],
+    ["spinoff", "TEST announces spinoff of subsidiary"],
+    ["spin-off", "TEST completes spin-off"],
+    ["restructuring", "TEST announces restructuring plan"],
+    ["analyst", "analyst upgrades TEST to buy"],
+    ["price target", "price target raised to $50 on TEST"],
+    ["beat estimates", "TEST beat estimates by 20%"],
+    ["guidance raised", "TEST guidance raised for Q4"],
+    ["upgraded", "TEST upgraded by Goldman Sachs"],
+    ["downgrade", "TEST hit by downgrade from Morgan Stanley"],
+    ["stock split", "TEST announces 10-for-1 stock split"],
+    ["offering", "TEST announces public offering"],
+    ["catalyst", "Major catalyst for TEST stock"],
+    ["breakthrough", "TEST achieves breakthrough in treatment"],
+    ["regulatory", "TEST receives regulatory clearance"],
+  ])("does not flag when '%s' keyword is present", (_keyword, title) => {
+    const agg = makeAgg({
+      signals: [
+        makeRedditSignal({ title }),
+        makeRedditSignal({ title: "Another post about TEST" }),
+      ],
+    });
+    const result = checkPndFlags(agg, makeFundamentals());
+    expect(result.flags).not.toContain("no_news_catalyst");
+  });
 });
 
 describe("checkPndFlags — sudden_spike", () => {

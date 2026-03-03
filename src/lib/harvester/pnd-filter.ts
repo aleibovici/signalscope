@@ -53,6 +53,10 @@ export function checkPndFlags(
     "earnings", "fda", "approval", "acquisition", "merger", "contract",
     "revenue", "partnership", "clinical", "patent", "guidance",
     "buyout", "trial results", "sec filing", "10-k", "10-q", "8-k",
+    "buyback", "dividend", "spinoff", "spin-off", "restructuring",
+    "analyst", "price target", "beat estimates", "guidance raised",
+    "upgraded", "downgrade", "stock split", "offering", "ipo",
+    "catalyst", "breakthrough", "settlement", "regulatory",
   ];
   // SEC insider buys and options flow are themselves catalysts — don't flag them for lacking news
   const signalSources = new Set(agg.signals.map((s) => s.source));

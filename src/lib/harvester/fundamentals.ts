@@ -110,13 +110,31 @@ export async function fetchFundamentals(
         ? `${Number(fiftyTwoLow).toFixed(2)} - ${Number(fiftyTwoHigh).toFixed(2)}`
         : undefined;
 
+    // Extract earnings date if available
+    const earningsTs = (q as Record<string, unknown>).earningsTimestamp;
+    const earningsDate = typeof earningsTs === "number"
+      ? new Date(earningsTs * 1000).toISOString().split("T")[0]
+      : undefined;
+
+    // Extract float and shares outstanding
+    const floatShares = typeof (q as Record<string, unknown>).floatShares === "number"
+      ? (q as Record<string, unknown>).floatShares as number
+      : null;
+    const sharesOutstanding = typeof (q as Record<string, unknown>).sharesOutstanding === "number"
+      ? (q as Record<string, unknown>).sharesOutstanding as number
+      : null;
+
     result.set(q.symbol, {
       price: q.regularMarketPrice ?? null,
       marketCap: q.marketCap ?? null,
       shortFloat: shortFloats.get(q.symbol) ?? null,
       fiftyTwoWeekRange,
       name: q.longName ?? q.shortName,
+      sector: (q as Record<string, unknown>).sector as string | undefined,
       exchange: q.fullExchangeName ?? q.exchange,
+      earningsDate,
+      floatShares,
+      sharesOutstanding,
     });
   }
 

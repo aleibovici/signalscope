@@ -51,6 +51,9 @@ export interface FundamentalData {
   name?: string;
   sector?: string;
   exchange?: string;
+  earningsDate?: string;
+  floatShares?: number | null;
+  sharesOutstanding?: number | null;
 }
 
 export type SignalType = "insider_buy" | "options_flow" | "multi_source" | "reddit_velocity" | "twitter_velocity";

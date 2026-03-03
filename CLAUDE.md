@@ -12,7 +12,7 @@ SignalScope is a stock breakout signal detection platform. It harvests signals f
 npm run dev              # Next.js dev server (port 3000)
 npm run build            # Production build
 npm run lint             # ESLint
-npm test                 # Run Vitest unit tests (175 tests, 9 files)
+npm test                 # Run Vitest unit tests (215 tests, 12 files)
 npm run test:watch       # Vitest watch mode
 npm run db:generate      # Generate Prisma client (run after schema changes)
 npm run db:migrate       # Run Prisma migrations (dev)
@@ -219,6 +219,9 @@ gh workflow run "Deploy to Cloud Run" --ref main
 | `api-error.test.ts` | `handleApiError` — status code mapping |
 | `validators.test.ts` | Zod schemas — pagination, portfolio, watchlist, symbols |
 | `scoring.test.ts` | `scoreSymbolBatch` heuristic fallback (chatJSON mocked to fail) |
+| `scoring-cap.test.ts` | Post-AI social-only score cap enforcement (chatJSON mocked to return inflated scores) |
+| `twitter-cashtags.test.ts` | Twitter cashtag entity extraction + regex merging + deduplication |
+| `fundamentals.test.ts` | Yahoo Finance data extraction — sector, earningsDate, floatShares, graceful handling |
 
 Key gotchas:
 - `BUY` is NOT in BLACKLIST (but `SELL`, `HOLD` are)
