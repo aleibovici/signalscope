@@ -10,7 +10,7 @@ export async function GET() {
     const userId = await getCurrentUserId();
     let user = await prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { id: true, email: true, username: true },
+      select: { id: true, email: true, username: true, emailAlerts: true },
     });
 
     if (!user.username) {
@@ -19,7 +19,7 @@ export async function GET() {
           user = await prisma.user.update({
             where: { id: userId },
             data: { username: generateUsername() },
-            select: { id: true, email: true, username: true },
+            select: { id: true, email: true, username: true, emailAlerts: true },
           });
           break;
         } catch (err) {
@@ -50,7 +50,9 @@ const updateSchema = z.object({
     .string()
     .min(3, "Username must be at least 3 characters")
     .max(20, "Username must be at most 20 characters")
-    .regex(/^[a-z0-9_]+$/, "Username may only contain lowercase letters, numbers, and underscores"),
+    .regex(/^[a-z0-9_]+$/, "Username may only contain lowercase letters, numbers, and underscores")
+    .optional(),
+  emailAlerts: z.boolean().optional(),
 });
 
 export async function PATCH(request: NextRequest) {
@@ -71,10 +73,14 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    const data: { username?: string; emailAlerts?: boolean } = {};
+    if (parsed.data.username !== undefined) data.username = parsed.data.username;
+    if (parsed.data.emailAlerts !== undefined) data.emailAlerts = parsed.data.emailAlerts;
+
     const user = await prisma.user.update({
       where: { id: userId },
-      data: { username: parsed.data.username },
-      select: { id: true, email: true, username: true },
+      data,
+      select: { id: true, email: true, username: true, emailAlerts: true },
     });
 
     return NextResponse.json(user);

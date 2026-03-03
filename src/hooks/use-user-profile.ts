@@ -6,6 +6,7 @@ export interface UserProfile {
   id: string;
   email: string;
   username: string | null;
+  emailAlerts: boolean;
 }
 
 export function useUserProfile() {
@@ -30,6 +31,25 @@ export function useUpdateUsername() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to update username");
+      return data as UserProfile;
+    },
+    onSuccess: (data) => {
+      qc.setQueryData(["user-profile"], data);
+    },
+  });
+}
+
+export function useUpdateEmailAlerts() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (emailAlerts: boolean) => {
+      const res = await fetch("/api/user/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emailAlerts }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to update email alerts");
       return data as UserProfile;
     },
     onSuccess: (data) => {
