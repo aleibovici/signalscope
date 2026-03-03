@@ -13,9 +13,9 @@ export async function POST() {
     return NextResponse.json({ status: "skip", reason: "no completed scan" });
   }
 
-  // Guard against double-sends: only send if scan completed within the last hour
-  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-  if (!scan.completedAt || scan.completedAt < oneHourAgo) {
+  // Guard against double-sends: only send if scan completed within the last 25 hours
+  const cutoff = new Date(Date.now() - 25 * 60 * 60 * 1000);
+  if (!scan.completedAt || scan.completedAt < cutoff) {
     return NextResponse.json({
       status: "skip",
       reason: "scan too old",
