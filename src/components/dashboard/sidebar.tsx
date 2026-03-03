@@ -18,7 +18,7 @@ const navItems = [
   { href: "/profile", label: "Profile", icon: "⚙️" },
 ];
 
-export function Sidebar() {
+export function Sidebar({ revision }: { revision: string }) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
@@ -127,7 +127,7 @@ export function Sidebar() {
         </nav>
 
         <div className="border-t border-gray-200 px-4 py-3">
-          <StatsWidget />
+          <StatsWidget revision={revision} />
         </div>
 
         <div className="border-t border-gray-200 px-4 py-3">

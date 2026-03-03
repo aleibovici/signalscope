@@ -2,7 +2,7 @@
 
 import { useStats } from "@/hooks/use-stats";
 
-export function StatsWidget() {
+export function StatsWidget({ revision }: { revision: string }) {
   const { data, isLoading, isError } = useStats();
 
   if (isError) return null;
@@ -48,6 +48,8 @@ export function StatsWidget() {
               </dd>
             </>
           )}
+          <dt className="text-xs text-gray-500">Version</dt>
+          <dd className="text-right text-xs font-medium text-gray-700">{revision}</dd>
         </dl>
       )}
     </div>
