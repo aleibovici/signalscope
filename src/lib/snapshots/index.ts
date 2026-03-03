@@ -54,7 +54,6 @@ export async function collectSnapshots(): Promise<{ filled: number; errors: numb
     where: {
       createdAt: { gte: cutoff },
       price: { not: null },
-      stage: { not: "FILTERED" },
     },
     include: { performance: true },
     orderBy: { createdAt: "asc" },
