@@ -50,13 +50,18 @@ function makeFundamentals(overrides: Partial<FundamentalData> = {}): Fundamental
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe("checkPndFlags — penny_price", () => {
-  it("flags when price is below $2", () => {
-    const result = checkPndFlags(makeAgg(), makeFundamentals({ price: 1.50 }));
+  it("flags when price is below $1 with no catalyst", () => {
+    const result = checkPndFlags(makeAgg(), makeFundamentals({ price: 0.50 }));
     expect(result.flags).toContain("penny_price");
   });
 
-  it("does not flag when price is exactly $2", () => {
-    const result = checkPndFlags(makeAgg(), makeFundamentals({ price: 2.00 }));
+  it("does not flag when price is exactly $1", () => {
+    const result = checkPndFlags(makeAgg(), makeFundamentals({ price: 1.00 }));
+    expect(result.flags).not.toContain("penny_price");
+  });
+
+  it("does not flag when price is between $1 and $2", () => {
+    const result = checkPndFlags(makeAgg(), makeFundamentals({ price: 1.50 }));
     expect(result.flags).not.toContain("penny_price");
   });
 
@@ -67,6 +72,22 @@ describe("checkPndFlags — penny_price", () => {
 
   it("does not flag when price is null", () => {
     const result = checkPndFlags(makeAgg(), makeFundamentals({ price: null }));
+    expect(result.flags).not.toContain("penny_price");
+  });
+
+  it("does not flag penny price when FDA catalyst keyword is present", () => {
+    const agg = makeAgg({
+      signals: [makeRedditSignal({ title: "TEST gets FDA approval for new drug" })],
+    });
+    const result = checkPndFlags(agg, makeFundamentals({ price: 0.50 }));
+    expect(result.flags).not.toContain("penny_price");
+  });
+
+  it("does not flag penny price when SEC_INSIDER source is present", () => {
+    const agg = makeAgg({
+      signals: [{ symbol: "TEST", source: "SEC_INSIDER", title: "CEO buys shares" }],
+    });
+    const result = checkPndFlags(agg, makeFundamentals({ price: 0.50 }));
     expect(result.flags).not.toContain("penny_price");
   });
 });

@@ -210,7 +210,7 @@ export default function MethodologyPage() {
           </p>
           <div className="grid gap-2 sm:grid-cols-2">
             {[
-              { flag: "penny_price", desc: "Price below $2" },
+              { flag: "penny_price", desc: "Price below $1 with no verifiable catalyst" },
               { flag: "otc_listing", desc: "Listed on OTC / Pink Sheets" },
               { flag: "micro_cap_no_catalyst", desc: "Market cap < $50 M with no news" },
               { flag: "only_penny_subs", desc: "Only in r/pennystocks or r/smallstreetbets" },
