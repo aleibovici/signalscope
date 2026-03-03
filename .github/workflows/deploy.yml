@@ -31,7 +31,7 @@ jobs:
             --image="${IMAGE}" \
             --region="${GCP_REGION}" \
             --add-cloudsql-instances="${GCP_PROJECT_ID}:${GCP_REGION}:signalscope-db" \
-            --set-secrets="DATABASE_URL=DATABASE_URL:latest,AUTH_SECRET=AUTH_SECRET:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest,BING_SITE_VERIFICATION=BING_SITE_VERIFICATION:latest" \
+            --set-secrets="DATABASE_URL=DATABASE_URL:latest,AUTH_SECRET=AUTH_SECRET:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest,BING_SITE_VERIFICATION=BING_SITE_VERIFICATION:latest,RESEND_API_KEY=RESEND_API_KEY:latest" \
             --set-env-vars="NODE_ENV=production,AI_PRIMARY_PROVIDER=openai" \
             --port=3000 \
             --memory=512Mi \
