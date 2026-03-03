@@ -55,6 +55,7 @@ export interface PerformerEntry {
 
 export interface AggregatePerformance {
   overall: PerformanceStats;
+  confirmed: PerformanceStats;
   byStage: Record<string, PerformanceStats>;
   byType: Record<string, PerformanceStats>;
   byScoreRange: Record<string, PerformanceStats>;
