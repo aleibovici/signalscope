@@ -106,8 +106,15 @@ export async function GET(request: NextRequest) {
       byScoreRange[label] = computeStats(group);
     }
 
-    // Best/Worst performers
-    const sorted = [...records].sort(
+    // Best/Worst performers — deduplicate by symbol, keeping best return per symbol
+    const bySymbol = new Map<string, (typeof records)[0]>();
+    for (const r of records) {
+      const existing = bySymbol.get(r.symbol);
+      if (!existing || (r[returnCol] as number) > (existing[returnCol] as number)) {
+        bySymbol.set(r.symbol, r);
+      }
+    }
+    const deduped = [...bySymbol.values()].sort(
       (a, b) => (b[returnCol] as number) - (a[returnCol] as number)
     );
 
@@ -120,8 +127,8 @@ export async function GET(request: NextRequest) {
       currentPrice: r[priceCol] as number,
     });
 
-    const bestPerformers = sorted.slice(0, 5).map(mapPerformer);
-    const worstPerformers = sorted.slice(-5).reverse().map(mapPerformer);
+    const bestPerformers = deduped.slice(0, 5).map(mapPerformer);
+    const worstPerformers = deduped.slice(-5).reverse().map(mapPerformer);
 
     return NextResponse.json({
       overall,

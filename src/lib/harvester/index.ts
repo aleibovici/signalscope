@@ -284,10 +284,20 @@ export async function orchestrateScan(): Promise<string> {
     const novelCount = [...noveltyMap.values()].filter((n) => n.isNovel).length;
     console.log(`Novelty: ${novelCount} novel, ${candidates.length - novelCount} recurring`);
 
+    // 5. Drop candidates with no Yahoo Finance price — these are not real tradeable securities
+    const validCandidates = candidates.filter((c) => {
+      const fund = fundamentalsMap.get(c.symbol);
+      return fund != null && fund.price != null;
+    });
+    const droppedCount = candidates.length - validCandidates.length;
+    if (droppedCount > 0) {
+      console.log(`[harvest] Dropped ${droppedCount} symbols with no YF price (not real securities)`);
+    }
+
     // 6. AI scoring in batches of 15 (parallelized)
     const scoreBatches: AggregatedSymbol[][] = [];
-    for (let i = 0; i < candidates.length; i += 15) {
-      scoreBatches.push(candidates.slice(i, i + 15));
+    for (let i = 0; i < validCandidates.length; i += 15) {
+      scoreBatches.push(validCandidates.slice(i, i + 15));
     }
     const scoreResults = (
       await Promise.all(
@@ -310,7 +320,7 @@ export async function orchestrateScan(): Promise<string> {
       signalType: SignalType;
     }> = [];
 
-    for (const agg of candidates) {
+    for (const agg of validCandidates) {
       const fundamentals = fundamentalsMap.get(agg.symbol) || null;
       const pnd = checkPndFlags(agg, fundamentals);
 
