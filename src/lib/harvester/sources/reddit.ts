@@ -82,6 +82,11 @@ async function processRedditPosts(
 
   for (const post of posts) {
     const { title, selftext, author, ups, num_comments, permalink, subreddit: sub, created_utc } = post.data;
+
+    // Skip zero-engagement posts (no upvotes AND no comments) to reduce noise.
+    // Rising posts are exempt — Reddit already pre-filtered them for momentum.
+    if (sort === "new" && ups <= 0 && num_comments === 0) continue;
+
     const text = `${title} ${selftext}`;
     const tickers = extractTickers(text);
     const postAgeHours = (nowSeconds - created_utc) / 3600;

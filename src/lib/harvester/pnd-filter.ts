@@ -32,8 +32,25 @@ export function checkPndFlags(
 ): PndResult {
   const flags: string[] = [];
 
-  // 1. Price < $2.00
-  if (fundamentals?.price != null && fundamentals.price < 2) {
+  // Pre-compute catalyst presence (used by multiple flags)
+  const texts = agg.signals.map((s) => `${s.title || ""} ${s.body || ""}`).join(" ").toLowerCase();
+  const newsKeywords = [
+    "earnings", "fda", "approval", "acquisition", "merger", "contract",
+    "revenue", "partnership", "clinical", "patent", "guidance",
+    "buyout", "trial results", "sec filing", "10-k", "10-q", "8-k",
+    "buyback", "dividend", "spinoff", "spin-off", "restructuring",
+    "analyst", "price target", "beat estimates", "guidance raised",
+    "upgraded", "downgrade", "stock split", "offering", "ipo",
+    "catalyst", "breakthrough", "settlement", "regulatory",
+  ];
+  const signalSources = new Set(agg.signals.map((s) => s.source));
+  const hasNewsCatalyst =
+    newsKeywords.some((kw) => texts.includes(kw)) ||
+    signalSources.has("SEC_INSIDER") ||
+    signalSources.has("OPTIONS_FLOW");
+
+  // 1. Price < $1.00 (skip if a verifiable catalyst exists — legitimate biotech/pharma trade under $1 with FDA catalysts)
+  if (fundamentals?.price != null && fundamentals.price < 1 && !hasNewsCatalyst) {
     flags.push("penny_price");
   }
 
@@ -48,23 +65,6 @@ export function checkPndFlags(
   }
 
   // 3. Market cap < $50M with no real news catalyst
-  const texts = agg.signals.map((s) => `${s.title || ""} ${s.body || ""}`).join(" ").toLowerCase();
-  const newsKeywords = [
-    "earnings", "fda", "approval", "acquisition", "merger", "contract",
-    "revenue", "partnership", "clinical", "patent", "guidance",
-    "buyout", "trial results", "sec filing", "10-k", "10-q", "8-k",
-    "buyback", "dividend", "spinoff", "spin-off", "restructuring",
-    "analyst", "price target", "beat estimates", "guidance raised",
-    "upgraded", "downgrade", "stock split", "offering", "ipo",
-    "catalyst", "breakthrough", "settlement", "regulatory",
-  ];
-  // SEC insider buys and options flow are themselves catalysts — don't flag them for lacking news
-  const signalSources = new Set(agg.signals.map((s) => s.source));
-  const hasNewsCatalyst =
-    newsKeywords.some((kw) => texts.includes(kw)) ||
-    signalSources.has("SEC_INSIDER") ||
-    signalSources.has("OPTIONS_FLOW");
-
   if (fundamentals?.marketCap != null && fundamentals.marketCap < 50_000_000 && !hasNewsCatalyst) {
     flags.push("micro_cap_no_catalyst");
   }
