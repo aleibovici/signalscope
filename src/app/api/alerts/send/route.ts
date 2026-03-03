@@ -13,17 +13,6 @@ export async function POST() {
     return NextResponse.json({ status: "skip", reason: "no completed scan" });
   }
 
-  // Guard against double-sends: only send if scan completed within the last 25 hours
-  const cutoff = new Date(Date.now() - 25 * 60 * 60 * 1000);
-  if (!scan.completedAt || scan.completedAt < cutoff) {
-    return NextResponse.json({
-      status: "skip",
-      reason: "scan too old",
-      scanId: scan.id,
-      completedAt: scan.completedAt,
-    });
-  }
-
   // Get confirmed tickers from this scan
   const tickers = await prisma.validatedTicker.findMany({
     where: { scanId: scan.id, stage: "CONFIRMED" },
