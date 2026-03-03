@@ -1,5 +1,5 @@
 import type { RawSignal } from "../types";
-import { extractTickers } from "./ticker-utils";
+import { extractTickers, extractCashtagTickers } from "./ticker-utils";
 
 // Single combined query — pay-per-use tier has limited search rate (1 req/15min)
 // Operators like has:cashtags and lang: require Pro tier ($5000/mo)
@@ -118,8 +118,12 @@ export async function fetchTwitterSignals(): Promise<RawSignal[]> {
     for (const tweet of response.data) {
       const user = userMap.get(tweet.author_id);
 
-      // Extract tickers via regex
-      const tickers = extractTickers(tweet.text);
+      // Extract tickers via regex + structured cashtag entities
+      const regexTickers = extractTickers(tweet.text);
+      const cashtagTickers = tweet.entities?.cashtags
+        ? extractCashtagTickers(tweet.entities.cashtags.map((c) => c.tag))
+        : [];
+      const tickers = [...new Set([...regexTickers, ...cashtagTickers])];
 
       if (tickers.length === 0) continue;
 

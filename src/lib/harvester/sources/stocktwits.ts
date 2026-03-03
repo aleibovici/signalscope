@@ -46,8 +46,8 @@ export async function fetchStockTwitsSignals(): Promise<RawSignal[]> {
         .filter(Boolean)
         .join(" "),
       url: `https://stocktwits.com/symbol/${symbol}`,
-      postAge: 0,      // currently trending = treat as fresh
-      sortType: "rising",
+      postAge: 0,          // currently trending = treat as fresh
+      sortType: "trending", // moderate velocity — no real engagement data available
     }));
 
     console.log(`StockTwits: ${signals.length} trending tickers via TrendSpider`);

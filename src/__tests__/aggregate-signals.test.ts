@@ -177,19 +177,45 @@ describe("aggregateSignals — avgVelocity", () => {
     expect(agg.avgVelocity).toBe(0.5);
   });
 
-  it("contributes 0 when postAge or sortType is missing", () => {
+  it("returns 0 when postAge or sortType is missing on all signals", () => {
     const signals = [sig("PTON"), sig("PTON", { postAge: 1 })]; // second missing sortType
     const [agg] = aggregateSignals(signals);
-    expect(agg.avgVelocity).toBe(0); // both contribute 0, avg = 0
+    expect(agg.avgVelocity).toBe(0); // no social signals with velocity data
   });
 
-  it("averages velocity across multiple signals", () => {
+  it("averages velocity across only social signals (excludes non-social)", () => {
     const signals = [
       sig("PTON", { sortType: "rising", postAge: 1 }), // 3
       sig("PTON", { sortType: "new", postAge: 6 }),    // 1
     ];
     const [agg] = aggregateSignals(signals);
     expect(agg.avgVelocity).toBe(2); // (3 + 1) / 2
+  });
+
+  it("excludes non-social signals from velocity average denominator", () => {
+    const signals = [
+      sig("PTON", { source: "REDDIT", sortType: "rising", postAge: 1 }),  // velocity 3
+      sig("PTON", { source: "SEC_INSIDER" }),                              // no postAge/sortType
+    ];
+    const [agg] = aggregateSignals(signals);
+    // Previously: (3 + 0) / 2 = 1.5, now: 3 / 1 = 3
+    expect(agg.avgVelocity).toBe(3);
+  });
+
+  it("assigns 1.5 for trending sortType (StockTwits)", () => {
+    const signals = [sig("PTON", { source: "STOCKTWITS", sortType: "trending", postAge: 0 })];
+    const [agg] = aggregateSignals(signals);
+    expect(agg.avgVelocity).toBe(1.5);
+  });
+
+  it("trending signals do not inflate velocity like rising does", () => {
+    const risingSignals = [sig("PTON", { sortType: "rising", postAge: 0 })];
+    const trendingSignals = [sig("PTON", { sortType: "trending", postAge: 0 })];
+    const [rising] = aggregateSignals(risingSignals);
+    const [trending] = aggregateSignals(trendingSignals);
+    expect(rising.avgVelocity).toBe(3);
+    expect(trending.avgVelocity).toBe(1.5);
+    expect(trending.avgVelocity).toBeLessThan(rising.avgVelocity);
   });
 });
 
@@ -234,6 +260,42 @@ describe("aggregateSignals — momentum breakdown", () => {
     const [agg] = aggregateSignals(signals);
     const m = agg.momentum;
     expect(m.risingCount + m.freshCount + m.recentCount + m.staleCount + m.commentDerivedCount).toBe(0);
+  });
+});
+
+// ── candidate filter (weightedSourceScore >= 2) ──────────────────────────────
+
+describe("aggregateSignals — high-value single source bypass", () => {
+  it("SEC_INSIDER single signal has weightedSourceScore >= 2 (passes candidate filter)", () => {
+    const signals = [sig("PTON", { source: "SEC_INSIDER" })];
+    const [agg] = aggregateSignals(signals);
+    expect(agg.weightedSourceScore).toBeGreaterThanOrEqual(2);
+    expect(agg.signals).toHaveLength(1);
+    expect(agg.sourceCount).toBe(1);
+  });
+
+  it("VOLUME_SPIKE single signal has weightedSourceScore >= 2 (passes candidate filter)", () => {
+    const signals = [sig("PTON", { source: "VOLUME_SPIKE" })];
+    const [agg] = aggregateSignals(signals);
+    expect(agg.weightedSourceScore).toBeGreaterThanOrEqual(2);
+  });
+
+  it("OPTIONS_FLOW single signal has weightedSourceScore >= 2 (passes candidate filter)", () => {
+    const signals = [sig("PTON", { source: "OPTIONS_FLOW" })];
+    const [agg] = aggregateSignals(signals);
+    expect(agg.weightedSourceScore).toBeGreaterThanOrEqual(2);
+  });
+
+  it("single REDDIT signal has weightedSourceScore < 2 (filtered out)", () => {
+    const signals = [sig("PTON", { source: "REDDIT" })];
+    const [agg] = aggregateSignals(signals);
+    expect(agg.weightedSourceScore).toBeLessThan(2);
+  });
+
+  it("single STOCKTWITS signal has weightedSourceScore < 2 (filtered out)", () => {
+    const signals = [sig("PTON", { source: "STOCKTWITS" })];
+    const [agg] = aggregateSignals(signals);
+    expect(agg.weightedSourceScore).toBeLessThan(2);
   });
 });
 

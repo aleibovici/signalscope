@@ -125,8 +125,9 @@ export default function MethodologyPage() {
         <CardContent className="space-y-4">
           <p className="text-sm text-gray-600">
             Raw mentions are grouped by ticker symbol. A symbol becomes a candidate when it appears
-            ≥2 times from a single source <em>or</em> appears in ≥2 different sources. Each source
-            carries a weight that biases the aggregate score.
+            ≥2 times from a single source, appears in ≥2 different sources, <em>or</em> comes from a
+            high-value source (SEC Insider, Volume Spike, Options Flow) even as a single mention.
+            Each source carries a weight that biases the aggregate score.
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -164,9 +165,11 @@ export default function MethodologyPage() {
           <p className="text-sm text-gray-600">
             Each candidate is scored by an AI model (GPT-4o or Claude 3.5 Sonnet) using source
             weights, catalyst quality, novelty, and cross-source corroboration. Pure social signals
-            (Reddit / StockTwits / Twitter only) never exceed 50 without a verifiable catalyst.
-            First-appearance tickers receive a +5–10 novelty boost; tickers seen 3+ times or older
-            than 7 days receive a staleness penalty.
+            (Reddit / StockTwits / Twitter only) are hard-capped at 50 — this is enforced
+            programmatically regardless of what the AI returns. Only tickers with a verifiable
+            catalyst source (SEC Insider or Options Flow) can score above 50. First-appearance
+            tickers receive a +5–10 novelty boost; tickers seen 3+ times or older than 7 days
+            receive a staleness penalty.
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -202,7 +205,7 @@ export default function MethodologyPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-gray-600">
-            Every candidate is checked against 10 statistical flags before scoring. A ticker that
+            Every candidate is checked against 11 statistical flags before scoring. A ticker that
             triggers ≥3 flags is moved to <strong>FILTERED</strong> status and quarantined. Exactly
             2 flags triggers an additional AI edge-case assessment.
           </p>
@@ -218,6 +221,7 @@ export default function MethodologyPage() {
               { flag: "no_news_catalyst", desc: "Multiple signals with no verifiable news" },
               { flag: "sudden_spike", desc: "≥3 Reddit signals all <3 h old AND avg upvotes <10" },
               { flag: "twitter_bot_promoters", desc: "Coordinated low-credibility accounts on X" },
+              { flag: "twitter_coordinated_pump", desc: "≥3 tweets with ≥40% near-identical text" },
             ].map((item) => (
               <div key={item.flag} className="flex items-start gap-2">
                 <span className="mt-0.5 rounded bg-red-100 px-1.5 py-0.5 text-xs font-mono font-medium text-red-700 whitespace-nowrap">
