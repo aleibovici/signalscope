@@ -419,6 +419,16 @@ export async function orchestrateScan(): Promise<string> {
                     ? 1
                     : 0.5
           : 0,
+      subreddit: signal.subreddit,
+      postAge: signal.postAge,
+      sortType: signal.sortType,
+      purchaseValue: signal.purchaseValue,
+      insiderTitle: signal.insiderTitle,
+      volumeRatio: signal.volumeRatio,
+      followerCount: signal.followerCount,
+      retweetCount: signal.retweetCount,
+      likeCount: signal.likeCount,
+      tweetType: signal.tweetType,
       sentiment: "neutral", // Default for single-mention symbols
       pndFlagged: false,    // Default for single-mention symbols
       pndFlags: [],         // Default for single-mention symbols
@@ -451,6 +461,20 @@ export async function orchestrateScan(): Promise<string> {
         signalType: result.signalType,
         firstSeenDaysAgo: novelty?.daysSinceFirstSeen ?? null,
         priorAppearances: novelty?.priorAppearances ?? 0,
+        weightedSourceScore: result.agg.weightedSourceScore,
+        avgVelocity: result.agg.avgVelocity,
+        totalUpvotes: result.agg.totalUpvotes,
+        totalComments: result.agg.totalComments,
+        subredditCount: result.agg.subredditCount,
+        risingCount: result.agg.momentum.risingCount,
+        freshCount: result.agg.momentum.freshCount,
+        recentCount: result.agg.momentum.recentCount,
+        commentDerivedCount: result.agg.momentum.commentDerivedCount,
+        staleCount: result.agg.momentum.staleCount,
+        aiReasoning: scoreMap.get(result.agg.symbol)?.reasoning,
+        sector: fundamentals?.sector,
+        floatShares: fundamentals?.floatShares,
+        name: fundamentals?.name,
       };
     });
 

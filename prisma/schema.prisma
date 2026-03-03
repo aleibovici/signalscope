@@ -63,6 +63,16 @@ model Signal {
   pndFlagged    Boolean      @default(false)
   pndFlags      String[]
   pndScore      Int          @default(0)
+  subreddit     String?
+  postAge       Float?
+  sortType      String?
+  purchaseValue Float?
+  insiderTitle  String?
+  volumeRatio   Float?
+  followerCount Int?
+  retweetCount  Int?
+  likeCount     Int?
+  tweetType     String?
   createdAt     DateTime     @default(now())
 
   @@index([scanId, symbol])
@@ -99,9 +109,23 @@ model ValidatedTicker {
   signalType       String?     // insider_buy | options_flow | multi_source | reddit_velocity
   fiftyTwoWkRange  String?     // e.g. "12.50 - 45.00"
   exchange         String?     // NYSE, NASDAQ, OTC, etc.
-  firstSeenDaysAgo Int?        // null = truly novel, 0 = first seen today, N = days ago
-  priorAppearances Int         @default(0) // count of previous ValidatedTicker rows in 30d window
-  createdAt        DateTime    @default(now())
+  firstSeenDaysAgo    Int?        // null = truly novel, 0 = first seen today, N = days ago
+  priorAppearances   Int         @default(0) // count of previous ValidatedTicker rows in 30d window
+  weightedSourceScore Float?
+  avgVelocity         Float?
+  totalUpvotes        Int?
+  totalComments       Int?
+  subredditCount      Int?
+  risingCount         Int?
+  freshCount          Int?
+  recentCount         Int?
+  commentDerivedCount Int?
+  staleCount          Int?
+  aiReasoning         String?     @db.Text
+  sector              String?
+  floatShares         Float?
+  name                String?
+  createdAt           DateTime    @default(now())
   performance      TickerPerformance?
 
   @@unique([scanId, symbol])
