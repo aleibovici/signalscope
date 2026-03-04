@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     default: "SignalScope — Stock Breakout Signal Detection",
     template: "%s — SignalScope",
   },
-  description: "Find breakout stock candidates before market consensus. SignalScope harvests signals from Reddit, X/Twitter, SEC insider filings, and volume spikes — scored by AI, filtered for pump-and-dumps.",
+  description: "Find breakout stock candidates before market consensus. SignalScope monitors public market signals from Reddit, X/Twitter, SEC insider filings, and volume spikes — scored by AI, filtered for pump-and-dumps.",
   keywords: [
     "stock breakout",
     "stock signals",
@@ -133,7 +133,7 @@ const jsonLd = {
       "applicationCategory": "FinanceApplication",
       "operatingSystem": "Web",
       "description":
-        "Find breakout stock candidates before market consensus. SignalScope harvests signals from Reddit, X/Twitter, SEC insider filings, and volume spikes — scored by AI, filtered for pump-and-dumps.",
+        "Find breakout stock candidates before market consensus. SignalScope monitors public market signals from Reddit, X/Twitter, SEC insider filings, and volume spikes — scored by AI, filtered for pump-and-dumps.",
       "offers": {
         "@type": "Offer",
         "price": "0",

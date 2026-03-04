@@ -159,7 +159,7 @@ export const recommendationLevels: RecommendationLevel[] = [
 ];
 
 export const methodologyDescription =
-  "SignalScope harvests ticker mentions from six signal sources, aggregates them by symbol, " +
+  "SignalScope monitors public ticker mentions across six signal sources, aggregates them by symbol, " +
   "scores each candidate with AI, runs an 11-flag pump-and-dump filter, and surfaces only " +
   "the tickers with the strongest multi-source backing and verifiable catalysts. The result " +
   "is a prioritised watchlist you can act on before the crowd.";
