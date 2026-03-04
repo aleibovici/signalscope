@@ -31,9 +31,12 @@ Docker (production harvester — fetches locally, processes on Cloud Run):
 docker compose -f docker-compose.harvest.yml --env-file .env.production run --rm harvester
 ```
 
-Docker (snapshots — price tracking via Cloud SQL proxy):
+Snapshots (price tracking — runs via Cloud Scheduler on Cloud Run):
 ```bash
-docker compose -f docker-compose.snapshots.yml --env-file .env.production run --rm snapshots
+# Manual trigger:
+curl -X POST https://signalscopes.com/api/snapshots/collect -H "x-snapshot-key: <SNAPSHOT_API_KEY>"
+# Or via Cloud Scheduler:
+gcloud scheduler jobs run signalscope-snapshots --location=us-central1
 ```
 
 ## Tech Stack
@@ -99,6 +102,7 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 | `/api/auth/register` | POST | User registration — returns user + tokens |
 | `/api/methodology` | GET | Methodology data (public, structured JSON) |
 | `/api/harvest/ingest` | POST | Receive raw signals for cloud processing (x-harvest-key auth) |
+| `/api/snapshots/collect` | POST | Collect price snapshots for validated tickers (x-snapshot-key auth) |
 
 ### Frontend (`src/app/(dashboard)/`)
 
@@ -117,7 +121,7 @@ Multi-user email/password auth via Auth.js v5 (Credentials provider, JWT session
 - `getCurrentUserId()` is **async** — all callers must `await` it; checks `Authorization: Bearer` header first (mobile JWT), falls back to Auth.js cookie session
 - `mobile-jwt.ts` — HS256 JWT sign/verify via `jose`, signing key `"mobile:" + AUTH_SECRET` (cryptographically separate from Auth.js), 15min access token expiry, opaque 64-hex-char refresh tokens (DB-backed, 30-day expiry, rotation on use)
 - `src/proxy.ts` (middleware) — Protects dashboard routes (redirect to `/login`) and `/api/portfolio/**`, `/api/watchlist/**`, `/api/user/**` (401 JSON); requests with `Authorization: Bearer` header bypass middleware auth (verified in route handlers); matcher allows `.txt`/`.xml` static files through
-- Public routes: `/login`, `/register`, `/api/auth/**`, `/api/scans/**`, `/api/signals/**`, `/api/tickers/**`, `/api/health`, `/api/methodology`
+- Public routes: `/login`, `/register`, `/api/auth/**`, `/api/scans/**`, `/api/signals/**`, `/api/tickers/**`, `/api/health`, `/api/methodology`, `/api/snapshots/**`
 - Auth pages use route group `(auth)` with centered layout (no sidebar)
 - `SessionProvider` wrapped in `src/lib/session-provider.tsx`, added to root layout
 - Type augmentations in `src/types/next-auth.d.ts` (adds `id` and `role` to Session/JWT)
@@ -161,6 +165,9 @@ AI_PROVIDER_REPORT=anthropic
 # Harvester (fetches locally, processes on Cloud Run)
 HARVEST_ENDPOINT_URL=https://signalscopes.com/api/harvest/ingest
 HARVEST_API_KEY=<openssl rand -base64 32>
+
+# Snapshots (Cloud Scheduler → Cloud Run)
+SNAPSHOT_API_KEY=<openssl rand -base64 32>
 ```
 
 ## GCP Deployment
@@ -169,7 +176,8 @@ HARVEST_API_KEY=<openssl rand -base64 32>
 
 - **Cloud Run** — web app (`signalscope-web`) serving Next.js standalone on port 3000
 - **Cloud SQL** — PostgreSQL 16 (`signalscope-db`, db-f1-micro), connected via Unix socket
-- **Secret Manager** — stores `DATABASE_URL`, `AUTH_SECRET`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`
+- **Cloud Scheduler** — triggers snapshot collection (`signalscope-snapshots` job, weekdays 9:30 AM ET)
+- **Secret Manager** — stores `DATABASE_URL`, `AUTH_SECRET`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `SNAPSHOT_API_KEY`
 - **Artifact Registry** — Docker images (`signalscope` repo)
 - **GitHub Actions** — CI/CD on push to `main` (`.github/workflows/deploy.yml`)
 - **Workload Identity Federation** — keyless GitHub Actions → GCP auth
@@ -186,6 +194,27 @@ Reddit blocks cloud IPs, so signal **fetching** runs locally. Processing (AI sco
 
 ```bash
 docker compose -f docker-compose.harvest.yml --env-file .env.production run --rm harvester
+```
+
+### Snapshots
+
+Price snapshot collection runs entirely on Cloud Run, triggered by Cloud Scheduler (no local Docker needed).
+
+- **Endpoint**: `POST /api/snapshots/collect` (auth via `x-snapshot-key` header)
+- **Cloud Scheduler job**: `signalscope-snapshots` — `30 14 * * 1-5` (9:30 AM ET, weekdays = 30 min after market open)
+- **Auth**: `x-snapshot-key` header checked against `SNAPSHOT_API_KEY` env var (stored in Secret Manager)
+
+```bash
+# Create Cloud Scheduler job:
+gcloud scheduler jobs create http signalscope-snapshots \
+  --location=us-central1 \
+  --schedule="30 14 * * 1-5" \
+  --time-zone="America/New_York" \
+  --uri="https://signalscopes.com/api/snapshots/collect" \
+  --http-method=POST \
+  --headers="x-snapshot-key=<SNAPSHOT_API_KEY_VALUE>" \
+  --attempt-deadline=300s \
+  --description="Collect price snapshots for validated tickers"
 ```
 
 ### Source Status
