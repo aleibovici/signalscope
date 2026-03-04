@@ -209,8 +209,42 @@ async function mirrorToDevDb(
   }
 }
 
-export async function orchestrateScan(): Promise<string> {
-  console.log("Starting scan...");
+/**
+ * Fetch raw signals from all sources in parallel (network-bound, needs local IP).
+ * No DB access, no AI calls.
+ */
+export async function fetchSignals(): Promise<RawSignal[]> {
+  console.log("Fetching signals from all sources...");
+  const sourceNames = ["reddit", "stocktwits", "secInsider", "optionsFlow", "volumeSpike", "twitter"] as const;
+  const sourceResults = await Promise.allSettled([
+    fetchRedditSignals(),
+    fetchStockTwitsSignals(),
+    fetchSecInsiderSignals(),
+    fetchOptionsFlowSignals(),
+    fetchVolumeSpikeSignals(),
+    fetchTwitterSignals(),
+  ]);
+
+  sourceResults.forEach((r, i) => {
+    if (r.status === "rejected") {
+      console.error(`[harvest] Source "${sourceNames[i]}" threw an unexpected error:`, r.reason);
+    }
+  });
+
+  const allSignals: RawSignal[] = sourceResults.flatMap((r) =>
+    r.status === "fulfilled" ? r.value : []
+  );
+
+  console.log(`Total raw signals: ${allSignals.length}`);
+  return allSignals;
+}
+
+/**
+ * Process pre-fetched signals: aggregate, score, filter P&D, generate reports, write to DB.
+ * This is the heavy work that can run on Cloud Run.
+ */
+export async function processSignals(allSignals: RawSignal[]): Promise<string> {
+  console.log("Processing signals...");
   resetCostTracker();
 
   const devPrisma = createDevPrismaClient();
@@ -240,29 +274,6 @@ export async function orchestrateScan(): Promise<string> {
   });
 
   try {
-    // 2. Fetch signals in parallel from all sources
-    console.log("Fetching signals from all sources...");
-    const sourceNames = ["reddit", "stocktwits", "secInsider", "optionsFlow", "volumeSpike", "twitter"] as const;
-    const sourceResults = await Promise.allSettled([
-      fetchRedditSignals(),
-      fetchStockTwitsSignals(),
-      fetchSecInsiderSignals(),
-      fetchOptionsFlowSignals(),
-      fetchVolumeSpikeSignals(),
-      fetchTwitterSignals(),
-    ]);
-
-    // Log any source that rejected unexpectedly
-    sourceResults.forEach((r, i) => {
-      if (r.status === "rejected") {
-        console.error(`[harvest] Source "${sourceNames[i]}" threw an unexpected error:`, r.reason);
-      }
-    });
-
-    const allSignals: RawSignal[] = sourceResults.flatMap((r) =>
-      r.status === "fulfilled" ? r.value : []
-    );
-
     console.log(`Total raw signals: ${allSignals.length}`);
 
     // 3. Aggregate by symbol
@@ -600,4 +611,14 @@ export async function orchestrateScan(): Promise<string> {
       await devPrisma.$disconnect().catch(() => {});
     }
   }
+}
+
+/**
+ * Full end-to-end harvest: fetch signals locally then process them.
+ * Backward-compatible entry point for `npm run harvest` and local Docker.
+ */
+export async function orchestrateScan(): Promise<string> {
+  console.log("Starting scan...");
+  const allSignals = await fetchSignals();
+  return processSignals(allSignals);
 }

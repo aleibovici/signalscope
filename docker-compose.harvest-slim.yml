@@ -1,0 +1,10 @@
+services:
+  harvester:
+    build:
+      context: .
+      dockerfile: Dockerfile.harvester-slim
+    environment:
+      HARVEST_ENDPOINT_URL: ${HARVEST_ENDPOINT_URL}
+      HARVEST_API_KEY: ${HARVEST_API_KEY}
+      X_BEARER_TOKEN: ${X_BEARER_TOKEN}
+    restart: "no"

@@ -94,6 +94,11 @@ export interface MomentumBreakdown {
   staleCount: number;       // postAge > 12h
 }
 
+export interface HarvestIngestPayload {
+  signals: RawSignal[];
+  harvestedAt: string; // ISO timestamp
+}
+
 export interface AggregatedSymbol {
   symbol: string;
   signals: RawSignal[];
