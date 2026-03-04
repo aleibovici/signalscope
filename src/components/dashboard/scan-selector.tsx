@@ -19,7 +19,7 @@ export function ScanSelector({
   if (scans.length === 0) {
     return (
       <p className="text-sm text-gray-500">
-        No scans yet. Run the harvester to generate signals.
+        No scans yet. Run a scan to generate signals.
       </p>
     );
   }

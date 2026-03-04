@@ -127,7 +127,7 @@ function DashboardContent() {
           <p className="text-gray-500">
             {selectedScanId
               ? "No signals found for this stage."
-              : "No scans available. Run the harvester to detect breakout signals."}
+              : "No scans available. Run a scan to detect breakout signals."}
           </p>
         </div>
       ) : (
