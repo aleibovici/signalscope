@@ -12,7 +12,6 @@ const navItems = [
   { href: "/dashboard", label: "Signals", icon: "📡" },
   { href: "/portfolio", label: "Portfolio", icon: "💼" },
   { href: "/history", label: "Scan History", icon: "📊" },
-  { href: "/filtered", label: "Filtered (P&D)", icon: "🚫" },
   { href: "/performance", label: "Performance", icon: "🎯" },
   { href: "/methodology", label: "How It Works", icon: "ℹ️" },
   { href: "/profile", label: "Profile", icon: "⚙️" },
