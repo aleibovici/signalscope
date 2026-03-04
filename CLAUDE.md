@@ -106,7 +106,7 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 
 ### Frontend (`src/app/(dashboard)/`)
 
-Dashboard pages: signals (main), portfolio, history, filtered, ticker detail, performance, methodology, profile, subscription. Uses route group `(dashboard)` with shared sidebar layout.
+Dashboard pages: signals (main), portfolio, history, ticker detail, performance, methodology, profile, subscription. Uses route group `(dashboard)` with shared sidebar layout.
 
 Methodology page data is in `src/lib/methodology-data.ts` (shared between the page component and `GET /api/methodology`).
 
