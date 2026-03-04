@@ -1,0 +1,8 @@
+psycopg2-binary>=2.9
+pandas>=2.0
+pyarrow>=14.0
+xgboost>=2.0
+scikit-learn>=1.4
+shap>=0.44
+matplotlib>=3.8
+python-dotenv>=1.0
