@@ -299,6 +299,44 @@ All authenticated API routes use `handleApiError()` from `src/lib/api-error.ts` 
 - 400 for Zod validation errors (with `details` containing issues)
 - 500 for unexpected errors (logged via `console.error` for Cloud Run log inspection)
 
+## Backtesting ML Pipeline (`backtesting/`)
+
+Python-based XGBoost analysis of historical ticker data to discover optimal scoring/filtering thresholds. Completely decoupled from the Next.js app — connects directly to production PostgreSQL (read-only).
+
+### Directory Structure
+
+```
+backtesting/
+├── requirements.txt          # psycopg2-binary, pandas, xgboost, scikit-learn, shap, matplotlib, python-dotenv
+├── .env.example              # DATABASE_URL placeholder
+├── extract.py                # Step 1: Pull data from prod DB → local parquet (auto-starts Cloud SQL proxy)
+├── features.py               # Step 2: Feature engineering (48 features from raw DB columns)
+├── train.py                  # Step 3: XGBoost training + evaluation + SHAP analysis
+├── sweep.py                  # Step 4: Threshold sweep using model insights
+├── README.md                 # Usage instructions
+└── output/                   # Generated artifacts (gitignored)
+```
+
+### Usage
+
+```bash
+cd backtesting
+source venv/bin/activate      # Python venv (create with: python -m venv venv && pip install -r requirements.txt)
+python extract.py             # Extracts data via Cloud SQL Auth Proxy (auto-starts/stops proxy, reads DB_PASSWORD from .env.production)
+python train.py               # Trains XGBoost classifier + regressor, generates SHAP plots
+python sweep.py               # Sweeps P&D thresholds, AI score cutoffs, stage combos → sweep_results.csv
+```
+
+### Key Design Decisions
+
+- **Cloud SQL Auth Proxy** — `extract.py` auto-starts `cloud-sql-proxy` on port 5433, reads `DB_PASSWORD` from `.env.production`
+- **Read-only DB access** — all scripts only SELECT, never write
+- **Parquet intermediate** — extract once, iterate fast locally without hitting DB
+- **Auto horizon selection** — uses longest available return period (7d > 3d > 1d) based on data availability
+- **Time-series split** — last 20% by date as test set (no random shuffle — prevents look-ahead bias)
+- **SHAP over just feature importance** — shows direction (positive/negative impact), not just magnitude
+- **Both classification + regression** — classification answers "should we include this ticker?", regression answers "what return can we expect?"
+
 ## Path Alias
 
 `@/*` maps to `./src/*`

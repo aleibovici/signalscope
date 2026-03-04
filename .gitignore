@@ -45,3 +45,9 @@ sa-key.json
 next-env.d.ts
 
 /src/generated/prisma
+
+# backtesting
+backtesting/output/
+!backtesting/output/.gitkeep
+backtesting/.env
+backtesting/venv/
