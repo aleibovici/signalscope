@@ -8,6 +8,10 @@ const API_KEY = process.env.HARVEST_API_KEY;
 const FETCH_TIMEOUT = 5 * 60 * 1000; // 5 minutes (processing takes 1-3 min)
 
 async function postSignals(payload: HarvestIngestPayload): Promise<{ status: string; scanId: string }> {
+  const payloadSize = JSON.stringify(payload).length;
+  console.log(`[trace] POST ${ENDPOINT_URL} — ${payload.signals.length} signals, ${(payloadSize / 1024).toFixed(1)}KB payload`);
+  const t0 = Date.now();
+
   const res = await fetch(ENDPOINT_URL!, {
     method: "POST",
     headers: {
@@ -18,12 +22,17 @@ async function postSignals(payload: HarvestIngestPayload): Promise<{ status: str
     signal: AbortSignal.timeout(FETCH_TIMEOUT),
   });
 
+  const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+
   if (!res.ok) {
     const text = await res.text().catch(() => "");
+    console.error(`[trace] Response: HTTP ${res.status} after ${elapsed}s`);
     throw new Error(`Ingest endpoint returned ${res.status}: ${text}`);
   }
 
-  return res.json();
+  const result = await res.json();
+  console.log(`[trace] Response: HTTP ${res.status} after ${elapsed}s — scanId=${result.scanId}`);
+  return result;
 }
 
 async function main() {
@@ -36,7 +45,19 @@ async function main() {
   }
 
   // 1. Fetch signals locally
+  console.log(`[trace] Endpoint: ${ENDPOINT_URL}`);
+  console.log(`[trace] Starting local signal fetch...`);
+  const fetchStart = Date.now();
   const signals = await fetchSignals();
+  const fetchElapsed = ((Date.now() - fetchStart) / 1000).toFixed(1);
+  console.log(`[trace] Fetch completed in ${fetchElapsed}s — ${signals.length} signals`);
+
+  // Log source breakdown
+  const sourceCounts = signals.reduce((acc, s) => {
+    acc[s.source] = (acc[s.source] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  console.log(`[trace] Source breakdown:`, JSON.stringify(sourceCounts));
 
   if (signals.length === 0) {
     console.log("No signals fetched — skipping remote processing");
