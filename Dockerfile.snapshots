@@ -12,7 +12,7 @@ RUN npm ci
 COPY . .
 RUN npx prisma generate
 
-COPY scripts/entrypoint-harvester.sh /entrypoint.sh
+COPY scripts/entrypoint-snapshots.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]

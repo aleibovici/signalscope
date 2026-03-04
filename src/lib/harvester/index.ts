@@ -612,13 +612,3 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
     }
   }
 }
-
-/**
- * Full end-to-end harvest: fetch signals locally then process them.
- * Backward-compatible entry point for `npm run harvest` and local Docker.
- */
-export async function orchestrateScan(): Promise<string> {
-  console.log("Starting scan...");
-  const allSignals = await fetchSignals();
-  return processSignals(allSignals);
-}

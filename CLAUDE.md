@@ -17,24 +17,23 @@ npm run test:watch       # Vitest watch mode
 npm run db:generate      # Generate Prisma client (run after schema changes)
 npm run db:migrate       # Run Prisma migrations (dev)
 npm run db:seed          # Seed database with default user (user_1)
-npm run harvest          # Run signal harvester scan
+npm run harvest          # Run signal harvester scan (requires HARVEST_ENDPOINT_URL + HARVEST_API_KEY)
 ```
 
 Docker (local dev):
 ```bash
 docker compose up db         # PostgreSQL only
 docker compose up            # Web app + DB
-docker compose --profile harvest run harvester  # Run harvester (local DB)
 ```
 
-Docker (production harvester — full local, writes to Cloud SQL):
+Docker (production harvester — fetches locally, processes on Cloud Run):
 ```bash
 docker compose -f docker-compose.harvest.yml --env-file .env.production run --rm harvester
 ```
 
-Docker (production harvester — slim, processes on Cloud Run):
+Docker (snapshots — price tracking via Cloud SQL proxy):
 ```bash
-docker compose -f docker-compose.harvest-slim.yml --env-file .env.production run --rm harvester
+docker compose -f docker-compose.snapshots.yml --env-file .env.production run --rm snapshots
 ```
 
 ## Tech Stack
@@ -56,7 +55,7 @@ Sources (6 in parallel) → Aggregate by symbol → Fetch fundamentals (Yahoo Fi
 → AI Scoring → P&D Filter (11 flags + AI edge-case assessment) → Report Generation → DB
 ```
 
-- `index.ts` — `fetchSignals()` (source fetching), `processSignals()` (AI + DB), `orchestrateScan()` (wrapper calling both)
+- `index.ts` — `fetchSignals()` (source fetching), `processSignals()` (AI scoring, P&D filter, reports, DB writes)
 - `sources/` — reddit, twitter, stocktwits (disabled), sec-insider, options-flow (disabled), volume-spike
 - `sources/ticker-utils.ts` — Shared ticker regex, blacklist, mega-caps, extraction functions
 - `scoring.ts` — AI batch scoring with hard-rule overrides
@@ -64,9 +63,7 @@ Sources (6 in parallel) → Aggregate by symbol → Fetch fundamentals (Yahoo Fi
 - `fundamentals.ts` — Yahoo Finance v8 for price/market cap
 - `report.ts` — AI-generated ticker reports
 
-Entry points:
-- `scripts/run-harvest.ts` — Full local harvest (fetches + processes locally)
-- `scripts/run-harvest-remote.ts` — Slim local harvest (fetches locally, POSTs to Cloud Run for processing)
+Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs to Cloud Run (`/api/harvest/ingest`) for processing
 
 ### AI Provider System (`src/lib/ai/`)
 
@@ -161,8 +158,8 @@ AI_PROVIDER_SCORING=anthropic
 AI_PROVIDER_PND=anthropic
 AI_PROVIDER_REPORT=anthropic
 
-# Remote harvester (slim mode — fetches locally, processes on Cloud Run)
-HARVEST_ENDPOINT_URL=https://signalscope-web-xxxxx.run.app/api/harvest/ingest
+# Harvester (fetches locally, processes on Cloud Run)
+HARVEST_ENDPOINT_URL=http://localhost:3000/api/harvest/ingest
 HARVEST_API_KEY=<openssl rand -base64 32>
 ```
 
@@ -179,33 +176,16 @@ HARVEST_API_KEY=<openssl rand -base64 32>
 
 ### Harvester
 
-Reddit blocks cloud IPs, so signal **fetching** always runs locally. There are two modes:
+Reddit blocks cloud IPs, so signal **fetching** runs locally. Processing (AI scoring, P&D filter, reports, DB writes) runs on Cloud Run via `POST /api/harvest/ingest`.
 
-#### Full local mode (fetches + processes locally via Cloud SQL proxy)
-
-- **Dockerfile**: `Dockerfile.harvester-local` (includes Cloud SQL proxy)
+- **Dockerfile**: `Dockerfile.harvester` (lightweight, no Cloud SQL proxy)
 - **Compose file**: `docker-compose.harvest.yml`
-- **Service account key**: `sa-key.json` (gitignored, created by `gcp-setup.sh`)
 - **Cron schedule**: `0 3 * * 2-6` (once daily, 30 min before market open — 9:00 AM ET = 3:00 AM NZDT next day, Tue-Sat local)
-- **Dual-database writes**: When `DATABASE_URL_DEV` is set, the harvester mirrors all writes to a second database. Enabled by default in `docker-compose.harvest.yml`.
-
-```bash
-# Full local run (writes to both production Cloud SQL and local dev DB)
-docker compose -f docker-compose.harvest.yml --env-file .env.production run --rm harvester
-```
-
-#### Slim remote mode (fetches locally, processes on Cloud Run)
-
-Fetches signals locally then POSTs them to `POST /api/harvest/ingest` on Cloud Run. No Cloud SQL proxy or SA key needed — Cloud Run has direct DB access and lower latency to AI APIs.
-
-- **Dockerfile**: `Dockerfile.harvester-slim` (no Cloud SQL proxy)
-- **Compose file**: `docker-compose.harvest-slim.yml`
 - **Auth**: `x-harvest-key` header checked against `HARVEST_API_KEY` env var (stored in Secret Manager on Cloud Run)
 - **Retry**: one automatic retry on failure; on total failure, saves signals to `/tmp/signalscope-harvest-{timestamp}.json` for manual replay
 
 ```bash
-# Slim remote run
-docker compose -f docker-compose.harvest-slim.yml --env-file .env.production run --rm harvester
+docker compose -f docker-compose.harvest.yml --env-file .env.production run --rm harvester
 ```
 
 ### Source Status

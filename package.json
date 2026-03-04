@@ -10,7 +10,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "npx tsx prisma/seed.ts",
-    "harvest": "npx tsx --tsconfig tsconfig.scripts.json scripts/run-harvest.ts",
+    "harvest": "npx tsx --tsconfig tsconfig.scripts.json scripts/run-harvest-remote.ts",
     "snapshots": "npx tsx --tsconfig tsconfig.scripts.json scripts/run-snapshots.ts",
     "test": "vitest run",
     "test:watch": "vitest",

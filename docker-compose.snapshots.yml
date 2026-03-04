@@ -1,0 +1,12 @@
+services:
+  snapshots:
+    build:
+      context: .
+      dockerfile: Dockerfile.snapshots
+    environment:
+      DATABASE_URL: postgresql://signalscope:${DB_PASSWORD}@localhost:5432/signalscope
+      CLOUD_SQL_CONNECTION: ${GCP_PROJECT_ID}:${GCP_REGION}:signalscope-db
+      DATABASE_URL_DEV: postgresql://postgres:postgres@host.docker.internal:5432/signalscope
+    volumes:
+      - ${SA_KEY_PATH:-./sa-key.json}:/secrets/sa-key.json:ro
+    restart: "no"
