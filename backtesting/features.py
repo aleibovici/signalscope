@@ -138,10 +138,43 @@ def engineer_features(df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
     feat["pndFlagged"] = df.get("pndFlagged", False)
     feat["stage"] = df.get("stage", "")
 
+    # Keep detectionPrice for phantom filtering
+    feat["detectionPrice"] = pd.to_numeric(df.get("detectionPrice"), errors="coerce")
+
     # Build feature name list (excludes targets and metadata)
     target_cols = {"return_1d", "return_3d", "return_7d", "return_30d",
                    "win_1d", "win_3d", "big_win_3d", "win_7d", "big_win_7d"}
-    meta_cols = {"symbol", "createdAt", "pndFlagged", "stage"}
+    meta_cols = {"symbol", "createdAt", "pndFlagged", "stage", "detectionPrice"}
     feature_names = [c for c in feat.columns if c not in target_cols and c not in meta_cols]
 
     return feat, feature_names
+
+
+# Minimum detection price to exclude phantom Yahoo Finance prices ($0.00001 OTC stocks)
+MIN_DETECTION_PRICE = 0.01
+
+
+def clean_for_analysis(df: pd.DataFrame, ret_col: str) -> pd.DataFrame:
+    """Clean dataset for return analysis: drop nulls, phantom prices, dedup by symbol.
+
+    Keeps first appearance of each symbol (sorted by createdAt) to avoid
+    pseudo-replication from the same ticker appearing across multiple scans.
+    """
+    valid = df[df[ret_col].notna()].copy()
+
+    # Exclude phantom prices (Yahoo Finance returns $0.00001 for some OTC stocks)
+    if "detectionPrice" in valid.columns:
+        n_before = len(valid)
+        valid = valid[valid["detectionPrice"] > MIN_DETECTION_PRICE]
+        n_phantom = n_before - len(valid)
+        if n_phantom > 0:
+            print(f"  Excluded {n_phantom} rows with phantom price (<=${MIN_DETECTION_PRICE})")
+
+    # Deduplicate by symbol — keep first appearance per symbol
+    n_before = len(valid)
+    valid = valid.sort_values("createdAt").drop_duplicates(subset="symbol", keep="first")
+    n_dupes = n_before - len(valid)
+    if n_dupes > 0:
+        print(f"  Deduped {n_dupes} repeat-symbol rows ({n_before} → {len(valid)} unique symbols)")
+
+    return valid
