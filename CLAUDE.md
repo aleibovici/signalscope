@@ -176,7 +176,7 @@ SNAPSHOT_API_KEY=<openssl rand -base64 32>
 
 - **Cloud Run** — web app (`signalscope-web`) serving Next.js standalone on port 3000
 - **Cloud SQL** — PostgreSQL 16 (`signalscope-db`, db-f1-micro), connected via Unix socket
-- **Cloud Scheduler** — triggers snapshot collection (`signalscope-snapshots` job, weekdays 9:30 AM ET)
+- **Cloud Scheduler** — 3 jobs: email alerts (9:15 AM ET), snapshots open (9:30 AM ET), snapshots close (4:05 PM ET), all weekdays America/New_York
 - **Secret Manager** — stores `DATABASE_URL`, `AUTH_SECRET`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `SNAPSHOT_API_KEY`
 - **Artifact Registry** — Docker images (`signalscope` repo)
 - **GitHub Actions** — CI/CD on push to `main` (`.github/workflows/deploy.yml`)
@@ -201,20 +201,32 @@ docker compose -f docker-compose.harvest.yml --env-file .env.production run --rm
 Price snapshot collection runs entirely on Cloud Run, triggered by Cloud Scheduler (no local Docker needed).
 
 - **Endpoint**: `POST /api/snapshots/collect` (auth via `x-snapshot-key` header)
-- **Cloud Scheduler job**: `signalscope-snapshots` — `30 14 * * 1-5` (9:30 AM ET, weekdays = 30 min after market open)
+- **Cloud Scheduler jobs** (all `America/New_York`, weekdays):
+  - `signalscope-snapshots` — `30 9 * * 1-5` (9:30 AM ET, 30 min after market open)
+  - `signalscope-snapshots-close` — `5 16 * * 1-5` (4:05 PM ET, 5 min after market close)
 - **Auth**: `x-snapshot-key` header checked against `SNAPSHOT_API_KEY` env var (stored in Secret Manager)
 
 ```bash
-# Create Cloud Scheduler job:
+# Create Cloud Scheduler jobs:
 gcloud scheduler jobs create http signalscope-snapshots \
   --location=us-central1 \
-  --schedule="30 14 * * 1-5" \
+  --schedule="30 9 * * 1-5" \
   --time-zone="America/New_York" \
   --uri="http://localhost:3000/api/snapshots/collect" \
   --http-method=POST \
   --headers="x-snapshot-key=<SNAPSHOT_API_KEY_VALUE>" \
   --attempt-deadline=300s \
-  --description="Collect price snapshots for validated tickers"
+  --description="Collect opening price snapshots for validated tickers"
+
+gcloud scheduler jobs create http signalscope-snapshots-close \
+  --location=us-central1 \
+  --schedule="5 16 * * 1-5" \
+  --time-zone="America/New_York" \
+  --uri="http://localhost:3000/api/snapshots/collect" \
+  --http-method=POST \
+  --headers="x-snapshot-key=<SNAPSHOT_API_KEY_VALUE>" \
+  --attempt-deadline=300s \
+  --description="Collect closing price snapshots for validated tickers"
 ```
 
 ### Source Status
