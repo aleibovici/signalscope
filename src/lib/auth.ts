@@ -1,9 +1,11 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/lib/auth.config";
 import { isRateLimited } from "@/lib/rate-limit";
+import { verifyAccessToken } from "@/lib/mobile-jwt";
 
 const LOGIN_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const LOGIN_MAX_ATTEMPTS = 10;
@@ -45,6 +47,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 });
 
 export async function getCurrentUserId(): Promise<string> {
+  // Check for mobile Bearer token first
+  const headerStore = await headers();
+  const authHeader = headerStore.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.slice(7);
+    const payload = await verifyAccessToken(token);
+    if (payload?.sub) return payload.sub;
+    throw new Error("Not authenticated");
+  }
+
+  // Fall back to Auth.js cookie session
   const session = await auth();
   if (!session?.user?.id) {
     throw new Error("Not authenticated");

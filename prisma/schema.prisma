@@ -17,8 +17,9 @@ model User {
   emailAlerts  Boolean         @default(true)
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
-  positions    UserPosition[]
-  watchlist    UserWatchlist[]
+  positions      UserPosition[]
+  watchlist      UserWatchlist[]
+  refreshTokens  RefreshToken[]
 }
 
 model Scan {
@@ -207,4 +208,19 @@ model UserWatchlist {
 
   @@unique([userId, symbol])
   @@index([userId])
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revokedAt DateTime?
+  deviceId  String?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
 }
