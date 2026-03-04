@@ -6,7 +6,9 @@ import { handleApiError } from "@/lib/api-error";
 export async function GET() {
   try {
     await getCurrentUserId();
-    const [scans, signals, tickerCount, trackedTickers, perfAgg, wins, users] =
+    // Dedup TickerPerformance by symbol (keep earliest detection per symbol)
+    // and exclude phantom Yahoo Finance prices (<= $0.01)
+    const [scans, signals, tickerCount, perfStats, users] =
       await Promise.all([
         prisma.scan.count({ where: { status: "COMPLETED" } }),
         prisma.scan.aggregate({
@@ -16,16 +18,24 @@ export async function GET() {
         prisma.$queryRaw<[{ count: bigint }]>`SELECT COUNT(DISTINCT symbol) as count FROM "ValidatedTicker"`.then(
           (rows) => Number(rows[0].count)
         ),
-        prisma.tickerPerformance.count({ where: { return7d: { not: null } } }),
-        prisma.tickerPerformance.aggregate({
-          _avg: { return7d: true },
-          where: { return7d: { not: null } },
-        }),
-        prisma.tickerPerformance.count({ where: { return7d: { gt: 0 } } }),
+        prisma.$queryRaw<[{ tracked: bigint; wins: bigint; avg_return: number | null }]>`
+          SELECT
+            COUNT(*) as tracked,
+            COUNT(*) FILTER (WHERE "return7d" > 0) as wins,
+            AVG("return7d") as avg_return
+          FROM (
+            SELECT DISTINCT ON (symbol) symbol, "return7d"
+            FROM "TickerPerformance"
+            WHERE "return7d" IS NOT NULL AND "detectionPrice" > 0.01
+            ORDER BY symbol, "createdAt"
+          ) deduped
+        `.then((rows) => rows[0]),
         prisma.user.count(),
       ]);
 
-    const avgReturn7d = perfAgg._avg.return7d ?? 0;
+    const trackedTickers = Number(perfStats.tracked);
+    const wins = Number(perfStats.wins);
+    const avgReturn7d = perfStats.avg_return ?? 0;
     const winRate7d = trackedTickers > 0 ? wins / trackedTickers : 0;
 
     return NextResponse.json({

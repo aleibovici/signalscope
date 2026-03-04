@@ -20,9 +20,13 @@ export async function GET(request: NextRequest) {
     const returnCol = `return${days}d` as "return1d" | "return3d" | "return7d" | "return30d";
     const priceCol = `price${days}d` as "price1d" | "price3d" | "price7d" | "price30d";
 
-    // Fetch performance records, limited to most recent 1000 to avoid unbounded queries
-    const records = await prisma.tickerPerformance.findMany({
-      where: { [returnCol]: { not: null } },
+    // Fetch performance records, limited to most recent 2000 to avoid unbounded queries
+    // (fetching more pre-dedup to ensure good coverage of unique symbols)
+    const rawRecords = await prisma.tickerPerformance.findMany({
+      where: {
+        [returnCol]: { not: null },
+        detectionPrice: { gt: 0.01 },  // Exclude phantom Yahoo Finance prices
+      },
       include: {
         validatedTicker: {
           select: {
@@ -32,8 +36,16 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: { createdAt: "desc" },
-      take: 1000,
+      orderBy: { createdAt: "asc" },
+      take: 2000,
+    });
+
+    // Dedup by symbol — keep first appearance (earliest detection) per symbol
+    const seenSymbols = new Set<string>();
+    const records = rawRecords.filter((r) => {
+      if (seenSymbols.has(r.symbol)) return false;
+      seenSymbols.add(r.symbol);
+      return true;
     });
 
     if (records.length === 0) {
@@ -111,15 +123,8 @@ export async function GET(request: NextRequest) {
       byScoreRange[label] = computeStats(group);
     }
 
-    // Best/Worst performers — deduplicate by symbol, keeping best return per symbol
-    const bySymbol = new Map<string, (typeof records)[0]>();
-    for (const r of records) {
-      const existing = bySymbol.get(r.symbol);
-      if (!existing || (r[returnCol] as number) > (existing[returnCol] as number)) {
-        bySymbol.set(r.symbol, r);
-      }
-    }
-    const deduped = [...bySymbol.values()].sort(
+    // Best/Worst performers (already deduped by symbol above)
+    const deduped = [...records].sort(
       (a, b) => (b[returnCol] as number) - (a[returnCol] as number)
     );
 
