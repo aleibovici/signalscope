@@ -15,6 +15,7 @@ const publicApiPrefixes = [
   "/api/tickers",
   "/api/health",
   "/api/alerts",
+  "/api/methodology",
 ];
 
 function isPublicPath(pathname: string): boolean {
@@ -28,6 +29,11 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
 
   if (isPublicPath(pathname)) return;
+
+  // Let mobile Bearer token requests through — real verification
+  // happens in getCurrentUserId() inside route handlers
+  const authHeader = req.headers.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) return;
 
   if (!req.auth) {
     if (pathname.startsWith("/api/")) {

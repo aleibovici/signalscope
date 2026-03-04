@@ -12,7 +12,7 @@ SignalScope is a stock breakout signal detection platform. It harvests signals f
 npm run dev              # Next.js dev server (port 3000)
 npm run build            # Production build
 npm run lint             # ESLint
-npm test                 # Run Vitest unit tests (215 tests, 12 files)
+npm test                 # Run Vitest unit tests (238 tests, 15 files)
 npm run test:watch       # Vitest watch mode
 npm run db:generate      # Generate Prisma client (run after schema changes)
 npm run db:migrate       # Run Prisma migrations (dev)
@@ -89,31 +89,46 @@ Entry point: `scripts/run-harvest.ts`
 | `/api/health` | GET | Health check |
 | `/api/indexnow` | GET | IndexNow SEO submission endpoint |
 | `/api/auth/[...nextauth]` | GET/POST | Auth.js handlers (login/logout/session) |
-| `/api/auth/register` | POST | User registration (email, password, name) |
+| `/api/auth/login` | POST | Mobile login — returns access + refresh tokens |
+| `/api/auth/refresh` | POST | Rotate refresh token, issue new access token |
+| `/api/auth/logout` | POST | Revoke refresh tokens (all or by deviceId) |
+| `/api/auth/register` | POST | User registration — returns user + tokens |
+| `/api/methodology` | GET | Methodology data (public, structured JSON) |
 
 ### Frontend (`src/app/(dashboard)/`)
 
 Dashboard pages: signals (main), portfolio, history, filtered, ticker detail, performance, methodology, profile, subscription. Uses route group `(dashboard)` with shared sidebar layout.
 
+Methodology page data is in `src/lib/methodology-data.ts` (shared between the page component and `GET /api/methodology`).
+
 All data fetching hooks are in `src/hooks/` using TanStack Query mutations/queries.
 
 ### Auth (`src/lib/auth.ts`, `src/lib/auth.config.ts`)
 
-Multi-user email/password auth via Auth.js v5 (Credentials provider, JWT sessions).
+Multi-user email/password auth via Auth.js v5 (Credentials provider, JWT sessions). Mobile clients use Bearer token auth.
 
 - `auth.config.ts` — Edge-safe config (no Node.js deps), imported by middleware; `trustHost: true` required for Cloud Run reverse proxy
 - `auth.ts` — Full NextAuth instance with Prisma + bcrypt `authorize()`, exports `auth`, `handlers`, `getCurrentUserId()`
-- `getCurrentUserId()` is **async** — all callers must `await` it
-- `src/middleware.ts` — Protects dashboard routes (redirect to `/login`) and `/api/portfolio/**`, `/api/watchlist/**`, `/api/user/**` (401 JSON); matcher allows `.txt`/`.xml` static files through
-- Public routes: `/login`, `/register`, `/api/auth/**`, `/api/scans/**`, `/api/signals/**`, `/api/tickers/**`, `/api/health`
+- `getCurrentUserId()` is **async** — all callers must `await` it; checks `Authorization: Bearer` header first (mobile JWT), falls back to Auth.js cookie session
+- `mobile-jwt.ts` — HS256 JWT sign/verify via `jose`, signing key `"mobile:" + AUTH_SECRET` (cryptographically separate from Auth.js), 15min access token expiry, opaque 64-hex-char refresh tokens (DB-backed, 30-day expiry, rotation on use)
+- `src/proxy.ts` (middleware) — Protects dashboard routes (redirect to `/login`) and `/api/portfolio/**`, `/api/watchlist/**`, `/api/user/**` (401 JSON); requests with `Authorization: Bearer` header bypass middleware auth (verified in route handlers); matcher allows `.txt`/`.xml` static files through
+- Public routes: `/login`, `/register`, `/api/auth/**`, `/api/scans/**`, `/api/signals/**`, `/api/tickers/**`, `/api/health`, `/api/methodology`
 - Auth pages use route group `(auth)` with centered layout (no sidebar)
 - `SessionProvider` wrapped in `src/lib/session-provider.tsx`, added to root layout
 - Type augmentations in `src/types/next-auth.d.ts` (adds `id` and `role` to Session/JWT)
 - Seed user: `dev@localhost` / `password123`
 
+#### Mobile Auth Flow
+
+1. `POST /api/auth/login` with `{ email, password, deviceId? }` → returns `{ accessToken, refreshToken, expiresIn, user }`
+2. Use `Authorization: Bearer <accessToken>` on all protected routes
+3. When access token expires (15min), call `POST /api/auth/refresh` with `{ refreshToken }` → returns new token pair (rotation)
+4. `POST /api/auth/logout` revokes refresh tokens (requires Bearer auth)
+5. `POST /api/auth/register` also returns tokens for seamless register-and-go
+
 ### Database Models
 
-Key models in `prisma/schema.prisma`: **User**, **Scan** (harvest run), **Signal** (raw from sources), **ValidatedTicker** (scored candidates with fundamentals/report), **TickerPerformance** (post-scan price performance tracking), **UserPosition** (portfolio), **UserWatchlist** (bookmarked tickers).
+Key models in `prisma/schema.prisma`: **User**, **Scan** (harvest run), **Signal** (raw from sources), **ValidatedTicker** (scored candidates with fundamentals/report), **TickerPerformance** (post-scan price performance tracking), **UserPosition** (portfolio), **UserWatchlist** (bookmarked tickers), **RefreshToken** (mobile auth token rotation, indexed on token/userId/expiresAt).
 
 Signal stages: `EARLY | FORMING | CONFIRMED | FILTERED`
 
@@ -222,6 +237,9 @@ gh workflow run "Deploy to Cloud Run" --ref main
 | `scoring-cap.test.ts` | Post-AI social-only score cap enforcement (chatJSON mocked to return inflated scores) |
 | `twitter-cashtags.test.ts` | Twitter cashtag entity extraction + regex merging + deduplication |
 | `fundamentals.test.ts` | Yahoo Finance data extraction — sector, earningsDate, floatShares, graceful handling |
+| `mobile-jwt.test.ts` | `signAccessToken`/`verifyAccessToken` — sign, verify, expired, tampered, payload preservation |
+| `login-endpoint.test.ts` | `POST /api/auth/login` — happy path, wrong password (401), rate limiting (429), validation (400), deviceId passthrough |
+| `refresh-endpoint.test.ts` | `POST /api/auth/refresh` — token rotation, expired (401), revoked (401), non-existent (401), rate limiting (429) |
 
 Key gotchas:
 - `BUY` is NOT in BLACKLIST (but `SELL`, `HOLD` are)

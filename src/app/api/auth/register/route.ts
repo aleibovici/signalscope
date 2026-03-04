@@ -5,11 +5,17 @@ import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { generateUsername } from "@/lib/username-generator";
 import { getClientIP, isRateLimited } from "@/lib/rate-limit";
+import {
+  signAccessToken,
+  generateRefreshToken,
+  getRefreshTokenExpiry,
+} from "@/lib/mobile-jwt";
 
 const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8, "Password must be at least 8 characters").max(72, "Password must be at most 72 characters"),
   name: z.string().min(1).max(100).optional(),
+  deviceId: z.string().max(255).optional(),
 });
 
 const REGISTER_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
@@ -41,7 +47,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, password, name } = parsed.data;
+    const { email, password, name, deviceId } = parsed.data;
 
     // Check if email exists BEFORE hashing password to prevent timing oracle
     const existingUser = await prisma.user.findUnique({
@@ -83,8 +89,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 
+    const accessToken = await signAccessToken({
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
+    const refreshTokenValue = generateRefreshToken();
+    await prisma.refreshToken.create({
+      data: {
+        token: refreshTokenValue,
+        userId: user.id,
+        expiresAt: getRefreshTokenExpiry(),
+        deviceId: deviceId ?? null,
+      },
+    });
+
     return NextResponse.json(
-      { user: { id: user.id, email: user.email, name: user.name, username: user.username } },
+      {
+        user: { id: user.id, email: user.email, name: user.name, username: user.username },
+        accessToken,
+        refreshToken: refreshTokenValue,
+        expiresIn: 900,
+      },
       { status: 201 }
     );
   } catch (error) {
