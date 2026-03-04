@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: ["/", "/login", "/register"],
-        disallow: ["/dashboard", "/portfolio", "/history", "/filtered", "/ticker/", "/api/"],
+        disallow: ["/dashboard", "/portfolio", "/history", "/ticker/", "/api/"],
       },
     ],
     sitemap: "https://signalscopes.com/sitemap.xml",
