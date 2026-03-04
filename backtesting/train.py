@@ -27,7 +27,7 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
-from features import engineer_features
+from features import clean_for_analysis, engineer_features
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 
@@ -236,29 +236,37 @@ def print_insights(shap_values, X_test, feature_names, feat_df, horizon):
     for name, mean_s, abs_s in loss_features:
         print(f"  - {name:30s} mean SHAP: {mean_s:+.4f}  |SHAP|: {abs_s:.4f}")
 
-    # P&D threshold analysis
-    valid = feat_df[feat_df[ret_col].notna()]
+    # Clean data for threshold analysis (dedup by symbol, exclude phantom prices)
+    print(f"\nThreshold analysis (deduped by symbol, phantom prices excluded):")
+    valid = clean_for_analysis(feat_df, ret_col)
+
+    # P&D flagged analysis
     if len(valid) > 0:
-        print(f"\nP&D Flag Count vs Avg Return ({label}):")
-        print(f"  Current threshold: flags >= 3 → P&D filtered")
-        for threshold in range(0, 6):
-            subset = valid[valid["pndScore"] >= threshold] if threshold > 0 else valid
+        print(f"\nP&D Flagged vs Unflagged ({label}):")
+        for flagged in [False, True]:
+            subset = valid[valid["pndFlagged"] == flagged]
             if len(subset) > 0:
                 avg_ret = subset[ret_col].mean()
+                med_ret = subset[ret_col].median()
                 win_rate = (subset[ret_col] > 0).mean()
-                print(f"  pndScore >= {threshold}: n={len(subset):4d}, "
-                      f"avg return: {avg_ret:+.3f}, win rate: {win_rate:.1%}")
+                lbl = "pndFlagged=True" if flagged else "pndFlagged=False"
+                print(f"  {lbl:20s}: n={len(subset):4d}, "
+                      f"avg: {avg_ret:+.3f}, med: {med_ret:+.3f}, win: {win_rate:.1%}")
+        n_flagged = (valid["pndFlagged"] == True).sum()
+        if n_flagged == 0:
+            print("  ⚠ No P&D-flagged tickers have return data")
 
     # AI score threshold analysis
-    if "aiScore" in feat_df.columns and len(valid) > 0:
+    if "aiScore" in valid.columns and len(valid) > 0:
         print(f"\nAI Score Threshold vs Avg Return ({label}):")
-        for threshold in [50, 60, 65, 70, 75, 80]:
+        for threshold in [25, 30, 35, 40, 45, 50, 60, 70, 80]:
             subset = valid[valid["aiScore"] >= threshold]
             if len(subset) > 0:
                 avg_ret = subset[ret_col].mean()
+                med_ret = subset[ret_col].median()
                 win_rate = (subset[ret_col] > 0).mean()
-                print(f"  aiScore >= {threshold}: n={len(subset):4d}, "
-                      f"avg return: {avg_ret:+.3f}, win rate: {win_rate:.1%}")
+                print(f"  aiScore >= {threshold:3d}: n={len(subset):4d}, "
+                      f"avg: {avg_ret:+.3f}, med: {med_ret:+.3f}, win: {win_rate:.1%}")
 
 
 def main():
