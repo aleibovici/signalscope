@@ -1,6 +1,6 @@
 import { prisma, createDevPrismaClient } from "@/lib/prisma";
 import type { PrismaClient } from "@/generated/prisma/client";
-import type { AggregatedSymbol, NoveltyContext, RawSignal, SignalType } from "./types";
+import type { AggregatedSymbol, NoveltyContext, PndAiResult, RawSignal, SignalType } from "./types";
 import { fetchRedditSignals } from "./sources/reddit";
 import { fetchStockTwitsSignals } from "./sources/stocktwits";
 import { fetchSecInsiderSignals } from "./sources/sec-insider";
@@ -318,6 +318,9 @@ export async function orchestrateScan(): Promise<string> {
       pndScore: number;
       stage: "EARLY" | "FORMING" | "CONFIRMED" | "FILTERED";
       signalType: SignalType;
+      rawAiScore?: number;
+      pndAiConfidence?: number;
+      pndAiReasoning?: string;
     }> = [];
 
     for (const agg of validCandidates) {
@@ -326,9 +329,11 @@ export async function orchestrateScan(): Promise<string> {
 
       // AI assessment for borderline cases (2 flags)
       let finalPndFlagged = pnd.flagged;
+      let pndAiResult: PndAiResult | undefined;
       if (pnd.score === 2) {
         try {
-          finalPndFlagged = await aiPndAssessment(agg.symbol, agg, pnd.flags);
+          pndAiResult = await aiPndAssessment(agg.symbol, agg, pnd.flags);
+          finalPndFlagged = pndAiResult.flagged;
         } catch (err) {
           console.warn(`[pnd] AI assessment failed for ${agg.symbol}, defaulting to flagged:`, err);
           finalPndFlagged = true; // conservative default
@@ -356,6 +361,9 @@ export async function orchestrateScan(): Promise<string> {
         pndScore: pnd.score,
         stage,
         signalType,
+        rawAiScore: scoreMap.get(agg.symbol)?.rawScore,
+        pndAiConfidence: pndAiResult?.confidence,
+        pndAiReasoning: pndAiResult?.reasoning,
       });
     }
 
@@ -475,6 +483,12 @@ export async function orchestrateScan(): Promise<string> {
         sector: fundamentals?.sector,
         floatShares: fundamentals?.floatShares,
         name: fundamentals?.name,
+        pndFlagged: result.pndFlagged,
+        pndFlags: result.pndFlags,
+        pndScore: result.pndScore,
+        rawAiScore: result.rawAiScore,
+        pndAiConfidence: result.pndAiConfidence,
+        pndAiReasoning: result.pndAiReasoning,
       };
     });
 

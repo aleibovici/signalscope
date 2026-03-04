@@ -110,9 +110,11 @@ Return JSON: { "scores": [{ "symbol": "X", "score": 0-100, "sentiment": "bullish
       const hasCatalystSource = sources.has("SEC_INSIDER") || sources.has("OPTIONS_FLOW");
       const maxScore = hasCatalystSource ? 100 : 50;
 
+      const rawScore = Math.max(0, Math.round(item.score));
       return {
         symbol: s.symbol,
-        score: Math.min(maxScore, Math.max(0, Math.round(item.score))),
+        score: Math.min(maxScore, rawScore),
+        rawScore,
         sentiment: item.sentiment,
         reasoning: typeof item.reasoning === "string" ? item.reasoning : "",
       };
@@ -153,11 +155,13 @@ function defaultScore(s: AggregatedSymbol, novelty?: NoveltyContext): AiScoreRes
   }
 
   const raw = base + engagement + velocityBoost + noveltyAdj;
-  const score = Math.min(Math.round(raw), hasCatalystSource ? 100 : 50);
+  const rawScore = Math.round(raw);
+  const score = Math.min(rawScore, hasCatalystSource ? 100 : 50);
 
   return {
     symbol: s.symbol,
     score,
+    rawScore,
     sentiment: "neutral",
     reasoning: hasCatalystSource
       ? "Heuristic fallback — catalyst source detected"

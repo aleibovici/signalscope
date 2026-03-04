@@ -125,6 +125,12 @@ model ValidatedTicker {
   sector              String?
   floatShares         Float?
   name                String?
+  pndFlagged          Boolean     @default(false)
+  pndFlags            String[]
+  pndScore            Int         @default(0)
+  rawAiScore          Int?
+  pndAiConfidence     Int?
+  pndAiReasoning      String?     @db.Text
   createdAt           DateTime    @default(now())
   performance      TickerPerformance?
 
