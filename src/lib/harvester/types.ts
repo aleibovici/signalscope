@@ -61,8 +61,15 @@ export type SignalType = "insider_buy" | "options_flow" | "multi_source" | "redd
 export interface AiScoreResult {
   symbol: string;
   score: number;
+  rawScore: number;
   sentiment: string;
   reasoning: string;
+}
+
+export interface PndAiResult {
+  flagged: boolean;
+  confidence?: number;
+  reasoning?: string;
 }
 
 export interface TickerReport {

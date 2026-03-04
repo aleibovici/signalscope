@@ -1,5 +1,5 @@
 import { chatJSON } from "@/lib/ai";
-import type { AggregatedSymbol, FundamentalData, PndResult } from "./types";
+import type { AggregatedSymbol, FundamentalData, PndAiResult, PndResult } from "./types";
 
 // Subreddits that, when a ticker appears ONLY here, are a red flag
 const PENNY_ONLY_SUBREDDITS = new Set([
@@ -160,9 +160,9 @@ export async function aiPndAssessment(
   symbol: string,
   agg: AggregatedSymbol,
   flags: string[]
-): Promise<boolean> {
+): Promise<PndAiResult> {
   // Only call AI for borderline cases (exactly 2 flags)
-  if (flags.length !== 2) return flags.length >= PND_THRESHOLD;
+  if (flags.length !== 2) return { flagged: flags.length >= PND_THRESHOLD };
 
   try {
     const response = await chatJSON({
@@ -192,13 +192,21 @@ Return JSON: { "is_pnd": true/false, "confidence": 0-100, "reasoning": "brief ex
 
     const result = JSON.parse(response.content);
     const isPnd = result?.is_pnd;
-    if (typeof isPnd === "boolean") return isPnd;
-    if (isPnd === "true") return true;
-    if (isPnd === "false") return false;
-    console.warn(`[pnd] ${symbol}: unexpected is_pnd value "${isPnd}", defaulting to flagged`);
-    return true; // conservative default
+    const confidence = typeof result?.confidence === "number" ? result.confidence : undefined;
+    const reasoning = typeof result?.reasoning === "string" ? result.reasoning : undefined;
+
+    let flagged: boolean;
+    if (typeof isPnd === "boolean") flagged = isPnd;
+    else if (isPnd === "true") flagged = true;
+    else if (isPnd === "false") flagged = false;
+    else {
+      console.warn(`[pnd] ${symbol}: unexpected is_pnd value "${isPnd}", defaulting to flagged`);
+      flagged = true;
+    }
+
+    return { flagged, confidence, reasoning };
   } catch (err) {
     console.error(`AI P&D assessment for ${symbol} error — flagging borderline ticker as cautionary:`, err);
-    return true;
+    return { flagged: true };
   }
 }
