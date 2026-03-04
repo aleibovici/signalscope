@@ -57,9 +57,21 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = ingestPayloadSchema.parse(body);
 
-    console.log(`[harvest/ingest] Received ${parsed.signals.length} signals (harvested at ${parsed.harvestedAt})`);
+    // Log source breakdown
+    const sourceCounts = parsed.signals.reduce((acc, s) => {
+      acc[s.source] = (acc[s.source] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    const uniqueSymbols = new Set(parsed.signals.map((s) => s.symbol)).size;
 
+    console.log(`[harvest/ingest] Received ${parsed.signals.length} signals (${uniqueSymbols} unique symbols) harvested at ${parsed.harvestedAt}`);
+    console.log(`[harvest/ingest] Source breakdown:`, JSON.stringify(sourceCounts));
+
+    const t0 = Date.now();
     const scanId = await processSignals(parsed.signals);
+    const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+
+    console.log(`[harvest/ingest] Processing completed in ${elapsed}s — scanId=${scanId}`);
 
     return NextResponse.json({ status: "completed", scanId });
   } catch (err) {
