@@ -46,6 +46,9 @@ next-env.d.ts
 
 /src/generated/prisma
 
+# python
+__pycache__/
+
 # backtesting
 backtesting/output/
 !backtesting/output/.gitkeep
