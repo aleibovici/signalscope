@@ -21,6 +21,9 @@ export default function PortfolioPage() {
   const [newPrice, setNewPrice] = useState("");
   const [closingPosition, setClosingPosition] = useState<string | null>(null);
   const [closePrice, setClosePrice] = useState("");
+  const [deletingPosition, setDeletingPosition] = useState<string | null>(null);
+  const [editingPosition, setEditingPosition] = useState<string | null>(null);
+  const [editEntryPrice, setEditEntryPrice] = useState("");
 
   const positions = data?.positions || [];
   const openPositions = positions.filter((p) => p.status === "OPEN");
@@ -70,11 +73,38 @@ export default function PortfolioPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
+    setDeletingPosition(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingPosition) return;
     try {
-      await deletePosition.mutateAsync(id);
+      await deletePosition.mutateAsync(deletingPosition);
+      setDeletingPosition(null);
     } catch {
       // deletePosition.isError surfaces the failure in the UI
+    }
+  };
+
+  const handleEdit = (id: string) => {
+    const pos = positions.find((p) => p.id === id);
+    if (!pos) return;
+    setEditEntryPrice(pos.entryPrice.toString());
+    setEditingPosition(id);
+  };
+
+  const handleConfirmEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPosition || !editEntryPrice) return;
+    try {
+      await updatePosition.mutateAsync({
+        id: editingPosition,
+        entryPrice: parseFloat(editEntryPrice),
+      });
+      setEditingPosition(null);
+    } catch {
+      // updatePosition.isError surfaces the failure in the UI
     }
   };
 
@@ -205,6 +235,7 @@ export default function PortfolioPage() {
                     key={p.id}
                     position={p}
                     onClose={handleClose}
+                    onEdit={handleEdit}
                     onDelete={handleDelete}
                   />
                 ))}
@@ -234,6 +265,7 @@ export default function PortfolioPage() {
                     key={p.id}
                     position={p}
                     onClose={handleClose}
+                    onEdit={handleEdit}
                     onDelete={handleDelete}
                   />
                 ))}
@@ -293,6 +325,88 @@ export default function PortfolioPage() {
                 className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
               >
                 Close Position
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {deletingPosition && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center">
+          <div className="w-full max-w-sm rounded-t-lg bg-white p-6 shadow-xl sm:rounded-lg">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Delete Position
+            </h3>
+            <p className="mt-2 text-sm text-gray-500">
+              Are you sure you want to delete this position? This action cannot be undone.
+            </p>
+            {deletePosition.isError && (
+              <p className="mt-3 text-sm text-red-600">Failed to delete position. Please try again.</p>
+            )}
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeletingPosition(null)}
+                className="rounded px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={deletePosition.isPending}
+                className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingPosition && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center">
+          <form
+            onSubmit={handleConfirmEdit}
+            className="w-full max-w-sm rounded-t-lg bg-white p-6 shadow-xl sm:rounded-lg"
+          >
+            <h3 className="text-lg font-semibold text-gray-900">
+              Edit Position
+            </h3>
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-600">
+                  Entry Price
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={editEntryPrice}
+                  onChange={(e) => setEditEntryPrice(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                  autoFocus
+                  required
+                />
+              </div>
+            </div>
+            {updatePosition.isError && (
+              <p className="mt-3 text-sm text-red-600">Failed to update position. Please try again.</p>
+            )}
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setEditingPosition(null)}
+                className="rounded px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={updatePosition.isPending}
+                className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                Save Changes
               </button>
             </div>
           </form>

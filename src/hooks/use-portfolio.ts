@@ -46,7 +46,7 @@ export function useAddPosition() {
 export function useUpdatePosition() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...data }: { id: string; status?: string; closePrice?: number; notes?: string }) => {
+    mutationFn: async ({ id, ...data }: { id: string; status?: string; closePrice?: number; entryPrice?: number; shares?: number; notes?: string }) => {
       const res = await fetch(`/api/portfolio/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
