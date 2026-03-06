@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        user: { id: user.id, email: user.email, name: user.name, username: user.username },
+        user: { id: user.id, email: user.email, name: user.name, username: user.username, role: user.role, emailAlerts: user.emailAlerts },
         accessToken,
         refreshToken: refreshTokenValue,
         expiresIn: 900,
