@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useScans, type ScanSummary, type ScansFilter } from "@/hooks/use-scans";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import Link from "next/link";
@@ -39,7 +38,7 @@ export default function HistoryPage() {
           <select
             value={filters.status || ""}
             onChange={(e) => updateFilter({ status: e.target.value || undefined })}
-            className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
             <option value="">All</option>
             <option value="COMPLETED">Completed</option>
@@ -54,7 +53,7 @@ export default function HistoryPage() {
             type="date"
             value={filters.from || ""}
             onChange={(e) => updateFilter({ from: e.target.value || undefined })}
-            className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
         </div>
 
@@ -64,7 +63,7 @@ export default function HistoryPage() {
             type="date"
             value={filters.to || ""}
             onChange={(e) => updateFilter({ to: e.target.value || undefined })}
-            className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
         </div>
 
@@ -92,34 +91,32 @@ export default function HistoryPage() {
         </p>
       ) : (
         <>
-          <div className="space-y-3">
+          <div className="divide-y divide-gray-200 rounded-lg border border-gray-200 bg-white">
             {data.scans.map((scan: ScanSummary) => (
-              <Link key={scan.id} href={`/dashboard?scanId=${scan.id}`}>
-                <Card className="transition-shadow hover:shadow-md">
-                  <CardContent className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="font-medium text-gray-900">
-                        {new Date(scan.startedAt).toLocaleString()}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {scan.signalCount} signals &middot;{" "}
-                        {scan.validatedCount} validated &middot;{" "}
-                        {scan.filteredCount} filtered
-                      </p>
-                    </div>
-                    <Badge
-                      variant={
-                        scan.status === "COMPLETED"
-                          ? "success"
-                          : scan.status === "FAILED"
-                            ? "danger"
-                            : "warning"
-                      }
-                    >
-                      {scan.status}
-                    </Badge>
-                  </CardContent>
-                </Card>
+              <Link
+                key={scan.id}
+                href={`/dashboard?scanId=${scan.id}`}
+                className="flex items-center justify-between px-3 py-2 hover:bg-gray-50"
+              >
+                <div className="flex items-center gap-3 text-sm">
+                  <span className="font-medium text-gray-900">
+                    {new Date(scan.startedAt).toLocaleString()}
+                  </span>
+                  <span className="text-gray-400">
+                    {scan.signalCount} signals &middot; {scan.validatedCount} validated &middot; {scan.filteredCount} filtered
+                  </span>
+                </div>
+                <Badge
+                  variant={
+                    scan.status === "COMPLETED"
+                      ? "success"
+                      : scan.status === "FAILED"
+                        ? "danger"
+                        : "warning"
+                  }
+                >
+                  {scan.status}
+                </Badge>
               </Link>
             ))}
           </div>
