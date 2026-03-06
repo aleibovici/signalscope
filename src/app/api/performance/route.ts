@@ -20,13 +20,13 @@ export async function GET(request: NextRequest) {
     const returnCol = `return${days}d` as "return1d" | "return3d" | "return7d" | "return30d";
     const priceCol = `price${days}d` as "price1d" | "price3d" | "price7d" | "price30d";
 
-    // Fetch performance records, limited to most recent 2000 to avoid unbounded queries
-    // (fetching more pre-dedup to ensure good coverage of unique symbols)
-    const rawRecords = await prisma.tickerPerformance.findMany({
+    // Fetch performance records, deduped by symbol (earliest detection per symbol)
+    const records = await prisma.tickerPerformance.findMany({
       where: {
         [returnCol]: { not: null },
         detectionPrice: { gt: 0.01 },  // Exclude phantom Yahoo Finance prices
       },
+      distinct: ["symbol"],
       include: {
         validatedTicker: {
           select: {
@@ -37,15 +37,7 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: { createdAt: "asc" },
-      take: 2000,
-    });
-
-    // Dedup by symbol — keep first appearance (earliest detection) per symbol
-    const seenSymbols = new Set<string>();
-    const records = rawRecords.filter((r) => {
-      if (seenSymbols.has(r.symbol)) return false;
-      seenSymbols.add(r.symbol);
-      return true;
+      take: 1000,
     });
 
     if (records.length === 0) {
@@ -123,8 +115,8 @@ export async function GET(request: NextRequest) {
       byScoreRange[label] = computeStats(group);
     }
 
-    // Best/Worst performers (already deduped by symbol above)
-    const deduped = [...records].sort(
+    // Best/Worst performers
+    const sorted = [...records].sort(
       (a, b) => (b[returnCol] as number) - (a[returnCol] as number)
     );
 
@@ -137,8 +129,8 @@ export async function GET(request: NextRequest) {
       currentPrice: r[priceCol] as number,
     });
 
-    const bestPerformers = deduped.slice(0, 5).map(mapPerformer);
-    const worstPerformers = deduped.slice(-5).reverse().map(mapPerformer);
+    const bestPerformers = sorted.slice(0, 5).map(mapPerformer);
+    const worstPerformers = sorted.slice(-5).reverse().map(mapPerformer);
 
     return NextResponse.json({
       overall,
