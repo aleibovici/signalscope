@@ -193,6 +193,113 @@ def sweep_individual_flags(valid: pd.DataFrame, ret_col: str) -> list[dict]:
     return results
 
 
+def sweep_source_type(valid: pd.DataFrame, ret_col: str) -> list[dict]:
+    """Sweep by signal source type and multi-source combinations."""
+    results = []
+
+    # Individual source types
+    if "signal_type_raw" in valid.columns:
+        for stype in valid["signal_type_raw"].unique():
+            subset = valid[valid["signal_type_raw"] == stype]
+            if len(subset) < 3:
+                continue
+            results.append({
+                "sweep_type": "source_type",
+                "parameter": stype,
+                "threshold": None,
+                "n_included": len(subset),
+                "n_excluded": len(valid) - len(subset),
+                "avg_return": subset[ret_col].mean(),
+                "median_return": subset[ret_col].median(),
+                "win_rate": (subset[ret_col] > 0).mean(),
+                "big_win_rate": (subset[ret_col] > 0.05).mean(),
+                "sharpe_like": sharpe_like(subset[ret_col]),
+                "avg_excluded_return": None,
+            })
+
+    # Multi-source (sourceCount >= 2) vs single-source
+    if "sourceCount" in valid.columns:
+        for label, mask in [
+            ("single_source", valid["sourceCount"] == 1),
+            ("multi_source_2+", valid["sourceCount"] >= 2),
+            ("multi_source_3+", valid["sourceCount"] >= 3),
+        ]:
+            subset = valid[mask]
+            if len(subset) < 3:
+                continue
+            results.append({
+                "sweep_type": "source_count",
+                "parameter": label,
+                "threshold": None,
+                "n_included": len(subset),
+                "n_excluded": len(valid) - len(subset),
+                "avg_return": subset[ret_col].mean(),
+                "median_return": subset[ret_col].median(),
+                "win_rate": (subset[ret_col] > 0).mean(),
+                "big_win_rate": (subset[ret_col] > 0.05).mean(),
+                "sharpe_like": sharpe_like(subset[ret_col]),
+                "avg_excluded_return": None,
+            })
+
+    return results
+
+
+def sweep_market_cap(valid: pd.DataFrame, ret_col: str) -> list[dict]:
+    """Sweep by market cap bucket."""
+    results = []
+
+    if "marketCap" not in valid.columns:
+        return results
+
+    buckets = [
+        ("nano(<50M)", 0, 50e6),
+        ("micro(50-300M)", 50e6, 300e6),
+        ("small(300M-2B)", 300e6, 2e9),
+        ("mid(2-10B)", 2e9, 10e9),
+        ("large(>10B)", 10e9, float("inf")),
+    ]
+
+    for label, lo, hi in buckets:
+        subset = valid[(valid["marketCap"] >= lo) & (valid["marketCap"] < hi)]
+        if len(subset) < 3:
+            continue
+        results.append({
+            "sweep_type": "market_cap_bucket",
+            "parameter": label,
+            "threshold": None,
+            "n_included": len(subset),
+            "n_excluded": len(valid) - len(subset),
+            "avg_return": subset[ret_col].mean(),
+            "median_return": subset[ret_col].median(),
+            "win_rate": (subset[ret_col] > 0).mean(),
+            "big_win_rate": (subset[ret_col] > 0.05).mean(),
+            "sharpe_like": sharpe_like(subset[ret_col]),
+            "avg_excluded_return": None,
+        })
+
+    # Cumulative: exclude large caps progressively
+    cap_thresholds = [("cap<=300M", 0, 300e6), ("cap<=2B", 0, 2e9), ("cap<=10B", 0, 10e9)]
+    for label, lo, hi in cap_thresholds:
+        subset = valid[(valid["marketCap"] >= lo) & (valid["marketCap"] < hi)]
+        if len(subset) < 3:
+            continue
+        results.append({
+            "sweep_type": "market_cap_cumulative",
+            "parameter": label,
+            "threshold": None,
+            "n_included": len(subset),
+            "n_excluded": len(valid) - len(subset),
+            "avg_return": subset[ret_col].mean(),
+            "median_return": subset[ret_col].median(),
+            "win_rate": (subset[ret_col] > 0).mean(),
+            "big_win_rate": (subset[ret_col] > 0.05).mean(),
+            "sharpe_like": sharpe_like(subset[ret_col]),
+            "avg_excluded_return": None,
+        })
+
+    return results
+
+
 def sweep_combined(valid: pd.DataFrame, ret_col: str) -> list[dict]:
     """Sweep combinations of AI score + P&D flagged status."""
     results = []
@@ -233,6 +340,9 @@ def main():
     horizon = select_horizon(feat_df)
     ret_col = horizon["return"]
     label = horizon["label"]
+
+    # Carry raw signalType through for source sweep (before dedup drops it)
+    feat_df["signal_type_raw"] = raw_df["signalType"].fillna("unknown")
 
     # Clean: remove phantom prices, dedup by symbol
     print(f"\nCleaning data for analysis...")
@@ -285,6 +395,32 @@ def main():
               f"win={r['win_rate']:.1%}{diff}")
     if not flag_results:
         print("  (no individual flags present in return data)")
+
+    print(f"\n--- Source Type Analysis ({label}) ---")
+    source_results = sweep_source_type(valid, ret_col)
+    all_results.extend(source_results)
+    source_sorted = sorted(source_results, key=lambda r: r["sharpe_like"], reverse=True)
+    for r in source_sorted:
+        print(f"  {r['parameter']:25s}: n={r['n_included']:4d}, "
+              f"avg={r['avg_return']:+.3f}, med={r['median_return']:+.3f}, "
+              f"win={r['win_rate']:.1%}, sharpe={r['sharpe_like']:.3f}")
+    if not source_results:
+        print("  (no source type data available)")
+
+    print(f"\n--- Market Cap Bucket Analysis ({label}) ---")
+    mcap_results = sweep_market_cap(valid, ret_col)
+    all_results.extend(mcap_results)
+    # Print buckets first, then cumulative
+    for sweep_type in ["market_cap_bucket", "market_cap_cumulative"]:
+        subset_results = [r for r in mcap_results if r["sweep_type"] == sweep_type]
+        if sweep_type == "market_cap_cumulative" and subset_results:
+            print(f"  --- cumulative ---")
+        for r in subset_results:
+            print(f"  {r['parameter']:25s}: n={r['n_included']:4d}, "
+                  f"avg={r['avg_return']:+.3f}, med={r['median_return']:+.3f}, "
+                  f"win={r['win_rate']:.1%}, sharpe={r['sharpe_like']:.3f}")
+    if not mcap_results:
+        print("  (no market cap data available)")
 
     print(f"\n--- Combined Sweeps: AI Score + P&D Flag ({label}) ---")
     combined_results = sweep_combined(valid, ret_col)
