@@ -12,7 +12,7 @@ SignalScope is a stock breakout signal detection platform. It harvests signals f
 npm run dev              # Next.js dev server (port 3000)
 npm run build            # Production build
 npm run lint             # ESLint
-npm test                 # Run Vitest unit tests (238 tests, 15 files)
+npm test                 # Run Vitest unit tests (269 tests, 18 files)
 npm run test:watch       # Vitest watch mode
 npm run db:generate      # Generate Prisma client (run after schema changes)
 npm run db:migrate       # Run Prisma migrations (dev)
@@ -137,7 +137,7 @@ Multi-user email/password auth via Auth.js v5 (Credentials provider, JWT session
 
 ### Database Models
 
-Key models in `prisma/schema.prisma`: **User**, **Scan** (harvest run), **Signal** (raw from sources), **ValidatedTicker** (scored candidates with fundamentals/report), **TickerPerformance** (post-scan price performance tracking), **UserPosition** (portfolio), **UserWatchlist** (bookmarked tickers), **RefreshToken** (mobile auth token rotation, indexed on token/userId/expiresAt).
+Key models in `prisma/schema.prisma`: **User**, **Scan** (harvest run), **Signal** (raw from sources), **ValidatedTicker** (scored candidates with fundamentals/report), **TickerPerformance** (post-scan price performance tracking), **PriceSnapshot** (continuous price time-series for return computation), **UserPosition** (portfolio), **UserWatchlist** (bookmarked tickers), **RefreshToken** (mobile auth token rotation, indexed on token/userId/expiresAt).
 
 Signal stages: `EARLY | FORMING | CONFIRMED | FILTERED`
 
@@ -196,10 +196,13 @@ Reddit blocks cloud IPs, so signal **fetching** runs locally. Processing (AI sco
 docker compose -f docker-compose.harvest.yml --env-file .env.production run --rm harvester
 ```
 
-### Snapshots
+### Snapshots (`src/lib/snapshots/`)
 
-Price snapshot collection runs entirely on Cloud Run, triggered by Cloud Scheduler (no local Docker needed).
+Continuous price tracking for all validated tickers, runs on Cloud Run triggered by Cloud Scheduler (no local Docker needed).
 
+- **How it works**: Every run creates a `PriceSnapshot` row for every ticker within 30 days of detection. Returns (1d, 3d, 7d, 30d) are computed from the snapshot time-series by finding the closest snapshot to each target period within tolerance windows. This ensures all tickers eventually have data for all return periods.
+- **Return computation**: `returns.ts` — pure function `computeReturnsFromSnapshots()` with tolerance windows (1d: 18–48h, 3d: 54–120h, 7d: 120–264h, 30d: 600–888h) to handle weekends/holidays. Always picks the snapshot closest to target time. Returns improve as more snapshots accumulate.
+- **Collector**: `index.ts` — `collectSnapshots()` fetches prices via Yahoo Finance in batches of 50, creates `PriceSnapshot` rows, recomputes returns, and upserts `TickerPerformance`.
 - **Endpoint**: `POST /api/snapshots/collect` (auth via `x-snapshot-key` header)
 - **Cloud Scheduler jobs** (all `America/New_York`, weekdays):
   - `signalscope-snapshots` — `30 9 * * 1-5` (9:30 AM ET, 30 min after market open)
@@ -285,6 +288,7 @@ gh workflow run "Deploy to Cloud Run" --ref main
 | `mobile-jwt.test.ts` | `signAccessToken`/`verifyAccessToken` — sign, verify, expired, tampered, payload preservation |
 | `login-endpoint.test.ts` | `POST /api/auth/login` — happy path, wrong password (401), rate limiting (429), validation (400), deviceId passthrough |
 | `refresh-endpoint.test.ts` | `POST /api/auth/refresh` — token rotation, expired (401), revoked (401), non-existent (401), rate limiting (429) |
+| `snapshot-returns.test.ts` | `computeReturnsFromSnapshots` — all 4 periods, tolerance windows, weekend gaps, closest-match selection, progressive improvement, penny stocks, non-overlapping windows |
 
 Key gotchas:
 - `BUY` is NOT in BLACKLIST (but `SELL`, `HOLD` are)
