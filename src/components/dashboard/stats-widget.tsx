@@ -14,7 +14,7 @@ export function StatsWidget({ revision }: { revision: string }) {
       </p>
       {isLoading || !data ? (
         <div className="space-y-1.5">
-          {[...Array(4)].map((_, i) => (
+          {[...Array(5)].map((_, i) => (
             <div key={i} className="flex justify-between">
               <div className="h-3 w-16 animate-pulse rounded bg-gray-200" />
               <div className="h-3 w-10 animate-pulse rounded bg-gray-200" />
