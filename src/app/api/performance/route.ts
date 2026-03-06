@@ -142,6 +142,6 @@ export async function GET(request: NextRequest) {
       worstPerformers,
     });
   } catch (err) {
-    return handleApiError(err);
+    return handleApiError(err, "performance");
   }
 }
