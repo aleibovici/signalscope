@@ -1,26 +1,11 @@
 import { prisma, createDevPrismaClient } from "@/lib/prisma";
 import type { PrismaClient } from "@/generated/prisma/client";
 import YahooFinance from "yahoo-finance2";
+import { computeReturnsFromSnapshots } from "./returns";
 
 const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
-interface IntervalConfig {
-  field: "1d" | "3d" | "7d" | "30d";
-  minHours: number;
-  maxHours: number;
-  snappedField: "snapped1dAt" | "snapped3dAt" | "snapped7dAt" | "snapped30dAt";
-  priceField: "price1d" | "price3d" | "price7d" | "price30d";
-  returnField: "return1d" | "return3d" | "return7d" | "return30d";
-}
-
-// maxHours is set wide enough to survive weekend/holiday gaps (3-day weekends etc.)
-// 1d: 18h–120h (5 days), 3d: 60h–240h (10 days), 7d: 144h–480h (20 days), 30d: 672h–1344h (56 days)
-const INTERVALS: IntervalConfig[] = [
-  { field: "1d", minHours: 18, maxHours: 120, snappedField: "snapped1dAt", priceField: "price1d", returnField: "return1d" },
-  { field: "3d", minHours: 60, maxHours: 240, snappedField: "snapped3dAt", priceField: "price3d", returnField: "return3d" },
-  { field: "7d", minHours: 144, maxHours: 480, snappedField: "snapped7dAt", priceField: "price7d", returnField: "return7d" },
-  { field: "30d", minHours: 672, maxHours: 1344, snappedField: "snapped30dAt", priceField: "price30d", returnField: "return30d" },
-];
+const TRACKING_DAYS = 30;
 
 async function fetchPricesBatch(symbols: string[]): Promise<Map<string, number>> {
   const prices = new Map<string, number>();
@@ -44,129 +29,145 @@ async function fetchPricesBatch(symbols: string[]): Promise<Map<string, number>>
   return prices;
 }
 
-export async function collectSnapshots(): Promise<{ filled: number; errors: number; skipped: number }> {
-  const stats = { filled: 0, errors: 0, skipped: 0 };
+export async function collectSnapshots(): Promise<{ filled: number; errors: number; skipped: number; returnsUpdated: number }> {
+  const stats = { filled: 0, errors: 0, skipped: 0, returnsUpdated: 0 };
   const now = new Date();
-  const cutoff = new Date(now.getTime() - 35 * 24 * 60 * 60 * 1000);
+  const cutoff = new Date(now.getTime() - (TRACKING_DAYS + 5) * 24 * 60 * 60 * 1000);
 
-  // 1. Get all eligible validated tickers from last 35 days
+  // 1. Get all eligible validated tickers from the tracking window
   const tickers = await prisma.validatedTicker.findMany({
     where: {
       createdAt: { gte: cutoff },
       price: { not: null },
     },
-    include: { performance: true },
+    include: {
+      performance: true,
+      priceSnapshots: { orderBy: { createdAt: "asc" } },
+    },
     orderBy: { createdAt: "asc" },
   });
 
-  console.log(`[snapshots] Found ${tickers.length} eligible tickers from last 35 days`);
+  console.log(`[snapshots] Found ${tickers.length} eligible tickers from last ${TRACKING_DAYS + 5} days`);
 
-  // 2. Determine which tickers need which intervals filled
-  type PendingUpdate = {
-    tickerId: string;
-    validatedTickerId: string;
-    symbol: string;
-    detectionPrice: number;
-    intervals: IntervalConfig[];
-  };
+  // 2. Filter to tickers that still need tracking (within 30 days of detection)
+  const trackable = tickers.filter((t) => {
+    const ageMs = now.getTime() - new Date(t.createdAt).getTime();
+    const ageDays = ageMs / (1000 * 60 * 60 * 24);
+    return ageDays <= TRACKING_DAYS;
+  });
 
-  const pendingUpdates: PendingUpdate[] = [];
-  const symbolsNeeded = new Set<string>();
-
-  for (const ticker of tickers) {
-    const ageMs = now.getTime() - new Date(ticker.createdAt).getTime();
-    const ageHours = ageMs / (1000 * 60 * 60);
-    const perf = ticker.performance;
-
-    const dueIntervals = INTERVALS.filter((iv) => {
-      if (ageHours < iv.minHours || ageHours > iv.maxHours) return false;
-      if (perf && perf[iv.snappedField] != null) return false;
-      return true;
-    });
-
-    if (dueIntervals.length === 0) {
-      stats.skipped++;
-      continue;
-    }
-
-    pendingUpdates.push({
-      tickerId: perf?.id ?? "",
-      validatedTickerId: ticker.id,
-      symbol: ticker.symbol,
-      detectionPrice: ticker.price!,
-      intervals: dueIntervals,
-    });
-    symbolsNeeded.add(ticker.symbol);
-  }
-
-  if (pendingUpdates.length === 0) {
-    console.log("[snapshots] No intervals due for any ticker");
+  if (trackable.length === 0) {
+    console.log("[snapshots] No tickers within tracking window");
     return stats;
   }
 
-  console.log(`[snapshots] ${pendingUpdates.length} tickers with due intervals, fetching ${symbolsNeeded.size} unique symbols`);
+  const symbols = [...new Set(trackable.map((t) => t.symbol))];
+  console.log(`[snapshots] ${trackable.length} tickers within ${TRACKING_DAYS}d window, fetching ${symbols.length} unique symbols`);
 
   // 3. Batch-fetch current prices
-  const prices = await fetchPricesBatch([...symbolsNeeded]);
-  console.log(`[snapshots] Fetched prices for ${prices.size}/${symbolsNeeded.size} symbols`);
+  const prices = await fetchPricesBatch(symbols);
+  console.log(`[snapshots] Fetched prices for ${prices.size}/${symbols.length} symbols`);
 
   // 4. Dev DB mirroring
   const devPrisma = createDevPrismaClient();
 
-  // 5. Update each ticker's performance record
-  for (const pending of pendingUpdates) {
-    const currentPrice = prices.get(pending.symbol);
+  // 5. Create snapshot + update returns for each ticker
+  for (const ticker of trackable) {
+    const currentPrice = prices.get(ticker.symbol);
     if (currentPrice == null) {
-      console.warn(`[snapshots] No price for ${pending.symbol}, skipping`);
+      console.warn(`[snapshots] No price for ${ticker.symbol}, skipping`);
       stats.errors++;
       continue;
     }
 
     try {
-      const updateData: Record<string, number | Date> = {};
-      for (const iv of pending.intervals) {
-        updateData[iv.priceField] = currentPrice;
-        updateData[iv.returnField] = (currentPrice - pending.detectionPrice) / pending.detectionPrice;
-        updateData[iv.snappedField] = now;
-      }
-
-      const result = await prisma.tickerPerformance.upsert({
-        where: { validatedTickerId: pending.validatedTickerId },
-        create: {
-          validatedTickerId: pending.validatedTickerId,
-          symbol: pending.symbol,
-          detectionPrice: pending.detectionPrice,
-          ...updateData,
+      // Create a new price snapshot
+      const snapshot = await prisma.priceSnapshot.create({
+        data: {
+          validatedTickerId: ticker.id,
+          symbol: ticker.symbol,
+          price: currentPrice,
         },
-        update: updateData,
       });
 
       stats.filled++;
 
+      // Compute returns from all snapshots (including the one we just created)
+      const allSnapshots = [...ticker.priceSnapshots, { price: currentPrice, createdAt: now }];
+      const detectionPrice = ticker.price!;
+      const detectedAt = new Date(ticker.createdAt);
+      const returns = computeReturnsFromSnapshots(allSnapshots, detectionPrice, detectedAt, now);
+
+      // Update TickerPerformance with computed returns
+      const updateData: Record<string, number | Date> = {};
+      if (returns.return1d != null) {
+        updateData.price1d = returns.price1d!;
+        updateData.return1d = returns.return1d;
+        updateData.snapped1dAt = returns.snapped1dAt!;
+      }
+      if (returns.return3d != null) {
+        updateData.price3d = returns.price3d!;
+        updateData.return3d = returns.return3d;
+        updateData.snapped3dAt = returns.snapped3dAt!;
+      }
+      if (returns.return7d != null) {
+        updateData.price7d = returns.price7d!;
+        updateData.return7d = returns.return7d;
+        updateData.snapped7dAt = returns.snapped7dAt!;
+      }
+      if (returns.return30d != null) {
+        updateData.price30d = returns.price30d!;
+        updateData.return30d = returns.return30d;
+        updateData.snapped30dAt = returns.snapped30dAt!;
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await prisma.tickerPerformance.upsert({
+          where: { validatedTickerId: ticker.id },
+          create: {
+            validatedTickerId: ticker.id,
+            symbol: ticker.symbol,
+            detectionPrice,
+            ...updateData,
+          },
+          update: updateData,
+        });
+        stats.returnsUpdated++;
+      }
+
       // Mirror to dev DB
       if (devPrisma) {
         try {
-          await devPrisma.tickerPerformance.upsert({
-            where: { validatedTickerId: pending.validatedTickerId },
-            create: {
-              id: result.id,
-              validatedTickerId: pending.validatedTickerId,
-              symbol: pending.symbol,
-              detectionPrice: pending.detectionPrice,
-              ...updateData,
+          await devPrisma.priceSnapshot.create({
+            data: {
+              id: snapshot.id,
+              validatedTickerId: ticker.id,
+              symbol: ticker.symbol,
+              price: currentPrice,
             },
-            update: updateData,
           });
+          if (Object.keys(updateData).length > 0) {
+            await devPrisma.tickerPerformance.upsert({
+              where: { validatedTickerId: ticker.id },
+              create: {
+                validatedTickerId: ticker.id,
+                symbol: ticker.symbol,
+                detectionPrice,
+                ...updateData,
+              },
+              update: updateData,
+            });
+          }
         } catch (devErr) {
           console.warn(
-            `[snapshots] Dev DB write failed for ${pending.symbol}:`,
+            `[snapshots] Dev DB write failed for ${ticker.symbol}:`,
             devErr instanceof Error ? devErr.message : devErr
           );
         }
       }
     } catch (err) {
       console.error(
-        `[snapshots] Failed to update ${pending.symbol}:`,
+        `[snapshots] Failed to update ${ticker.symbol}:`,
         err instanceof Error ? err.message : err
       );
       stats.errors++;
@@ -177,6 +178,6 @@ export async function collectSnapshots(): Promise<{ filled: number; errors: numb
     await (devPrisma as PrismaClient).$disconnect();
   }
 
-  console.log(`[snapshots] Done: ${stats.filled} filled, ${stats.errors} errors, ${stats.skipped} skipped`);
+  console.log(`[snapshots] Done: ${stats.filled} snapshots, ${stats.returnsUpdated} returns updated, ${stats.errors} errors, ${stats.skipped} skipped`);
   return stats;
 }

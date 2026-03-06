@@ -134,6 +134,7 @@ model ValidatedTicker {
   pndAiReasoning      String?     @db.Text
   createdAt           DateTime    @default(now())
   performance      TickerPerformance?
+  priceSnapshots   PriceSnapshot[]
 
   @@unique([scanId, symbol])
   @@index([symbol])
@@ -166,6 +167,18 @@ model TickerPerformance {
 
   @@index([symbol])
   @@index([createdAt])
+}
+
+model PriceSnapshot {
+  id                String          @id @default(cuid())
+  validatedTickerId String
+  validatedTicker   ValidatedTicker @relation(fields: [validatedTickerId], references: [id], onDelete: Cascade)
+  symbol            String
+  price             Float
+  createdAt         DateTime        @default(now())
+
+  @@index([validatedTickerId, createdAt])
+  @@index([symbol, createdAt])
 }
 
 enum TickerStage {
