@@ -8,6 +8,14 @@ import Link from "next/link";
 /*  Login Page / Landing Page                                          */
 /* ------------------------------------------------------------------ */
 
+const howItWorksSteps = [
+  { step: "1", label: "Discover", desc: "Monitor public posts on Reddit, X/Twitter, SEC filings, and volume data for ticker mentions." },
+  { step: "2", label: "Aggregate", desc: "Group signals by symbol, count sources, and calculate mention velocity." },
+  { step: "3", label: "Score", desc: "AI models evaluate breakout potential with confidence scores and reasoning." },
+  { step: "4", label: "Filter", desc: "11 statistical flags plus AI assessment catch pump-and-dump schemes." },
+  { step: "5", label: "Validate", desc: "Surviving tickers get fundamentals, a report, and enter the dashboard." },
+];
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -212,6 +220,13 @@ export default function LoginPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
                 ),
               },
+              {
+                title: "ML backtesting",
+                desc: "XGBoost gradient boosting with SHAP analysis continuously refines scoring thresholds as data grows.",
+                icon: (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.745 3A23.933 23.933 0 0 0 3 12c0 3.183.62 6.22 1.745 9M19.255 3C20.38 5.78 21 8.817 21 12s-.62 6.22-1.745 9m-13.46-3.03a15.932 15.932 0 0 1-1.5-5.97c0-2.12.413-4.14 1.16-5.986m10.09 11.956a15.932 15.932 0 0 0 1.5-5.97c0-2.12-.413-4.14-1.16-5.986M12 12h.008v.008H12V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+                ),
+              },
             ].map(({ title, desc, icon }) => (
               <div
                 key={title}
@@ -244,13 +259,7 @@ export default function LoginPage() {
           <div className="relative mx-auto max-w-xs sm:hidden">
             {/* Vertical connector line */}
             <div className="absolute left-5 top-6 bottom-6 w-0.5 bg-blue-200" />
-            {[
-              { step: "1", label: "Discover", desc: "Monitor public posts on Reddit, X/Twitter, SEC filings, and volume data for ticker mentions." },
-              { step: "2", label: "Aggregate", desc: "Group signals by symbol, count sources, and calculate mention velocity." },
-              { step: "3", label: "Score", desc: "AI models evaluate breakout potential with confidence scores and reasoning." },
-              { step: "4", label: "Filter", desc: "11 statistical flags plus AI assessment catch pump-and-dump schemes." },
-              { step: "5", label: "Validate", desc: "Surviving tickers get fundamentals, a report, and enter the dashboard." },
-            ].map(({ step, label, desc }) => (
+            {howItWorksSteps.map(({ step, label, desc }) => (
               <div key={label} className="relative flex items-start gap-4 py-3">
                 <span className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
                   {step}
@@ -265,13 +274,7 @@ export default function LoginPage() {
 
           {/* Desktop: horizontal pipeline */}
           <div className="hidden sm:grid sm:grid-cols-5">
-            {[
-              { step: "1", label: "Discover", desc: "Monitor public posts on Reddit, X/Twitter, SEC filings, and volume data for ticker mentions." },
-              { step: "2", label: "Aggregate", desc: "Group signals by symbol, count sources, and calculate mention velocity." },
-              { step: "3", label: "Score", desc: "AI models evaluate breakout potential with confidence scores and reasoning." },
-              { step: "4", label: "Filter", desc: "11 statistical flags plus AI assessment catch pump-and-dump schemes." },
-              { step: "5", label: "Validate", desc: "Surviving tickers get fundamentals, a report, and enter the dashboard." },
-            ].map(({ step, label, desc }, i) => (
+            {howItWorksSteps.map(({ step, label, desc }, i) => (
               <div key={label} className="relative flex flex-col items-center text-center px-4 py-6">
                 {/* Connector line */}
                 {i < 4 && (
@@ -342,6 +345,47 @@ export default function LoginPage() {
                 <p className="text-sm leading-relaxed text-gray-500">{desc}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── ML Backtesting ───────────────────────────────────────── */}
+      <section className="bg-gray-50 py-12 md:py-20">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <h2 className="mb-3 text-center text-2xl font-bold text-gray-900 md:text-3xl">
+            Continuously learning with AI
+          </h2>
+          <p className="mx-auto mb-8 max-w-2xl text-center text-sm text-gray-500 md:mb-12 md:text-base">
+            SignalScope doesn&apos;t just detect signals — it measures what happens next and feeds the results back into the model.
+          </p>
+
+          <div className="mx-auto max-w-4xl">
+            {/* Pipeline diagram */}
+            <div className="mb-8 flex flex-col items-center gap-2 sm:flex-row sm:justify-center sm:gap-0 md:mb-12">
+              {[
+                { label: "Track prices", sub: "Automated snapshots at open & close" },
+                { label: "Measure returns", sub: "1d, 3d, 7d, 30d after detection" },
+                { label: "Train model", sub: "XGBoost gradient boosted ML" },
+                { label: "Optimize", sub: "Refine thresholds & filters" },
+              ].map(({ label, sub }, i) => (
+                <div key={label} className="flex items-center gap-2 sm:flex-col sm:gap-0">
+                  {i > 0 && (
+                    <>
+                      <span className="text-blue-400 sm:hidden">↓</span>
+                      <span className="hidden text-blue-400 sm:mb-2 sm:block">→</span>
+                    </>
+                  )}
+                  <div className="rounded-lg border border-blue-200 bg-white px-4 py-3 text-center shadow-sm sm:mx-2 sm:w-40">
+                    <p className="text-sm font-semibold text-gray-900">{label}</p>
+                    <p className="mt-0.5 text-xs text-gray-500">{sub}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-center text-sm text-gray-500">
+              Every signal&apos;s real-world outcome is tracked and fed back into the model — so scoring, filtering, and stage assignments get smarter over time.
+            </p>
           </div>
         </div>
       </section>

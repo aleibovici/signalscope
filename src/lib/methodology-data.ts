@@ -183,6 +183,22 @@ export const pndDescription =
   "triggers ≥3 flags is moved to FILTERED status and quarantined. Exactly " +
   "2 flags triggers an additional AI edge-case assessment.";
 
+export const backtestDescription =
+  "SignalScope tracks the real-world performance of every signal it generates. Twice-daily price snapshots " +
+  "measure returns at 1, 3, 7, and 30 days after detection, building a growing dataset that feeds into an " +
+  "XGBoost gradient boosted machine learning model. The model analyzes dozens of features per ticker and uses " +
+  "SHAP (SHapley Additive exPlanations) to understand which factors drive accuracy. These insights are used " +
+  "to continuously refine AI score thresholds, stage assignments, and pump-and-dump detection — so the " +
+  "platform gets smarter with every scan.";
+
+export const backtestPipeline = [
+  "Price snapshots (open & close)",
+  "Return computation (1d, 3d, 7d, 30d)",
+  "Feature engineering",
+  "XGBoost training + SHAP analysis",
+  "Threshold optimization",
+] as const;
+
 export const disclaimer =
   "SignalScope is for informational purposes only and does not constitute financial advice. " +
   "Always do your own research before making any investment decisions.";
