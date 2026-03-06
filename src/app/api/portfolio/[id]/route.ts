@@ -18,6 +18,7 @@ export async function PATCH(
     const updateData: Record<string, unknown> = {};
     if (data.status) updateData.status = data.status;
     if (data.closePrice !== undefined) updateData.closePrice = data.closePrice;
+    if (data.entryPrice !== undefined) updateData.entryPrice = data.entryPrice;
     if (data.notes !== undefined) updateData.notes = data.notes;
     if (data.shares !== undefined) updateData.shares = data.shares;
     if (data.status === "CLOSED") updateData.closedAt = new Date();

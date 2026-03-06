@@ -7,10 +7,12 @@ import type { PositionData } from "@/hooks/use-portfolio";
 export function PositionCard({
   position,
   onClose,
+  onEdit,
   onDelete,
 }: {
   position: PositionData;
   onClose: (id: string) => void;
+  onEdit: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
   const isOpen = position.status === "OPEN";
@@ -82,22 +84,28 @@ export function PositionCard({
           <p className="text-xs text-gray-500">{position.notes}</p>
         )}
 
-        {isOpen && (
-          <div className="flex gap-2">
+        <div className="flex gap-2">
+          {isOpen && (
             <button
               onClick={() => onClose(position.id)}
               className="rounded bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-200"
             >
               Close Position
             </button>
-            <button
-              onClick={() => onDelete(position.id)}
-              className="rounded px-3 py-1.5 text-xs text-red-600 hover:bg-red-50"
-            >
-              Delete
-            </button>
-          </div>
-        )}
+          )}
+          <button
+            onClick={() => onEdit(position.id)}
+            className="rounded bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-200"
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => onDelete(position.id)}
+            className="rounded px-3 py-1.5 text-xs text-red-600 hover:bg-red-50"
+          >
+            Delete
+          </button>
+        </div>
       </CardContent>
     </Card>
   );

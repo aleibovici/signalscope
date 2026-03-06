@@ -19,6 +19,7 @@ export const addPositionSchema = z.object({
 export const updatePositionSchema = z.object({
   status: z.enum(["OPEN", "CLOSED"]).optional(),
   closePrice: z.number().positive().optional(),
+  entryPrice: z.number().positive().optional(),
   notes: z.string().max(500).optional(),
   shares: z.number().positive().optional(),
 }).refine(
