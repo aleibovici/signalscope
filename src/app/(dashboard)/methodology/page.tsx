@@ -11,8 +11,23 @@ import {
   aggregationDescription,
   scoringDescription,
   pndDescription,
+  backtestDescription,
+  backtestPipeline,
   disclaimer,
 } from "@/lib/methodology-data";
+
+function PipelineStrip({ steps, pillClass }: { steps: readonly string[]; pillClass: string }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
+      {steps.map((step, i) => (
+        <div key={step} className="flex items-center gap-2">
+          <span className={`rounded-full px-3 py-1 ${pillClass}`}>{step}</span>
+          {i < steps.length - 1 && <span className="text-gray-400">→</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function MethodologyPage() {
   return (
@@ -26,14 +41,7 @@ export default function MethodologyPage() {
       {/* Pipeline strip */}
       <Card>
         <CardContent>
-          <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
-            {pipelineSteps.map((step, i) => (
-              <div key={step} className="flex items-center gap-2">
-                <span className="rounded-full bg-blue-100 px-3 py-1 text-blue-800">{step}</span>
-                {i < pipelineSteps.length - 1 && <span className="text-gray-400">→</span>}
-              </div>
-            ))}
-          </div>
+          <PipelineStrip steps={pipelineSteps} pillClass="bg-blue-100 text-blue-800" />
         </CardContent>
       </Card>
 
@@ -184,6 +192,19 @@ export default function MethodologyPage() {
               </div>
             ))}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* ML Backtesting */}
+      <Card>
+        <CardHeader>
+          <h2 className="text-base font-semibold text-gray-900">ML Backtesting &amp; Continuous Improvement</h2>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-gray-600">{backtestDescription}</p>
+
+          <PipelineStrip steps={backtestPipeline} pillClass="bg-indigo-100 text-indigo-800" />
+
         </CardContent>
       </Card>
 
