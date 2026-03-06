@@ -90,6 +90,7 @@ export async function POST(request: NextRequest) {
         name: user.name,
         username: user.username,
         role: user.role,
+        emailAlerts: user.emailAlerts,
       },
     });
   } catch (error) {
