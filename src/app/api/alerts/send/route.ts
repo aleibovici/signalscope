@@ -2,7 +2,16 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendConfirmedTickerAlerts } from "@/lib/email";
 
-export async function POST() {
+export async function POST(req: Request) {
+  const secret = req.headers.get("x-cron-secret");
+  const expectedSecret = process.env.CRON_SECRET;
+  if (!expectedSecret) {
+    return NextResponse.json({ error: "Endpoint not configured" }, { status: 503 });
+  }
+  if (secret !== expectedSecret) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   // Find the most recent completed scan
   const scan = await prisma.scan.findFirst({
     where: { status: "COMPLETED" },
