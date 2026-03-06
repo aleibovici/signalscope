@@ -11,6 +11,8 @@ import {
   aggregationDescription,
   scoringDescription,
   pndDescription,
+  backtestDescription,
+  backtestPipeline,
   disclaimer,
 } from "@/lib/methodology-data";
 
@@ -34,6 +36,10 @@ export async function GET() {
     },
     signalStages,
     recommendationLevels,
+    backtesting: {
+      description: backtestDescription,
+      pipeline: [...backtestPipeline],
+    },
     disclaimer,
   });
 }
