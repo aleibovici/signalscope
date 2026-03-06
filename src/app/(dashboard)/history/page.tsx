@@ -7,6 +7,8 @@ import { Spinner } from "@/components/ui/spinner";
 import Link from "next/link";
 
 const PAGE_SIZE = 10;
+const filterInputClass =
+  "h-9 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
 
 export default function HistoryPage() {
   const [page, setPage] = useState(1);
@@ -38,7 +40,7 @@ export default function HistoryPage() {
           <select
             value={filters.status || ""}
             onChange={(e) => updateFilter({ status: e.target.value || undefined })}
-            className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className={filterInputClass}
           >
             <option value="">All</option>
             <option value="COMPLETED">Completed</option>
@@ -53,7 +55,7 @@ export default function HistoryPage() {
             type="date"
             value={filters.from || ""}
             onChange={(e) => updateFilter({ from: e.target.value || undefined })}
-            className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className={filterInputClass}
           />
         </div>
 
@@ -63,7 +65,7 @@ export default function HistoryPage() {
             type="date"
             value={filters.to || ""}
             onChange={(e) => updateFilter({ to: e.target.value || undefined })}
-            className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className={filterInputClass}
           />
         </div>
 
