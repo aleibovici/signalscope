@@ -108,7 +108,9 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 
 Dashboard pages: signals (main), portfolio, history, ticker detail, performance, methodology, profile, subscription. Uses route group `(dashboard)` with shared sidebar layout.
 
-Methodology page data is in `src/lib/methodology-data.ts` (shared between the page component and `GET /api/methodology`).
+Methodology page data is in `src/lib/methodology-data.ts` (shared between the page component and `GET /api/methodology`). Includes ML backtesting description and pipeline data (`backtestDescription`, `backtestPipeline`).
+
+Landing page (`src/app/(auth)/login/page.tsx`) doubles as the public marketing page with hero, features grid, "How It Works" pipeline, signal sources, ML backtesting section, and footer. The login form is embedded in the hero section.
 
 All data fetching hooks are in `src/hooks/` using TanStack Query mutations/queries.
 
@@ -295,6 +297,18 @@ Key gotchas:
 - TICKER_REGEX is `{1,5}` — 6+ char words never match
 - P&D threshold: `flags.length >= 3` to flag as pump-and-dump
 - `coordinated_posts`: duplicateRatio = `1 - uniqueTitles/totalTitles >= 0.5`
+
+## SEO
+
+All SEO metadata lives in Next.js metadata exports. When adding features, update descriptions across all files to stay consistent:
+
+- `src/app/layout.tsx` — Root metadata (title, description, keywords, openGraph, twitter, JSON-LD structured data)
+- `src/app/(auth)/login/layout.tsx` — Login page meta (description, OG)
+- `src/app/(auth)/register/layout.tsx` — Register page meta (description, OG)
+- `src/app/opengraph-image.tsx` — Dynamic OG image (rendered at build time)
+- `src/app/manifest.ts` — PWA manifest (name, description)
+- `src/app/sitemap.ts` — XML sitemap (public pages only)
+- `src/app/robots.ts` — robots.txt (allows `/`, `/login`, `/register`; disallows dashboard/API)
 
 ## API Error Handling
 
