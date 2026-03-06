@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth";
+import { handleApiError } from "@/lib/api-error";
 
 const VALID_DAYS = new Set([1, 3, 7, 30]);
 
@@ -37,7 +38,6 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: { createdAt: "asc" },
-      take: 1000,
     });
 
     if (records.length === 0) {
@@ -142,10 +142,6 @@ export async function GET(request: NextRequest) {
       worstPerformers,
     });
   } catch (err) {
-    if (err instanceof Error && err.message === "Not authenticated") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    console.error("[/api/performance] GET error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return handleApiError(err);
   }
 }
