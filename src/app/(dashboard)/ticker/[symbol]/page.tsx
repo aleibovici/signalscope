@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTickerDetail, useTickerHistory } from "@/hooks/use-scans";
 import { useTickerPerformance } from "@/hooks/use-performance";
@@ -19,6 +19,8 @@ export default function TickerDetailPage() {
   const { data: bookmarkedSymbols = new Set<string>() } = useWatchlist();
   const { mutate: toggleWatchlist } = useToggleWatchlist();
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [showAllHistory, setShowAllHistory] = useState(false);
+  const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
   const [signalsOpen, setSignalsOpen] = useState(false);
   const [livePrice, setLivePrice] = useState<number | null | undefined>(undefined);
   const [priceRefreshing, setPriceRefreshing] = useState(false);
@@ -283,50 +285,163 @@ export default function TickerDetailPage() {
                   }),
                 }))}
               />
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-100 text-left text-xs text-gray-500">
-                      <th className="pb-2 pr-4 font-medium">Date</th>
-                      <th className="pb-2 pr-4 font-medium">Score</th>
-                      <th className="pb-2 pr-4 font-medium">Stage</th>
-                      <th className="pb-2 font-medium">Price</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[...historyData.history].reverse().map((h) => (
-                      <tr key={h.scanId} className="border-b border-gray-50">
-                        <td className="py-1.5 pr-4 text-gray-600">
-                          {new Date(h.startedAt).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                        </td>
-                        <td className="py-1.5 pr-4 font-semibold text-blue-600">
-                          {h.aiScore}
-                        </td>
-                        <td className="py-1.5 pr-4">
-                          <Badge
-                            variant={
-                              h.stage === "CONFIRMED"
-                                ? "success"
-                                : h.stage === "FORMING"
-                                  ? "warning"
-                                  : "info"
-                            }
-                          >
-                            {h.stage}
-                          </Badge>
-                        </td>
-                        <td className="py-1.5 text-gray-600">
-                          {h.price ? `$${h.price.toFixed(2)}` : "—"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              {(() => {
+                const reversed = [...historyData.history].reverse();
+                const stageOrder: Record<string, number> = { CONFIRMED: 3, FORMING: 2, EARLY: 1, FILTERED: 0 };
+                const grouped = reversed.reduce<
+                  { dateKey: string; label: string; best: typeof reversed[0]; entries: typeof reversed }[]
+                >((acc, h) => {
+                  const dateKey = new Date(h.startedAt).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  });
+                  let group = acc.find((g) => g.dateKey === dateKey);
+                  if (!group) {
+                    group = { dateKey, label: dateKey, best: h, entries: [] };
+                    acc.push(group);
+                  }
+                  group.entries.push(h);
+                  if (
+                    h.aiScore > group.best.aiScore ||
+                    (h.aiScore === group.best.aiScore &&
+                      (stageOrder[h.stage] ?? 0) > (stageOrder[group.best.stage] ?? 0))
+                  ) {
+                    group.best = h;
+                  }
+                  return acc;
+                }, []);
+
+                const INITIAL_DAYS = 7;
+                const visibleGroups = showAllHistory ? grouped : grouped.slice(0, INITIAL_DAYS);
+                const hasMore = grouped.length > INITIAL_DAYS;
+
+                return (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-100 text-left text-xs text-gray-500">
+                          <th className="pb-2 pr-4 font-medium">Date</th>
+                          <th className="pb-2 pr-4 font-medium">Best Score</th>
+                          <th className="pb-2 pr-4 font-medium">Stage</th>
+                          <th className="pb-2 pr-4 font-medium">Price</th>
+                          <th className="pb-2 font-medium">Scans</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {visibleGroups.map((group) => {
+                          const isExpanded = expandedDates.has(group.dateKey);
+                          const hasMultiple = group.entries.length > 1;
+                          return (
+                            <Fragment key={group.dateKey}>
+                              <tr
+                                className={`border-b border-gray-50 ${hasMultiple ? "cursor-pointer hover:bg-gray-50" : ""}`}
+                                onClick={
+                                  hasMultiple
+                                    ? () =>
+                                        setExpandedDates((prev) => {
+                                          const next = new Set(prev);
+                                          if (next.has(group.dateKey)) next.delete(group.dateKey);
+                                          else next.add(group.dateKey);
+                                          return next;
+                                        })
+                                    : undefined
+                                }
+                              >
+                                <td className="py-1.5 pr-4 text-gray-600">
+                                  {group.label}
+                                </td>
+                                <td className="py-1.5 pr-4 font-semibold text-blue-600">
+                                  {group.best.aiScore}
+                                </td>
+                                <td className="py-1.5 pr-4">
+                                  <Badge
+                                    variant={
+                                      group.best.stage === "CONFIRMED"
+                                        ? "success"
+                                        : group.best.stage === "FORMING"
+                                          ? "warning"
+                                          : "info"
+                                    }
+                                  >
+                                    {group.best.stage}
+                                  </Badge>
+                                </td>
+                                <td className="py-1.5 pr-4 text-gray-600">
+                                  {group.best.price ? `$${group.best.price.toFixed(2)}` : "—"}
+                                </td>
+                                <td className="py-1.5 text-gray-500">
+                                  {hasMultiple ? (
+                                    <span className="inline-flex items-center gap-1">
+                                      {group.entries.length}
+                                      <svg
+                                        className={`h-3 w-3 transition-transform duration-150 ${isExpanded ? "rotate-180" : ""}`}
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        strokeWidth={2}
+                                      >
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                      </svg>
+                                    </span>
+                                  ) : (
+                                    "1"
+                                  )}
+                                </td>
+                              </tr>
+                              {isExpanded &&
+                                group.entries.map((h) => (
+                                  <tr
+                                    key={h.scanId}
+                                    className="border-b border-gray-50 bg-gray-50/50"
+                                  >
+                                    <td className="py-1 pr-4 pl-4 text-xs text-gray-400">
+                                      {new Date(h.startedAt).toLocaleTimeString("en-US", {
+                                        hour: "numeric",
+                                        minute: "2-digit",
+                                      })}
+                                    </td>
+                                    <td className="py-1 pr-4 text-sm text-blue-500">
+                                      {h.aiScore}
+                                    </td>
+                                    <td className="py-1 pr-4">
+                                      <Badge
+                                        variant={
+                                          h.stage === "CONFIRMED"
+                                            ? "success"
+                                            : h.stage === "FORMING"
+                                              ? "warning"
+                                              : "info"
+                                        }
+                                      >
+                                        {h.stage}
+                                      </Badge>
+                                    </td>
+                                    <td className="py-1 pr-4 text-xs text-gray-500">
+                                      {h.price ? `$${h.price.toFixed(2)}` : "—"}
+                                    </td>
+                                    <td />
+                                  </tr>
+                                ))}
+                            </Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                    {hasMore && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllHistory((v) => !v)}
+                        className="mt-3 w-full text-center text-sm text-blue-600 hover:underline"
+                      >
+                        {showAllHistory
+                          ? "Show recent only"
+                          : `Show all ${grouped.length} days`}
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           )}
         </CardContent>
