@@ -6,8 +6,6 @@ import { handleApiError } from "@/lib/api-error";
 export async function GET() {
   try {
     await getCurrentUserId();
-    // Dedup TickerPerformance by symbol (keep earliest detection per symbol)
-    // and exclude phantom Yahoo Finance prices (<= $0.01)
     const [scans, signals, tickerCount, users] =
       await Promise.all([
         prisma.scan.count({ where: { status: "COMPLETED" } }),
