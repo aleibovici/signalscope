@@ -4,6 +4,7 @@ import { getCurrentUserId } from "@/lib/auth";
 import { addPositionSchema } from "@/lib/validators";
 import { fetchCurrentPrices } from "@/lib/harvester/fundamentals";
 import { handleApiError } from "@/lib/api-error";
+import { verifyPriceAgainstSnapshot } from "@/lib/price-verification";
 
 export async function GET() {
   try {
@@ -43,6 +44,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const data = addPositionSchema.parse(body);
 
+    const verified = await verifyPriceAgainstSnapshot(data.symbol, data.entryPrice);
+
     const position = await prisma.userPosition.create({
       data: {
         userId,
@@ -50,6 +53,7 @@ export async function POST(request: NextRequest) {
         entryPrice: data.entryPrice,
         shares: data.shares,
         notes: data.notes,
+        verified,
       },
     });
 

@@ -37,6 +37,7 @@ function makePosition(
     status?: "OPEN" | "CLOSED";
     closePrice?: number | null;
     openedAt?: Date;
+    verified?: boolean;
   } = {}
 ) {
   return {
@@ -47,6 +48,7 @@ function makePosition(
     shares: 10,
     notes: null,
     status: opts.status ?? "OPEN",
+    verified: opts.verified ?? true,
     closePrice: opts.closePrice ?? null,
     openedAt: opts.openedAt ?? daysAgo(1),
     closedAt: opts.status === "CLOSED" ? daysAgo(0) : null,
@@ -99,6 +101,7 @@ describe("GET /api/leaderboard", () => {
       winRate: 1,
       bestSymbol: "AAPL",
       bestGainPct: 10,
+      verifiedRate: 1,
     });
     expect(body.total).toBe(1);
   });
@@ -288,6 +291,43 @@ describe("GET /api/leaderboard", () => {
 
     expect(res.status).toBe(500);
     expect(body.error).toBe("Internal server error");
+  });
+
+  it("computes verifiedRate as ratio of verified positions", async () => {
+    mockFindManyPositions.mockResolvedValue([
+      makePosition("u1", "trader", "AAPL", 100, { status: "CLOSED", closePrice: 120, verified: true }),
+      makePosition("u1", "trader", "NVDA", 100, { status: "CLOSED", closePrice: 110, verified: false }),
+      makePosition("u1", "trader", "TSLA", 100, { status: "CLOSED", closePrice: 130, verified: true }),
+      makePosition("u1", "trader", "AMD", 100, { status: "CLOSED", closePrice: 105, verified: false }),
+    ]);
+
+    const res = await GET(makeRequest());
+    const body = await res.json();
+
+    expect(body.leaderboard[0].verifiedRate).toBe(0.5); // 2 of 4 verified
+  });
+
+  it("shows verifiedRate 1 when all positions are verified", async () => {
+    mockFindManyPositions.mockResolvedValue([
+      makePosition("u1", "trader", "AAPL", 100, { status: "CLOSED", closePrice: 120, verified: true }),
+      makePosition("u1", "trader", "NVDA", 100, { status: "CLOSED", closePrice: 110, verified: true }),
+    ]);
+
+    const res = await GET(makeRequest());
+    const body = await res.json();
+
+    expect(body.leaderboard[0].verifiedRate).toBe(1);
+  });
+
+  it("shows verifiedRate 0 when no positions are verified", async () => {
+    mockFindManyPositions.mockResolvedValue([
+      makePosition("u1", "trader", "AAPL", 100, { status: "CLOSED", closePrice: 120, verified: false }),
+    ]);
+
+    const res = await GET(makeRequest());
+    const body = await res.json();
+
+    expect(body.leaderboard[0].verifiedRate).toBe(0);
   });
 
   it("fetches positions within 30d window", async () => {

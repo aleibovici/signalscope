@@ -197,6 +197,7 @@ model UserPosition {
   shares     Float?
   notes      String?
   status     PositionStatus @default(OPEN)
+  verified   Boolean        @default(true)
   openedAt   DateTime       @default(now())
   closedAt   DateTime?
   closePrice Float?

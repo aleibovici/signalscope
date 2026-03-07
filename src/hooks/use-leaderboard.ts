@@ -12,6 +12,7 @@ export interface LeaderboardEntry {
   winRate: number;
   bestSymbol: string;
   bestGainPct: number;
+  verifiedRate: number;
 }
 
 export interface LeaderboardResponse {
