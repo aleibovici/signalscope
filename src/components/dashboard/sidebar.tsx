@@ -10,6 +10,7 @@ import { TickerSearch } from "@/components/dashboard/ticker-search";
 
 const navItems = [
   { href: "/dashboard", label: "Signals", icon: "📡" },
+  { href: "/trending", label: "Trending", icon: "📈" },
   { href: "/portfolio", label: "Portfolio", icon: "💼" },
   { href: "/history", label: "Scan History", icon: "📊" },
   { href: "/performance", label: "Performance", icon: "🎯" },
