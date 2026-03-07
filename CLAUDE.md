@@ -12,7 +12,7 @@ SignalScope is a stock breakout signal detection platform. It harvests signals f
 npm run dev              # Next.js dev server (port 3000)
 npm run build            # Production build
 npm run lint             # ESLint
-npm test                 # Run Vitest unit tests (284 tests, 19 files)
+npm test                 # Run Vitest unit tests (300 tests, 20 files)
 npm run test:watch       # Vitest watch mode
 npm run db:generate      # Generate Prisma client (run after schema changes)
 npm run db:migrate       # Run Prisma migrations (dev)
@@ -82,6 +82,7 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 | `/api/scans/[scanId]` | GET | Scan detail with validated tickers |
 | `/api/signals` | GET | Signals filtered by scanId and stage |
 | `/api/tickers/trending` | GET | Cross-scan trending tickers (query: `minAppearances`, `stage`, `trend`) |
+| `/api/leaderboard` | GET | Portfolio leaderboard with 3d/7d/30d gain columns (query: `page`, `limit`) |
 | `/api/tickers/[symbol]` | GET | Latest ticker + raw signals |
 | `/api/tickers/[symbol]/history` | GET | Historical appearances for a ticker |
 | `/api/tickers/[symbol]/performance` | GET | Performance data for a ticker |
@@ -107,7 +108,7 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 
 ### Frontend (`src/app/(dashboard)/`)
 
-Dashboard pages: signals (main), trending, portfolio, history, ticker detail, performance, methodology, profile, subscription. Uses route group `(dashboard)` with shared sidebar layout.
+Dashboard pages: signals (main), trending, portfolio, leaderboard, history, ticker detail, performance, methodology, profile, subscription. Uses route group `(dashboard)` with shared sidebar layout.
 
 Methodology page data is in `src/lib/methodology-data.ts` (shared between the page component and `GET /api/methodology`). Includes ML backtesting description and pipeline data (`backtestDescription`, `backtestPipeline`).
 
@@ -293,6 +294,7 @@ gh workflow run "Deploy to Cloud Run" --ref main
 | `refresh-endpoint.test.ts` | `POST /api/auth/refresh` — token rotation, expired (401), revoked (401), non-existent (401), rate limiting (429) |
 | `snapshot-returns.test.ts` | `computeReturnsFromSnapshots` — all 4 periods, tolerance windows, weekend gaps, closest-match selection, progressive improvement, penny stocks, non-overlapping windows |
 | `trending-endpoint.test.ts` | `GET /api/tickers/trending` — empty results, response shape, trend computation (rising/falling/stable), trend filter, validation (minAppearances/stage/trend), sorting, pagination, summary before pagination, error handling |
+| `leaderboard-endpoint.test.ts` | `GET /api/leaderboard` — empty results, response shape, timeframe filtering, username exclusion, gain calc (open/closed), snapshot pricing, sorting, pagination, win rate, validation, auth required, best pick tracking |
 
 Key gotchas:
 - `BUY` is NOT in BLACKLIST (but `SELL`, `HOLD` are)
