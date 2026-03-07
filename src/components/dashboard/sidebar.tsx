@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { NextScanCountdown } from "@/components/dashboard/next-scan-countdown";
 import { StatsWidget } from "@/components/dashboard/stats-widget";
 import { TickerSearch } from "@/components/dashboard/ticker-search";
@@ -147,7 +147,18 @@ export function Sidebar({ revision }: { revision: string }) {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              signOut({ redirectTo: "/login" });
+              fetch("/api/auth/csrf")
+                .then((res) => res.json())
+                .then(({ csrfToken }) =>
+                  fetch("/api/auth/signout", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: new URLSearchParams({ csrfToken }),
+                  })
+                )
+                .finally(() => {
+                  window.location.href = "/login";
+                });
             }}
             className="w-full cursor-pointer touch-manipulation rounded-md px-3 py-2.5 text-left text-sm text-gray-600 hover:bg-gray-100 active:bg-gray-200"
           >
