@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth";
 import { updatePositionSchema } from "@/lib/validators";
 import { handleApiError } from "@/lib/api-error";
+import { verifyPriceAgainstSnapshot } from "@/lib/price-verification";
 
 export async function PATCH(
   request: NextRequest,
@@ -15,6 +16,15 @@ export async function PATCH(
     const body = await request.json();
     const data = updatePositionSchema.parse(body);
 
+    // Look up existing position for symbol (needed for price verification)
+    const existing = await prisma.userPosition.findFirst({
+      where: { id, userId },
+      select: { symbol: true },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Position not found" }, { status: 404 });
+    }
+
     const updateData: Record<string, unknown> = {};
     if (data.status) updateData.status = data.status;
     if (data.closePrice !== undefined) updateData.closePrice = data.closePrice;
@@ -25,6 +35,13 @@ export async function PATCH(
     if (data.status === "OPEN") {
       updateData.closedAt = null;
       updateData.closePrice = null;
+    }
+
+    // Re-verify if entry price or close price changed
+    if (data.entryPrice !== undefined || data.closePrice !== undefined) {
+      const priceToCheck = data.closePrice ?? data.entryPrice!;
+      const verified = await verifyPriceAgainstSnapshot(existing.symbol, priceToCheck);
+      updateData.verified = verified;
     }
 
     // Atomic: ownership check + update in one query — no TOCTOU window

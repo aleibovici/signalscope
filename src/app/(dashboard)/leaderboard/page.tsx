@@ -53,6 +53,7 @@ export default function LeaderboardPage() {
                     <th className="px-4 py-3 text-right">Positions</th>
                     <th className="px-4 py-3 text-right">Win Rate</th>
                     <th className="px-4 py-3">Best Pick</th>
+                    <th className="px-4 py-3 text-center">Verified</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -76,6 +77,21 @@ export default function LeaderboardPage() {
                         <span className={`ml-1.5 text-xs ${entry.bestGainPct >= 0 ? "text-green-600" : "text-red-600"}`}>
                           {entry.bestGainPct >= 0 ? "+" : ""}{entry.bestGainPct.toFixed(1)}%
                         </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {entry.verifiedRate === 1 ? (
+                          <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700" title="All prices verified against market data">
+                            Verified
+                          </span>
+                        ) : entry.verifiedRate >= 0.5 ? (
+                          <span className="inline-flex items-center rounded-full bg-yellow-50 px-2 py-0.5 text-xs font-medium text-yellow-700" title={`${Math.round(entry.verifiedRate * 100)}% of prices verified`}>
+                            {Math.round(entry.verifiedRate * 100)}%
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500" title="Self-reported prices">
+                            Self-reported
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}

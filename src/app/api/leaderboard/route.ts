@@ -10,6 +10,7 @@ interface PositionGain {
   gainPct: number;
   symbol: string;
   openedAt: Date;
+  verified: boolean;
 }
 
 interface UserAgg {
@@ -114,7 +115,7 @@ export async function GET(request: NextRequest) {
         agg = { username: pos.user.username!, positions: [] };
         userMap.set(userId, agg);
       }
-      agg.positions.push({ gainPct, symbol: pos.symbol, openedAt: pos.openedAt });
+      agg.positions.push({ gainPct, symbol: pos.symbol, openedAt: pos.openedAt, verified: pos.verified });
     }
 
     // Build entries with stats for each timeframe
@@ -130,6 +131,10 @@ export async function GET(request: NextRequest) {
         }
         // Overall stats use 30d window (all positions)
         const all = computeStats(agg.positions);
+        const verifiedCount = agg.positions.filter((p) => p.verified).length;
+        const verifiedRate = agg.positions.length > 0
+          ? Math.round((verifiedCount / agg.positions.length) * 100) / 100
+          : 0;
         return {
           username: agg.username,
           gain3d: byTimeframe["3d"]?.avgGainPct ?? null,
@@ -139,6 +144,7 @@ export async function GET(request: NextRequest) {
           winRate: all?.winRate ?? 0,
           bestSymbol: all?.bestSymbol ?? "",
           bestGainPct: all?.bestGainPct ?? 0,
+          verifiedRate,
         };
       })
       .sort((a, b) => (b.gain7d ?? -Infinity) - (a.gain7d ?? -Infinity));
