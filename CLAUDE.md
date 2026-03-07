@@ -266,9 +266,14 @@ git push origin main
 
 ### CI/CD
 
-Push to `main` → GitHub Actions builds web image and pushes to Artifact Registry (`CI — Build & Push` workflow). To deploy to Cloud Run, manually trigger the `Deploy to Cloud Run` workflow:
+Push to `main` → GitHub Actions builds web image and pushes to Artifact Registry (`CI — Build & Push` workflow). To deploy to Cloud Run, manually trigger the `Deploy to Cloud Run` workflow.
+
+**IMPORTANT**: Always wait for the `CI — Build & Push` workflow to complete successfully before triggering `Deploy to Cloud Run`. The deploy pulls the latest image from Artifact Registry, so deploying before the build finishes will deploy the previous image. Use `gh run list --workflow="CI — Build & Push" --limit 1` to check build status.
 
 ```bash
+# 1. Wait for build to finish
+gh run list --workflow="CI — Build & Push" --limit 1
+# 2. Then deploy
 gh workflow run "Deploy to Cloud Run" --ref main
 ```
 
