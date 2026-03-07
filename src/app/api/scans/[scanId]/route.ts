@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUserId } from "@/lib/auth";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ scanId: string }> }
 ) {
   try {
+    await getCurrentUserId();
     const { scanId } = await params;
     const includeFiltered = request.nextUrl.searchParams.get("includeFiltered") === "true";
 
@@ -51,7 +54,6 @@ export async function GET(
 
     return NextResponse.json({ scan, tickers: tickersWithSources });
   } catch (err) {
-    console.error("[/api/scans/[scanId]] GET error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return handleApiError(err, "GET /api/scans/[scanId]");
   }
 }

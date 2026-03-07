@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Sign Up",
-  description: "Create a SignalScope account — get AI-scored stock breakout signals from Reddit, X/Twitter, SEC insider filings, and volume spikes, with cross-scan trending and ML backtesting.",
+  description: "Create a SignalScope account — get AI-scored stock breakout signals from Reddit, X/Twitter, SEC insider filings, and volume spikes, with cross-scan trending, ML backtesting, and an AI Agent Skill.",
   alternates: {
     canonical: "http://localhost:3000/register",
   },
   openGraph: {
     url: "http://localhost:3000/register",
     title: "Sign Up — SignalScope",
-    description: "Create a SignalScope account — get AI-scored stock breakout signals from Reddit, X/Twitter, SEC insider filings, and volume spikes, with cross-scan trending and ML backtesting.",
+    description: "Create a SignalScope account — get AI-scored stock breakout signals from Reddit, X/Twitter, SEC insider filings, and volume spikes, with cross-scan trending, ML backtesting, and an AI Agent Skill.",
   },
 };
 

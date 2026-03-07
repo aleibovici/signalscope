@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
+// Mock auth
+vi.mock("@/lib/auth", () => ({
+  getCurrentUserId: vi.fn().mockResolvedValue("user_1"),
+}));
+
 // Mock prisma
 const mockQueryRaw = vi.fn();
 const mockFindManyTicker = vi.fn();

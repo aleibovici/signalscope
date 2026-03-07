@@ -10,12 +10,8 @@ const publicPages = new Set(["/login", "/register"]);
 // /api/scans and /api/scans/abc but NOT /api/scans-admin
 const publicApiPrefixes = [
   "/api/auth",
-  "/api/scans",
-  "/api/signals",
-  "/api/tickers",
   "/api/health",
   "/api/alerts",
-  "/api/methodology",
   "/api/harvest",
   "/api/snapshots",
 ];
@@ -32,10 +28,11 @@ export default auth((req) => {
 
   if (isPublicPath(pathname)) return;
 
-  // Let mobile Bearer token requests through — real verification
+  // Let mobile Bearer token and API key requests through — real verification
   // happens in getCurrentUserId() inside route handlers
   const authHeader = req.headers.get("authorization");
   if (authHeader?.startsWith("Bearer ")) return;
+  if (req.headers.get("x-api-key")) return;
 
   if (!req.auth) {
     if (pathname.startsWith("/api/")) {
@@ -48,6 +45,6 @@ export default auth((req) => {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|txt|xml|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|txt|xml|ico|md)$).*)",
   ],
 };

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/lib/auth.config";
 import { isRateLimited } from "@/lib/rate-limit";
 import { verifyAccessToken } from "@/lib/mobile-jwt";
+import { createHash } from "crypto";
 
 const LOGIN_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const LOGIN_MAX_ATTEMPTS = 10;
@@ -47,8 +48,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 });
 
 export async function getCurrentUserId(): Promise<string> {
-  // Check for mobile Bearer token first
   const headerStore = await headers();
+
+  // 1. Check for mobile Bearer token
   const authHeader = headerStore.get("authorization");
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.slice(7);
@@ -57,7 +59,19 @@ export async function getCurrentUserId(): Promise<string> {
     throw new Error("Not authenticated");
   }
 
-  // Fall back to Auth.js cookie session
+  // 2. Check for API key
+  const apiKey = headerStore.get("x-api-key");
+  if (apiKey) {
+    const hash = createHash("sha256").update(apiKey).digest("hex");
+    const record = await prisma.apiKey.findUnique({ where: { key: hash } });
+    if (record && !record.revokedAt) {
+      prisma.apiKey.update({ where: { id: record.id }, data: { lastUsedAt: new Date() } }).catch(() => {});
+      return record.userId;
+    }
+    throw new Error("Not authenticated");
+  }
+
+  // 3. Fall back to Auth.js cookie session
   const session = await auth();
   if (!session?.user?.id) {
     throw new Error("Not authenticated");

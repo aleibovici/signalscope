@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUserId } from "@/lib/auth";
+import { handleApiError } from "@/lib/api-error";
 import { paginationSchema } from "@/lib/validators";
 
 const trendingSchema = paginationSchema.extend({
@@ -24,6 +26,7 @@ function computeTrend(scores: number[]): "rising" | "falling" | "stable" {
 
 export async function GET(request: NextRequest) {
   try {
+    await getCurrentUserId();
     const params = Object.fromEntries(request.nextUrl.searchParams);
     const parsed = trendingSchema.safeParse(params);
     if (!parsed.success) {
@@ -207,7 +210,6 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (err) {
-    console.error("[/api/tickers/trending] GET error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return handleApiError(err, "GET /api/tickers/trending");
   }
 }
