@@ -77,7 +77,7 @@ export default function LoginPage() {
               <span className="text-blue-300">before the crowd</span>
             </h1>
             <p className="mb-6 text-base leading-relaxed text-blue-100/90 md:mb-8 md:text-lg">
-              SignalScope monitors public market signals from Reddit, X/Twitter, SEC insider filings, and volume spikes — then uses AI to score, filter pump-and-dumps, and surface the tickers most likely to move.
+              SignalScope monitors public market signals from Reddit, X/Twitter, SEC insider filings, and volume spikes — then uses AI to score, filter pump-and-dumps, track cross-scan momentum, and surface the tickers most likely to move.
             </p>
 
             <a
@@ -216,6 +216,13 @@ export default function LoginPage() {
               {
                 title: "Performance tracking",
                 desc: "Automated price snapshots at 1, 3, 7, and 30 days after signal detection to measure accuracy.",
+                icon: (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
+                ),
+              },
+              {
+                title: "Cross-scan trending",
+                desc: "Track which tickers gain or lose momentum across multiple scans with score trajectory sparklines and trend detection.",
                 icon: (
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
                 ),
