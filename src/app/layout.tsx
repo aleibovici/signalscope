@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     default: "SignalScope — Stock Breakout Signal Detection",
     template: "%s — SignalScope",
   },
-  description: "Find breakout stock candidates before market consensus. SignalScope monitors Reddit, X/Twitter, SEC insider filings, and volume spikes — scored by AI, filtered for pump-and-dumps, and refined by machine learning backtesting.",
+  description: "Find breakout stock candidates before market consensus. SignalScope monitors Reddit, X/Twitter, SEC insider filings, and volume spikes — scored by AI, filtered for pump-and-dumps, with cross-scan trending analysis and ML backtesting.",
   keywords: [
     "stock breakout",
     "stock signals",
@@ -46,6 +46,8 @@ export const metadata: Metadata = {
     "machine learning stocks",
     "XGBoost stock prediction",
     "stock backtesting",
+    "trending stocks",
+    "cross-scan momentum",
   ],
   authors: [{ name: "SignalScope" }],
   robots: {
@@ -65,7 +67,7 @@ export const metadata: Metadata = {
     url: "https://signalscopes.com",
     siteName: "SignalScope",
     title: "SignalScope — Stock Breakout Signal Detection",
-    description: "Find breakout stock candidates before market consensus. AI-scored signals from Reddit, X/Twitter, SEC filings, and volume spikes — refined by ML backtesting.",
+    description: "Find breakout stock candidates before market consensus. AI-scored signals from Reddit, X/Twitter, SEC filings, and volume spikes — with cross-scan trending and ML backtesting.",
     images: [
       {
         url: "/opengraph-image",
@@ -78,7 +80,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "SignalScope — Stock Breakout Signal Detection",
-    description: "Find breakout stock candidates before market consensus. AI-scored signals from Reddit, X/Twitter, SEC filings, and volume spikes — refined by ML backtesting.",
+    description: "Find breakout stock candidates before market consensus. AI-scored signals from Reddit, X/Twitter, SEC filings, and volume spikes — with cross-scan trending and ML backtesting.",
     images: ["/opengraph-image"],
   },
   verification: {
@@ -136,7 +138,7 @@ const jsonLd = {
       "applicationCategory": "FinanceApplication",
       "operatingSystem": "Web",
       "description":
-        "Find breakout stock candidates before market consensus. SignalScope monitors public market signals from Reddit, X/Twitter, SEC insider filings, and volume spikes — scored by AI, filtered for pump-and-dumps, and refined by machine learning backtesting.",
+        "Find breakout stock candidates before market consensus. SignalScope monitors public market signals from Reddit, X/Twitter, SEC insider filings, and volume spikes — scored by AI, filtered for pump-and-dumps, with cross-scan trending analysis and ML backtesting.",
       "offers": {
         "@type": "Offer",
         "price": "0",

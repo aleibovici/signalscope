@@ -95,7 +95,7 @@ export default function OgImage() {
             margin: 0,
           }}
         >
-          AI-scored signals · ML backtesting · Reddit, X/Twitter, SEC filings &amp; volume spikes
+          AI-scored signals · Cross-scan trending · ML backtesting · Reddit, X, SEC &amp; volume
         </p>
 
         {/* Stats pill */}

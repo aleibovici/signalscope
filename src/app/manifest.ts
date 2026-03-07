@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "SignalScope — Stock Breakout Signal Detection",
     short_name: "SignalScope",
     description:
-      "Find breakout stock candidates before market consensus. AI-scored signals from Reddit, X/Twitter, SEC filings, and volume spikes — refined by ML backtesting.",
+      "Find breakout stock candidates before market consensus. AI-scored signals from Reddit, X/Twitter, SEC filings, and volume spikes — with cross-scan trending and ML backtesting.",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
