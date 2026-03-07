@@ -2,7 +2,7 @@
 
 > Stock breakout signal detection platform — find breakout candidates before market consensus.
 
-SignalScope harvests signals from Reddit, X/Twitter, SEC insider filings, and volume spikes, then uses AI to score them, filter pump-and-dump candidates, and surface validated tickers in a dashboard with portfolio tracking.
+SignalScope harvests signals from Reddit, X/Twitter, SEC insider filings, and volume spikes, then uses AI to score them, filter pump-and-dump candidates, track cross-scan momentum trends, and surface validated tickers in a dashboard with portfolio tracking.
 
 ## What SignalScope Does
 
@@ -13,6 +13,7 @@ SignalScope harvests signals from Reddit, X/Twitter, SEC insider filings, and vo
 - Scores every signal with AI (OpenAI GPT-4o / Anthropic Claude) for breakout potential
 - Filters pump-and-dump schemes using 11 statistical flags plus AI assessment
 - Tracks signals through four stages: Early → Forming → Confirmed → Filtered
+- Tracks cross-scan trending — surfaces tickers gaining or losing momentum across multiple scans with score trajectory sparklines and trend detection (rising/falling/stable)
 - Provides a portfolio tracker to monitor positions against active signals
 
 ## Key Pages
