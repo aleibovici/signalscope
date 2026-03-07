@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { getCurrentUserId } from "@/lib/auth";
+import { handleApiError } from "@/lib/api-error";
 import {
   pipelineSteps,
   signalSources,
@@ -17,29 +19,34 @@ import {
 } from "@/lib/methodology-data";
 
 export async function GET() {
-  return NextResponse.json({
-    description: methodologyDescription,
-    pipelineSteps: [...pipelineSteps],
-    signalSources,
-    aggregation: {
-      description: aggregationDescription,
-      sourceWeights,
-    },
-    scoring: {
-      description: scoringDescription,
-      bands: scoringBands,
-    },
-    pumpAndDumpDetection: {
-      description: pndDescription,
-      flags: pndFlags,
-      threshold: 3,
-    },
-    signalStages,
-    recommendationLevels,
-    backtesting: {
-      description: backtestDescription,
-      pipeline: [...backtestPipeline],
-    },
-    disclaimer,
-  });
+  try {
+    await getCurrentUserId();
+    return NextResponse.json({
+      description: methodologyDescription,
+      pipelineSteps: [...pipelineSteps],
+      signalSources,
+      aggregation: {
+        description: aggregationDescription,
+        sourceWeights,
+      },
+      scoring: {
+        description: scoringDescription,
+        bands: scoringBands,
+      },
+      pumpAndDumpDetection: {
+        description: pndDescription,
+        flags: pndFlags,
+        threshold: 3,
+      },
+      signalStages,
+      recommendationLevels,
+      backtesting: {
+        description: backtestDescription,
+        pipeline: [...backtestPipeline],
+      },
+      disclaimer,
+    });
+  } catch (err) {
+    return handleApiError(err, "GET /api/methodology");
+  }
 }

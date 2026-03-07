@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUserId } from "@/lib/auth";
+import { handleApiError } from "@/lib/api-error";
 import { paginationSchema } from "@/lib/validators";
 import { z } from "zod/v4";
 
@@ -11,6 +13,7 @@ const scansFilterSchema = paginationSchema.extend({
 
 export async function GET(request: NextRequest) {
   try {
+    await getCurrentUserId();
     const params = Object.fromEntries(request.nextUrl.searchParams);
     const { page, limit, status, from, to } = scansFilterSchema.parse(params);
     const skip = (page - 1) * limit;
@@ -48,7 +51,6 @@ export async function GET(request: NextRequest) {
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid parameters", details: err.issues }, { status: 400 });
     }
-    console.error("[/api/scans] GET error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return handleApiError(err, "GET /api/scans");
   }
 }

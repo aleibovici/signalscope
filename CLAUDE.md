@@ -95,6 +95,7 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 | `/api/stats` | GET | Platform-wide stats (scan counts, ticker counts) |
 | `/api/performance` | GET | Portfolio performance over time (query: `days`) |
 | `/api/user/profile` | GET/PATCH | Get or update current user profile |
+| `/api/user/api-key` | GET/POST/DELETE | Manage API key (get metadata, generate, revoke) |
 | `/api/health` | GET | Health check |
 | `/api/indexnow` | GET | IndexNow SEO submission endpoint |
 | `/api/auth/[...nextauth]` | GET/POST | Auth.js handlers (login/logout/session) |
@@ -112,7 +113,7 @@ Dashboard pages: signals (main), trending, portfolio, leaderboard, history, tick
 
 Methodology page data is in `src/lib/methodology-data.ts` (shared between the page component and `GET /api/methodology`). Includes ML backtesting description and pipeline data (`backtestDescription`, `backtestPipeline`).
 
-Landing page (`src/app/(auth)/login/page.tsx`) doubles as the public marketing page with hero, features grid, "How It Works" pipeline, signal sources, ML backtesting section, and footer. The login form is embedded in the hero section.
+Landing page (`src/app/(auth)/login/page.tsx`) doubles as the public marketing page with hero, features grid, "How It Works" pipeline, signal sources, ML backtesting section, Agent Skill / API section, and footer. The login form is embedded in the hero section.
 
 All data fetching hooks are in `src/hooks/` using TanStack Query mutations/queries.
 
@@ -122,10 +123,10 @@ Multi-user email/password auth via Auth.js v5 (Credentials provider, JWT session
 
 - `auth.config.ts` — Edge-safe config (no Node.js deps), imported by middleware; `trustHost: true` required for Cloud Run reverse proxy
 - `auth.ts` — Full NextAuth instance with Prisma + bcrypt `authorize()`, exports `auth`, `handlers`, `getCurrentUserId()`
-- `getCurrentUserId()` is **async** — all callers must `await` it; checks `Authorization: Bearer` header first (mobile JWT), falls back to Auth.js cookie session
+- `getCurrentUserId()` is **async** — all callers must `await` it; checks `Authorization: Bearer` header first (mobile JWT), then `x-api-key` header (API key auth), falls back to Auth.js cookie session
 - `mobile-jwt.ts` — HS256 JWT sign/verify via `jose`, signing key `"mobile:" + AUTH_SECRET` (cryptographically separate from Auth.js), 15min access token expiry, opaque 64-hex-char refresh tokens (DB-backed, 30-day expiry, rotation on use)
-- `src/proxy.ts` (middleware) — Protects dashboard routes (redirect to `/login`) and `/api/portfolio/**`, `/api/watchlist/**`, `/api/user/**` (401 JSON); requests with `Authorization: Bearer` header bypass middleware auth (verified in route handlers); matcher allows `.txt`/`.xml` static files through
-- Public routes: `/login`, `/register`, `/api/auth/**`, `/api/scans/**`, `/api/signals/**`, `/api/tickers/**` (includes `/api/tickers/trending`), `/api/health`, `/api/methodology`, `/api/snapshots/**`
+- `src/proxy.ts` (middleware) — Protects dashboard routes (redirect to `/login`) and `/api/portfolio/**`, `/api/watchlist/**`, `/api/user/**` (401 JSON); requests with `Authorization: Bearer` or `x-api-key` headers bypass middleware auth (verified in route handlers); matcher allows `.txt`/`.xml` static files through
+- Public routes: `/login`, `/register`, `/api/auth/**`, `/api/health`, `/api/alerts/**`, `/api/harvest/**`, `/api/snapshots/**`
 - Auth pages use route group `(auth)` with centered layout (no sidebar)
 - `SessionProvider` wrapped in `src/lib/session-provider.tsx`, added to root layout
 - Type augmentations in `src/types/next-auth.d.ts` (adds `id` and `role` to Session/JWT)
@@ -141,7 +142,7 @@ Multi-user email/password auth via Auth.js v5 (Credentials provider, JWT session
 
 ### Database Models
 
-Key models in `prisma/schema.prisma`: **User**, **Scan** (harvest run), **Signal** (raw from sources), **ValidatedTicker** (scored candidates with fundamentals/report), **TickerPerformance** (post-scan price performance tracking), **PriceSnapshot** (continuous price time-series for return computation), **UserPosition** (portfolio), **UserWatchlist** (bookmarked tickers), **RefreshToken** (mobile auth token rotation, indexed on token/userId/expiresAt).
+Key models in `prisma/schema.prisma`: **User**, **Scan** (harvest run), **Signal** (raw from sources), **ValidatedTicker** (scored candidates with fundamentals/report), **TickerPerformance** (post-scan price performance tracking), **PriceSnapshot** (continuous price time-series for return computation), **UserPosition** (portfolio), **UserWatchlist** (bookmarked tickers), **RefreshToken** (mobile auth token rotation, indexed on token/userId/expiresAt), **ApiKey** (SHA-256 hashed API keys for programmatic access, single key per user, `sk_sig_` prefix).
 
 Signal stages: `EARLY | FORMING | CONFIRMED | FILTERED`
 
@@ -302,6 +303,16 @@ Key gotchas:
 - P&D threshold: `flags.length >= 3` to flag as pump-and-dump
 - `coordinated_posts`: duplicateRatio = `1 - uniqueTitles/totalTitles >= 0.5`
 
+## Agent Skill
+
+Claude Agent Skill files are served from `public/skill/` (accessible at `https://signalscopes.com/skill/`):
+
+- `SKILL.md` — Main skill file with overview, auth, key concepts, workflow examples, error handling
+- `api-public.md` — Signal & scan API reference (9 endpoints)
+- `api-authenticated.md` — Account API reference (13 endpoints: portfolio, watchlist, leaderboard, profile)
+
+API key auth uses SHA-256 hashed keys stored in the `ApiKey` model. Key format: `sk_sig_<48 hex chars>`. Single key per user with revoke-and-replace flow. Profile page UI at `/profile` allows generating, viewing metadata, and revoking keys.
+
 ## SEO
 
 All SEO metadata lives in Next.js metadata exports. When adding features, update descriptions across all files to stay consistent:
@@ -312,7 +323,7 @@ All SEO metadata lives in Next.js metadata exports. When adding features, update
 - `src/app/opengraph-image.tsx` — Dynamic OG image (rendered at build time)
 - `src/app/manifest.ts` — PWA manifest (name, description)
 - `src/app/sitemap.ts` — XML sitemap (public pages only)
-- `src/app/robots.ts` — robots.txt (allows `/`, `/login`, `/register`; disallows dashboard/API)
+- `src/app/robots.ts` — robots.txt (allows `/`, `/login`, `/register`, `/skill/`; disallows dashboard/API)
 
 ## API Error Handling
 

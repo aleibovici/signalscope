@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUserId } from "@/lib/auth";
+import { handleApiError } from "@/lib/api-error";
 import type { Prisma } from "@/generated/prisma/client";
 
 const VALID_STAGES = new Set(["EARLY", "FORMING", "CONFIRMED", "FILTERED"]);
 
 export async function GET(request: NextRequest) {
   try {
+    await getCurrentUserId();
     const scanId = request.nextUrl.searchParams.get("scanId");
     const stage = request.nextUrl.searchParams.get("stage");
 
@@ -49,7 +52,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ signals });
   } catch (err) {
-    console.error("[/api/signals] GET error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return handleApiError(err, "GET /api/signals");
   }
 }

@@ -234,6 +234,13 @@ export default function LoginPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4.745 3A23.933 23.933 0 0 0 3 12c0 3.183.62 6.22 1.745 9M19.255 3C20.38 5.78 21 8.817 21 12s-.62 6.22-1.745 9m-13.46-3.03a15.932 15.932 0 0 1-1.5-5.97c0-2.12.413-4.14 1.16-5.986m10.09 11.956a15.932 15.932 0 0 0 1.5-5.97c0-2.12-.413-4.14-1.16-5.986M12 12h.008v.008H12V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
                 ),
               },
+              {
+                title: "AI Agent Skill",
+                desc: "Install the Agent Skill to query signals, manage portfolios, and explore tickers from any LLM.",
+                icon: (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
+                ),
+              },
             ].map(({ title, desc, icon }) => (
               <div
                 key={title}
@@ -393,6 +400,61 @@ export default function LoginPage() {
             <p className="text-center text-sm text-gray-500">
               Every signal&apos;s real-world outcome is tracked and fed back into the model — so scoring, filtering, and stage assignments get smarter over time.
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Agent Skill / API ─────────────────────────────────── */}
+      <section className="bg-white py-12 md:py-20">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <h2 className="mb-3 text-center text-2xl font-bold text-gray-900 md:text-3xl">
+            Talk to your data with AI
+          </h2>
+          <p className="mx-auto mb-8 max-w-2xl text-center text-sm text-gray-500 md:mb-12 md:text-base">
+            Connect any LLM to SignalScope via the Agent Skill and API — let AI query signals, manage your portfolio, and explore tickers on your behalf.
+          </p>
+
+          <div className="mx-auto max-w-3xl">
+            <div className="grid gap-4 sm:grid-cols-3 sm:gap-6">
+              {[
+                {
+                  step: "1",
+                  label: "Get your API key",
+                  desc: "Generate a personal API key from your Profile page — it only takes one click.",
+                },
+                {
+                  step: "2",
+                  label: "Install the skill",
+                  desc: "Download the Agent Skill and add it to your preferred LLM client — Claude, ChatGPT, or any AI assistant.",
+                },
+                {
+                  step: "3",
+                  label: "Start asking",
+                  desc: "\"Show me trending tickers\", \"Add AAPL to my portfolio\", \"What's my best performer?\"",
+                },
+              ].map(({ step, label, desc }) => (
+                <div key={step} className="rounded-xl border border-gray-100 bg-gray-50/50 p-5 text-center">
+                  <span className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
+                    {step}
+                  </span>
+                  <h3 className="mb-1.5 text-base font-semibold text-gray-900">{label}</h3>
+                  <p className="text-sm leading-relaxed text-gray-500">{desc}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-8 text-center">
+              <a
+                href="/skill/SKILL.md"
+                target="_blank"
+                className="inline-block rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
+              >
+                Download Agent Skill
+              </a>
+              <p className="mt-3 text-xs text-gray-400">
+                All endpoints require an API key. Generate one from your Profile page after signing in.
+              </p>
+            </div>
           </div>
         </div>
       </section>

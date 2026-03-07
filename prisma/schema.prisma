@@ -20,6 +20,7 @@ model User {
   positions      UserPosition[]
   watchlist      UserWatchlist[]
   refreshTokens  RefreshToken[]
+  apiKeys        ApiKey[]
 }
 
 model Scan {
@@ -237,4 +238,18 @@ model RefreshToken {
   @@index([userId])
   @@index([token])
   @@index([expiresAt])
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  key        String    @unique
+  prefix     String
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+  revokedAt  DateTime?
+
+  @@index([key])
+  @@index([userId])
 }

@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUserId } from "@/lib/auth";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ symbol: string }> }
 ) {
   try {
+    await getCurrentUserId();
     const { symbol } = await params;
     const upper = symbol.toUpperCase();
 
@@ -33,7 +36,6 @@ export async function GET(
       history: performances,
     });
   } catch (err) {
-    console.error("[/api/tickers/[symbol]/performance] GET error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return handleApiError(err, "GET /api/tickers/[symbol]/performance");
   }
 }
