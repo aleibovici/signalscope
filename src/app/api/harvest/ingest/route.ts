@@ -5,7 +5,7 @@ import { handleApiError } from "@/lib/api-error";
 
 const signalSchema = z.object({
   symbol: z.string(),
-  source: z.enum(["REDDIT", "STOCKTWITS", "SEC_INSIDER", "SEC_FILING", "OPTIONS_FLOW", "VOLUME_SPIKE", "TWITTER"]),
+  source: z.enum(["REDDIT", "STOCKTWITS", "SEC_INSIDER", "SEC_FILING", "OPTIONS_FLOW", "VOLUME_SPIKE", "TWITTER", "CONGRESS"]),
   title: z.string().optional(),
   body: z.string().optional(),
   url: z.string().optional(),
