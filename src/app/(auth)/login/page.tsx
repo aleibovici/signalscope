@@ -9,7 +9,7 @@ import Link from "next/link";
 /* ------------------------------------------------------------------ */
 
 const howItWorksSteps = [
-  { step: "1", label: "Discover", desc: "Monitor public posts on Reddit, X/Twitter, SEC filings, and volume data for ticker mentions." },
+  { step: "1", label: "Discover", desc: "Monitor Reddit, X/Twitter, SEC insider filings, congressional trades, options flow, and volume data for ticker mentions." },
   { step: "2", label: "Aggregate", desc: "Group signals by symbol, count sources, and calculate mention velocity." },
   { step: "3", label: "Score", desc: "AI models evaluate breakout potential with confidence scores and reasoning." },
   { step: "4", label: "Filter", desc: "11 statistical flags plus AI assessment catch pump-and-dump schemes." },
@@ -77,7 +77,7 @@ export default function LoginPage() {
               <span className="text-blue-300">before the crowd</span>
             </h1>
             <p className="mb-6 text-base leading-relaxed text-blue-100/90 md:mb-8 md:text-lg">
-              SignalScope monitors public market signals from Reddit, X/Twitter, SEC insider filings, and volume spikes — then uses AI to score, filter pump-and-dumps, track cross-scan momentum, and surface the tickers most likely to move.
+              SignalScope monitors public market signals from Reddit, X/Twitter, SEC insider filings, congressional stock trades, options flow, and volume spikes — then uses AI to score, filter pump-and-dumps, track cross-scan momentum, and surface the tickers most likely to move.
             </p>
 
             <a
@@ -90,7 +90,7 @@ export default function LoginPage() {
             {/* Quick stats */}
             <div className="mt-8 flex justify-center gap-6 sm:gap-8 md:mt-10 lg:justify-start">
               {[
-                ["6", "Signal sources"],
+                ["8", "Signal sources"],
                 ["11", "P&D flags"],
                 ["4", "Signal stages"],
               ].map(([num, label]) => (
@@ -180,7 +180,7 @@ export default function LoginPage() {
             {[
               {
                 title: "Multi-source monitoring",
-                desc: "Aggregates public signals from Reddit, X/Twitter, SEC insider filings, and volume data in a single scan.",
+                desc: "Aggregates signals from Reddit, X/Twitter, SEC insider filings, congressional trades, options flow, StockTwits, and volume data in a single scan.",
                 icon: (
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5a17.92 17.92 0 0 1-8.716-2.247m0 0A9 9 0 0 1 3 12c0-1.39.315-2.706.879-3.882" />
                 ),
@@ -316,14 +316,14 @@ export default function LoginPage() {
             Signal sources
           </h2>
           <p className="mx-auto mb-8 max-w-2xl text-center text-sm text-gray-500 md:mb-12 md:text-base">
-            Four active data feeds monitored on every scan.
+            Eight data feeds monitored on every scan — from social chatter to institutional filings.
           </p>
 
           <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
             {[
               {
                 name: "Reddit",
-                desc: "Monitors r/wallstreetbets, r/stocks, r/pennystocks, and other communities for trending tickers.",
+                desc: "Monitors r/wallstreetbets, r/stocks, r/pennystocks, and 14 other communities for trending tickers.",
                 tag: "Social",
                 tagColor: "bg-orange-100 text-orange-700",
               },
@@ -334,16 +334,40 @@ export default function LoginPage() {
                 tagColor: "bg-sky-100 text-sky-700",
               },
               {
+                name: "StockTwits",
+                desc: "Trending tickers from StockTwits for real-time retail sentiment and momentum.",
+                tag: "Social",
+                tagColor: "bg-amber-100 text-amber-700",
+              },
+              {
                 name: "SEC Insider",
                 desc: "Tracks C-suite insider purchases over $50K from OpenInsider and EDGAR RSS feeds.",
                 tag: "Filings",
                 tagColor: "bg-emerald-100 text-emerald-700",
               },
               {
+                name: "Congress",
+                desc: "Monitors congressional stock purchases from public STOCK Act disclosures.",
+                tag: "Filings",
+                tagColor: "bg-emerald-100 text-emerald-700",
+              },
+              {
+                name: "Options Flow",
+                desc: "Detects unusual call volume, heavy OTM activity, and call sweeps across liquid stocks.",
+                tag: "Institutional",
+                tagColor: "bg-blue-100 text-blue-700",
+              },
+              {
                 name: "Volume Spike",
                 desc: "Flags stocks trading at 2x+ their average volume — a classic breakout precursor.",
                 tag: "Technical",
                 tagColor: "bg-violet-100 text-violet-700",
+              },
+              {
+                name: "SEC EDGAR",
+                desc: "Tracks recent Form 4 filings from the SEC EDGAR RSS feed for additional insider activity.",
+                tag: "Filings",
+                tagColor: "bg-emerald-100 text-emerald-700",
               },
             ].map(({ name, desc, tag, tagColor }) => (
               <div
