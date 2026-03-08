@@ -40,9 +40,14 @@ function computeStats(gains: PositionGain[]) {
   };
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     await getCurrentUserId();
+
+    return NextResponse.json(
+      { error: "Leaderboard is temporarily disabled" },
+      { status: 503 }
+    );
 
     const params = Object.fromEntries(request.nextUrl.searchParams);
     const parsed = paginationSchema.safeParse(params);

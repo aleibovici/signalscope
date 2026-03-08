@@ -39,7 +39,7 @@ x-api-key: sk_sig_your_key_here
 ## API Reference
 
 - [Signal & scan endpoints](api-public.md) — 9 endpoints for scans, signals, tickers, trending, methodology
-- [Account endpoints](api-authenticated.md) — 13 endpoints for portfolio, watchlist, leaderboard, performance, profile
+- [Account endpoints](api-authenticated.md) — 12 endpoints for portfolio, watchlist, performance, profile
 
 ## Common Workflows
 
@@ -128,12 +128,6 @@ curl -H "x-api-key: $KEY" http://localhost:3000/api/stats
 
 # Current prices for specific symbols
 curl -H "x-api-key: $KEY" "http://localhost:3000/api/prices?symbols=AAPL,TSLA,NVDA"
-```
-
-### View leaderboard
-
-```bash
-curl -H "x-api-key: $KEY" http://localhost:3000/api/leaderboard?limit=10
 ```
 
 ## Error Handling
