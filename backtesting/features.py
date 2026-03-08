@@ -82,10 +82,56 @@ def engineer_features(df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
         (df["priorAppearances"].fillna(0) >= 3) | (df["firstSeenDaysAgo"].fillna(0) >= 7)
     ).astype(int)
 
-    signal_type = df.get("signalType", pd.Series("", index=df.index)).fillna("")
-    feat["social_only"] = signal_type.str.contains("reddit_velocity", case=False, na=False).astype(int)
-    feat["has_insider"] = signal_type.str.contains("insider", case=False, na=False).astype(int)
-    feat["has_options"] = signal_type.str.contains("options", case=False, na=False).astype(int)
+    # --- Source-level features (from Signal table aggregation) ---
+    if "reddit_count" in df.columns:
+        # Granular source features from signal_agg CTE
+        for src_col, feat_name in [
+            ("reddit_count", "has_reddit"),
+            ("twitter_count", "has_twitter"),
+            ("sec_insider_count", "has_insider"),
+            ("options_flow_count", "has_options"),
+            ("congress_count", "has_congress"),
+            ("volume_spike_count", "has_volume_spike"),
+        ]:
+            feat[feat_name] = (pd.to_numeric(df[src_col], errors="coerce").fillna(0) > 0).astype(int)
+
+        # social_only: True only when no non-social source exists
+        non_social = (
+            pd.to_numeric(df["sec_insider_count"], errors="coerce").fillna(0)
+            + pd.to_numeric(df["options_flow_count"], errors="coerce").fillna(0)
+            + pd.to_numeric(df["congress_count"], errors="coerce").fillna(0)
+            + pd.to_numeric(df["volume_spike_count"], errors="coerce").fillna(0)
+        )
+        feat["social_only"] = (non_social == 0).astype(int)
+
+        # actual_source_count from signal data
+        feat["actual_source_count"] = sum(
+            (pd.to_numeric(df[c], errors="coerce").fillna(0) > 0).astype(int)
+            for c in ["reddit_count", "twitter_count", "stocktwits_count",
+                       "sec_insider_count", "options_flow_count", "volume_spike_count",
+                       "congress_count"]
+        )
+
+        # Quality signals (log-scaled)
+        insider_val = pd.to_numeric(df["max_insider_value"], errors="coerce").fillna(0).clip(lower=0)
+        feat["log_insider_value"] = np.log10(insider_val + 1)
+
+        congress_val = pd.to_numeric(df["max_congress_value"], errors="coerce").fillna(0).clip(lower=0)
+        feat["log_congress_value"] = np.log10(congress_val + 1)
+
+        feat["has_ceo_buy"] = df["has_ceo_buy"].fillna(False).astype(int)
+
+        vol_ratio = pd.to_numeric(df["max_volume_ratio"], errors="coerce").fillna(0)
+        feat["max_volume_ratio"] = vol_ratio
+
+        followers = pd.to_numeric(df["max_follower_count"], errors="coerce").fillna(0).clip(lower=0)
+        feat["log_max_followers"] = np.log10(followers + 1)
+    else:
+        # Fallback for old parquet files without Signal-level data
+        signal_type = df.get("signalType", pd.Series("", index=df.index)).fillna("")
+        feat["social_only"] = signal_type.str.contains("reddit_velocity", case=False, na=False).astype(int)
+        feat["has_insider"] = signal_type.str.contains("insider", case=False, na=False).astype(int)
+        feat["has_options"] = signal_type.str.contains("options", case=False, na=False).astype(int)
 
     # Price position in 52-week range
     feat["price_in_52wk_pct"] = df.apply(

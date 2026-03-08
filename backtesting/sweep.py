@@ -193,29 +193,36 @@ def sweep_individual_flags(valid: pd.DataFrame, ret_col: str) -> list[dict]:
     return results
 
 
+def _sweep_result(sweep_type: str, parameter: str, subset: pd.Series,
+                   total: int, ret_col: str, excluded_returns=None) -> dict:
+    """Build a standard sweep result dict."""
+    return {
+        "sweep_type": sweep_type,
+        "parameter": parameter,
+        "threshold": None,
+        "n_included": len(subset),
+        "n_excluded": total - len(subset),
+        "avg_return": subset[ret_col].mean(),
+        "median_return": subset[ret_col].median(),
+        "win_rate": (subset[ret_col] > 0).mean(),
+        "big_win_rate": (subset[ret_col] > 0.05).mean(),
+        "sharpe_like": sharpe_like(subset[ret_col]),
+        "avg_excluded_return": excluded_returns.mean() if excluded_returns is not None and len(excluded_returns) > 0 else None,
+    }
+
+
 def sweep_source_type(valid: pd.DataFrame, ret_col: str) -> list[dict]:
     """Sweep by signal source type and multi-source combinations."""
     results = []
+    n = len(valid)
 
-    # Individual source types
+    # Individual source types (from signalType string)
     if "signal_type_raw" in valid.columns:
         for stype in valid["signal_type_raw"].unique():
             subset = valid[valid["signal_type_raw"] == stype]
             if len(subset) < 3:
                 continue
-            results.append({
-                "sweep_type": "source_type",
-                "parameter": stype,
-                "threshold": None,
-                "n_included": len(subset),
-                "n_excluded": len(valid) - len(subset),
-                "avg_return": subset[ret_col].mean(),
-                "median_return": subset[ret_col].median(),
-                "win_rate": (subset[ret_col] > 0).mean(),
-                "big_win_rate": (subset[ret_col] > 0.05).mean(),
-                "sharpe_like": sharpe_like(subset[ret_col]),
-                "avg_excluded_return": None,
-            })
+            results.append(_sweep_result("source_type", stype, subset, n, ret_col))
 
     # Multi-source (sourceCount >= 2) vs single-source
     if "sourceCount" in valid.columns:
@@ -227,19 +234,51 @@ def sweep_source_type(valid: pd.DataFrame, ret_col: str) -> list[dict]:
             subset = valid[mask]
             if len(subset) < 3:
                 continue
-            results.append({
-                "sweep_type": "source_count",
-                "parameter": label,
-                "threshold": None,
-                "n_included": len(subset),
-                "n_excluded": len(valid) - len(subset),
-                "avg_return": subset[ret_col].mean(),
-                "median_return": subset[ret_col].median(),
-                "win_rate": (subset[ret_col] > 0).mean(),
-                "big_win_rate": (subset[ret_col] > 0.05).mean(),
-                "sharpe_like": sharpe_like(subset[ret_col]),
-                "avg_excluded_return": None,
-            })
+            results.append(_sweep_result("source_count", label, subset, n, ret_col))
+
+    # --- Source presence sweep (from Signal-level features) ---
+    source_features = [
+        ("has_reddit", "reddit"),
+        ("has_twitter", "twitter"),
+        ("has_insider", "insider"),
+        ("has_options", "options"),
+        ("has_congress", "congress"),
+        ("has_volume_spike", "volume_spike"),
+    ]
+
+    for col, label in source_features:
+        if col not in valid.columns:
+            continue
+        present = valid[valid[col] == 1]
+        absent = valid[valid[col] == 0]
+        if len(present) < 3:
+            continue
+        results.append(_sweep_result(
+            "source_presence", f"has_{label}",
+            present, n, ret_col,
+            excluded_returns=absent[ret_col] if len(absent) > 0 else None,
+        ))
+
+    # --- Source combination sweep ---
+    combos = [
+        ("insider+reddit", ["has_insider", "has_reddit"]),
+        ("congress+reddit", ["has_congress", "has_reddit"]),
+        ("options+reddit", ["has_options", "has_reddit"]),
+        ("insider+congress", ["has_insider", "has_congress"]),
+        ("insider+volume_spike", ["has_insider", "has_volume_spike"]),
+        ("twitter+insider", ["has_twitter", "has_insider"]),
+    ]
+
+    for label, cols in combos:
+        if not all(c in valid.columns for c in cols):
+            continue
+        mask = pd.Series(True, index=valid.index)
+        for c in cols:
+            mask &= valid[c] == 1
+        subset = valid[mask]
+        if len(subset) < 3:
+            continue
+        results.append(_sweep_result("source_combo", label, subset, n, ret_col))
 
     return results
 
@@ -399,11 +438,26 @@ def main():
     print(f"\n--- Source Type Analysis ({label}) ---")
     source_results = sweep_source_type(valid, ret_col)
     all_results.extend(source_results)
-    source_sorted = sorted(source_results, key=lambda r: r["sharpe_like"], reverse=True)
-    for r in source_sorted:
-        print(f"  {r['parameter']:25s}: n={r['n_included']:4d}, "
-              f"avg={r['avg_return']:+.3f}, med={r['median_return']:+.3f}, "
-              f"win={r['win_rate']:.1%}, sharpe={r['sharpe_like']:.3f}")
+    # Group by sweep type for cleaner output
+    for stype, stype_label in [
+        ("source_type", "Signal type (raw)"),
+        ("source_count", "Source count"),
+        ("source_presence", "Source presence"),
+        ("source_combo", "Source combinations"),
+    ]:
+        subset_results = [r for r in source_results if r["sweep_type"] == stype]
+        if not subset_results:
+            continue
+        print(f"  --- {stype_label} ---")
+        subset_sorted = sorted(subset_results, key=lambda r: r["sharpe_like"], reverse=True)
+        for r in subset_sorted:
+            diff = ""
+            if r.get("avg_excluded_return") is not None:
+                d = r["avg_return"] - r["avg_excluded_return"]
+                diff = f" (Δ {d:+.3f})"
+            print(f"  {r['parameter']:25s}: n={r['n_included']:4d}, "
+                  f"avg={r['avg_return']:+.3f}, med={r['median_return']:+.3f}, "
+                  f"win={r['win_rate']:.1%}, sharpe={r['sharpe_like']:.3f}{diff}")
     if not source_results:
         print("  (no source type data available)")
 
