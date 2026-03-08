@@ -14,7 +14,7 @@ export function StatsWidget({ revision }: { revision: string }) {
       </p>
       {isLoading || !data ? (
         <div className="space-y-1.5">
-          {[...Array(5)].map((_, i) => (
+          {[...Array(4)].map((_, i) => (
             <div key={i} className="flex justify-between">
               <div className="h-3 w-16 animate-pulse rounded bg-gray-200" />
               <div className="h-3 w-10 animate-pulse rounded bg-gray-200" />
@@ -31,9 +31,6 @@ export function StatsWidget({ revision }: { revision: string }) {
 
           <dt className="text-xs text-gray-500">Tickers</dt>
           <dd className="text-right text-xs font-medium text-gray-700">{data.tickers.toLocaleString()}</dd>
-
-          <dt className="text-xs text-gray-500">Users</dt>
-          <dd className="text-right text-xs font-medium text-gray-700">{data.users}</dd>
 
           <dt className="text-xs text-gray-500">Version</dt>
           <dd className="text-right text-xs font-medium text-gray-700">{revision}</dd>

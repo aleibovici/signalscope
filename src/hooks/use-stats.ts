@@ -6,7 +6,6 @@ export interface PlatformStats {
   scans: number;
   signals: number;
   tickers: number;
-  users: number;
 }
 
 export function useStats() {
