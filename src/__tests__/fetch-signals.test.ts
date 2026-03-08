@@ -10,6 +10,7 @@ const mockFetchSecInsider = vi.fn();
 const mockFetchOptionsFlow = vi.fn();
 const mockFetchVolumeSpike = vi.fn();
 const mockFetchTwitter = vi.fn();
+const mockFetchCongress = vi.fn();
 
 vi.mock("@/lib/harvester/sources/reddit", () => ({
   fetchRedditSignals: (...args: unknown[]) => mockFetchReddit(...args),
@@ -28,6 +29,9 @@ vi.mock("@/lib/harvester/sources/volume-spike", () => ({
 }));
 vi.mock("@/lib/harvester/sources/twitter", () => ({
   fetchTwitterSignals: (...args: unknown[]) => mockFetchTwitter(...args),
+}));
+vi.mock("@/lib/harvester/sources/congress", () => ({
+  fetchCongressSignals: (...args: unknown[]) => mockFetchCongress(...args),
 }));
 vi.mock("@/lib/harvester/scoring", () => ({ scoreSymbolBatch: vi.fn() }));
 vi.mock("@/lib/harvester/pnd-filter", () => ({ checkPndFlags: vi.fn(), aiPndAssessment: vi.fn() }));
@@ -53,6 +57,7 @@ describe("fetchSignals", () => {
     mockFetchOptionsFlow.mockResolvedValue([]);
     mockFetchVolumeSpike.mockResolvedValue([sig("TSLA", "VOLUME_SPIKE")]);
     mockFetchTwitter.mockResolvedValue([sig("GME", "TWITTER")]);
+    mockFetchCongress.mockResolvedValue([]);
 
     const signals = await fetchSignals();
 
@@ -67,6 +72,7 @@ describe("fetchSignals", () => {
     mockFetchOptionsFlow.mockResolvedValue([]);
     mockFetchVolumeSpike.mockResolvedValue([]);
     mockFetchTwitter.mockResolvedValue([]);
+    mockFetchCongress.mockResolvedValue([]);
 
     const signals = await fetchSignals();
     expect(signals).toEqual([]);
@@ -79,6 +85,7 @@ describe("fetchSignals", () => {
     mockFetchOptionsFlow.mockResolvedValue([]);
     mockFetchVolumeSpike.mockResolvedValue([]);
     mockFetchTwitter.mockResolvedValue([sig("AAPL", "TWITTER")]);
+    mockFetchCongress.mockResolvedValue([]);
 
     const signals = await fetchSignals();
 
@@ -94,6 +101,7 @@ describe("fetchSignals", () => {
     mockFetchOptionsFlow.mockRejectedValue(new Error("down"));
     mockFetchVolumeSpike.mockRejectedValue(new Error("down"));
     mockFetchTwitter.mockRejectedValue(new Error("down"));
+    mockFetchCongress.mockRejectedValue(new Error("down"));
 
     const signals = await fetchSignals();
     expect(signals).toEqual([]);

@@ -104,10 +104,10 @@ Return JSON: { "scores": [{ "symbol": "X", "score": 0-100, "sentiment": "bullish
         return defaultScore(s, noveltyMap?.get(s.symbol));
       }
 
-      // Enforce social-only cap: tickers without a catalyst source (SEC_INSIDER/OPTIONS_FLOW)
+      // Enforce social-only cap: tickers without a catalyst source (SEC_INSIDER/OPTIONS_FLOW/CONGRESS)
       // should never score above 50, regardless of what the AI returns
       const sources = new Set(s.signals.map((sig) => sig.source));
-      const hasCatalystSource = sources.has("SEC_INSIDER") || sources.has("OPTIONS_FLOW");
+      const hasCatalystSource = sources.has("SEC_INSIDER") || sources.has("OPTIONS_FLOW") || sources.has("CONGRESS");
       const maxScore = hasCatalystSource ? 100 : 50;
 
       const rawScore = Math.max(0, Math.round(item.score));
@@ -129,14 +129,17 @@ function defaultScore(s: AggregatedSymbol, novelty?: NoveltyContext): AiScoreRes
   const sources = new Set(s.signals.map((sig) => sig.source));
   const hasInsider = sources.has("SEC_INSIDER");
   const hasOptions = sources.has("OPTIONS_FLOW");
-  const hasCatalystSource = hasInsider || hasOptions;
+  const hasCongress = sources.has("CONGRESS");
+  const hasCatalystSource = hasInsider || hasOptions || hasCongress;
 
-  // Insider/options signals get a strong base; pure social caps at 50
+  // Insider/options/congress signals get a strong base; pure social caps at 50
   let base: number;
   if (hasCatalystSource && s.sourceCount >= 3) {
     base = 65; // multi-source with real catalyst
   } else if (hasInsider) {
     base = 55; // insider buy alone is a strong signal
+  } else if (hasCongress) {
+    base = 52; // congressional buy — strong signal, slightly below insider
   } else if (hasOptions) {
     base = 50; // unusual options alone
   } else {
