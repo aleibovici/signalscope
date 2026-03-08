@@ -78,6 +78,14 @@ export function PositionCard({
               {new Date(position.openedAt).toLocaleDateString()}
             </p>
           </div>
+          {!isOpen && position.closedAt && (
+            <div>
+              <span className="text-gray-400">Closed</span>
+              <p className="font-medium">
+                {new Date(position.closedAt).toLocaleDateString()}
+              </p>
+            </div>
+          )}
         </div>
 
         {position.notes && (
