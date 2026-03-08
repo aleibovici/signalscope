@@ -63,21 +63,28 @@ export const signalSources: SignalSource[] = [
     icon: "📈",
     name: "Volume Spike",
     description: "Flags symbols whose volume is ≥2× their 10-day average.",
-    params: "110 symbols · ≥2× 10-day avg · Yahoo Finance data",
+    params: "89 symbols · ≥2× 10-day avg",
     status: "active",
   },
   {
     icon: "💎",
     name: "Options Flow",
-    description: "Unusual call volume, heavy OTM calls, and call sweeps.",
-    params: "Unusual Whales · FlowAlgo",
-    status: "coming_soon",
+    description: "Detects unusual call volume, heavy OTM call activity, and call sweeps across a watchlist of liquid stocks.",
+    params: "89 symbols · Vol/OI ≥3× · OTM 10%+ · nearest expiry",
+    status: "active",
   },
   {
     icon: "📣",
     name: "StockTwits",
-    description: "Trending tickers from StockTwits via TrendSpider mirror (server-side rendered, no Cloudflare block).",
-    params: "TrendSpider mirror · trending symbols · price + day gain",
+    description: "Trending tickers from StockTwits for real-time retail sentiment and momentum.",
+    params: "Trending symbols · price + day gain",
+    status: "active",
+  },
+  {
+    icon: "🏛️",
+    name: "Congress",
+    description: "Congressional stock purchases from public STOCK Act disclosures. Cross-scan dedup prevents repeated ingestion of the same transaction.",
+    params: "Buys only · US tickers · 7-day pub window · txId dedup",
     status: "active",
   },
 ];
@@ -85,14 +92,17 @@ export const signalSources: SignalSource[] = [
 export const sourceWeights: SourceWeight[] = [
   { source: "SEC Insider", weight: "3.0" },
   { source: "Options Flow", weight: "2.5" },
+  { source: "Congress", weight: "2.5" },
   { source: "Volume Spike", weight: "2.0" },
   { source: "X / Twitter", weight: "1.2" },
+  { source: "SEC Filing", weight: "1.0" },
   { source: "Reddit", weight: "1.0" },
+  { source: "StockTwits", weight: "1.0" },
 ];
 
 export const scoringBands: ScoringBand[] = [
-  { band: "80–100", meaning: "Real catalyst + multi-source + insider/options confirmation" },
-  { band: "60–79", meaning: "Real catalyst + ≥2 sources, or strong insider/options alone" },
+  { band: "80–100", meaning: "Real catalyst + multi-source + insider/congress/options confirmation" },
+  { band: "60–79", meaning: "Real catalyst + ≥2 sources, or strong insider/congress/options alone" },
   { band: "40–59", meaning: "Social buzz with catalyst indicators (unconfirmed)" },
   { band: "20–39", meaning: "Social-only signal, no verifiable catalyst" },
   { band: "0–19", meaning: "Likely noise or pump attempt" },
@@ -159,22 +169,22 @@ export const recommendationLevels: RecommendationLevel[] = [
 ];
 
 export const methodologyDescription =
-  "SignalScope monitors public ticker mentions across six signal sources, aggregates them by symbol, " +
-  "scores each candidate with AI, runs an 11-flag pump-and-dump filter, and surfaces only " +
-  "the tickers with the strongest multi-source backing and verifiable catalysts. The result " +
-  "is a prioritised watchlist you can act on before the crowd.";
+  "SignalScope monitors public ticker mentions across eight signal sources — from social media to SEC filings, " +
+  "congressional trades, and options flow — aggregates them by symbol, scores each candidate with AI, runs an " +
+  "11-flag pump-and-dump filter, and surfaces only the tickers with the strongest multi-source backing and " +
+  "verifiable catalysts. The result is a prioritised watchlist you can act on before the crowd.";
 
 export const aggregationDescription =
   "Raw mentions are grouped by ticker symbol. A symbol becomes a candidate when it appears " +
   "≥2 times from a single source, appears in ≥2 different sources, or comes from a " +
-  "high-value source (SEC Insider, Volume Spike, Options Flow) even as a single mention. " +
+  "high-value source (SEC Insider, Congress, Volume Spike, Options Flow) even as a single mention. " +
   "Each source carries a weight that biases the aggregate score.";
 
 export const scoringDescription =
   "Each candidate is scored by AI using source weights, catalyst quality, novelty, and " +
   "cross-source corroboration. Pure social signals (Reddit / StockTwits / Twitter only) " +
   "are hard-capped at 50 — this is enforced programmatically regardless of what the AI " +
-  "returns. Only tickers with a verifiable catalyst source (SEC Insider or Options Flow) " +
+  "returns. Only tickers with a verifiable catalyst source (SEC Insider, Congress, or Options Flow) " +
   "can score above 50. First-appearance tickers receive a +5–10 novelty boost; tickers " +
   "seen 3+ times or older than 7 days receive a staleness penalty.";
 
