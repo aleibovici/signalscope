@@ -8,6 +8,7 @@ Answers:
 - What AI score cutoff best separates winners from losers?
 - What stage thresholds produce the best Sharpe-like ratio?
 - Which individual P&D flags are most predictive of actual dumps?
+- How do cross-category interactions perform (e.g. micro-cap + insider, FORMING + high AI score)?
 
 Usage:
     python sweep.py
@@ -16,7 +17,6 @@ Usage:
 import warnings
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 from features import PND_FLAG_NAMES, clean_for_analysis, engineer_features
@@ -339,32 +339,67 @@ def sweep_market_cap(valid: pd.DataFrame, ret_col: str) -> list[dict]:
     return results
 
 
-def sweep_combined(valid: pd.DataFrame, ret_col: str) -> list[dict]:
-    """Sweep combinations of AI score + P&D flagged status."""
+def sweep_interactions(valid: pd.DataFrame, ret_col: str) -> list[dict]:
+    """Sweep all two-way interactions between categorical dimensions."""
+    from itertools import combinations
+
+    dimensions: dict[str, dict[str, pd.Series]] = {}
+
+    # Market cap
+    if "marketCap" in valid.columns:
+        dimensions["market_cap"] = {
+            "nano(<50M)":      (valid["marketCap"] < 50e6),
+            "micro(50-300M)":  (valid["marketCap"] >= 50e6) & (valid["marketCap"] < 300e6),
+            "small(300M-2B)":  (valid["marketCap"] >= 300e6) & (valid["marketCap"] < 2e9),
+            "mid(2-10B)":      (valid["marketCap"] >= 2e9) & (valid["marketCap"] < 10e9),
+            "large(>10B)":     (valid["marketCap"] >= 10e9),
+        }
+
+    # Stage
+    if "stage" in valid.columns:
+        dimensions["stage"] = {
+            s: (valid["stage"] == s)
+            for s in ["EARLY", "FORMING", "CONFIRMED", "FILTERED"]
+        }
+
+    # Source presence
+    source_cols = ["has_options", "has_insider", "has_congress", "social_only"]
+    available = [c for c in source_cols if c in valid.columns]
+    if available:
+        src_dim = {c: (valid[c] == 1) for c in available}
+        if "sourceCount" in valid.columns:
+            src_dim["multi_source_2+"] = (valid["sourceCount"] >= 2)
+        dimensions["source"] = src_dim
+
+    # AI score buckets
+    if "aiScore" in valid.columns:
+        dimensions["ai_score"] = {
+            "ai_low(<35)":   (valid["aiScore"] < 35),
+            "ai_mid(35-55)": (valid["aiScore"] >= 35) & (valid["aiScore"] < 55),
+            "ai_high(>=55)": (valid["aiScore"] >= 55),
+        }
+
+    # P&D
+    if "pndFlagged" in valid.columns:
+        dimensions["pnd"] = {
+            "no_pnd":  (valid["pndFlagged"] == False),
+            "is_pnd":  (valid["pndFlagged"] == True),
+        }
+
     results = []
+    n = len(valid)
 
-    for ai_cutoff in [25, 30, 35, 40, 45, 50]:
-        for pnd_flagged in [False, True]:
-            label_pnd = "no_pnd" if not pnd_flagged else "any_pnd"
-            included = valid[
-                (valid["aiScore"] >= ai_cutoff) & (valid["pndFlagged"] == pnd_flagged)
-            ]
-            if len(included) < 5:
-                continue
-
-            results.append({
-                "sweep_type": "combined",
-                "parameter": f"ai>={ai_cutoff}_{label_pnd}",
-                "threshold": None,
-                "n_included": len(included),
-                "n_excluded": len(valid) - len(included),
-                "avg_return": included[ret_col].mean(),
-                "median_return": included[ret_col].median(),
-                "win_rate": (included[ret_col] > 0).mean(),
-                "big_win_rate": (included[ret_col] > 0.05).mean(),
-                "sharpe_like": sharpe_like(included[ret_col]),
-                "avg_excluded_return": None,
-            })
+    for (dim_a_name, dim_a), (dim_b_name, dim_b) in combinations(dimensions.items(), 2):
+        for seg_a_name, mask_a in dim_a.items():
+            for seg_b_name, mask_b in dim_b.items():
+                subset = valid[mask_a & mask_b]
+                if len(subset) < 3:
+                    continue
+                results.append(_sweep_result(
+                    f"interaction_{dim_a_name}_x_{dim_b_name}",
+                    f"{seg_a_name} \u00d7 {seg_b_name}",
+                    subset, n, ret_col,
+                ))
 
     return results
 
@@ -476,14 +511,22 @@ def main():
     if not mcap_results:
         print("  (no market cap data available)")
 
-    print(f"\n--- Combined Sweeps: AI Score + P&D Flag ({label}) ---")
-    combined_results = sweep_combined(valid, ret_col)
-    all_results.extend(combined_results)
-    combined_sorted = sorted(combined_results, key=lambda r: r["sharpe_like"], reverse=True)
-    for r in combined_sorted[:10]:
-        print(f"  {r['parameter']:25s}: n={r['n_included']:4d}, "
-              f"avg={r['avg_return']:+.3f}, med={r['median_return']:+.3f}, "
-              f"win={r['win_rate']:.1%}, sharpe={r['sharpe_like']:.3f}")
+    print(f"\n--- Interaction Analysis ({label}) ---")
+    interaction_results = sweep_interactions(valid, ret_col)
+    all_results.extend(interaction_results)
+    # Group by dimension pair, sorted by Sharpe within each
+    dim_pairs = sorted(set(r["sweep_type"] for r in interaction_results))
+    for pair in dim_pairs:
+        pair_results = [r for r in interaction_results if r["sweep_type"] == pair]
+        pair_sorted = sorted(pair_results, key=lambda r: r["sharpe_like"], reverse=True)
+        pair_label = pair.replace("interaction_", "").replace("_x_", " × ")
+        print(f"  --- {pair_label} ---")
+        for r in pair_sorted:
+            print(f"    {r['parameter']:40s}: n={r['n_included']:4d}, "
+                  f"avg={r['avg_return']:+.3f}, med={r['median_return']:+.3f}, "
+                  f"win={r['win_rate']:.1%}, sharpe={r['sharpe_like']:.3f}")
+    if not interaction_results:
+        print("  (not enough data for interaction analysis)")
 
     # Save all results
     results_df = pd.DataFrame(all_results)
@@ -491,11 +534,12 @@ def main():
     results_df.to_csv(out_path, index=False)
     print(f"\nAll sweep results saved to {out_path}")
 
-    # Print best overall
-    if combined_sorted:
-        best = combined_sorted[0]
+    # Print best overall (consider all sweep types with n >= 5)
+    candidates = [r for r in all_results if r["n_included"] >= 5]
+    if candidates:
+        best = max(candidates, key=lambda r: r["sharpe_like"])
         print(f"\n{'=' * 60}")
-        print(f"BEST COMBINED CONFIG ({label}): {best['parameter']}")
+        print(f"BEST CONFIG ({label}): [{best['sweep_type']}] {best['parameter']}")
         print(f"  Avg return:    {best['avg_return']:+.3f}")
         print(f"  Median return: {best['median_return']:+.3f}")
         print(f"  Win rate:      {best['win_rate']:.1%}")
