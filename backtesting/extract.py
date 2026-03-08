@@ -40,6 +40,38 @@ DB_USER = "signalscope"
 DB_NAME = "signalscope"
 
 QUERY = """
+WITH signal_agg AS (
+  SELECT
+    s."scanId",
+    s.symbol,
+    -- Per-source signal counts
+    COUNT(*) FILTER (WHERE s.source = 'REDDIT')       AS reddit_count,
+    COUNT(*) FILTER (WHERE s.source = 'TWITTER')      AS twitter_count,
+    COUNT(*) FILTER (WHERE s.source = 'STOCKTWITS')   AS stocktwits_count,
+    COUNT(*) FILTER (WHERE s.source = 'SEC_INSIDER')  AS sec_insider_count,
+    COUNT(*) FILTER (WHERE s.source = 'OPTIONS_FLOW') AS options_flow_count,
+    COUNT(*) FILTER (WHERE s.source = 'VOLUME_SPIKE') AS volume_spike_count,
+    COUNT(*) FILTER (WHERE s.source = 'CONGRESS')     AS congress_count,
+    -- Insider / congress quality
+    MAX(s."purchaseValue") FILTER (WHERE s.source IN ('SEC_INSIDER', 'CONGRESS'))  AS max_insider_value,
+    SUM(s."purchaseValue") FILTER (WHERE s.source IN ('SEC_INSIDER', 'CONGRESS'))  AS total_insider_value,
+    MAX(s."purchaseValue") FILTER (WHERE s.source = 'CONGRESS')                    AS max_congress_value,
+    BOOL_OR(s."insiderTitle" ILIKE '%ceo%' OR s."insiderTitle" ILIKE '%chief executive%')
+      FILTER (WHERE s.source = 'SEC_INSIDER')          AS has_ceo_buy,
+    -- Volume spike quality
+    MAX(s."volumeRatio")                               AS max_volume_ratio,
+    AVG(s."volumeRatio") FILTER (WHERE s."volumeRatio" IS NOT NULL) AS avg_volume_ratio,
+    -- Twitter quality
+    MAX(s."followerCount") FILTER (WHERE s.source = 'TWITTER')      AS max_follower_count,
+    SUM(s."retweetCount")  FILTER (WHERE s.source = 'TWITTER')      AS total_retweets,
+    SUM(s."likeCount")     FILTER (WHERE s.source = 'TWITTER')      AS total_likes,
+    -- Reddit quality
+    MAX(s.upvotes)         FILTER (WHERE s.source = 'REDDIT')       AS max_reddit_upvotes,
+    AVG(s."postAge")       FILTER (WHERE s.source = 'REDDIT')       AS avg_reddit_post_age,
+    COUNT(DISTINCT s.subreddit) FILTER (WHERE s.source = 'REDDIT')  AS distinct_subreddits
+  FROM "Signal" s
+  GROUP BY s."scanId", s.symbol
+)
 SELECT
   vt.id,
   vt.symbol,
@@ -88,9 +120,30 @@ SELECT
   tp."price1d",
   tp."price3d",
   tp."price7d",
-  tp."price30d"
+  tp."price30d",
+  -- Signal-level aggregates
+  sa.reddit_count,
+  sa.twitter_count,
+  sa.stocktwits_count,
+  sa.sec_insider_count,
+  sa.options_flow_count,
+  sa.volume_spike_count,
+  sa.congress_count,
+  sa.max_insider_value,
+  sa.total_insider_value,
+  sa.max_congress_value,
+  sa.has_ceo_buy,
+  sa.max_volume_ratio,
+  sa.avg_volume_ratio,
+  sa.max_follower_count,
+  sa.total_retweets,
+  sa.total_likes,
+  sa.max_reddit_upvotes,
+  sa.avg_reddit_post_age,
+  sa.distinct_subreddits
 FROM "ValidatedTicker" vt
 LEFT JOIN "TickerPerformance" tp ON tp."validatedTickerId" = vt.id
+LEFT JOIN signal_agg sa ON sa."scanId" = vt."scanId" AND sa.symbol = vt.symbol
 WHERE vt.stage IS NOT NULL
 ORDER BY vt."createdAt"
 """
