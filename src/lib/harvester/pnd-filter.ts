@@ -47,7 +47,8 @@ export function checkPndFlags(
   const hasNewsCatalyst =
     newsKeywords.some((kw) => texts.includes(kw)) ||
     signalSources.has("SEC_INSIDER") ||
-    signalSources.has("OPTIONS_FLOW");
+    signalSources.has("OPTIONS_FLOW") ||
+    signalSources.has("CONGRESS");
 
   // 1. Price < $1.00 (skip if a verifiable catalyst exists — legitimate biotech/pharma trade under $1 with FDA catalysts)
   if (fundamentals?.price != null && fundamentals.price < 1 && !hasNewsCatalyst) {

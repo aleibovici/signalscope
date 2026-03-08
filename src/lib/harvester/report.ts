@@ -25,7 +25,8 @@ HARD RULES:
 Catalyst field format:
 - If insider_buy: "CEO/CFO [name] purchased $[amount] of stock on [date] — insider buying signals confidence in near-term outlook."
 - If options_flow: "Unusual [call/put] activity detected — [volume] contracts vs [OI] open interest ([ratio]x), suggesting smart money positioning."
-- If multi_source: Lead with the strongest non-social signal (insider or options), then note cross-source corroboration.
+- If congress: "[Chamber] [Name] ([Party]) purchased ~$[amount] of [ticker] on [date] — congressional trading often precedes policy-driven moves."
+- If multi_source: Lead with the strongest non-social signal (insider, congress, or options), then note cross-source corroboration.
 - If reddit_velocity only: "Social signal only — [describe what's being discussed]. No insider or institutional confirmation yet."
 
 Also analyze:

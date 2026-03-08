@@ -41,27 +41,12 @@ interface UnusualContract {
   isOTM: boolean;
 }
 
-/**
- * Returns the next Friday (standard weekly expiry) as a Unix timestamp.
- * If today is Friday, returns today. This limits the Yahoo options response
- * to a single expiry date, avoiding the headers overflow issue.
- */
-function getNextFriday(): number {
-  const now = new Date();
-  const day = now.getUTCDay(); // 0=Sun, 5=Fri
-  const daysUntilFriday = day <= 5 ? 5 - day : 6; // days until next Friday
-  // If today is Sat/Sun, advance to next Friday
-  const friday = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate() + (daysUntilFriday === 0 ? 0 : daysUntilFriday),
-  ));
-  return Math.floor(friday.getTime() / 1000);
-}
-
-async function fetchOptionsChain(symbol: string, date: number): Promise<OptionsChainResult | null> {
+async function fetchOptionsChain(symbol: string): Promise<OptionsChainResult | null> {
   try {
-    return await yf.options(symbol, { date }) as OptionsChainResult;
+    // No date param — Yahoo returns the nearest expiry by default.
+    // Passing a calculated date (e.g. next Friday) often misses the actual
+    // expiry timestamp Yahoo expects, returning 0 contracts.
+    return await yf.options(symbol) as OptionsChainResult;
   } catch (err) {
     console.warn(
       `[options-flow] Failed to fetch ${symbol}:`,
@@ -193,12 +178,11 @@ function sleep(ms: number): Promise<void> {
 export async function fetchOptionsFlowSignals(): Promise<RawSignal[]> {
   console.log("Options Flow: scanning", SCAN_SYMBOLS.length, "symbols...");
   const signals: RawSignal[] = [];
-  const nextFriday = getNextFriday();
 
   for (let i = 0; i < SCAN_SYMBOLS.length; i += BATCH_SIZE) {
     const batch = SCAN_SYMBOLS.slice(i, i + BATCH_SIZE);
     const results = await Promise.allSettled(
-      batch.map((symbol) => fetchOptionsChain(symbol, nextFriday))
+      batch.map((symbol) => fetchOptionsChain(symbol))
     );
 
     for (let j = 0; j < results.length; j++) {

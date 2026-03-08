@@ -1,4 +1,4 @@
-export type Source = "REDDIT" | "STOCKTWITS" | "SEC_INSIDER" | "SEC_FILING" | "OPTIONS_FLOW" | "VOLUME_SPIKE" | "TWITTER";
+export type Source = "REDDIT" | "STOCKTWITS" | "SEC_INSIDER" | "SEC_FILING" | "OPTIONS_FLOW" | "VOLUME_SPIKE" | "TWITTER" | "CONGRESS";
 
 export interface RawSignal {
   symbol: string;
@@ -56,7 +56,7 @@ export interface FundamentalData {
   sharesOutstanding?: number | null;
 }
 
-export type SignalType = "insider_buy" | "options_flow" | "multi_source" | "reddit_velocity" | "twitter_velocity";
+export type SignalType = "insider_buy" | "options_flow" | "congress_buy" | "multi_source" | "reddit_velocity" | "twitter_velocity";
 
 export interface AiScoreResult {
   symbol: string;

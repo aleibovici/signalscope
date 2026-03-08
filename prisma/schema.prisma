@@ -90,6 +90,7 @@ enum SignalSource {
   OPTIONS_FLOW
   VOLUME_SPIKE
   TWITTER
+  CONGRESS
 }
 
 model ValidatedTicker {

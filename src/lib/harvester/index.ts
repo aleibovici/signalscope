@@ -7,6 +7,7 @@ import { fetchSecInsiderSignals } from "./sources/sec-insider";
 import { fetchOptionsFlowSignals } from "./sources/options-flow";
 import { fetchVolumeSpikeSignals } from "./sources/volume-spike";
 import { fetchTwitterSignals } from "./sources/twitter";
+import { fetchCongressSignals } from "./sources/congress";
 import { scoreSymbolBatch } from "./scoring";
 import { checkPndFlags, aiPndAssessment } from "./pnd-filter";
 import { fetchFundamentals } from "./fundamentals";
@@ -17,6 +18,7 @@ const SOURCE_WEIGHTS: Record<string, number> = {
   SEC_INSIDER: 3,
   OPTIONS_FLOW: 2.5,
   VOLUME_SPIKE: 2,
+  CONGRESS: 2.5,
   TWITTER: 1.2,
   SEC_FILING: 1,
   REDDIT: 1,
@@ -166,15 +168,21 @@ function classifySignalType(agg: AggregatedSymbol): SignalType {
   const hasInsider = sources.has("SEC_INSIDER");
   const hasOptions = sources.has("OPTIONS_FLOW");
   const hasVolume = sources.has("VOLUME_SPIKE");
+  const hasCongress = sources.has("CONGRESS");
 
-  // Multi-source: social (Reddit/StockTwits/Twitter) + at least one of insider/options/volume
-  if ((hasReddit || hasStockTwits || hasTwitter) && (hasInsider || hasOptions || hasVolume) && sources.size >= 3) {
+  // Multi-source: social (Reddit/StockTwits/Twitter) + at least one of insider/options/volume/congress
+  if ((hasReddit || hasStockTwits || hasTwitter) && (hasInsider || hasOptions || hasVolume || hasCongress) && sources.size >= 3) {
     return "multi_source";
   }
 
   // Insider buy: has SEC insider signal (Form 4 open market purchase)
   if (hasInsider) {
     return "insider_buy";
+  }
+
+  // Congress buy: congressional STOCK Act disclosure
+  if (hasCongress) {
+    return "congress_buy";
   }
 
   // Options flow: unusual call sweep/volume
@@ -215,7 +223,7 @@ async function mirrorToDevDb(
  */
 export async function fetchSignals(): Promise<RawSignal[]> {
   console.log("Fetching signals from all sources...");
-  const sourceNames = ["reddit", "stocktwits", "secInsider", "optionsFlow", "volumeSpike", "twitter"] as const;
+  const sourceNames = ["reddit", "stocktwits", "secInsider", "optionsFlow", "volumeSpike", "twitter", "congress"] as const;
   const sourceResults = await Promise.allSettled([
     fetchRedditSignals(),
     fetchStockTwitsSignals(),
@@ -223,6 +231,7 @@ export async function fetchSignals(): Promise<RawSignal[]> {
     fetchOptionsFlowSignals(),
     fetchVolumeSpikeSignals(),
     fetchTwitterSignals(),
+    fetchCongressSignals(),
   ]);
 
   sourceResults.forEach((r, i) => {
@@ -237,6 +246,34 @@ export async function fetchSignals(): Promise<RawSignal[]> {
 
   console.log(`Total raw signals: ${allSignals.length}`);
   return allSignals;
+}
+
+/** Extract txId values from CONGRESS signal URLs. */
+export function extractTxIdsFromUrls(urls: string[]): Set<string> {
+  const txIds = new Set<string>();
+  for (const url of urls) {
+    const match = url.match(/txId=(\d+)/);
+    if (match) txIds.add(match[1]);
+  }
+  return txIds;
+}
+
+/** Remove CONGRESS signals whose txId is already in seenTxIds. Non-CONGRESS signals pass through. */
+export function deduplicateCongressSignals(signals: RawSignal[], seenTxIds: Set<string>): RawSignal[] {
+  if (seenTxIds.size === 0) return signals;
+
+  const beforeCount = signals.length;
+  const filtered = signals.filter((s) => {
+    if (s.source !== "CONGRESS" || !s.url) return true;
+    const match = s.url.match(/txId=(\d+)/);
+    return !match || !seenTxIds.has(match[1]);
+  });
+
+  const deduped = beforeCount - filtered.length;
+  if (deduped > 0) {
+    console.log(`Congress dedup: removed ${deduped} already-seen transaction(s)`);
+  }
+  return filtered;
 }
 
 /**
@@ -274,6 +311,23 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
   });
 
   try {
+    // Deduplicate CONGRESS signals against recent scans (same trade appears on Capitol Trades for days).
+    const congressSignals = allSignals.filter((s) => s.source === "CONGRESS");
+    if (congressSignals.length > 0) {
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const recentCongressUrls = await prisma.signal.findMany({
+        where: {
+          source: "CONGRESS",
+          createdAt: { gte: sevenDaysAgo },
+          url: { not: null },
+        },
+        select: { url: true },
+      });
+
+      const seenTxIds = extractTxIdsFromUrls(recentCongressUrls.map((r) => r.url).filter(Boolean) as string[]);
+      allSignals = deduplicateCongressSignals(allSignals, seenTxIds);
+    }
+
     console.log(`Total raw signals: ${allSignals.length}`);
 
     // 3. Aggregate by symbol
@@ -358,7 +412,7 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
       const sentiment = aiScore?.sentiment ?? "neutral";
       const novelty = noveltyMap.get(agg.symbol);
       const sources = new Set(agg.signals.map((s) => s.source));
-      const hasNonSocialSource = sources.has("SEC_INSIDER") || sources.has("OPTIONS_FLOW") || sources.has("VOLUME_SPIKE");
+      const hasNonSocialSource = sources.has("SEC_INSIDER") || sources.has("OPTIONS_FLOW") || sources.has("VOLUME_SPIKE") || sources.has("CONGRESS");
       const stage = determineStage(score, agg.sourceCount, agg.weightedSourceScore, agg.avgVelocity, finalPndFlagged, hasNonSocialSource, novelty);
 
       const signalType = classifySignalType(agg);
