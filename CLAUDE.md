@@ -350,7 +350,7 @@ backtesting/
 ├── extract.py                # Step 1: Pull data from prod DB → local parquet (auto-starts Cloud SQL proxy)
 ├── features.py               # Step 2: Feature engineering (48 features from raw DB columns)
 ├── train.py                  # Step 3: XGBoost training + evaluation + SHAP analysis
-├── sweep.py                  # Step 4: Threshold sweep using model insights
+├── sweep.py                  # Step 4: Threshold sweep + bootstrap CIs + permutation testing
 ├── README.md                 # Usage instructions
 └── output/                   # Generated artifacts (gitignored)
 ```
@@ -362,7 +362,7 @@ cd backtesting
 source venv/bin/activate      # Python venv (create with: python -m venv venv && pip install -r requirements.txt)
 python extract.py             # Extracts data via Cloud SQL Auth Proxy (auto-starts/stops proxy, reads DB_PASSWORD from .env.production)
 python train.py               # Trains XGBoost classifier + regressor, generates SHAP plots
-python sweep.py               # Sweeps P&D thresholds, AI score cutoffs, stage combos → sweep_results.csv
+python sweep.py               # Sweeps thresholds, bootstrap CIs, permutation p-values → sweep_results.csv
 ```
 
 ### Key Design Decisions
@@ -374,6 +374,8 @@ python sweep.py               # Sweeps P&D thresholds, AI score cutoffs, stage c
 - **Time-series split** — last 20% by date as test set (no random shuffle — prevents look-ahead bias)
 - **SHAP over just feature importance** — shows direction (positive/negative impact), not just magnitude
 - **Both classification + regression** — classification answers "should we include this ticker?", regression answers "what return can we expect?"
+- **Statistical validation** — `sweep.py` adds bootstrap 95% CIs (10K resamples) and permutation p-values (2K permutations) with Benjamini-Hochberg FDR correction for multiple testing. Configs must survive both CI-not-crossing-zero AND BH-FDR significance to be "validated". No scipy dependency — BH-FDR implemented manually. Output CSV includes `avg_return_ci_lo/hi`, `sharpe_ci_lo/hi`, `ci_crosses_zero`, `p_value`, `p_value_corrected`, `significant` columns.
+- **Current data status (248 symbols, 7d horizon)** — 0 of 115 configs survive statistical validation. All apparent patterns (FORMING stage, micro-cap, multi-source) have CIs crossing zero. Pipeline thresholds should not be changed until dataset grows to 500+ symbols.
 
 ## Path Alias
 
