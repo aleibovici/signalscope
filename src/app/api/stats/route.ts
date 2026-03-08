@@ -6,7 +6,7 @@ import { handleApiError } from "@/lib/api-error";
 export async function GET() {
   try {
     await getCurrentUserId();
-    const [scans, signals, tickerCount, users] =
+    const [scans, signals, tickerCount] =
       await Promise.all([
         prisma.scan.count({ where: { status: "COMPLETED" } }),
         prisma.scan.aggregate({
@@ -16,14 +16,12 @@ export async function GET() {
         prisma.$queryRaw<[{ count: bigint }]>`SELECT COUNT(DISTINCT symbol) as count FROM "ValidatedTicker"`.then(
           (rows) => Number(rows[0].count)
         ),
-        prisma.user.count(),
       ]);
 
     return NextResponse.json({
       scans,
       signals,
       tickers: tickerCount,
-      users,
     }, {
       headers: { "Cache-Control": "private, max-age=300" },
     });
