@@ -44,20 +44,10 @@ export async function PATCH(
       updateData.verified = verified;
     }
 
-    // Atomic: ownership check + update in one query — no TOCTOU window
-    const result = await prisma.userPosition.updateMany({
-      where: { id, userId },
+    const position = await prisma.userPosition.update({
+      where: { id },
       data: updateData,
     });
-
-    if (result.count === 0) {
-      return NextResponse.json({ error: "Position not found" }, { status: 404 });
-    }
-
-    const position = await prisma.userPosition.findUnique({ where: { id, userId } });
-    if (!position) {
-      return NextResponse.json({ error: "Position not found" }, { status: 404 });
-    }
 
     return NextResponse.json({ position });
   } catch (error) {

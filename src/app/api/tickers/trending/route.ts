@@ -4,6 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
 import { paginationSchema } from "@/lib/validators";
+import { TTLCache } from "@/lib/cache";
+
+export const trendingCache = new TTLCache<unknown>(5 * 60 * 1000);
 
 const trendingSchema = paginationSchema.extend({
   minAppearances: z.coerce.number().int().min(2).default(2),
@@ -37,6 +40,15 @@ export async function GET(request: NextRequest) {
     }
 
     const { page, limit, minAppearances, stage, trend } = parsed.data;
+
+    const cacheKey = `trending:${page}:${limit}:${minAppearances}:${stage ?? ""}:${trend ?? ""}`;
+    const cached = trendingCache.get(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: { "Cache-Control": "private, max-age=300" },
+      });
+    }
+
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     // 1. Find qualifying symbols via raw SQL (groupBy + relation filter on scan.status)
@@ -198,7 +210,7 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({
+    const result = {
       tickers,
       total,
       summary: {
@@ -208,6 +220,10 @@ export async function GET(request: NextRequest) {
         stableCount,
         avgScore,
       },
+    };
+    trendingCache.set(cacheKey, result);
+    return NextResponse.json(result, {
+      headers: { "Cache-Control": "private, max-age=300" },
     });
   } catch (err) {
     return handleApiError(err, "GET /api/tickers/trending");

@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth";
 import { paginationSchema } from "@/lib/validators";
 import { handleApiError } from "@/lib/api-error";
+import { TTLCache } from "@/lib/cache";
+
+export const leaderboardCache = new TTLCache<unknown>(5 * 60 * 1000);
 
 const TIMEFRAMES = [3, 7, 30] as const;
 
@@ -51,6 +54,15 @@ export async function GET(request: NextRequest) {
     }
 
     const { page, limit } = parsed.data;
+
+    const cacheKey = `leaderboard:${page}:${limit}`;
+    const cached = leaderboardCache.get(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: { "Cache-Control": "private, max-age=300" },
+      });
+    }
+
     const cutoff30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     // Fetch all positions opened within last 30 days for users with usernames
@@ -156,10 +168,14 @@ export async function GET(request: NextRequest) {
       ...e,
     }));
 
-    return NextResponse.json({
+    const result = {
       leaderboard: pageEntries,
       total,
       pricesAsOf: pricesAsOf?.toISOString() ?? null,
+    };
+    leaderboardCache.set(cacheKey, result);
+    return NextResponse.json(result, {
+      headers: { "Cache-Control": "private, max-age=300" },
     });
   } catch (err) {
     return handleApiError(err, "/api/leaderboard");

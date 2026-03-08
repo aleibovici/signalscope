@@ -17,7 +17,7 @@ vi.mock("@/lib/auth", () => ({
   getCurrentUserId: () => mockGetCurrentUserId(),
 }));
 
-const { GET } = await import("@/app/api/leaderboard/route");
+const { GET, leaderboardCache } = await import("@/app/api/leaderboard/route");
 
 function makeRequest(params: Record<string, string> = {}): NextRequest {
   const url = new URL("http://localhost:3000/api/leaderboard");
@@ -60,6 +60,7 @@ function makePosition(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  leaderboardCache.clear();
   mockGetCurrentUserId.mockResolvedValue("current_user");
   mockFindManyPositions.mockResolvedValue([]);
   mockFindManySnapshots.mockResolvedValue([]);

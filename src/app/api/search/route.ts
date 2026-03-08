@@ -51,7 +51,9 @@ export async function GET(request: NextRequest) {
       })),
     ];
 
-    return NextResponse.json({ results });
+    return NextResponse.json({ results }, {
+      headers: { "Cache-Control": "private, max-age=30" },
+    });
   } catch (err) {
     if (err instanceof Error && err.message === "Not authenticated") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
