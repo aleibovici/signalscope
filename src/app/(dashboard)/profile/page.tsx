@@ -33,7 +33,7 @@ export default function ProfilePage() {
         ) : (
           <>
             <p className="mb-4 text-sm text-gray-500">
-              Your username is shown on leaderboards and social features. It must be 3–20
+              Your username is shown on social features. It must be 3–20
               characters and can only contain lowercase letters, numbers, and underscores.
             </p>
 

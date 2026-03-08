@@ -59,16 +59,7 @@ Remove from watchlist.
 
 ## Leaderboard
 
-### GET /api/leaderboard
-
-Portfolio leaderboard ranked by 7-day gain.
-
-| Param | Type | Default | Description |
-|-------|------|---------|-------------|
-| page | number | 1 | Page number |
-| limit | number | 20 | Results per page (max 100) |
-
-**Response:** `{ leaderboard: [{ rank, username, gain3d, gain7d, gain30d, positionCount, winRate, bestSymbol, bestGainPct, verifiedRate }], total, pricesAsOf }`
+> **Temporarily disabled** — returns 503. Will be re-enabled once there are more active users.
 
 ## Performance
 
