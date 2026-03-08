@@ -24,6 +24,8 @@ export async function GET() {
       signals,
       tickers: tickerCount,
       users,
+    }, {
+      headers: { "Cache-Control": "private, max-age=300" },
     });
   } catch (err) {
     return handleApiError(err, "/api/stats GET");

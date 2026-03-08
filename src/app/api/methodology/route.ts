@@ -45,6 +45,8 @@ export async function GET() {
         pipeline: [...backtestPipeline],
       },
       disclaimer,
+    }, {
+      headers: { "Cache-Control": "public, max-age=3600" },
     });
   } catch (err) {
     return handleApiError(err, "GET /api/methodology");

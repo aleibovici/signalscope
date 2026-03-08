@@ -8,6 +8,30 @@ import { isRateLimited } from "@/lib/rate-limit";
 import { verifyAccessToken } from "@/lib/mobile-jwt";
 import { createHash } from "crypto";
 
+const pendingLastUsed = new Set<string>();
+let flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+function trackApiKeyUsage(id: string) {
+  pendingLastUsed.add(id);
+  if (pendingLastUsed.size >= 100) {
+    flushApiKeyUsage();
+  } else if (!flushTimer) {
+    flushTimer = setTimeout(flushApiKeyUsage, 60_000);
+    if (flushTimer.unref) flushTimer.unref();
+  }
+}
+
+async function flushApiKeyUsage() {
+  if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
+  if (pendingLastUsed.size === 0) return;
+  const ids = [...pendingLastUsed];
+  pendingLastUsed.clear();
+  prisma.apiKey.updateMany({
+    where: { id: { in: ids } },
+    data: { lastUsedAt: new Date() },
+  }).catch(() => {});
+}
+
 const LOGIN_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const LOGIN_MAX_ATTEMPTS = 10;
 
@@ -65,7 +89,7 @@ export async function getCurrentUserId(): Promise<string> {
     const hash = createHash("sha256").update(apiKey).digest("hex");
     const record = await prisma.apiKey.findUnique({ where: { key: hash } });
     if (record && !record.revokedAt) {
-      prisma.apiKey.update({ where: { id: record.id }, data: { lastUsedAt: new Date() } }).catch(() => {});
+      trackApiKeyUsage(record.id);
       return record.userId;
     }
     throw new Error("Not authenticated");

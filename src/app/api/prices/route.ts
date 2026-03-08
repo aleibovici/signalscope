@@ -3,11 +3,9 @@ import { symbolsQuerySchema } from "@/lib/validators";
 import { fetchCurrentPrice } from "@/lib/harvester/fundamentals";
 import { getCurrentUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
+import { TTLCache } from "@/lib/cache";
 
-// Simple in-memory cache (5 min TTL, max 500 entries)
-const priceCache = new Map<string, { price: number | null; ts: number }>();
-const CACHE_TTL = 5 * 60 * 1000;
-const CACHE_MAX = 500;
+const priceCache = new TTLCache<number | null>(5 * 60 * 1000, 500);
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,38 +16,25 @@ export async function GET(request: NextRequest) {
     }
 
     const symbols = symbolsQuerySchema.parse(symbolsParam);
-    const now = Date.now();
     const prices: Record<string, number | null> = {};
 
     await Promise.all(
       symbols.map(async (symbol) => {
         const cached = priceCache.get(symbol);
-        if (cached && now - cached.ts < CACHE_TTL) {
-          prices[symbol] = cached.price;
+        if (cached !== undefined) {
+          prices[symbol] = cached;
           return;
         }
 
         const price = await fetchCurrentPrice(symbol);
-        if (priceCache.size >= CACHE_MAX) {
-          // Evict expired entries first, then oldest by timestamp if still over limit
-          for (const [k, v] of priceCache) {
-            if (now - v.ts >= CACHE_TTL) priceCache.delete(k);
-          }
-          if (priceCache.size >= CACHE_MAX) {
-            let oldestKey: string | undefined;
-            let oldestTs = Infinity;
-            for (const [k, v] of priceCache) {
-              if (v.ts < oldestTs) { oldestTs = v.ts; oldestKey = k; }
-            }
-            if (oldestKey !== undefined) priceCache.delete(oldestKey);
-          }
-        }
-        priceCache.set(symbol, { price, ts: now });
+        priceCache.set(symbol, price);
         prices[symbol] = price;
       })
     );
 
-    return NextResponse.json({ prices });
+    return NextResponse.json({ prices }, {
+      headers: { "Cache-Control": "private, max-age=60" },
+    });
   } catch (err) {
     return handleApiError(err, "/api/prices GET");
   }

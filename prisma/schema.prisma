@@ -79,6 +79,7 @@ model Signal {
 
   @@index([scanId, symbol])
   @@index([symbol])
+  @@index([symbol, source])
 }
 
 enum SignalSource {

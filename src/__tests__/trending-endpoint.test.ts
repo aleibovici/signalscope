@@ -18,7 +18,7 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-const { GET } = await import("@/app/api/tickers/trending/route");
+const { GET, trendingCache } = await import("@/app/api/tickers/trending/route");
 
 function makeRequest(params: Record<string, string> = {}): NextRequest {
   const url = new URL("http://localhost:3000/api/tickers/trending");
@@ -56,6 +56,7 @@ function makeTicker(symbol: string, aiScore: number, stage: string, createdAt: D
 
 beforeEach(() => {
   vi.clearAllMocks();
+  trendingCache.clear();
   // Default: no results
   mockQueryRaw.mockResolvedValue([]);
   mockFindManyTicker.mockResolvedValue([]);
