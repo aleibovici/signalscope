@@ -8,7 +8,7 @@ import { fetchOptionsFlowSignals } from "./sources/options-flow";
 import { fetchVolumeSpikeSignals } from "./sources/volume-spike";
 import { fetchTwitterSignals } from "./sources/twitter";
 import { fetchCongressSignals } from "./sources/congress";
-import { scoreSymbolBatch } from "./scoring";
+import { scoreSymbolBatch, defaultScore } from "./scoring";
 import { checkPndFlags, aiPndAssessment } from "./pnd-filter";
 import { fetchFundamentals } from "./fundamentals";
 import { generateTickerReport } from "./report";
@@ -338,16 +338,19 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
     const candidates = aggregated.filter(
       (a) => a.signals.length >= 2 || a.sourceCount >= 2 || a.weightedSourceScore >= 2
     );
-    console.log(`Candidates after filtering: ${candidates.length}`);
+    const nonCandidateAggregated = aggregated.filter(
+      (a) => a.signals.length < 2 && a.sourceCount < 2 && a.weightedSourceScore < 2
+    );
+    console.log(`Candidates after filtering: ${candidates.length}, non-candidates: ${nonCandidateAggregated.length}`);
 
-    // 4. Fetch fundamentals + novelty in parallel (independent operations)
-    const candidateSymbols = candidates.map((c) => c.symbol);
+    // 4. Fetch fundamentals + novelty for ALL symbols (YF quote is free and batched)
+    const allSymbols = aggregated.map((c) => c.symbol);
     const [fundamentalsMap, noveltyMap] = await Promise.all([
-      fetchFundamentals(candidateSymbols),
-      lookupNovelty(candidateSymbols, scan.id),
+      fetchFundamentals(allSymbols),
+      lookupNovelty(allSymbols, scan.id),
     ]);
     const novelCount = [...noveltyMap.values()].filter((n) => n.isNovel).length;
-    console.log(`Novelty: ${novelCount} novel, ${candidates.length - novelCount} recurring`);
+    console.log(`Novelty: ${novelCount} novel, ${aggregated.length - novelCount} recurring`);
 
     // 5. Drop candidates with no Yahoo Finance price — these are not real tradeable securities
     const validCandidates = candidates.filter((c) => {
@@ -356,8 +359,15 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
     });
     const droppedCount = candidates.length - validCandidates.length;
     if (droppedCount > 0) {
-      console.log(`[harvest] Dropped ${droppedCount} symbols with no YF price (not real securities)`);
+      console.log(`[harvest] Dropped ${droppedCount} candidates with no YF price (not real securities)`);
     }
+
+    // Non-candidates with YF price → UNSCORED stage (for backtesting data)
+    const pricedNonCandidates = nonCandidateAggregated.filter((c) => {
+      const fund = fundamentalsMap.get(c.symbol);
+      return fund != null && fund.price != null;
+    });
+    console.log(`[harvest] ${pricedNonCandidates.length} non-candidates with YF price → UNSCORED`);
 
     // 6. AI scoring in batches of 15 (parallelized)
     const scoreBatches: AggregatedSymbol[][] = [];
@@ -381,7 +391,7 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
       pndFlagged: boolean;
       pndFlags: string[];
       pndScore: number;
-      stage: "EARLY" | "FORMING" | "CONFIRMED" | "FILTERED";
+      stage: "EARLY" | "FORMING" | "CONFIRMED" | "FILTERED" | "UNSCORED";
       signalType: SignalType;
       rawAiScore?: number;
       pndAiConfidence?: number;
@@ -431,6 +441,30 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
         pndAiReasoning: pndAiResult?.reasoning,
       });
     }
+
+    // 6b. Process non-candidates as UNSCORED (heuristic score only, no AI calls)
+    const unscoredResults: typeof validatedResults = [];
+    for (const agg of pricedNonCandidates) {
+      const fundamentals = fundamentalsMap.get(agg.symbol) || null;
+      const pnd = checkPndFlags(agg, fundamentals);
+      const heuristic = defaultScore(agg, noveltyMap.get(agg.symbol));
+      const signalType = classifySignalType(agg);
+
+      unscoredResults.push({
+        agg,
+        score: heuristic.score,
+        sentiment: heuristic.sentiment,
+        pndFlagged: pnd.flagged,
+        pndFlags: pnd.flags,
+        pndScore: pnd.score,
+        stage: "UNSCORED",
+        signalType,
+        rawAiScore: heuristic.rawScore,
+      });
+    }
+
+    // Merge candidate + unscored results for DB write
+    const allValidatedResults = [...validatedResults, ...unscoredResults];
 
     // 7. Generate AI reports for non-filtered tickers (top 20)
     const reportCandidates = validatedResults
@@ -508,8 +542,8 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
       pndScore: 0,          // Default for single-mention symbols
     }));
 
-    // Store validated tickers
-    const tickerDataList = validatedResults.map((result) => {
+    // Store validated tickers (candidates + UNSCORED non-candidates)
+    const tickerDataList = allValidatedResults.map((result) => {
       const fundamentals = fundamentalsMap.get(result.agg.symbol);
       const report = reports.get(result.agg.symbol);
       const novelty = noveltyMap.get(result.agg.symbol);
@@ -579,7 +613,7 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
 
       // Batch signal updates: group by identical values to minimize round-trips
       const updateGroups = new Map<string, string[]>();
-      for (const result of validatedResults) {
+      for (const result of allValidatedResults) {
         const key = JSON.stringify({
           sentiment: result.sentiment,
           pndFlagged: result.pndFlagged,
@@ -610,7 +644,7 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
       await client.signal.createMany({ data: allSignalData as any });
 
       // Update all signals per symbol in one query (instead of per-signal)
-      for (const result of validatedResults) {
+      for (const result of allValidatedResults) {
         await client.signal.updateMany({
           where: { scanId: scan.id, symbol: result.agg.symbol },
           data: {

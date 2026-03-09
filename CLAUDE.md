@@ -144,7 +144,9 @@ Multi-user email/password auth via Auth.js v5 (Credentials provider, JWT session
 
 Key models in `prisma/schema.prisma`: **User**, **Scan** (harvest run), **Signal** (raw from sources), **ValidatedTicker** (scored candidates with fundamentals/report), **TickerPerformance** (post-scan price performance tracking), **PriceSnapshot** (continuous price time-series for return computation), **UserPosition** (portfolio), **UserWatchlist** (bookmarked tickers), **RefreshToken** (mobile auth token rotation, indexed on token/userId/expiresAt), **ApiKey** (SHA-256 hashed API keys for programmatic access, single key per user, `sk_sig_` prefix).
 
-Signal stages: `EARLY | FORMING | CONFIRMED | FILTERED`
+Signal stages: `EARLY | FORMING | CONFIRMED | FILTERED | UNSCORED`
+
+`UNSCORED` — non-candidate symbols (single mention, low weight) that have a Yahoo Finance price. Heuristic-scored only (no AI calls). Used for backtesting negative examples. Excluded from dashboard and trending queries.
 
 ## Environment Variables
 

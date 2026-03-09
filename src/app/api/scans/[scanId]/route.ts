@@ -17,7 +17,7 @@ export async function GET(
       prisma.validatedTicker.findMany({
         where: {
           scanId,
-          ...(includeFiltered ? {} : { stage: { not: "FILTERED" } }),
+          ...(includeFiltered ? {} : { stage: { notIn: ["FILTERED", "UNSCORED"] } }),
         },
         orderBy: { aiScore: "desc" },
         include: {

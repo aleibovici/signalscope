@@ -125,7 +125,7 @@ Return JSON: { "scores": [{ "symbol": "X", "score": 0-100, "sentiment": "bullish
   }
 }
 
-function defaultScore(s: AggregatedSymbol, novelty?: NoveltyContext): AiScoreResult {
+export function defaultScore(s: AggregatedSymbol, novelty?: NoveltyContext): AiScoreResult {
   const sources = new Set(s.signals.map((sig) => sig.source));
   const hasInsider = sources.has("SEC_INSIDER");
   const hasOptions = sources.has("OPTIONS_FLOW");
