@@ -60,8 +60,11 @@ WITH signal_agg AS (
     MAX(s."purchaseValue") FILTER (WHERE s.source IN ('SEC_INSIDER', 'CONGRESS'))  AS max_insider_value,
     SUM(s."purchaseValue") FILTER (WHERE s.source IN ('SEC_INSIDER', 'CONGRESS'))  AS total_insider_value,
     MAX(s."purchaseValue") FILTER (WHERE s.source = 'CONGRESS')                    AS max_congress_value,
-    BOOL_OR(s."insiderTitle" ILIKE '%ceo%' OR s."insiderTitle" ILIKE '%chief executive%')
-      FILTER (WHERE s.source = 'SEC_INSIDER')           AS has_ceo_buy,
+    COALESCE(
+      BOOL_OR(s."insiderTitle" ILIKE '%ceo%' OR s."insiderTitle" ILIKE '%chief executive%')
+      FILTER (WHERE s.source = 'SEC_INSIDER'),
+      false
+    )                                                   AS has_ceo_buy,
     -- Twitter quality
     MAX(s."followerCount") FILTER (WHERE s.source = 'TWITTER')      AS max_follower_count,
     SUM(s."retweetCount")  FILTER (WHERE s.source = 'TWITTER')      AS total_retweets,

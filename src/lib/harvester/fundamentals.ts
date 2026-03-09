@@ -73,16 +73,47 @@ async function fetchShortFloats(symbols: string[]): Promise<Map<string, number |
   return result;
 }
 
+async function fetchSectorAndFloat(
+  symbols: string[]
+): Promise<Map<string, { sector?: string; floatShares?: number | null }>> {
+  const result = new Map<string, { sector?: string; floatShares?: number | null }>();
+  const CONCURRENCY = 5;
+  for (let i = 0; i < symbols.length; i += CONCURRENCY) {
+    const batch = symbols.slice(i, i + CONCURRENCY);
+    await Promise.all(
+      batch.map(async (sym) => {
+        try {
+          const summary = await withTimeout(
+            yf.quoteSummary(sym, { modules: ["assetProfile", "defaultKeyStatistics"] }),
+            YF_TIMEOUT_MS
+          );
+          result.set(sym, {
+            sector: (summary.assetProfile as Record<string, unknown> | null | undefined)?.sector as string | undefined,
+            floatShares:
+              typeof (summary.defaultKeyStatistics as Record<string, unknown> | null | undefined)?.floatShares === "number"
+                ? (summary.defaultKeyStatistics as Record<string, unknown>).floatShares as number
+                : null,
+          });
+        } catch {
+          // non-fatal — sector/floatShares stay null for this symbol
+        }
+      })
+    );
+  }
+  return result;
+}
+
 export async function fetchFundamentals(
   symbols: string[]
 ): Promise<Map<string, FundamentalData>> {
   const result = new Map<string, FundamentalData>();
   if (symbols.length === 0) return result;
 
-  // Fetch quotes (batched) and short floats (per-symbol) in parallel
+  // Fetch quotes (batched), short floats (per-symbol), and sector/floatShares (per-symbol) in parallel
   const quoteRows: Awaited<ReturnType<typeof yf.quote>>[] = [];
-  const [shortFloats] = await Promise.all([
+  const [shortFloats, sectorAndFloat] = await Promise.all([
     fetchShortFloats(symbols),
+    fetchSectorAndFloat(symbols),
     (async () => {
       for (let i = 0; i < symbols.length; i += 50) {
         const batch = symbols.slice(i, i + 50);
@@ -124,16 +155,17 @@ export async function fetchFundamentals(
       ? (q as Record<string, unknown>).sharesOutstanding as number
       : null;
 
+    const extra = sectorAndFloat.get(q.symbol);
     result.set(q.symbol, {
       price: q.regularMarketPrice ?? null,
       marketCap: q.marketCap ?? null,
       shortFloat: shortFloats.get(q.symbol) ?? null,
       fiftyTwoWeekRange,
       name: q.longName ?? q.shortName,
-      sector: (q as Record<string, unknown>).sector as string | undefined,
+      sector: extra?.sector ?? ((q as Record<string, unknown>).sector as string | undefined),
       exchange: q.fullExchangeName ?? q.exchange,
       earningsDate,
-      floatShares,
+      floatShares: extra?.floatShares ?? floatShares,
       sharesOutstanding,
     });
   }
