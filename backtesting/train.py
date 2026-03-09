@@ -240,32 +240,29 @@ def print_insights(shap_values, X_test, feature_names, feat_df, horizon):
     print(f"\nThreshold analysis (deduped by symbol, phantom prices excluded):")
     valid = clean_for_analysis(feat_df, ret_col)
 
-    # P&D flagged analysis
-    if len(valid) > 0:
-        print(f"\nP&D Flagged vs Unflagged ({label}):")
-        for flagged in [False, True]:
-            subset = valid[valid["pndFlagged"] == flagged]
+    # Source count analysis
+    if "source_count" in valid.columns and len(valid) > 0:
+        print(f"\nSource Count vs Return ({label}):")
+        for min_sources in [1, 2, 3]:
+            subset = valid[valid["source_count"] >= min_sources]
             if len(subset) > 0:
                 avg_ret = subset[ret_col].mean()
                 med_ret = subset[ret_col].median()
                 win_rate = (subset[ret_col] > 0).mean()
-                lbl = "pndFlagged=True" if flagged else "pndFlagged=False"
-                print(f"  {lbl:20s}: n={len(subset):4d}, "
+                print(f"  sources >= {min_sources}: n={len(subset):4d}, "
                       f"avg: {avg_ret:+.3f}, med: {med_ret:+.3f}, win: {win_rate:.1%}")
-        n_flagged = (valid["pndFlagged"] == True).sum()
-        if n_flagged == 0:
-            print("  ⚠ No P&D-flagged tickers have return data")
 
-    # AI score threshold analysis
-    if "aiScore" in valid.columns and len(valid) > 0:
-        print(f"\nAI Score Threshold vs Avg Return ({label}):")
-        for threshold in [25, 30, 35, 40, 45, 50, 60, 70, 80]:
-            subset = valid[valid["aiScore"] >= threshold]
+    # Market cap analysis
+    if "marketCap" in valid.columns and len(valid) > 0:
+        print(f"\nMarket Cap vs Return ({label}):")
+        for label_mc, lo, hi in [("nano(<50M)", 0, 50e6), ("micro(50-300M)", 50e6, 300e6),
+                                   ("small(300M-2B)", 300e6, 2e9), ("mid+(>2B)", 2e9, float("inf"))]:
+            subset = valid[(valid["marketCap"] >= lo) & (valid["marketCap"] < hi)]
             if len(subset) > 0:
                 avg_ret = subset[ret_col].mean()
                 med_ret = subset[ret_col].median()
                 win_rate = (subset[ret_col] > 0).mean()
-                print(f"  aiScore >= {threshold:3d}: n={len(subset):4d}, "
+                print(f"  {label_mc:20s}: n={len(subset):4d}, "
                       f"avg: {avg_ret:+.3f}, med: {med_ret:+.3f}, win: {win_rate:.1%}")
 
 
