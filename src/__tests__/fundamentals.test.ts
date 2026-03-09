@@ -2,24 +2,26 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock yahoo-finance2
 const mockQuote = vi.fn();
+const mockQuoteSummary = vi.fn();
 vi.mock("yahoo-finance2", () => {
   return {
     default: class {
       quote = mockQuote;
+      quoteSummary = mockQuoteSummary;
     },
   };
 });
-
-// Mock Finviz fetch to avoid real network calls
-const fetchSpy = vi.spyOn(globalThis, "fetch");
 
 const { fetchFundamentals } = await import("@/lib/harvester/fundamentals");
 
 describe("fetchFundamentals — data extraction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default: Finviz returns null for all
-    fetchSpy.mockResolvedValue(new Response("no data", { status: 404 }));
+    // Default: quoteSummary returns empty data
+    mockQuoteSummary.mockResolvedValue({
+      assetProfile: null,
+      defaultKeyStatistics: null,
+    });
   });
 
   it("returns empty map for empty symbols", async () => {
@@ -108,6 +110,7 @@ describe("fetchFundamentals — data extraction", () => {
     expect(pton.earningsDate).toBeUndefined();
     expect(pton.floatShares).toBeNull();
     expect(pton.sharesOutstanding).toBeNull();
+    expect(pton.shortFloat).toBeNull();
   });
 
   it("handles null price and marketCap", async () => {
@@ -122,5 +125,15 @@ describe("fetchFundamentals — data extraction", () => {
     const pton = result.get("PTON")!;
     expect(pton.price).toBeNull();
     expect(pton.marketCap).toBeNull();
+  });
+
+  it("extracts shortFloat from quoteSummary defaultKeyStatistics", async () => {
+    mockQuote.mockResolvedValueOnce([{ symbol: "PLUG", regularMarketPrice: 2.5 }]);
+    mockQuoteSummary.mockResolvedValueOnce({
+      assetProfile: null,
+      defaultKeyStatistics: { shortPercentOfFloat: 0.25 },
+    });
+    const result = await fetchFundamentals(["PLUG"]);
+    expect(result.get("PLUG")!.shortFloat).toBe(0.25);
   });
 });

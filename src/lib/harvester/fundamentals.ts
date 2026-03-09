@@ -3,80 +3,10 @@ import type { FundamentalData } from "./types";
 
 const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
-const FINVIZ_UA =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
-
-async function fetchShortFloatFinviz(symbol: string): Promise<number | null> {
-  try {
-    const res = await fetch(`https://finviz.com/quote.ashx?t=${symbol}`, {
-      headers: {
-        "User-Agent": FINVIZ_UA,
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Referer": "https://finviz.com/",
-      },
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!res.ok) {
-      console.warn(`[finviz] ${symbol}: HTTP ${res.status}`);
-      return null;
-    }
-
-    const html = await res.text();
-
-    // Use indexOf so the label is found regardless of surrounding tags (<b>, etc.)
-    const idx = html.indexOf("Short Float");
-    if (idx === -1) {
-      console.warn(`[finviz] ${symbol}: label not found`);
-      return null;
-    }
-
-    // The value cell contains the percentage inside nested tags e.g. <a><b>0.91%</b></a>
-    // Scan the next 400 chars for the first ">NUMBER%<" pattern
-    const after = html.slice(idx, idx + 400);
-    const pctMatch = after.match(/>([0-9]+\.?[0-9]*)%</);
-    if (!pctMatch) return null;
-
-    const val = parseFloat(pctMatch[1]);
-    return isFinite(val) ? val / 100 : null;
-  } catch (err) {
-    console.warn(`[finviz] ${symbol}: ${err instanceof Error ? err.message : err}`);
-    return null;
-  }
-}
-
-async function fetchShortFloats(symbols: string[]): Promise<Map<string, number | null>> {
-  const result = new Map<string, number | null>();
-  // Batch 3 concurrent requests with 500ms between batches to respect Finviz rate limits
-  const BATCH_SIZE = 3;
-  for (let i = 0; i < symbols.length; i += BATCH_SIZE) {
-    const batch = symbols.slice(i, i + BATCH_SIZE);
-    const values = await Promise.all(batch.map((sym) => fetchShortFloatFinviz(sym)));
-    for (let j = 0; j < batch.length; j++) {
-      result.set(batch[j], values[j]);
-    }
-    if (i + BATCH_SIZE < symbols.length) {
-      await new Promise((r) => setTimeout(r, 500));
-    }
-  }
-
-  // Canary check: warn if Finviz scraping may be broken
-  if (symbols.length >= 4) {
-    const nullCount = [...result.values()].filter((v) => v === null).length;
-    if (nullCount > symbols.length * 0.5) {
-      console.error(
-        `[finviz] WARNING: ${nullCount}/${symbols.length} symbols returned null for short float — Finviz scraping may be broken`
-      );
-    }
-  }
-
-  return result;
-}
-
-async function fetchSectorAndFloat(
+async function fetchQuoteSummaryData(
   symbols: string[]
-): Promise<Map<string, { sector?: string; floatShares?: number | null }>> {
-  const result = new Map<string, { sector?: string; floatShares?: number | null }>();
+): Promise<Map<string, { sector?: string; floatShares?: number | null; shortFloat?: number | null }>> {
+  const result = new Map<string, { sector?: string; floatShares?: number | null; shortFloat?: number | null }>();
   const CONCURRENCY = 5;
   for (let i = 0; i < symbols.length; i += CONCURRENCY) {
     const batch = symbols.slice(i, i + CONCURRENCY);
@@ -93,9 +23,13 @@ async function fetchSectorAndFloat(
               typeof (summary.defaultKeyStatistics as Record<string, unknown> | null | undefined)?.floatShares === "number"
                 ? (summary.defaultKeyStatistics as Record<string, unknown>).floatShares as number
                 : null,
+            shortFloat:
+              typeof (summary.defaultKeyStatistics as Record<string, unknown> | null | undefined)?.shortPercentOfFloat === "number"
+                ? (summary.defaultKeyStatistics as Record<string, unknown>).shortPercentOfFloat as number
+                : null,
           });
         } catch {
-          // non-fatal — sector/floatShares stay null for this symbol
+          // non-fatal — sector/floatShares/shortFloat stay null for this symbol
         }
       })
     );
@@ -109,11 +43,10 @@ export async function fetchFundamentals(
   const result = new Map<string, FundamentalData>();
   if (symbols.length === 0) return result;
 
-  // Fetch quotes (batched), short floats (per-symbol), and sector/floatShares (per-symbol) in parallel
+  // Fetch quotes (batched) and quoteSummary data (sector/floatShares/shortFloat) in parallel
   const quoteRows: Awaited<ReturnType<typeof yf.quote>>[] = [];
-  const [shortFloats, sectorAndFloat] = await Promise.all([
-    fetchShortFloats(symbols),
-    fetchSectorAndFloat(symbols),
+  const [quoteSummaryData] = await Promise.all([
+    fetchQuoteSummaryData(symbols),
     (async () => {
       for (let i = 0; i < symbols.length; i += 50) {
         const batch = symbols.slice(i, i + 50);
@@ -155,11 +88,11 @@ export async function fetchFundamentals(
       ? (q as Record<string, unknown>).sharesOutstanding as number
       : null;
 
-    const extra = sectorAndFloat.get(q.symbol);
+    const extra = quoteSummaryData.get(q.symbol);
     result.set(q.symbol, {
       price: q.regularMarketPrice ?? null,
       marketCap: q.marketCap ?? null,
-      shortFloat: shortFloats.get(q.symbol) ?? null,
+      shortFloat: extra?.shortFloat ?? null,
       fiftyTwoWeekRange,
       name: q.longName ?? q.shortName,
       sector: extra?.sector ?? ((q as Record<string, unknown>).sector as string | undefined),
