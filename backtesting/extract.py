@@ -44,28 +44,47 @@ WITH signal_agg AS (
   SELECT
     s."scanId",
     s.symbol,
+    -- Total signal count
+    COUNT(*)                                            AS signal_count,
     -- Per-source signal counts
-    COUNT(*) FILTER (WHERE s.source = 'REDDIT')       AS reddit_count,
-    COUNT(*) FILTER (WHERE s.source = 'TWITTER')      AS twitter_count,
-    COUNT(*) FILTER (WHERE s.source = 'STOCKTWITS')   AS stocktwits_count,
-    COUNT(*) FILTER (WHERE s.source = 'SEC_INSIDER')  AS sec_insider_count,
-    COUNT(*) FILTER (WHERE s.source = 'OPTIONS_FLOW') AS options_flow_count,
-    COUNT(*) FILTER (WHERE s.source = 'VOLUME_SPIKE') AS volume_spike_count,
-    COUNT(*) FILTER (WHERE s.source = 'CONGRESS')     AS congress_count,
+    COUNT(*) FILTER (WHERE s.source = 'REDDIT')        AS reddit_count,
+    COUNT(*) FILTER (WHERE s.source = 'TWITTER')       AS twitter_count,
+    COUNT(*) FILTER (WHERE s.source = 'STOCKTWITS')    AS stocktwits_count,
+    COUNT(*) FILTER (WHERE s.source = 'SEC_INSIDER')   AS sec_insider_count,
+    COUNT(*) FILTER (WHERE s.source = 'OPTIONS_FLOW')  AS options_flow_count,
+    COUNT(*) FILTER (WHERE s.source = 'VOLUME_SPIKE')  AS volume_spike_count,
+    COUNT(*) FILTER (WHERE s.source = 'CONGRESS')      AS congress_count,
+    -- Source diversity
+    COUNT(DISTINCT s.source)                            AS source_count,
     -- Insider / congress quality
     MAX(s."purchaseValue") FILTER (WHERE s.source IN ('SEC_INSIDER', 'CONGRESS'))  AS max_insider_value,
     SUM(s."purchaseValue") FILTER (WHERE s.source IN ('SEC_INSIDER', 'CONGRESS'))  AS total_insider_value,
     MAX(s."purchaseValue") FILTER (WHERE s.source = 'CONGRESS')                    AS max_congress_value,
     BOOL_OR(s."insiderTitle" ILIKE '%ceo%' OR s."insiderTitle" ILIKE '%chief executive%')
-      FILTER (WHERE s.source = 'SEC_INSIDER')          AS has_ceo_buy,
+      FILTER (WHERE s.source = 'SEC_INSIDER')           AS has_ceo_buy,
     -- Twitter quality
     MAX(s."followerCount") FILTER (WHERE s.source = 'TWITTER')      AS max_follower_count,
     SUM(s."retweetCount")  FILTER (WHERE s.source = 'TWITTER')      AS total_retweets,
     SUM(s."likeCount")     FILTER (WHERE s.source = 'TWITTER')      AS total_likes,
     -- Reddit quality
     MAX(s.upvotes)         FILTER (WHERE s.source = 'REDDIT')       AS max_reddit_upvotes,
+    SUM(s.upvotes)         FILTER (WHERE s.source = 'REDDIT')       AS total_reddit_upvotes,
+    SUM(s."commentCount")  FILTER (WHERE s.source = 'REDDIT')       AS total_reddit_comments,
     AVG(s."postAge")       FILTER (WHERE s.source = 'REDDIT')       AS avg_reddit_post_age,
-    COUNT(DISTINCT s.subreddit) FILTER (WHERE s.source = 'REDDIT')  AS distinct_subreddits
+    COUNT(DISTINCT s.subreddit) FILTER (WHERE s.source = 'REDDIT')  AS distinct_subreddits,
+    -- Velocity / momentum (from raw postAge + sortType)
+    AVG(s."velocityScore")                              AS avg_velocity,
+    COUNT(*) FILTER (WHERE s."sortType" = 'rising')     AS rising_count,
+    COUNT(*) FILTER (WHERE s."sortType" = 'comment')    AS comment_derived_count,
+    COUNT(*) FILTER (WHERE s."postAge" IS NOT NULL AND s."postAge" < 3
+                       AND COALESCE(s."sortType", '') NOT IN ('rising', 'comment'))   AS fresh_count,
+    COUNT(*) FILTER (WHERE s."postAge" IS NOT NULL AND s."postAge" >= 3 AND s."postAge" < 12
+                       AND COALESCE(s."sortType", '') NOT IN ('rising', 'comment'))   AS recent_count,
+    COUNT(*) FILTER (WHERE s."postAge" IS NOT NULL AND s."postAge" >= 12
+                       AND COALESCE(s."sortType", '') NOT IN ('rising', 'comment'))   AS stale_count,
+    -- Volume spike quality
+    MAX(s."volumeRatio") FILTER (WHERE s.source = 'VOLUME_SPIKE')   AS max_volume_ratio,
+    AVG(s."volumeRatio") FILTER (WHERE s.source = 'VOLUME_SPIKE')   AS avg_volume_ratio
   FROM "Signal" s
   GROUP BY s."scanId", s.symbol
 )
@@ -74,40 +93,17 @@ SELECT
   vt.symbol,
   vt."scanId",
   vt."createdAt",
-  -- Scoring inputs
-  vt."aiScore",
-  vt."rawAiScore",
-  vt."signalCount",
-  vt."sourceCount",
-  vt."weightedSourceScore",
-  vt."avgVelocity",
-  vt."avgSentiment",
-  vt."totalUpvotes",
-  vt."totalComments",
-  vt."subredditCount",
-  vt."risingCount",
-  vt."freshCount",
-  vt."recentCount",
-  vt."commentDerivedCount",
-  vt."staleCount",
-  -- Fundamentals
+  -- Fundamentals (raw from Yahoo Finance)
   vt.price,
   vt."marketCap",
   vt."shortFloat",
   vt."floatShares",
   vt.exchange,
   vt.sector,
-  vt."signalType",
-  -- Novelty
+  vt."fiftyTwoWkRange",
+  -- Novelty (DB lookups, not AI)
   vt."firstSeenDaysAgo",
   vt."priorAppearances",
-  -- P&D
-  vt."pndFlagged",
-  vt."pndFlags",
-  vt."pndScore",
-  vt."pndAiConfidence",
-  vt.stage,
-  vt."fiftyTwoWkRange",
   -- Outcomes (labels)
   tp."detectionPrice",
   tp."return1d",
@@ -118,7 +114,9 @@ SELECT
   tp."price3d",
   tp."price7d",
   tp."price30d",
-  -- Signal-level aggregates
+  -- Signal-level aggregates (all computed from raw Signal table)
+  sa.signal_count,
+  sa.source_count,
   sa.reddit_count,
   sa.twitter_count,
   sa.stocktwits_count,
@@ -134,8 +132,18 @@ SELECT
   sa.total_retweets,
   sa.total_likes,
   sa.max_reddit_upvotes,
+  sa.total_reddit_upvotes,
+  sa.total_reddit_comments,
   sa.avg_reddit_post_age,
-  sa.distinct_subreddits
+  sa.distinct_subreddits,
+  sa.avg_velocity,
+  sa.rising_count,
+  sa.comment_derived_count,
+  sa.fresh_count,
+  sa.recent_count,
+  sa.stale_count,
+  sa.max_volume_ratio,
+  sa.avg_volume_ratio
 FROM "ValidatedTicker" vt
 LEFT JOIN "TickerPerformance" tp ON tp."validatedTickerId" = vt.id
 LEFT JOIN signal_agg sa ON sa."scanId" = vt."scanId" AND sa.symbol = vt.symbol

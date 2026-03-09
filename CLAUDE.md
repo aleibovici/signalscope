@@ -367,6 +367,7 @@ python sweep.py               # Sweeps thresholds, bootstrap CIs, permutation p-
 
 ### Key Design Decisions
 
+- **Raw signals only** — `extract.py` pulls only raw signal data (source, upvotes, postAge, sortType, purchaseValue, etc.) and Yahoo Finance fundamentals. No AI scores, P&D flags, pipeline stages, or computed aggregates are used as ML features. Velocity/momentum metrics are recomputed from raw `postAge`/`sortType` in SQL. This prevents the model from learning to mimic the AI scorer.
 - **Cloud SQL Auth Proxy** — `extract.py` auto-starts `cloud-sql-proxy` on port 5433, reads `DB_PASSWORD` from `.env.production`
 - **Read-only DB access** — all scripts only SELECT, never write
 - **Parquet intermediate** — extract once, iterate fast locally without hitting DB
@@ -375,7 +376,7 @@ python sweep.py               # Sweeps thresholds, bootstrap CIs, permutation p-
 - **SHAP over just feature importance** — shows direction (positive/negative impact), not just magnitude
 - **Both classification + regression** — classification answers "should we include this ticker?", regression answers "what return can we expect?"
 - **Statistical validation** — `sweep.py` adds bootstrap 95% CIs (10K resamples) and permutation p-values (2K permutations) with Benjamini-Hochberg FDR correction for multiple testing. Configs must survive both CI-not-crossing-zero AND BH-FDR significance to be "validated". No scipy dependency — BH-FDR implemented manually. Output CSV includes `avg_return_ci_lo/hi`, `sharpe_ci_lo/hi`, `ci_crosses_zero`, `p_value`, `p_value_corrected`, `significant` columns.
-- **Current data status (248 symbols, 7d horizon)** — 0 of 115 configs survive statistical validation. All apparent patterns (FORMING stage, micro-cap, multi-source) have CIs crossing zero. Pipeline thresholds should not be changed until dataset grows to 500+ symbols.
+- **Current data status (248 symbols, 7d horizon)** — 0 of 115 configs survive statistical validation. All apparent patterns (micro-cap, multi-source) have CIs crossing zero. Pipeline thresholds should not be changed until dataset grows to 500+ symbols.
 
 ## Path Alias
 

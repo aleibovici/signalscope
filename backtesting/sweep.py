@@ -1,14 +1,17 @@
 """
-Step 4: Threshold parameter sweep using trained model + raw data.
+Step 4: Threshold parameter sweep using raw signal data.
 
 Automatically selects the best available return horizon (7d > 3d > 1d).
 
 Answers:
-- What P&D flag count threshold maximizes returns?
-- What AI score cutoff best separates winners from losers?
-- What stage thresholds produce the best Sharpe-like ratio?
-- Which individual P&D flags are most predictive of actual dumps?
-- How do cross-category interactions perform (e.g. micro-cap + insider, FORMING + high AI score)?
+- Which source types and combinations produce the best returns?
+- What market cap buckets are most profitable?
+- How do signal count and source diversity thresholds perform?
+- What velocity/engagement levels correlate with gains?
+- How do cross-category interactions perform?
+
+All sweep dimensions use raw signal data only — no AI scores, P&D flags, or
+pipeline-assigned stages.
 
 Usage:
     python sweep.py
@@ -20,7 +23,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from features import PND_FLAG_NAMES, clean_for_analysis, engineer_features
+from features import clean_for_analysis, engineer_features
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 
@@ -76,14 +79,12 @@ def bootstrap_ci(returns: np.ndarray, n_boot: int, rng: np.random.Generator) -> 
             "ci_crosses_zero": True,
         }
 
-    # Vectorized resampling: (n_boot, n) index matrix
     idx = rng.integers(0, n, size=(n_boot, n))
-    samples = returns[idx]  # shape (n_boot, n)
+    samples = returns[idx]
 
     boot_means = samples.mean(axis=1)
     boot_win_rates = (samples > 0).mean(axis=1)
     boot_stds = samples.std(axis=1, ddof=1)
-    # Avoid division by zero for sharpe
     with np.errstate(divide="ignore", invalid="ignore"):
         boot_sharpes = np.where(boot_stds > 0, boot_means / boot_stds, 0.0)
 
@@ -101,43 +102,38 @@ def bootstrap_ci(returns: np.ndarray, n_boot: int, rng: np.random.Generator) -> 
 
 
 def _build_dimensions(valid: pd.DataFrame) -> dict[str, dict[str, np.ndarray]]:
-    """Build categorical dimension masks for interaction sweeps and mask reconstruction."""
+    """Build categorical dimension masks for interaction sweeps."""
     dimensions: dict[str, dict[str, np.ndarray]] = {}
 
     if "marketCap" in valid.columns:
         dimensions["market_cap"] = {
-            "nano(<50M)":      ((valid["marketCap"] < 50e6).values),
+            "nano(<50M)":      (valid["marketCap"] < 50e6).values,
             "micro(50-300M)":  ((valid["marketCap"] >= 50e6) & (valid["marketCap"] < 300e6)).values,
             "small(300M-2B)":  ((valid["marketCap"] >= 300e6) & (valid["marketCap"] < 2e9)).values,
             "mid(2-10B)":      ((valid["marketCap"] >= 2e9) & (valid["marketCap"] < 10e9)).values,
-            "large(>10B)":     ((valid["marketCap"] >= 10e9).values),
-        }
-
-    if "stage" in valid.columns:
-        dimensions["stage"] = {
-            s: (valid["stage"] == s).values
-            for s in ["EARLY", "FORMING", "CONFIRMED", "FILTERED"]
+            "large(>10B)":     (valid["marketCap"] >= 10e9).values,
         }
 
     source_cols = ["has_options", "has_insider", "has_congress", "social_only"]
     available = [c for c in source_cols if c in valid.columns]
     if available:
         src_dim = {c: (valid[c] == 1).values for c in available}
-        if "sourceCount" in valid.columns:
-            src_dim["multi_source_2+"] = (valid["sourceCount"] >= 2).values
+        if "source_count" in valid.columns:
+            src_dim["multi_source_2+"] = (valid["source_count"] >= 2).values
         dimensions["source"] = src_dim
 
-    if "aiScore" in valid.columns:
-        dimensions["ai_score"] = {
-            "ai_low(<35)":   (valid["aiScore"] < 35).values,
-            "ai_mid(35-55)": ((valid["aiScore"] >= 35) & (valid["aiScore"] < 55)).values,
-            "ai_high(>=55)": (valid["aiScore"] >= 55).values,
+    if "signal_count" in valid.columns:
+        dimensions["signal_volume"] = {
+            "signals_1-2":  ((valid["signal_count"] >= 1) & (valid["signal_count"] <= 2)).values,
+            "signals_3-5":  ((valid["signal_count"] >= 3) & (valid["signal_count"] <= 5)).values,
+            "signals_6+":   (valid["signal_count"] >= 6).values,
         }
 
-    if "pndFlagged" in valid.columns:
-        dimensions["pnd"] = {
-            "no_pnd":  (valid["pndFlagged"] == False).values,
-            "is_pnd":  (valid["pndFlagged"] == True).values,
+    if "avg_velocity" in valid.columns:
+        dimensions["velocity"] = {
+            "low_velocity(<1)":  (valid["avg_velocity"] < 1).values,
+            "mid_velocity(1-2)": ((valid["avg_velocity"] >= 1) & (valid["avg_velocity"] < 2)).values,
+            "high_velocity(2+)": (valid["avg_velocity"] >= 2).values,
         }
 
     return dimensions
@@ -149,7 +145,6 @@ def extract_masks(all_results: list[dict], valid: pd.DataFrame, ret_col: str) ->
     n = len(valid)
     masks: list[np.ndarray | None] = []
 
-    # Pre-build source presence and combo mappings
     source_features = {
         "has_reddit": "has_reddit", "has_twitter": "has_twitter",
         "has_insider": "has_insider", "has_options": "has_options",
@@ -165,7 +160,6 @@ def extract_masks(all_results: list[dict], valid: pd.DataFrame, ret_col: str) ->
         "twitter+insider": ["has_twitter", "has_insider"],
     }
 
-    # Market cap bucket definitions
     mcap_buckets = {
         "nano(<50M)": (0, 50e6),
         "micro(50-300M)": (50e6, 300e6),
@@ -185,35 +179,13 @@ def extract_masks(all_results: list[dict], valid: pd.DataFrame, ret_col: str) ->
         mask = None
 
         try:
-            if sweep_type == "pnd_flagged":
-                flagged_val = param == "pnd_flagged"
-                mask = (valid["pndFlagged"] == flagged_val).values
-
-            elif sweep_type == "ai_score_cutoff":
-                threshold = r["threshold"]
-                mask = (valid["aiScore"] >= threshold).values
-
-            elif sweep_type == "stage":
-                mask = (valid["stage"] == param).values
-
-            elif sweep_type == "stage_combo":
-                stages = param.split("+")
-                mask = valid["stage"].isin(stages).values
-
-            elif sweep_type == "individual_flag":
-                col = f"flag_{param}"
-                mask = (valid[col] == 1).values
-
-            elif sweep_type == "source_type":
-                mask = (valid["signal_type_raw"] == param).values
-
-            elif sweep_type == "source_count":
+            if sweep_type == "source_count":
                 if param == "single_source":
-                    mask = (valid["sourceCount"] == 1).values
+                    mask = (valid["source_count"] == 1).values
                 elif param == "multi_source_2+":
-                    mask = (valid["sourceCount"] >= 2).values
+                    mask = (valid["source_count"] >= 2).values
                 elif param == "multi_source_3+":
-                    mask = (valid["sourceCount"] >= 3).values
+                    mask = (valid["source_count"] >= 3).values
 
             elif sweep_type == "source_presence":
                 if param in source_features and source_features[param] in valid.columns:
@@ -238,12 +210,23 @@ def extract_masks(all_results: list[dict], valid: pd.DataFrame, ret_col: str) ->
                     lo, hi = mcap_cumulative[param]
                     mask = ((valid["marketCap"] >= lo) & (valid["marketCap"] < hi)).values
 
+            elif sweep_type == "signal_count":
+                threshold = r["threshold"]
+                mask = (valid["signal_count"] >= threshold).values
+
+            elif sweep_type == "velocity":
+                threshold = r["threshold"]
+                mask = (valid["avg_velocity"] >= threshold).values
+
+            elif sweep_type == "engagement":
+                threshold = r["threshold"]
+                engagement = valid["log_reddit_upvotes"] + valid["log_reddit_comments"]
+                mask = (engagement >= threshold).values
+
             elif sweep_type.startswith("interaction_"):
-                # Parse "segA × segB" and reconstruct from dimensions
                 parts = param.split(" \u00d7 ")
                 if len(parts) == 2:
                     seg_a, seg_b = parts
-                    # Find which dimensions contain these segments
                     mask_a = mask_b = None
                     for dim_segs in dimensions.values():
                         if seg_a in dim_segs:
@@ -256,7 +239,6 @@ def extract_masks(all_results: list[dict], valid: pd.DataFrame, ret_col: str) ->
         except (KeyError, ValueError):
             mask = None
 
-        # Validate mask matches expected count
         if mask is not None:
             actual = int(mask.sum())
             expected = r["n_included"]
@@ -290,7 +272,6 @@ def permutation_test(returns: np.ndarray, masks: list[np.ndarray | None],
             if null_sharpe >= observed_sharpes[i]:
                 null_counts[i] += 1
 
-    # p-value with continuity correction to avoid p=0
     p_values = [(null_counts[i] + 1) / (n_perm + 1) if masks[i] is not None else np.nan
                 for i in range(n_configs)]
     return p_values
@@ -303,7 +284,6 @@ def bh_fdr_correction(p_values: list[float], alpha: float = 0.05) -> tuple[list[
     if n_tests == 0:
         return [np.nan] * len(pv), [False] * len(pv)
 
-    # Get valid indices sorted by p-value
     valid_idx = np.where(~np.isnan(pv))[0]
     sorted_order = valid_idx[np.argsort(pv[valid_idx])]
 
@@ -331,10 +311,8 @@ def enrich_results(all_results: list[dict], valid: pd.DataFrame, ret_col: str,
     rng = np.random.default_rng(42)
     returns = valid[ret_col].values
 
-    # Step 1: Reconstruct masks
     masks = extract_masks(all_results, valid, ret_col)
 
-    # Step 2: Bootstrap CIs
     for i, (r, mask) in enumerate(zip(all_results, masks)):
         if mask is not None:
             ci = bootstrap_ci(returns[mask], n_boot, rng)
@@ -342,159 +320,24 @@ def enrich_results(all_results: list[dict], valid: pd.DataFrame, ret_col: str,
             ci = bootstrap_ci(np.array([]), n_boot, rng)
         r.update(ci)
 
-    # Step 3: Permutation test
     observed_sharpes = [r["sharpe_like"] for r in all_results]
     p_values = permutation_test(returns, masks, observed_sharpes, n_perm, rng)
 
-    # Step 4: BH-FDR correction
     corrected, significant = bh_fdr_correction(p_values, alpha)
 
-    # Step 5: Write back
     for i, r in enumerate(all_results):
         r["p_value"] = p_values[i]
         r["p_value_corrected"] = corrected[i]
         r["significant"] = significant[i]
 
 
-def sweep_pnd_flagged(valid: pd.DataFrame, ret_col: str) -> list[dict]:
-    """Compare P&D-flagged vs unflagged tickers."""
-    results = []
-
-    for flagged_val, label in [(False, "not_pnd_flagged"), (True, "pnd_flagged")]:
-        subset = valid[valid["pndFlagged"] == flagged_val]
-        other = valid[valid["pndFlagged"] != flagged_val]
-
-        if len(subset) == 0:
-            continue
-
-        results.append({
-            "sweep_type": "pnd_flagged",
-            "parameter": label,
-            "threshold": None,
-            "n_included": len(subset),
-            "n_excluded": len(other),
-            "avg_return": subset[ret_col].mean(),
-            "median_return": subset[ret_col].median(),
-            "win_rate": (subset[ret_col] > 0).mean(),
-            "big_win_rate": (subset[ret_col] > 0.05).mean(),
-            "sharpe_like": sharpe_like(subset[ret_col]),
-            "avg_excluded_return": other[ret_col].mean() if len(other) > 0 else None,
-        })
-
-    return results
-
-
-def sweep_ai_score(valid: pd.DataFrame, ret_col: str) -> list[dict]:
-    """Sweep AI score cutoffs."""
-    results = []
-
-    for threshold in range(0, 100, 5):
-        included = valid[valid["aiScore"] >= threshold]
-        if len(included) == 0:
-            continue
-
-        results.append({
-            "sweep_type": "ai_score_cutoff",
-            "parameter": f"ai_score_ge_{threshold}",
-            "threshold": threshold,
-            "n_included": len(included),
-            "n_excluded": len(valid) - len(included),
-            "avg_return": included[ret_col].mean(),
-            "median_return": included[ret_col].median(),
-            "win_rate": (included[ret_col] > 0).mean(),
-            "big_win_rate": (included[ret_col] > 0.05).mean(),
-            "sharpe_like": sharpe_like(included[ret_col]),
-            "avg_excluded_return": None,
-        })
-
-    return results
-
-
-def sweep_stage(valid: pd.DataFrame, ret_col: str) -> list[dict]:
-    """Evaluate returns by signal stage."""
-    results = []
-
-    for stage in ["EARLY", "FORMING", "CONFIRMED", "FILTERED"]:
-        subset = valid[valid["stage"] == stage]
-        if len(subset) == 0:
-            continue
-
-        results.append({
-            "sweep_type": "stage",
-            "parameter": stage,
-            "threshold": None,
-            "n_included": len(subset),
-            "n_excluded": len(valid) - len(subset),
-            "avg_return": subset[ret_col].mean(),
-            "median_return": subset[ret_col].median(),
-            "win_rate": (subset[ret_col] > 0).mean(),
-            "big_win_rate": (subset[ret_col] > 0.05).mean(),
-            "sharpe_like": sharpe_like(subset[ret_col]),
-            "avg_excluded_return": None,
-        })
-
-    for stages in [["CONFIRMED"], ["FORMING", "CONFIRMED"], ["EARLY", "FORMING", "CONFIRMED"]]:
-        label = "+".join(stages)
-        subset = valid[valid["stage"].isin(stages)]
-        if len(subset) == 0:
-            continue
-
-        results.append({
-            "sweep_type": "stage_combo",
-            "parameter": label,
-            "threshold": None,
-            "n_included": len(subset),
-            "n_excluded": len(valid) - len(subset),
-            "avg_return": subset[ret_col].mean(),
-            "median_return": subset[ret_col].median(),
-            "win_rate": (subset[ret_col] > 0).mean(),
-            "big_win_rate": (subset[ret_col] > 0.05).mean(),
-            "sharpe_like": sharpe_like(subset[ret_col]),
-            "avg_excluded_return": None,
-        })
-
-    return results
-
-
-def sweep_individual_flags(valid: pd.DataFrame, ret_col: str) -> list[dict]:
-    """Check each P&D flag's predictive power for actual losses."""
-    results = []
-
-    for flag_name in PND_FLAG_NAMES:
-        col = f"flag_{flag_name}"
-        if col not in valid.columns:
-            continue
-
-        flagged = valid[valid[col] == 1]
-        unflagged = valid[valid[col] == 0]
-
-        if len(flagged) == 0:
-            continue
-
-        results.append({
-            "sweep_type": "individual_flag",
-            "parameter": flag_name,
-            "threshold": None,
-            "n_included": len(flagged),
-            "n_excluded": len(unflagged),
-            "avg_return": flagged[ret_col].mean(),
-            "median_return": flagged[ret_col].median(),
-            "win_rate": (flagged[ret_col] > 0).mean(),
-            "big_win_rate": (flagged[ret_col] > 0.05).mean(),
-            "sharpe_like": sharpe_like(flagged[ret_col]),
-            "avg_excluded_return": unflagged[ret_col].mean() if len(unflagged) > 0 else None,
-        })
-
-    return results
-
-
 def _sweep_result(sweep_type: str, parameter: str, subset: pd.Series,
-                   total: int, ret_col: str, excluded_returns=None) -> dict:
+                   total: int, ret_col: str, threshold=None, excluded_returns=None) -> dict:
     """Build a standard sweep result dict."""
     return {
         "sweep_type": sweep_type,
         "parameter": parameter,
-        "threshold": None,
+        "threshold": threshold,
         "n_included": len(subset),
         "n_excluded": total - len(subset),
         "avg_return": subset[ret_col].mean(),
@@ -507,31 +350,23 @@ def _sweep_result(sweep_type: str, parameter: str, subset: pd.Series,
 
 
 def sweep_source_type(valid: pd.DataFrame, ret_col: str) -> list[dict]:
-    """Sweep by signal source type and multi-source combinations."""
+    """Sweep by signal source presence and combinations."""
     results = []
     n = len(valid)
 
-    # Individual source types (from signalType string)
-    if "signal_type_raw" in valid.columns:
-        for stype in valid["signal_type_raw"].unique():
-            subset = valid[valid["signal_type_raw"] == stype]
-            if len(subset) < 3:
-                continue
-            results.append(_sweep_result("source_type", stype, subset, n, ret_col))
-
-    # Multi-source (sourceCount >= 2) vs single-source
-    if "sourceCount" in valid.columns:
+    # Source count thresholds
+    if "source_count" in valid.columns:
         for label, mask in [
-            ("single_source", valid["sourceCount"] == 1),
-            ("multi_source_2+", valid["sourceCount"] >= 2),
-            ("multi_source_3+", valid["sourceCount"] >= 3),
+            ("single_source", valid["source_count"] == 1),
+            ("multi_source_2+", valid["source_count"] >= 2),
+            ("multi_source_3+", valid["source_count"] >= 3),
         ]:
             subset = valid[mask]
             if len(subset) < 3:
                 continue
             results.append(_sweep_result("source_count", label, subset, n, ret_col))
 
-    # --- Source presence sweep (from Signal-level features) ---
+    # Source presence
     source_features = [
         ("has_reddit", "reddit"),
         ("has_twitter", "twitter"),
@@ -554,7 +389,7 @@ def sweep_source_type(valid: pd.DataFrame, ret_col: str) -> list[dict]:
             excluded_returns=absent[ret_col] if len(absent) > 0 else None,
         ))
 
-    # --- Source combination sweep ---
+    # Source combinations
     combos = [
         ("insider+reddit", ["has_insider", "has_reddit"]),
         ("congress+reddit", ["has_congress", "has_reddit"]),
@@ -578,6 +413,65 @@ def sweep_source_type(valid: pd.DataFrame, ret_col: str) -> list[dict]:
     return results
 
 
+def sweep_signal_count(valid: pd.DataFrame, ret_col: str) -> list[dict]:
+    """Sweep by raw signal count thresholds."""
+    results = []
+    if "signal_count" not in valid.columns:
+        return results
+
+    n = len(valid)
+    for threshold in [2, 3, 4, 5, 7, 10]:
+        subset = valid[valid["signal_count"] >= threshold]
+        if len(subset) < 3:
+            continue
+        results.append(_sweep_result(
+            "signal_count", f"signals_ge_{threshold}",
+            subset, n, ret_col, threshold=threshold,
+        ))
+
+    return results
+
+
+def sweep_velocity(valid: pd.DataFrame, ret_col: str) -> list[dict]:
+    """Sweep by average velocity thresholds."""
+    results = []
+    if "avg_velocity" not in valid.columns:
+        return results
+
+    n = len(valid)
+    for threshold in [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]:
+        subset = valid[valid["avg_velocity"] >= threshold]
+        if len(subset) < 3:
+            continue
+        results.append(_sweep_result(
+            "velocity", f"velocity_ge_{threshold}",
+            subset, n, ret_col, threshold=threshold,
+        ))
+
+    return results
+
+
+def sweep_engagement(valid: pd.DataFrame, ret_col: str) -> list[dict]:
+    """Sweep by Reddit engagement (log upvotes + comments)."""
+    results = []
+    if "log_reddit_upvotes" not in valid.columns:
+        return results
+
+    n = len(valid)
+    engagement = valid["log_reddit_upvotes"] + valid["log_reddit_comments"]
+
+    for threshold in [2, 4, 6, 8, 10]:
+        subset = valid[engagement >= threshold]
+        if len(subset) < 3:
+            continue
+        results.append(_sweep_result(
+            "engagement", f"engagement_ge_{threshold}",
+            subset, n, ret_col, threshold=threshold,
+        ))
+
+    return results
+
+
 def sweep_market_cap(valid: pd.DataFrame, ret_col: str) -> list[dict]:
     """Sweep by market cap bucket."""
     results = []
@@ -597,39 +491,18 @@ def sweep_market_cap(valid: pd.DataFrame, ret_col: str) -> list[dict]:
         subset = valid[(valid["marketCap"] >= lo) & (valid["marketCap"] < hi)]
         if len(subset) < 3:
             continue
-        results.append({
-            "sweep_type": "market_cap_bucket",
-            "parameter": label,
-            "threshold": None,
-            "n_included": len(subset),
-            "n_excluded": len(valid) - len(subset),
-            "avg_return": subset[ret_col].mean(),
-            "median_return": subset[ret_col].median(),
-            "win_rate": (subset[ret_col] > 0).mean(),
-            "big_win_rate": (subset[ret_col] > 0.05).mean(),
-            "sharpe_like": sharpe_like(subset[ret_col]),
-            "avg_excluded_return": None,
-        })
+        results.append(_sweep_result(
+            "market_cap_bucket", label, subset, len(valid), ret_col,
+        ))
 
-    # Cumulative: exclude large caps progressively
-    cap_thresholds = [("cap<=300M", 0, 300e6), ("cap<=2B", 0, 2e9), ("cap<=10B", 0, 10e9)]
-    for label, lo, hi in cap_thresholds:
+    # Cumulative
+    for label, lo, hi in [("cap<=300M", 0, 300e6), ("cap<=2B", 0, 2e9), ("cap<=10B", 0, 10e9)]:
         subset = valid[(valid["marketCap"] >= lo) & (valid["marketCap"] < hi)]
         if len(subset) < 3:
             continue
-        results.append({
-            "sweep_type": "market_cap_cumulative",
-            "parameter": label,
-            "threshold": None,
-            "n_included": len(subset),
-            "n_excluded": len(valid) - len(subset),
-            "avg_return": subset[ret_col].mean(),
-            "median_return": subset[ret_col].median(),
-            "win_rate": (subset[ret_col] > 0).mean(),
-            "big_win_rate": (subset[ret_col] > 0.05).mean(),
-            "sharpe_like": sharpe_like(subset[ret_col]),
-            "avg_excluded_return": None,
-        })
+        results.append(_sweep_result(
+            "market_cap_cumulative", label, subset, len(valid), ret_col,
+        ))
 
     return results
 
@@ -670,9 +543,6 @@ def main():
     ret_col = horizon["return"]
     label = horizon["label"]
 
-    # Carry raw signalType through for source sweep (before dedup drops it)
-    feat_df["signal_type_raw"] = raw_df["signalType"].fillna("unknown")
-
     # Clean: remove phantom prices, dedup by symbol
     print(f"\nCleaning data for analysis...")
     valid = clean_for_analysis(feat_df, ret_col)
@@ -680,57 +550,10 @@ def main():
 
     all_results = []
 
-    print(f"\n--- P&D Flagged vs Unflagged ({label}) ---")
-    pnd_results = sweep_pnd_flagged(valid, ret_col)
-    all_results.extend(pnd_results)
-    for r in pnd_results:
-        diff = ""
-        if r["avg_excluded_return"] is not None:
-            d = r["avg_return"] - r["avg_excluded_return"]
-            diff = f" (Δ {d:+.3f})"
-        print(f"  {r['parameter']:20s}: n={r['n_included']:4d}, "
-              f"avg={r['avg_return']:+.3f}, med={r['median_return']:+.3f}, "
-              f"win={r['win_rate']:.1%}{diff}")
-    if not pnd_results or all(r["parameter"] == "not_pnd_flagged" for r in pnd_results):
-        print("  ⚠ No P&D-flagged tickers have return data — cannot evaluate P&D filter")
-
-    print(f"\n--- AI Score Cutoff Sweep ({label}) ---")
-    ai_results = sweep_ai_score(valid, ret_col)
-    all_results.extend(ai_results)
-    for r in ai_results:
-        print(f"  score >= {r['threshold']:3d}: n={r['n_included']:4d}, "
-              f"avg={r['avg_return']:+.3f}, med={r['median_return']:+.3f}, "
-              f"win={r['win_rate']:.1%}, sharpe={r['sharpe_like']:.3f}")
-
-    print(f"\n--- Stage Analysis ({label}) ---")
-    stage_results = sweep_stage(valid, ret_col)
-    all_results.extend(stage_results)
-    for r in stage_results:
-        print(f"  {r['parameter']:30s}: n={r['n_included']:4d}, "
-              f"avg={r['avg_return']:+.3f}, med={r['median_return']:+.3f}, "
-              f"win={r['win_rate']:.1%}, sharpe={r['sharpe_like']:.3f}")
-
-    print(f"\n--- Individual P&D Flag Predictiveness ({label}) ---")
-    flag_results = sweep_individual_flags(valid, ret_col)
-    all_results.extend(flag_results)
-    flag_results_sorted = sorted(flag_results, key=lambda r: r["avg_return"])
-    for r in flag_results_sorted:
-        diff = ""
-        if r["avg_excluded_return"] is not None:
-            d = r["avg_return"] - r["avg_excluded_return"]
-            diff = f" (Δ {d:+.3f})"
-        print(f"  {r['parameter']:30s}: n={r['n_included']:4d}, "
-              f"avg={r['avg_return']:+.3f}, med={r['median_return']:+.3f}, "
-              f"win={r['win_rate']:.1%}{diff}")
-    if not flag_results:
-        print("  (no individual flags present in return data)")
-
     print(f"\n--- Source Type Analysis ({label}) ---")
     source_results = sweep_source_type(valid, ret_col)
     all_results.extend(source_results)
-    # Group by sweep type for cleaner output
     for stype, stype_label in [
-        ("source_type", "Signal type (raw)"),
         ("source_count", "Source count"),
         ("source_presence", "Source presence"),
         ("source_combo", "Source combinations"),
@@ -748,13 +571,34 @@ def main():
             print(f"  {r['parameter']:25s}: n={r['n_included']:4d}, "
                   f"avg={r['avg_return']:+.3f}, med={r['median_return']:+.3f}, "
                   f"win={r['win_rate']:.1%}, sharpe={r['sharpe_like']:.3f}{diff}")
-    if not source_results:
-        print("  (no source type data available)")
+
+    print(f"\n--- Signal Count Sweep ({label}) ---")
+    signal_results = sweep_signal_count(valid, ret_col)
+    all_results.extend(signal_results)
+    for r in signal_results:
+        print(f"  {r['parameter']:25s}: n={r['n_included']:4d}, "
+              f"avg={r['avg_return']:+.3f}, med={r['median_return']:+.3f}, "
+              f"win={r['win_rate']:.1%}, sharpe={r['sharpe_like']:.3f}")
+
+    print(f"\n--- Velocity Sweep ({label}) ---")
+    velocity_results = sweep_velocity(valid, ret_col)
+    all_results.extend(velocity_results)
+    for r in velocity_results:
+        print(f"  {r['parameter']:25s}: n={r['n_included']:4d}, "
+              f"avg={r['avg_return']:+.3f}, med={r['median_return']:+.3f}, "
+              f"win={r['win_rate']:.1%}, sharpe={r['sharpe_like']:.3f}")
+
+    print(f"\n--- Engagement Sweep ({label}) ---")
+    engagement_results = sweep_engagement(valid, ret_col)
+    all_results.extend(engagement_results)
+    for r in engagement_results:
+        print(f"  {r['parameter']:25s}: n={r['n_included']:4d}, "
+              f"avg={r['avg_return']:+.3f}, med={r['median_return']:+.3f}, "
+              f"win={r['win_rate']:.1%}, sharpe={r['sharpe_like']:.3f}")
 
     print(f"\n--- Market Cap Bucket Analysis ({label}) ---")
     mcap_results = sweep_market_cap(valid, ret_col)
     all_results.extend(mcap_results)
-    # Print buckets first, then cumulative
     for sweep_type in ["market_cap_bucket", "market_cap_cumulative"]:
         subset_results = [r for r in mcap_results if r["sweep_type"] == sweep_type]
         if sweep_type == "market_cap_cumulative" and subset_results:
@@ -763,13 +607,10 @@ def main():
             print(f"  {r['parameter']:25s}: n={r['n_included']:4d}, "
                   f"avg={r['avg_return']:+.3f}, med={r['median_return']:+.3f}, "
                   f"win={r['win_rate']:.1%}, sharpe={r['sharpe_like']:.3f}")
-    if not mcap_results:
-        print("  (no market cap data available)")
 
     print(f"\n--- Interaction Analysis ({label}) ---")
     interaction_results = sweep_interactions(valid, ret_col)
     all_results.extend(interaction_results)
-    # Group by dimension pair, sorted by Sharpe within each
     dim_pairs = sorted(set(r["sweep_type"] for r in interaction_results))
     for pair in dim_pairs:
         pair_results = [r for r in interaction_results if r["sweep_type"] == pair]
@@ -808,13 +649,13 @@ def main():
                   f"avg={r['avg_return']:+.3f} [{r['avg_return_ci_lo']:+.3f}, {r['avg_return_ci_hi']:+.3f}], "
                   f"p_adj={r['p_value_corrected']:.4f}, n={r['n_included']}")
 
-    # Save all results (now includes CI and p-value columns)
+    # Save results
     results_df = pd.DataFrame(all_results)
     out_path = OUTPUT_DIR / "sweep_results.csv"
     results_df.to_csv(out_path, index=False)
     print(f"\nAll sweep results saved to {out_path}")
 
-    # Print best overall (consider all sweep types with n >= 5)
+    # Best overall
     candidates = [r for r in all_results if r["n_included"] >= 5]
     if candidates:
         best = max(candidates, key=lambda r: r["sharpe_like"])

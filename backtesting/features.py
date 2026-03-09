@@ -1,37 +1,14 @@
 """
-Step 2: Feature engineering from raw DB columns.
+Step 2: Feature engineering from raw signal data.
 
-Transforms raw parquet data into ML-ready features.
+Transforms raw extracted data into ML-ready features.
+Only uses raw signal data and fundamentals — no AI-generated or pipeline-computed fields.
 Can be imported by train.py and sweep.py.
 """
 
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
-
-# All P&D flag names we one-hot encode
-PND_FLAG_NAMES = [
-    "penny_price",
-    "otc_listing",
-    "micro_cap_no_catalyst",
-    "only_penny_subs",
-    "single_source",
-    "hyperbolic_language",
-    "coordinated_posts",
-    "no_news_catalyst",
-    "sudden_spike",
-    "twitter_bot_promoters",
-    "twitter_coordinated_pump",
-]
-
-NUMERIC_FEATURES = [
-    "aiScore", "rawAiScore", "signalCount", "sourceCount",
-    "weightedSourceScore", "avgVelocity", "totalUpvotes", "totalComments",
-    "subredditCount", "risingCount", "freshCount", "recentCount",
-    "commentDerivedCount", "staleCount", "price", "marketCap",
-    "shortFloat", "floatShares", "firstSeenDaysAgo", "priorAppearances",
-    "pndScore",
-]
 
 
 def parse_52wk_range(range_str: str | None, price: float | None) -> float | None:
@@ -54,81 +31,28 @@ def engineer_features(df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
     """
     Transform raw extracted data into ML features.
 
+    All features are derived from raw signal data (Signal table) and
+    fundamentals (Yahoo Finance). No AI scores, P&D flags, pipeline stages,
+    or other computed fields are used as inputs.
+
     Returns:
         (features_df, feature_names) — DataFrame with features + target columns,
         and list of feature column names.
     """
     feat = pd.DataFrame(index=df.index)
 
-    # --- Numeric features (direct) ---
-    for col in NUMERIC_FEATURES:
-        if col in df.columns:
-            feat[col] = pd.to_numeric(df[col], errors="coerce")
+    # --- Signal counts (from signal_agg CTE, raw Signal table) ---
+    feat["signal_count"] = pd.to_numeric(df.get("signal_count", 0), errors="coerce").fillna(0)
+    feat["source_count"] = pd.to_numeric(df.get("source_count", 0), errors="coerce").fillna(0)
 
-    # --- Derived features ---
-    feat["log_market_cap"] = np.log10(feat["marketCap"].clip(lower=1))
-    feat["log_upvotes"] = np.log2(feat.get("totalUpvotes", 0).fillna(0) + 1)
-    feat["log_comments"] = np.log2(feat.get("totalComments", 0).fillna(0) + 1)
+    # --- Fundamentals (raw from Yahoo Finance) ---
+    feat["price"] = pd.to_numeric(df.get("price"), errors="coerce")
+    feat["marketCap"] = pd.to_numeric(df.get("marketCap"), errors="coerce")
+    feat["shortFloat"] = pd.to_numeric(df.get("shortFloat"), errors="coerce")
+    feat["floatShares"] = pd.to_numeric(df.get("floatShares"), errors="coerce")
 
-    upvotes = feat.get("totalUpvotes", pd.Series(0, index=df.index)).fillna(0)
-    comments = feat.get("totalComments", pd.Series(0, index=df.index)).fillna(0)
-    feat["engagement_score"] = np.minimum(np.log2(upvotes + comments + 1) * 1.5, 10)
-
-    velocity = feat.get("avgVelocity", pd.Series(0, index=df.index)).fillna(0)
-    feat["velocity_boost"] = np.minimum(velocity * 3, 10)
-
-    feat["is_novel"] = df["firstSeenDaysAgo"].isna().astype(int)
-    feat["is_stale"] = (
-        (df["priorAppearances"].fillna(0) >= 3) | (df["firstSeenDaysAgo"].fillna(0) >= 7)
-    ).astype(int)
-
-    # --- Source-level features (from Signal table aggregation) ---
-    if "reddit_count" in df.columns:
-        # Granular source features from signal_agg CTE
-        for src_col, feat_name in [
-            ("reddit_count", "has_reddit"),
-            ("twitter_count", "has_twitter"),
-            ("sec_insider_count", "has_insider"),
-            ("options_flow_count", "has_options"),
-            ("congress_count", "has_congress"),
-            ("volume_spike_count", "has_volume_spike"),
-        ]:
-            feat[feat_name] = (pd.to_numeric(df[src_col], errors="coerce").fillna(0) > 0).astype(int)
-
-        # social_only: True only when no non-social source exists
-        non_social = (
-            pd.to_numeric(df["sec_insider_count"], errors="coerce").fillna(0)
-            + pd.to_numeric(df["options_flow_count"], errors="coerce").fillna(0)
-            + pd.to_numeric(df["congress_count"], errors="coerce").fillna(0)
-            + pd.to_numeric(df["volume_spike_count"], errors="coerce").fillna(0)
-        )
-        feat["social_only"] = (non_social == 0).astype(int)
-
-        # actual_source_count from signal data
-        feat["actual_source_count"] = sum(
-            (pd.to_numeric(df[c], errors="coerce").fillna(0) > 0).astype(int)
-            for c in ["reddit_count", "twitter_count", "stocktwits_count",
-                       "sec_insider_count", "options_flow_count", "volume_spike_count",
-                       "congress_count"]
-        )
-
-        # Quality signals (log-scaled)
-        insider_val = pd.to_numeric(df["max_insider_value"], errors="coerce").fillna(0).clip(lower=0)
-        feat["log_insider_value"] = np.log10(insider_val + 1)
-
-        congress_val = pd.to_numeric(df["max_congress_value"], errors="coerce").fillna(0).clip(lower=0)
-        feat["log_congress_value"] = np.log10(congress_val + 1)
-
-        feat["has_ceo_buy"] = df["has_ceo_buy"].fillna(False).astype(int)
-
-        followers = pd.to_numeric(df["max_follower_count"], errors="coerce").fillna(0).clip(lower=0)
-        feat["log_max_followers"] = np.log10(followers + 1)
-    else:
-        # Fallback for old parquet files without Signal-level data
-        signal_type = df.get("signalType", pd.Series("", index=df.index)).fillna("")
-        feat["social_only"] = signal_type.str.contains("reddit_velocity", case=False, na=False).astype(int)
-        feat["has_insider"] = signal_type.str.contains("insider", case=False, na=False).astype(int)
-        feat["has_options"] = signal_type.str.contains("options", case=False, na=False).astype(int)
+    feat["log_market_cap"] = np.log10(feat["marketCap"].clip(lower=1).fillna(1))
+    feat["log_price"] = np.log10(feat["price"].clip(lower=0.001).fillna(0.001))
 
     # Price position in 52-week range
     feat["price_in_52wk_pct"] = df.apply(
@@ -136,33 +60,87 @@ def engineer_features(df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
         axis=1,
     )
 
-    signal_count = feat.get("signalCount", pd.Series(1, index=df.index)).fillna(1).clip(lower=1)
-    feat["momentum_ratio"] = (
-        feat.get("risingCount", 0).fillna(0) + feat.get("freshCount", 0).fillna(0)
-    ) / signal_count
-    feat["stale_ratio"] = feat.get("staleCount", 0).fillna(0) / signal_count
+    # --- Novelty (DB lookups, not AI) ---
+    feat["firstSeenDaysAgo"] = pd.to_numeric(df.get("firstSeenDaysAgo"), errors="coerce")
+    feat["priorAppearances"] = pd.to_numeric(df.get("priorAppearances", 0), errors="coerce").fillna(0)
+    feat["is_novel"] = df["firstSeenDaysAgo"].isna().astype(int)
+    feat["is_repeat"] = (feat["priorAppearances"] >= 3).astype(int)
 
-    # --- P&D flag booleans ---
-    pnd_flags_col = df.get("pndFlags")
-    if pnd_flags_col is not None:
-        for flag_name in PND_FLAG_NAMES:
-            col_name = f"flag_{flag_name}"
-            feat[col_name] = pnd_flags_col.apply(
-                lambda flags: 1 if isinstance(flags, list) and flag_name in flags else 0
-            )
+    # --- Per-source presence flags ---
+    for src_col, feat_name in [
+        ("reddit_count", "has_reddit"),
+        ("twitter_count", "has_twitter"),
+        ("sec_insider_count", "has_insider"),
+        ("options_flow_count", "has_options"),
+        ("congress_count", "has_congress"),
+        ("volume_spike_count", "has_volume_spike"),
+    ]:
+        feat[feat_name] = (pd.to_numeric(df.get(src_col, 0), errors="coerce").fillna(0) > 0).astype(int)
+
+    # social_only: no non-social source exists
+    non_social = (
+        pd.to_numeric(df.get("sec_insider_count", 0), errors="coerce").fillna(0)
+        + pd.to_numeric(df.get("options_flow_count", 0), errors="coerce").fillna(0)
+        + pd.to_numeric(df.get("congress_count", 0), errors="coerce").fillna(0)
+        + pd.to_numeric(df.get("volume_spike_count", 0), errors="coerce").fillna(0)
+    )
+    feat["social_only"] = (non_social == 0).astype(int)
+
+    # --- Per-source raw counts ---
+    for col in ["reddit_count", "twitter_count", "sec_insider_count",
+                "volume_spike_count", "congress_count"]:
+        feat[col] = pd.to_numeric(df.get(col, 0), errors="coerce").fillna(0)
+
+    # --- Reddit quality (raw from Signal table) ---
+    feat["max_reddit_upvotes"] = pd.to_numeric(df.get("max_reddit_upvotes", 0), errors="coerce").fillna(0)
+    feat["total_reddit_upvotes"] = pd.to_numeric(df.get("total_reddit_upvotes", 0), errors="coerce").fillna(0)
+    feat["total_reddit_comments"] = pd.to_numeric(df.get("total_reddit_comments", 0), errors="coerce").fillna(0)
+    feat["distinct_subreddits"] = pd.to_numeric(df.get("distinct_subreddits", 0), errors="coerce").fillna(0)
+    feat["avg_reddit_post_age"] = pd.to_numeric(df.get("avg_reddit_post_age"), errors="coerce")
+
+    feat["log_reddit_upvotes"] = np.log2(feat["total_reddit_upvotes"] + 1)
+    feat["log_reddit_comments"] = np.log2(feat["total_reddit_comments"] + 1)
+
+    # --- Twitter quality (raw from Signal table) ---
+    followers = pd.to_numeric(df.get("max_follower_count", 0), errors="coerce").fillna(0).clip(lower=0)
+    feat["log_max_followers"] = np.log10(followers + 1)
+    feat["total_retweets"] = pd.to_numeric(df.get("total_retweets", 0), errors="coerce").fillna(0)
+    feat["total_likes"] = pd.to_numeric(df.get("total_likes", 0), errors="coerce").fillna(0)
+
+    # --- Insider quality (raw from Signal table) ---
+    insider_val = pd.to_numeric(df.get("max_insider_value", 0), errors="coerce").fillna(0).clip(lower=0)
+    feat["log_insider_value"] = np.log10(insider_val + 1)
+    congress_val = pd.to_numeric(df.get("max_congress_value", 0), errors="coerce").fillna(0).clip(lower=0)
+    feat["log_congress_value"] = np.log10(congress_val + 1)
+    feat["has_ceo_buy"] = df.get("has_ceo_buy", False).fillna(False).astype(int)
+
+    # --- Volume spike quality (raw from Signal table) ---
+    feat["max_volume_ratio"] = pd.to_numeric(df.get("max_volume_ratio"), errors="coerce")
+    feat["avg_volume_ratio"] = pd.to_numeric(df.get("avg_volume_ratio"), errors="coerce")
+
+    # --- Velocity / momentum (computed from raw postAge + sortType in SQL) ---
+    feat["avg_velocity"] = pd.to_numeric(df.get("avg_velocity", 0), errors="coerce").fillna(0)
+    feat["rising_count"] = pd.to_numeric(df.get("rising_count", 0), errors="coerce").fillna(0)
+    feat["fresh_count"] = pd.to_numeric(df.get("fresh_count", 0), errors="coerce").fillna(0)
+    feat["recent_count"] = pd.to_numeric(df.get("recent_count", 0), errors="coerce").fillna(0)
+    feat["comment_derived_count"] = pd.to_numeric(df.get("comment_derived_count", 0), errors="coerce").fillna(0)
+    feat["stale_count"] = pd.to_numeric(df.get("stale_count", 0), errors="coerce").fillna(0)
+
+    signal_count = feat["signal_count"].clip(lower=1)
+    feat["momentum_ratio"] = (feat["rising_count"] + feat["fresh_count"]) / signal_count
+    feat["stale_ratio"] = feat["stale_count"] / signal_count
 
     # --- Categorical features ---
     exchange = df.get("exchange", pd.Series("", index=df.index)).fillna("").str.upper()
     exchange_map = {"NYSE": 0, "NYQ": 0, "NASDAQ": 1, "NMS": 1, "NGM": 1, "AMEX": 2, "ASE": 2}
     feat["exchange_cat"] = exchange.map(exchange_map).fillna(3).astype(int)
 
-    for cat_col, source_col in [("sector_cat", "sector"), ("signal_type_cat", "signalType")]:
-        if source_col in df.columns:
-            le = LabelEncoder()
-            values = df[source_col].fillna("unknown").astype(str)
-            feat[cat_col] = le.fit_transform(values)
-        else:
-            feat[cat_col] = 0
+    if "sector" in df.columns:
+        le = LabelEncoder()
+        values = df["sector"].fillna("unknown").astype(str)
+        feat["sector_cat"] = le.fit_transform(values)
+    else:
+        feat["sector_cat"] = 0
 
     # --- Target variables ---
     feat["return_1d"] = pd.to_numeric(df.get("return1d"), errors="coerce")
@@ -175,19 +153,15 @@ def engineer_features(df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
     feat["win_7d"] = (feat["return_7d"] > 0).astype(int)
     feat["big_win_7d"] = (feat["return_7d"] > 0.05).astype(int)
 
-    # Keep metadata for sweep.py
+    # Keep metadata for sweep.py (not used as features)
     feat["symbol"] = df["symbol"]
     feat["createdAt"] = df["createdAt"]
-    feat["pndFlagged"] = df.get("pndFlagged", False)
-    feat["stage"] = df.get("stage", "")
-
-    # Keep detectionPrice for phantom filtering
     feat["detectionPrice"] = pd.to_numeric(df.get("detectionPrice"), errors="coerce")
 
     # Build feature name list (excludes targets and metadata)
     target_cols = {"return_1d", "return_3d", "return_7d", "return_30d",
                    "win_1d", "win_3d", "big_win_3d", "win_7d", "big_win_7d"}
-    meta_cols = {"symbol", "createdAt", "pndFlagged", "stage", "detectionPrice"}
+    meta_cols = {"symbol", "createdAt", "detectionPrice"}
     feature_names = [c for c in feat.columns if c not in target_cols and c not in meta_cols]
 
     return feat, feature_names
