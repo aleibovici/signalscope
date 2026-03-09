@@ -12,7 +12,7 @@ SignalScope is a stock breakout signal detection platform. It harvests signals f
 npm run dev              # Next.js dev server (port 3000)
 npm run build            # Production build
 npm run lint             # ESLint
-npm test                 # Run Vitest unit tests (300 tests, 20 files)
+npm test                 # Run Vitest unit tests (301 tests, 22 files)
 npm run test:watch       # Vitest watch mode
 npm run db:generate      # Generate Prisma client (run after schema changes)
 npm run db:migrate       # Run Prisma migrations (dev)
@@ -54,8 +54,11 @@ gcloud scheduler jobs run signalscope-snapshots --location=us-central1
 ### Signal Harvesting Pipeline (`src/lib/harvester/`)
 
 ```
-Sources (6 in parallel) → Aggregate by symbol → Fetch fundamentals (Yahoo Finance)
-→ AI Scoring → P&D Filter (11 flags + AI edge-case assessment) → Report Generation → DB
+Sources (6 in parallel) → Aggregate by symbol → Fetch fundamentals for ALL symbols (Yahoo Finance)
+  ↓ candidates (≥2 signals / sources / weighted score)        ↓ non-candidates with YF price
+  AI Scoring → P&D Filter (11 flags + AI edge-case)          Heuristic score + P&D flags (no AI)
+  → Report Generation → stage: EARLY/FORMING/CONFIRMED/FILTERED    → stage: UNSCORED
+  └──────────────────────────────── DB ───────────────────────────────────────┘
 ```
 
 - `index.ts` — `fetchSignals()` (source fetching), `processSignals()` (AI scoring, P&D filter, reports, DB writes)
