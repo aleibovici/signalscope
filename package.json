@@ -30,7 +30,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "resend": "^6.9.3",
-    "yahoo-finance2": "^3.13.1",
+    "yahoo-finance2": "^3.13.2",
     "zod": "^4.3.6"
   },
   "devDependencies": {
