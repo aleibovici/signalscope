@@ -58,9 +58,6 @@ WITH signal_agg AS (
     MAX(s."purchaseValue") FILTER (WHERE s.source = 'CONGRESS')                    AS max_congress_value,
     BOOL_OR(s."insiderTitle" ILIKE '%ceo%' OR s."insiderTitle" ILIKE '%chief executive%')
       FILTER (WHERE s.source = 'SEC_INSIDER')          AS has_ceo_buy,
-    -- Volume spike quality
-    MAX(s."volumeRatio")                               AS max_volume_ratio,
-    AVG(s."volumeRatio") FILTER (WHERE s."volumeRatio" IS NOT NULL) AS avg_volume_ratio,
     -- Twitter quality
     MAX(s."followerCount") FILTER (WHERE s.source = 'TWITTER')      AS max_follower_count,
     SUM(s."retweetCount")  FILTER (WHERE s.source = 'TWITTER')      AS total_retweets,
@@ -133,8 +130,6 @@ SELECT
   sa.total_insider_value,
   sa.max_congress_value,
   sa.has_ceo_buy,
-  sa.max_volume_ratio,
-  sa.avg_volume_ratio,
   sa.max_follower_count,
   sa.total_retweets,
   sa.total_likes,

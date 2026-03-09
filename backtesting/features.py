@@ -121,9 +121,6 @@ def engineer_features(df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
 
         feat["has_ceo_buy"] = df["has_ceo_buy"].fillna(False).astype(int)
 
-        vol_ratio = pd.to_numeric(df["max_volume_ratio"], errors="coerce").fillna(0)
-        feat["max_volume_ratio"] = vol_ratio
-
         followers = pd.to_numeric(df["max_follower_count"], errors="coerce").fillna(0).clip(lower=0)
         feat["log_max_followers"] = np.log10(followers + 1)
     else:
