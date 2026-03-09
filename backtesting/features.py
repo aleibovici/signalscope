@@ -164,6 +164,12 @@ def engineer_features(df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
     meta_cols = {"symbol", "createdAt", "detectionPrice"}
     feature_names = [c for c in feat.columns if c not in target_cols and c not in meta_cols]
 
+    # Drop zero-variance features (e.g. volume spike columns when dataset has no volume spike signals)
+    zero_var = [c for c in feature_names if feat[c].nunique(dropna=True) <= 1]
+    if zero_var:
+        print(f"  Dropping {len(zero_var)} zero-variance features: {zero_var}")
+        feature_names = [c for c in feature_names if c not in zero_var]
+
     return feat, feature_names
 
 
