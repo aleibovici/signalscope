@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
       JOIN "Scan" s ON s.id = vt."scanId"
       WHERE vt."createdAt" >= ${thirtyDaysAgo}
         AND s.status = 'COMPLETED'
-        AND vt.stage != 'FILTERED'
+        AND vt.stage NOT IN ('FILTERED', 'UNSCORED')
       GROUP BY vt.symbol
       HAVING COUNT(*) >= ${minAppearances}
     `;
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
         symbol: { in: qualifyingSymbols },
         createdAt: { gte: thirtyDaysAgo },
         scan: { status: "COMPLETED" },
-        stage: { not: "FILTERED" },
+        stage: { notIn: ["FILTERED", "UNSCORED"] },
       },
       select: { symbol: true, aiScore: true, stage: true, createdAt: true },
       orderBy: { createdAt: "asc" },
@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
       where: {
         symbol: { in: filteredSymbols },
         scan: { status: "COMPLETED" },
-        stage: stage ? stage : { not: "FILTERED" },
+        stage: stage ? stage : { notIn: ["FILTERED", "UNSCORED"] },
       },
       distinct: ["symbol"],
       orderBy: { createdAt: "desc" },
