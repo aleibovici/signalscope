@@ -135,14 +135,28 @@ async function lookupNovelty(
   return noveltyMap;
 }
 
-function determineStage(
+function parsePctFrom52wkLow(
+  price: number | null | undefined,
+  fiftyTwoWeekRange: string | undefined
+): number | undefined {
+  if (!price || !fiftyTwoWeekRange) return undefined;
+  const match = fiftyTwoWeekRange.match(/^([\d.]+)\s*-\s*[\d.]+$/);
+  if (!match) return undefined;
+  const low = parseFloat(match[1]);
+  if (!low || low <= 0) return undefined;
+  return (price - low) / low;
+}
+
+export function determineStage(
   aiScore: number,
   sourceCount: number,
   weightedSourceScore: number,
   avgVelocity: number,
   pndFlagged: boolean,
   hasNonSocialSource: boolean,
-  novelty?: NoveltyContext
+  novelty?: NoveltyContext,
+  subredditCount?: number,
+  pctFrom52wkLow?: number,
 ): "EARLY" | "FORMING" | "CONFIRMED" | "FILTERED" {
   if (pndFlagged) return "FILTERED";
 
@@ -151,11 +165,21 @@ function determineStage(
   if (hasNonSocialSource && effectiveScore >= 70 && sourceCount >= 3) return "CONFIRMED";
   if (hasNonSocialSource && effectiveScore >= 65 && weightedSourceScore >= 4) return "CONFIRMED";
   if (hasNonSocialSource && effectiveScore >= 65 && sourceCount >= 2 && avgVelocity >= 2.0) return "CONFIRMED";
+
+  // Reddit CONFIRMED: cross-community consensus is structural multi-source corroboration
+  if (!hasNonSocialSource && (subredditCount ?? 0) >= 3 && effectiveScore >= 48 && avgVelocity >= 2.5) {
+    return "CONFIRMED";
+  }
+
   if (effectiveScore >= 50 && sourceCount >= 2) return "FORMING";
-  if (effectiveScore >= 45 && avgVelocity >= 2.0) return "FORMING";
+
+  const formingVelocityThreshold = pctFrom52wkLow != null && pctFrom52wkLow >= 0.007 ? 40 : 45;
+  if (effectiveScore >= formingVelocityThreshold && avgVelocity >= 2.0) return "FORMING";
 
   // Novel tickers with decent score and multi-source get promoted
   if (novelty?.isNovel && aiScore >= 40 && sourceCount >= 2) return "FORMING";
+
+  if ((subredditCount ?? 0) >= 3 && effectiveScore >= 40 && avgVelocity >= 1.5) return "FORMING";
 
   return "EARLY";
 }
@@ -423,7 +447,8 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
       const novelty = noveltyMap.get(agg.symbol);
       const sources = new Set(agg.signals.map((s) => s.source));
       const hasNonSocialSource = sources.has("SEC_INSIDER") || sources.has("OPTIONS_FLOW") || sources.has("VOLUME_SPIKE") || sources.has("CONGRESS");
-      const stage = determineStage(score, agg.sourceCount, agg.weightedSourceScore, agg.avgVelocity, finalPndFlagged, hasNonSocialSource, novelty);
+      const pctFrom52wkLow = parsePctFrom52wkLow(fundamentals?.price, fundamentals?.fiftyTwoWeekRange);
+      const stage = determineStage(score, agg.sourceCount, agg.weightedSourceScore, agg.avgVelocity, finalPndFlagged, hasNonSocialSource, novelty, agg.subredditCount, pctFrom52wkLow);
 
       const signalType = classifySignalType(agg);
 

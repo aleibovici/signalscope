@@ -224,18 +224,29 @@ describe("checkPndFlags — only_penny_subs", () => {
 });
 
 describe("checkPndFlags — single_source", () => {
-  it("flags when sourceCount is 1", () => {
-    const result = checkPndFlags(makeAgg({ sourceCount: 1 }), makeFundamentals());
+  it("flags when sourceCount is 1 with few signals and low upvotes", () => {
+    const result = checkPndFlags(makeAgg({ sourceCount: 1, signals: [], totalUpvotes: 5 }), makeFundamentals());
     expect(result.flags).toContain("single_source");
   });
 
-  it("flags when sourceCount is 0", () => {
-    const result = checkPndFlags(makeAgg({ sourceCount: 0 }), makeFundamentals());
+  it("flags when sourceCount is 0 with few signals and low upvotes", () => {
+    const result = checkPndFlags(makeAgg({ sourceCount: 0, signals: [], totalUpvotes: 5 }), makeFundamentals());
     expect(result.flags).toContain("single_source");
   });
 
   it("does not flag when sourceCount is 2", () => {
     const result = checkPndFlags(makeAgg({ sourceCount: 2 }), makeFundamentals());
+    expect(result.flags).not.toContain("single_source");
+  });
+
+  it("does not flag single source when signal count exceeds 2", () => {
+    const signals = [makeRedditSignal(), makeRedditSignal(), makeRedditSignal()];
+    const result = checkPndFlags(makeAgg({ sourceCount: 1, signals, totalUpvotes: 5 }), makeFundamentals());
+    expect(result.flags).not.toContain("single_source");
+  });
+
+  it("does not flag single source when upvotes are high", () => {
+    const result = checkPndFlags(makeAgg({ sourceCount: 1, signals: [], totalUpvotes: 200 }), makeFundamentals());
     expect(result.flags).not.toContain("single_source");
   });
 });
@@ -288,15 +299,31 @@ describe("checkPndFlags — coordinated_posts", () => {
 });
 
 describe("checkPndFlags — no_news_catalyst", () => {
-  it("flags when multiple signals have no catalyst keywords", () => {
+  it("flags when 5+ signals have no catalyst keywords", () => {
     const agg = makeAgg({
       signals: [
         makeRedditSignal({ title: "TEST is amazing" }),
         makeRedditSignal({ title: "Check out TEST!" }),
+        makeRedditSignal({ title: "TEST looks good today" }),
+        makeRedditSignal({ title: "Anyone watching TEST?" }),
+        makeRedditSignal({ title: "TEST is moving up" }),
       ],
     });
     const result = checkPndFlags(agg, makeFundamentals());
     expect(result.flags).toContain("no_news_catalyst");
+  });
+
+  it("does not flag with fewer than 5 signals", () => {
+    const agg = makeAgg({
+      signals: [
+        makeRedditSignal({ title: "TEST is amazing" }),
+        makeRedditSignal({ title: "Check out TEST!" }),
+        makeRedditSignal({ title: "TEST looks good today" }),
+        makeRedditSignal({ title: "Anyone watching TEST?" }),
+      ],
+    });
+    const result = checkPndFlags(agg, makeFundamentals());
+    expect(result.flags).not.toContain("no_news_catalyst");
   });
 
   it("does not flag with single signal", () => {
@@ -460,31 +487,70 @@ describe("checkPndFlags — twitter_coordinated_pump", () => {
 });
 
 describe("checkPndFlags — flagged threshold", () => {
-  it("is flagged when 3 or more flags are set", () => {
-    // Trigger: penny_price + otc_listing + single_source
-    const agg = makeAgg({ sourceCount: 1, signals: [] });
+  it("is flagged when 4 or more flags are set", () => {
+    // Trigger: penny_price + otc_listing + only_penny_subs + no_news_catalyst (5+ signals)
+    const signals = [
+      makeRedditSignal({ subreddit: "pennystocks", title: "Buy TEST now" }),
+      makeRedditSignal({ subreddit: "pennystocks", title: "TEST is going up" }),
+      makeRedditSignal({ subreddit: "smallstreetbets", title: "Check out TEST" }),
+      makeRedditSignal({ subreddit: "pennystocks", title: "TEST looking good" }),
+      makeRedditSignal({ subreddit: "pennystocks", title: "TEST to the moon" }),
+    ];
+    const agg = makeAgg({ sourceCount: 1, signals, totalUpvotes: 10 });
     const result = checkPndFlags(
       agg,
       makeFundamentals({ price: 0.50, exchange: "OTC" })
     );
-    expect(result.flags.length).toBeGreaterThanOrEqual(3);
+    expect(result.flags.length).toBeGreaterThanOrEqual(4);
     expect(result.flagged).toBe(true);
   });
 
-  it("is not flagged with fewer than 3 flags", () => {
-    // Only trigger: single_source
-    const agg = makeAgg({ sourceCount: 1, signals: [] });
-    const result = checkPndFlags(agg, makeFundamentals());
+  it("is not flagged with fewer than 4 flags", () => {
+    // Only trigger: penny_price + otc_listing (2 flags — below threshold of 4)
+    const agg = makeAgg({ sourceCount: 2, signals: [] });
+    const result = checkPndFlags(agg, makeFundamentals({ price: 0.50, exchange: "OTC" }));
+    expect(result.flags.length).toBeLessThan(4);
     expect(result.flagged).toBe(false);
   });
 
   it("returns correct score equal to flag count", () => {
-    const agg = makeAgg({ sourceCount: 1, signals: [] });
+    const signals = [
+      makeRedditSignal({ subreddit: "pennystocks", title: "Buy TEST now" }),
+      makeRedditSignal({ subreddit: "pennystocks", title: "TEST is going up" }),
+      makeRedditSignal({ subreddit: "smallstreetbets", title: "Check out TEST" }),
+      makeRedditSignal({ subreddit: "pennystocks", title: "TEST looking good" }),
+      makeRedditSignal({ subreddit: "pennystocks", title: "TEST to the moon" }),
+    ];
+    const agg = makeAgg({ sourceCount: 1, signals, totalUpvotes: 10 });
     const result = checkPndFlags(
       agg,
       makeFundamentals({ price: 0.50, exchange: "OTC" })
     );
     expect(result.score).toBe(result.flags.length);
+  });
+});
+
+describe("checkPndFlags — micro_cap_no_catalyst bypasses", () => {
+  it("does not flag micro cap when upvotes are 500+", () => {
+    const agg = makeAgg({
+      signals: [makeRedditSignal({ title: "Check out TEST stock!" })],
+      sourceCount: 1,
+      totalUpvotes: 600,
+      subredditCount: 1,
+    });
+    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 40_000_000 }));
+    expect(result.flags).not.toContain("micro_cap_no_catalyst");
+  });
+
+  it("does not flag micro cap when subredditCount is 3+", () => {
+    const agg = makeAgg({
+      signals: [makeRedditSignal({ title: "Check out TEST stock!" })],
+      sourceCount: 1,
+      totalUpvotes: 100,
+      subredditCount: 3,
+    });
+    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 40_000_000 }));
+    expect(result.flags).not.toContain("micro_cap_no_catalyst");
   });
 });
 
