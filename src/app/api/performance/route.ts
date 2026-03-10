@@ -4,6 +4,61 @@ import { getCurrentUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
 
 const VALID_DAYS = new Set([1, 3, 7, 30]);
+const HORIZONS = [1, 3, 7, 30] as const;
+type ReturnCol = "return1d" | "return3d" | "return7d" | "return30d";
+type PriceCol = "price1d" | "price3d" | "price7d" | "price30d";
+
+interface PerformanceRecord {
+  symbol: string;
+  detectionPrice: number;
+  return1d: number | null;
+  return3d: number | null;
+  return7d: number | null;
+  return30d: number | null;
+  price1d: number | null;
+  price3d: number | null;
+  price7d: number | null;
+  price30d: number | null;
+  createdAt: Date;
+  validatedTicker: {
+    aiScore: number;
+    stage: string;
+    signalType: string | null;
+    createdAt: Date;
+  };
+}
+
+function computeStats(records: PerformanceRecord[], col: ReturnCol) {
+  const returns = records
+    .map((r) => r[col])
+    .filter((v): v is number => v !== null);
+  const count = returns.length;
+  if (count === 0) return { count: 0, winRate: 0, avgReturn: 0 };
+  const wins = returns.filter((r) => r > 0).length;
+  const avgReturn = returns.reduce((a, b) => a + b, 0) / count;
+  return { count, winRate: wins / count, avgReturn };
+}
+
+function getMonday(date: Date): string {
+  const d = new Date(date);
+  const day = d.getUTCDay();
+  const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1);
+  d.setUTCDate(diff);
+  return d.toISOString().slice(0, 10);
+}
+
+function formatWeekLabel(mondayStr: string): string {
+  const d = new Date(mondayStr + "T00:00:00Z");
+  const sun = new Date(d);
+  sun.setUTCDate(sun.getUTCDate() + 6);
+  const fmt = (dt: Date) =>
+    dt.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    });
+  return `${fmt(d)}–${fmt(sun)}`;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,38 +69,46 @@ export async function GET(request: NextRequest) {
     if (!Number.isInteger(days) || !VALID_DAYS.has(days)) {
       return NextResponse.json(
         { error: "Invalid days parameter. Valid values: 1, 3, 7, 30" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const returnCol = `return${days}d` as "return1d" | "return3d" | "return7d" | "return30d";
-    const priceCol = `price${days}d` as "price1d" | "price3d" | "price7d" | "price30d";
+    const returnCol = `return${days}d` as ReturnCol;
+    const priceCol = `price${days}d` as PriceCol;
 
-    // Fetch performance records, deduped by symbol (earliest detection per symbol)
-    // Exclude FILTERED (P&D) and UNSCORED (single-mention backtesting data) tickers
-    const records = await prisma.tickerPerformance.findMany({
-      where: {
-        [returnCol]: { not: null },
-        detectionPrice: { gt: 0.01 },  // Exclude phantom Yahoo Finance prices
-        validatedTicker: {
-          stage: { notIn: ["FILTERED", "UNSCORED"] },
-        },
-      },
-      distinct: ["symbol"],
-      include: {
-        validatedTicker: {
-          select: {
-            aiScore: true,
-            stage: true,
-            signalType: true,
+    // Fetch all performance records (deduped by symbol, earliest detection)
+    const records: PerformanceRecord[] = await prisma.tickerPerformance.findMany(
+      {
+        where: {
+          detectionPrice: { gt: 0.01 },
+          validatedTicker: {
+            stage: { notIn: ["FILTERED", "UNSCORED"] },
           },
         },
+        distinct: ["symbol"],
+        include: {
+          validatedTicker: {
+            select: {
+              aiScore: true,
+              stage: true,
+              signalType: true,
+              createdAt: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "asc" },
       },
-      orderBy: { createdAt: "asc" },
-    });
+    );
 
     if (records.length === 0) {
       return NextResponse.json({
+        summary: {
+          totalTracked: 0,
+          current: { count: 0, winRate: 0, avgReturn: 0 },
+          prior: { count: 0, winRate: 0, avgReturn: 0 },
+        },
+        cohorts: [],
+        cumulativeReturns: [],
         overall: { count: 0, winRate: 0, avgReturn: 0 },
         confirmed: { count: 0, winRate: 0, avgReturn: 0 },
         byStage: {},
@@ -56,56 +119,145 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Helper to compute stats for a subset
-    function computeStats(subset: typeof records) {
-      const returns = subset.map((r) => r[returnCol] as number);
-      const count = returns.length;
-      const wins = returns.filter((r) => r > 0).length;
-      const avgReturn = returns.reduce((a, b) => a + b, 0) / count;
-      return { count, winRate: count > 0 ? wins / count : 0, avgReturn };
+    // --- Summary: current 30d vs prior 30d ---
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+
+    const currentRecords = records.filter(
+      (r) => r.validatedTicker.createdAt >= thirtyDaysAgo,
+    );
+    const priorRecords = records.filter(
+      (r) =>
+        r.validatedTicker.createdAt >= sixtyDaysAgo &&
+        r.validatedTicker.createdAt < thirtyDaysAgo,
+    );
+
+    const summary = {
+      totalTracked: records.length,
+      current: computeStats(currentRecords, returnCol),
+      prior: computeStats(priorRecords, returnCol),
+    };
+
+    // --- Weekly cohorts ---
+    const cohortMap = new Map<
+      string,
+      PerformanceRecord[]
+    >();
+    for (const r of records) {
+      const week = getMonday(r.validatedTicker.createdAt);
+      if (!cohortMap.has(week)) cohortMap.set(week, []);
+      cohortMap.get(week)!.push(r);
     }
 
-    // Overall
-    const overall = computeStats(records);
+    const cohorts = [...cohortMap.entries()]
+      .sort(([a], [b]) => b.localeCompare(a)) // newest first
+      .slice(0, 12)
+      .map(([weekStart, group]) => {
+        const stats: Record<string, { count: number; winRate: number; avgReturn: number }> = {};
+        for (const h of HORIZONS) {
+          const col: ReturnCol = `return${h}d`;
+          const s = computeStats(group, col);
+          if (s.count > 0) {
+            stats[`${h}d`] = s;
+          }
+        }
 
-    // Confirmed-only stats (for headline win rate and avg return)
-    const confirmedRecords = records.filter((r) => r.validatedTicker.stage === "CONFIRMED");
-    const confirmed = computeStats(confirmedRecords);
+        // Best pick for this cohort (use longest available horizon)
+        let bestPick: { symbol: string; returnPct: number; horizon: string } | null = null;
+        for (const h of ([7, 3, 1] as const)) {
+          const col: ReturnCol = `return${h}d`;
+          const withReturn = group.filter((r) => r[col] !== null);
+          if (withReturn.length > 0) {
+            const best = withReturn.reduce((a, b) =>
+              (a[col] as number) > (b[col] as number) ? a : b,
+            );
+            bestPick = {
+              symbol: best.symbol,
+              returnPct: best[col] as number,
+              horizon: `${h}d`,
+            };
+            break;
+          }
+        }
+
+        return {
+          weekStart,
+          weekLabel: formatWeekLabel(weekStart),
+          count: group.length,
+          stats,
+          bestPick,
+        };
+      });
+
+    // --- Cumulative equal-weight returns (for selected horizon) ---
+    const withReturn = records
+      .filter((r) => r[returnCol] !== null)
+      .sort(
+        (a, b) =>
+          a.validatedTicker.createdAt.getTime() -
+          b.validatedTicker.createdAt.getTime(),
+      );
+
+    const cumulativeReturns: Array<{
+      date: string;
+      cumReturn: number;
+      tradeCount: number;
+    }> = [];
+    let runningSum = 0;
+    for (let i = 0; i < withReturn.length; i++) {
+      const r = withReturn[i];
+      runningSum += r[returnCol] as number;
+      const avgCum = runningSum / (i + 1);
+      cumulativeReturns.push({
+        date: r.validatedTicker.createdAt.toISOString().slice(0, 10),
+        cumReturn: avgCum,
+        tradeCount: i + 1,
+      });
+    }
+
+    // --- Breakdowns (same as before, for selected horizon) ---
+    const recordsWithReturn = records.filter((r) => r[returnCol] !== null);
+    const overall = computeStats(recordsWithReturn, returnCol);
+    const confirmedRecords = recordsWithReturn.filter(
+      (r) => r.validatedTicker.stage === "CONFIRMED",
+    );
+    const confirmed = computeStats(confirmedRecords, returnCol);
 
     // By stage
     const byStage: Record<string, ReturnType<typeof computeStats>> = {};
-    const stageGroups = new Map<string, typeof records>();
-    for (const r of records) {
+    const stageGroups = new Map<string, PerformanceRecord[]>();
+    for (const r of recordsWithReturn) {
       const stage = r.validatedTicker.stage;
       if (!stageGroups.has(stage)) stageGroups.set(stage, []);
       stageGroups.get(stage)!.push(r);
     }
     for (const [stage, group] of stageGroups) {
-      byStage[stage] = computeStats(group);
+      byStage[stage] = computeStats(group, returnCol);
     }
 
     // By signal type
     const byType: Record<string, ReturnType<typeof computeStats>> = {};
-    const typeGroups = new Map<string, typeof records>();
-    for (const r of records) {
+    const typeGroups = new Map<string, PerformanceRecord[]>();
+    for (const r of recordsWithReturn) {
       const type = r.validatedTicker.signalType ?? "unknown";
       if (!typeGroups.has(type)) typeGroups.set(type, []);
       typeGroups.get(type)!.push(r);
     }
     for (const [type, group] of typeGroups) {
-      byType[type] = computeStats(group);
+      byType[type] = computeStats(group, returnCol);
     }
 
     // By score range
     const byScoreRange: Record<string, ReturnType<typeof computeStats>> = {};
-    const rangeGroups = new Map<string, typeof records>();
     const ranges = [
       { label: "0-30", min: 0, max: 30 },
       { label: "30-50", min: 30, max: 50 },
       { label: "50-70", min: 50, max: 70 },
       { label: "70-100", min: 70, max: 101 },
     ];
-    for (const r of records) {
+    const rangeGroups = new Map<string, PerformanceRecord[]>();
+    for (const r of recordsWithReturn) {
       const score = r.validatedTicker.aiScore;
       for (const range of ranges) {
         if (score >= range.min && score < range.max) {
@@ -116,15 +268,15 @@ export async function GET(request: NextRequest) {
       }
     }
     for (const [label, group] of rangeGroups) {
-      byScoreRange[label] = computeStats(group);
+      byScoreRange[label] = computeStats(group, returnCol);
     }
 
     // Best/Worst performers
-    const sorted = [...records].sort(
-      (a, b) => (b[returnCol] as number) - (a[returnCol] as number)
+    const sorted = [...recordsWithReturn].sort(
+      (a, b) => (b[returnCol] as number) - (a[returnCol] as number),
     );
 
-    const mapPerformer = (r: (typeof records)[0]) => ({
+    const mapPerformer = (r: PerformanceRecord) => ({
       symbol: r.symbol,
       return: r[returnCol] as number,
       aiScore: r.validatedTicker.aiScore,
@@ -137,6 +289,9 @@ export async function GET(request: NextRequest) {
     const worstPerformers = sorted.slice(-5).reverse().map(mapPerformer);
 
     return NextResponse.json({
+      summary,
+      cohorts,
+      cumulativeReturns,
       overall,
       confirmed,
       byStage,
