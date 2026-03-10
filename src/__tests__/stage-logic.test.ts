@@ -166,6 +166,69 @@ describe("determineStage — FORMING via subredditCount", () => {
   });
 });
 
+describe("determineStage — CONFIRMED via amex_penny", () => {
+  it("returns CONFIRMED when amex penny with sub-dollar wk52Lo recovering above floor", () => {
+    // isAmexPenny=true, wk52Lo=0.50, pctFrom52wkLow=0.10, score=48, velocity=2.0
+    expect(determineStage(48, 1, 1, 2.0, false, false, undefined, undefined, 0.10, 0.50, true)).toBe("CONFIRMED");
+  });
+
+  it("does NOT confirm when wk52Lo >= 1.0", () => {
+    expect(determineStage(48, 1, 1, 2.0, false, false, undefined, undefined, 0.10, 1.5, true)).not.toBe("CONFIRMED");
+  });
+
+  it("does NOT confirm when isAmexPenny is false", () => {
+    expect(determineStage(48, 1, 1, 2.0, false, false, undefined, undefined, 0.10, 0.50, false)).not.toBe("CONFIRMED");
+  });
+
+  it("does NOT confirm when score < 48", () => {
+    expect(determineStage(47, 1, 1, 2.0, false, false, undefined, undefined, 0.10, 0.50, true)).not.toBe("CONFIRMED");
+  });
+
+  it("does NOT confirm when velocity < 2.0", () => {
+    expect(determineStage(48, 1, 1, 1.9, false, false, undefined, undefined, 0.10, 0.50, true)).not.toBe("CONFIRMED");
+  });
+});
+
+describe("determineStage — FORMING via amex_penny", () => {
+  it("returns FORMING for amex penny with pctFrom52wkLow>=0.007, score>=40, velocity>=1.5", () => {
+    expect(determineStage(40, 1, 1, 1.5, false, false, undefined, undefined, 0.10, undefined, true)).toBe("FORMING");
+  });
+
+  it("does NOT form when isAmexPenny is false", () => {
+    const result = determineStage(40, 1, 1, 1.5, false, false, undefined, undefined, 0.10, undefined, false);
+    expect(result).not.toBe("FORMING");
+  });
+
+  it("does NOT form when pctFrom52wkLow < 0.007", () => {
+    const result = determineStage(40, 1, 1, 1.5, false, false, undefined, undefined, 0.005, undefined, true);
+    expect(result).not.toBe("FORMING");
+  });
+
+  it("does NOT form when score < 40", () => {
+    const result = determineStage(39, 1, 1, 1.5, false, false, undefined, undefined, 0.10, undefined, true);
+    expect(result).not.toBe("FORMING");
+  });
+});
+
+describe("determineStage — velocity threshold = 37 for sub-dollar wk52Lo", () => {
+  it("returns FORMING with score=37 when pctFrom52wkLow>=0.007 and wk52Lo<1.0", () => {
+    expect(determineStage(37, 1, 1, 2.0, false, false, undefined, undefined, 0.007, 0.5)).toBe("FORMING");
+  });
+
+  it("does NOT form with score=36 even with sub-dollar wk52Lo", () => {
+    const result = determineStage(36, 1, 1, 2.0, false, false, undefined, undefined, 0.007, 0.5);
+    expect(result).not.toBe("FORMING");
+  });
+
+  it("uses threshold=40 when wk52Lo >= 1.0 (not sub-dollar)", () => {
+    // score=37 < 40, so should NOT form
+    const result = determineStage(37, 1, 1, 2.0, false, false, undefined, undefined, 0.007, 1.5);
+    expect(result).not.toBe("FORMING");
+    // score=40 >= 40, so should form
+    expect(determineStage(40, 1, 1, 2.0, false, false, undefined, undefined, 0.007, 1.5)).toBe("FORMING");
+  });
+});
+
 describe("determineStage — EARLY fallback", () => {
   it("returns EARLY when no conditions are met", () => {
     expect(determineStage(30, 1, 1, 0.5, false, false)).toBe("EARLY");

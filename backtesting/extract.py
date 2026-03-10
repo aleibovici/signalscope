@@ -104,6 +104,8 @@ SELECT
   vt.exchange,
   vt.sector,
   vt."fiftyTwoWkRange",
+  vt."wk52Lo",
+  vt."wk52Hi",
   -- Novelty (DB lookups, not AI)
   vt."firstSeenDaysAgo",
   vt."priorAppearances",
