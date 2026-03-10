@@ -13,8 +13,7 @@ const navItems = [
   { href: "/trending", label: "Trending", icon: "📈" },
   { href: "/portfolio", label: "Portfolio", icon: "💼" },
   // { href: "/leaderboard", label: "Leaderboard", icon: "🏆" }, // Temporarily disabled
-  { href: "/history", label: "Scan History", icon: "📊" },
-  { href: "/performance", label: "Performance", icon: "🎯" },
+{ href: "/performance", label: "Performance", icon: "🎯" },
   { href: "/methodology", label: "How It Works", icon: "ℹ️" },
   { href: "/profile", label: "Profile", icon: "⚙️" },
 ];
