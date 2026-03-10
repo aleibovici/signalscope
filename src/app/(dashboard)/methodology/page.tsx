@@ -59,19 +59,9 @@ export default function MethodologyPage() {
                     <span>{src.icon}</span>
                     <span className="font-medium text-gray-900">{src.name}</span>
                   </div>
-                  {src.status === "active" ? (
-                    <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                      Active
-                    </span>
-                  ) : src.status === "coming_soon" ? (
-                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-                      Coming Soon
-                    </span>
-                  ) : (
-                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
-                      Disabled
-                    </span>
-                  )}
+                  <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                    Active
+                  </span>
                 </div>
                 <p className="text-sm text-gray-600">{src.description}</p>
                 <p className="mt-1 text-xs text-gray-400">{src.params}</p>
