@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import { useAggregatePerformance } from "@/hooks/use-performance";
-import type { PerformanceStats, PerformerEntry } from "@/hooks/use-performance";
+import type {
+  PerformanceStats,
+  PerformerEntry,
+  CohortEntry,
+  CumulativeReturnEntry,
+} from "@/hooks/use-performance";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -17,6 +22,323 @@ function formatPct(value: number): string {
   return `${value > 0 ? "+" : ""}${(value * 100).toFixed(1)}%`;
 }
 
+function formatPctShort(value: number): string {
+  return `${value > 0 ? "+" : ""}${(value * 100).toFixed(0)}%`;
+}
+
+/* ---------- Summary Cards with Delta ---------- */
+function SummaryCards({
+  summary,
+  confirmed,
+}: {
+  summary: { totalTracked: number; current: PerformanceStats; prior: PerformanceStats };
+  confirmed: PerformanceStats;
+}) {
+  const wrDelta =
+    summary.current.count > 0 && summary.prior.count > 0
+      ? summary.current.winRate - summary.prior.winRate
+      : null;
+  const arDelta =
+    summary.current.count > 0 && summary.prior.count > 0
+      ? summary.current.avgReturn - summary.prior.avgReturn
+      : null;
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-4">
+      <Card>
+        <CardContent className="pt-6 text-center">
+          <p className="text-sm text-gray-500">Total Tracked</p>
+          <p className="text-3xl font-bold text-gray-900">
+            {summary.totalTracked}
+          </p>
+          <p className="mt-1 text-xs text-gray-400">all time, deduplicated</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="pt-6 text-center">
+          <p className="text-sm text-gray-500">Win Rate (confirmed)</p>
+          <p className="text-3xl font-bold text-green-600">
+            {confirmed.count > 0
+              ? `${(confirmed.winRate * 100).toFixed(0)}%`
+              : "--"}
+          </p>
+          <p className="mt-1 text-xs text-gray-400">
+            {confirmed.count} confirmed signals
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="pt-6 text-center">
+          <p className="text-sm text-gray-500">Avg Return (confirmed)</p>
+          <p
+            className={`text-3xl font-bold ${
+              confirmed.avgReturn > 0
+                ? "text-green-600"
+                : confirmed.avgReturn < 0
+                  ? "text-red-600"
+                  : "text-gray-900"
+            }`}
+          >
+            {confirmed.count > 0 ? formatPct(confirmed.avgReturn) : "--"}
+          </p>
+          <p className="mt-1 text-xs text-gray-400">for selected horizon</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="pt-6 text-center">
+          <p className="text-sm text-gray-500">Last 30d vs Prior 30d</p>
+          <div className="mt-1 space-y-1">
+            {wrDelta !== null ? (
+              <p className="text-sm">
+                <span className="text-gray-500">Win rate </span>
+                <span
+                  className={`font-semibold ${
+                    wrDelta > 0
+                      ? "text-green-600"
+                      : wrDelta < 0
+                        ? "text-red-600"
+                        : "text-gray-600"
+                  }`}
+                >
+                  {wrDelta > 0 ? "+" : ""}
+                  {(wrDelta * 100).toFixed(0)}pp
+                </span>
+              </p>
+            ) : (
+              <p className="text-sm text-gray-400">--</p>
+            )}
+            {arDelta !== null ? (
+              <p className="text-sm">
+                <span className="text-gray-500">Avg return </span>
+                <span
+                  className={`font-semibold ${
+                    arDelta > 0
+                      ? "text-green-600"
+                      : arDelta < 0
+                        ? "text-red-600"
+                        : "text-gray-600"
+                  }`}
+                >
+                  {formatPct(arDelta)}
+                </span>
+              </p>
+            ) : (
+              <p className="text-sm text-gray-400">--</p>
+            )}
+          </div>
+          <p className="mt-1 text-xs text-gray-400">
+            {summary.current.count} recent / {summary.prior.count} prior
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+/* ---------- Cohort Table ---------- */
+function CohortTable({ cohorts }: { cohorts: CohortEntry[] }) {
+  if (cohorts.length === 0) return null;
+
+  const horizons = ["1d", "3d", "7d"];
+
+  return (
+    <Card>
+      <CardHeader>
+        <h3 className="font-semibold">Weekly Signal Cohorts</h3>
+        <p className="text-xs text-gray-400">
+          Signals grouped by detection week — how did each week&apos;s picks perform?
+        </p>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 text-left text-xs text-gray-500">
+                <th className="pb-2 pr-4 font-medium">Week</th>
+                <th className="pb-2 pr-3 font-medium text-right">Signals</th>
+                {horizons.map((h) => (
+                  <th key={`wr-${h}`} className="pb-2 pr-3 font-medium text-right">
+                    {h} WR
+                  </th>
+                ))}
+                {horizons.map((h) => (
+                  <th key={`ar-${h}`} className="pb-2 pr-3 font-medium text-right">
+                    {h} Avg
+                  </th>
+                ))}
+                <th className="pb-2 font-medium text-right">Best Pick</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cohorts.map((c) => (
+                <tr key={c.weekStart} className="border-b border-gray-50">
+                  <td className="py-2 pr-4 font-medium text-gray-700 whitespace-nowrap">
+                    {c.weekLabel}
+                  </td>
+                  <td className="py-2 pr-3 text-right text-gray-600">
+                    {c.count}
+                  </td>
+                  {horizons.map((h) => {
+                    const s = c.stats[h];
+                    return (
+                      <td
+                        key={`wr-${h}`}
+                        className="py-2 pr-3 text-right text-gray-600"
+                      >
+                        {s ? `${(s.winRate * 100).toFixed(0)}%` : "--"}
+                      </td>
+                    );
+                  })}
+                  {horizons.map((h) => {
+                    const s = c.stats[h];
+                    return (
+                      <td
+                        key={`ar-${h}`}
+                        className={`py-2 pr-3 text-right font-medium ${
+                          s && s.avgReturn > 0
+                            ? "text-green-600"
+                            : s && s.avgReturn < 0
+                              ? "text-red-600"
+                              : "text-gray-400"
+                        }`}
+                      >
+                        {s ? formatPct(s.avgReturn) : "--"}
+                      </td>
+                    );
+                  })}
+                  <td className="py-2 text-right whitespace-nowrap">
+                    {c.bestPick ? (
+                      <a
+                        href={`/ticker/${c.bestPick.symbol}`}
+                        className="text-blue-600 hover:underline"
+                      >
+                        {c.bestPick.symbol}{" "}
+                        <span
+                          className={
+                            c.bestPick.returnPct > 0
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }
+                        >
+                          {formatPctShort(c.bestPick.returnPct)}
+                        </span>
+                      </a>
+                    ) : (
+                      <span className="text-gray-400">--</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ---------- Cumulative Returns (simple bar-style visualization) ---------- */
+function CumulativeReturns({
+  data,
+  horizon,
+}: {
+  data: CumulativeReturnEntry[];
+  horizon: number;
+}) {
+  if (data.length === 0) return null;
+
+  // Group by date to avoid duplicate entries — take the last entry per date
+  const byDate = new Map<string, CumulativeReturnEntry>();
+  for (const d of data) {
+    byDate.set(d.date, d);
+  }
+  const points = [...byDate.values()];
+
+  const maxAbs = Math.max(
+    ...points.map((p) => Math.abs(p.cumReturn)),
+    0.001,
+  );
+
+  // Show last 20 points (dates) to keep it readable
+  const recent = points.slice(-20);
+  const finalReturn = recent[recent.length - 1];
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold">Cumulative Avg Return ({horizon}d)</h3>
+            <p className="text-xs text-gray-400">
+              Running average {horizon}-day return across all signals, by detection date
+            </p>
+          </div>
+          {finalReturn && (
+            <p
+              className={`text-xl font-bold ${
+                finalReturn.cumReturn > 0
+                  ? "text-green-600"
+                  : finalReturn.cumReturn < 0
+                    ? "text-red-600"
+                    : "text-gray-600"
+              }`}
+            >
+              {formatPct(finalReturn.cumReturn)}
+            </p>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-1">
+          {recent.map((p) => {
+            const width = Math.abs(p.cumReturn) / maxAbs;
+            const isPositive = p.cumReturn >= 0;
+            return (
+              <div key={p.date} className="flex items-center gap-2 text-xs">
+                <span className="w-16 shrink-0 text-gray-500">
+                  {new Date(p.date + "T00:00:00Z").toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    timeZone: "UTC",
+                  })}
+                </span>
+                <div className="flex-1">
+                  <div className="relative h-4 rounded bg-gray-50">
+                    <div
+                      className={`absolute top-0 h-4 rounded ${
+                        isPositive ? "bg-green-200" : "bg-red-200"
+                      }`}
+                      style={{
+                        width: `${Math.max(width * 100, 2)}%`,
+                        left: isPositive ? "0" : undefined,
+                        right: isPositive ? undefined : "0",
+                      }}
+                    />
+                  </div>
+                </div>
+                <span
+                  className={`w-14 shrink-0 text-right font-medium ${
+                    isPositive ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {formatPct(p.cumReturn)}
+                </span>
+                <span className="w-8 shrink-0 text-right text-gray-400">
+                  n={p.tradeCount}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ---------- Breakdown Tables ---------- */
 function StatsTable({
   title,
   data,
@@ -76,6 +398,7 @@ function StatsTable({
   );
 }
 
+/* ---------- Performers Table ---------- */
 function PerformersTable({
   title,
   performers,
@@ -132,6 +455,7 @@ function PerformersTable({
   );
 }
 
+/* ---------- Main Page ---------- */
 export default function PerformancePage() {
   const [days, setDays] = useState(7);
   const { data, isLoading, error } = useAggregatePerformance(days);
@@ -139,7 +463,12 @@ export default function PerformancePage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-xl font-bold md:text-2xl">Signal Performance</h1>
+        <div>
+          <h1 className="text-xl font-bold md:text-2xl">Signal Performance</h1>
+          <p className="text-sm text-gray-500">
+            How signals perform after detection — broken down by week, stage, and type
+          </p>
+        </div>
         <div className="flex rounded-lg border border-gray-200 bg-white p-1">
           {INTERVALS.map((iv) => (
             <button
@@ -171,47 +500,14 @@ export default function PerformancePage() {
 
       {data && (
         <>
-          {/* Headline stats */}
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Card>
-              <CardContent className="pt-6 text-center">
-                <p className="text-sm text-gray-500">Tracked Tickers</p>
-                <p className="text-3xl font-bold text-gray-900">
-                  {data.overall.count}
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6 text-center">
-                <p className="text-sm text-gray-500">Win Rate</p>
-                <p className="text-3xl font-bold text-green-600">
-                  {data.confirmed.count > 0
-                    ? `${(data.confirmed.winRate * 100).toFixed(0)}%`
-                    : "--"}
-                </p>
-                <p className="mt-1 text-xs text-gray-400">confirmed signals only</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6 text-center">
-                <p className="text-sm text-gray-500">Avg Return</p>
-                <p
-                  className={`text-3xl font-bold ${
-                    data.confirmed.avgReturn > 0
-                      ? "text-green-600"
-                      : data.confirmed.avgReturn < 0
-                        ? "text-red-600"
-                        : "text-gray-900"
-                  }`}
-                >
-                  {data.confirmed.count > 0
-                    ? formatPct(data.confirmed.avgReturn)
-                    : "--"}
-                </p>
-                <p className="mt-1 text-xs text-gray-400">confirmed signals only</p>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Summary cards with period comparison */}
+          <SummaryCards summary={data.summary} confirmed={data.confirmed} />
+
+          {/* Weekly cohort table */}
+          <CohortTable cohorts={data.cohorts} />
+
+          {/* Cumulative return visualization */}
+          <CumulativeReturns data={data.cumulativeReturns} horizon={days} />
 
           {/* Breakdown tables */}
           <div className="grid gap-4 lg:grid-cols-3">
