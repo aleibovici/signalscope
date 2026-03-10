@@ -14,7 +14,7 @@ const REPUTABLE_SUBREDDITS = new Set([
   "wallstreetbets",
 ]);
 
-const PND_THRESHOLD = 3;
+const PND_THRESHOLD = 4;
 
 const HYPE_PHRASES = [
   "guaranteed", "can't lose", "cant lose", "load up now", "load up",
@@ -66,7 +66,13 @@ export function checkPndFlags(
   }
 
   // 3. Market cap < $50M with no real news catalyst
-  if (fundamentals?.marketCap != null && fundamentals.marketCap < 50_000_000 && !hasNewsCatalyst) {
+  if (
+    fundamentals?.marketCap != null &&
+    fundamentals.marketCap < 50_000_000 &&
+    !hasNewsCatalyst &&
+    agg.totalUpvotes < 500 &&
+    agg.subredditCount < 3
+  ) {
     flags.push("micro_cap_no_catalyst");
   }
 
@@ -81,7 +87,7 @@ export function checkPndFlags(
   }
 
   // 5. Single source only (only Reddit, zero corroboration from options/insider/StockTwits)
-  if (agg.sourceCount <= 1) {
+  if (agg.sourceCount <= 1 && agg.signals.length <= 2 && agg.totalUpvotes < 20) {
     flags.push("single_source");
   }
 
@@ -103,8 +109,8 @@ export function checkPndFlags(
     }
   }
 
-  // 7. No real news catalyst found (only flag if there are multiple signals but no substance)
-  if (!hasNewsCatalyst && agg.signals.length > 1) {
+  // 7. No real news catalyst found (only flag if there are 5+ signals but no substance)
+  if (!hasNewsCatalyst && agg.signals.length >= 5) {
     flags.push("no_news_catalyst");
   }
 
