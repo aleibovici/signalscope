@@ -1,8 +1,18 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendConfirmedTickerAlerts } from "@/lib/email";
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  const secret = req.headers.get("x-cron-secret");
+  const expectedSecret = process.env.CRON_SECRET;
+  if (!expectedSecret) {
+    console.error("[alerts/send] CRON_SECRET not configured");
+    return NextResponse.json({ error: "Endpoint not configured" }, { status: 503 });
+  }
+  if (secret !== expectedSecret) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   // Find the most recent completed scan
   const scan = await prisma.scan.findFirst({
     where: { status: "COMPLETED" },
