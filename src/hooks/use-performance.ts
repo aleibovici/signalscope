@@ -53,7 +53,36 @@ export interface PerformerEntry {
   currentPrice: number;
 }
 
+export interface CohortStats {
+  count: number;
+  winRate: number;
+  avgReturn: number;
+}
+
+export interface CohortEntry {
+  weekStart: string;
+  weekLabel: string;
+  count: number;
+  stats: Record<string, CohortStats>;
+  bestPick: { symbol: string; returnPct: number; horizon: string } | null;
+}
+
+export interface CumulativeReturnEntry {
+  date: string;
+  cumReturn: number;
+  tradeCount: number;
+}
+
+export interface PerformanceSummary {
+  totalTracked: number;
+  current: PerformanceStats;
+  prior: PerformanceStats;
+}
+
 export interface AggregatePerformance {
+  summary: PerformanceSummary;
+  cohorts: CohortEntry[];
+  cumulativeReturns: CumulativeReturnEntry[];
   overall: PerformanceStats;
   confirmed: PerformanceStats;
   byStage: Record<string, PerformanceStats>;
