@@ -22,10 +22,14 @@ export async function GET(request: NextRequest) {
     const priceCol = `price${days}d` as "price1d" | "price3d" | "price7d" | "price30d";
 
     // Fetch performance records, deduped by symbol (earliest detection per symbol)
+    // Exclude FILTERED (P&D) and UNSCORED (single-mention backtesting data) tickers
     const records = await prisma.tickerPerformance.findMany({
       where: {
         [returnCol]: { not: null },
         detectionPrice: { gt: 0.01 },  // Exclude phantom Yahoo Finance prices
+        validatedTicker: {
+          stage: { notIn: ["FILTERED", "UNSCORED"] },
+        },
       },
       distinct: ["symbol"],
       include: {
