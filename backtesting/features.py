@@ -8,7 +8,6 @@ Can be imported by train.py and sweep.py.
 
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder
 
 
 def parse_52wk_range(range_str: str | None, price: float | None) -> float | None:
@@ -25,6 +24,53 @@ def parse_52wk_range(range_str: str | None, price: float | None) -> float | None
         return (price - low) / (high - low)
     except (ValueError, ZeroDivisionError):
         return None
+
+
+def compute_pct_from_52wk_low(row) -> float | None:
+    """Compute (price - 52wk_low) / 52wk_low, preferring direct column over string parsing."""
+    price = row.get("price")
+    if price is None:
+        return None
+    wk52_lo = row.get("wk52Lo")
+    if wk52_lo is not None and float(wk52_lo) > 0:
+        return (price - float(wk52_lo)) / float(wk52_lo)
+    range_str = row.get("fiftyTwoWkRange")
+    if range_str and isinstance(range_str, str):
+        try:
+            low = float(range_str.split(" - ")[0])
+            if low > 0:
+                return (price - low) / low
+        except (ValueError, IndexError):
+            pass
+    return None
+
+
+def get_wk52_lo(row) -> float | None:
+    """Get 52-week low, preferring direct column over string parsing."""
+    val = row.get("wk52Lo")
+    if val is not None:
+        return float(val)
+    range_str = row.get("fiftyTwoWkRange")
+    if range_str and isinstance(range_str, str):
+        try:
+            return float(range_str.split(" - ")[0])
+        except (ValueError, IndexError):
+            pass
+    return None
+
+
+def get_wk52_hi(row) -> float | None:
+    """Get 52-week high, preferring direct column over string parsing."""
+    val = row.get("wk52Hi")
+    if val is not None:
+        return float(val)
+    range_str = row.get("fiftyTwoWkRange")
+    if range_str and isinstance(range_str, str):
+        try:
+            return float(range_str.split(" - ")[1])
+        except (ValueError, IndexError):
+            pass
+    return None
 
 
 def engineer_features(df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
@@ -54,11 +100,10 @@ def engineer_features(df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
     feat["log_market_cap"] = np.log10(feat["marketCap"].clip(lower=1).fillna(1))
     feat["log_price"] = np.log10(feat["price"].clip(lower=0.001).fillna(0.001))
 
-    # Price position in 52-week range
-    feat["price_in_52wk_pct"] = df.apply(
-        lambda row: parse_52wk_range(row.get("fiftyTwoWkRange"), row.get("price")),
-        axis=1,
-    )
+    # 52-week range features (prefer direct columns, fall back to string parsing)
+    feat["pct_from_52wk_low"] = df.apply(compute_pct_from_52wk_low, axis=1)
+    feat["wk52_lo"] = df.apply(get_wk52_lo, axis=1)
+    feat["wk52_hi"] = df.apply(get_wk52_hi, axis=1)
 
     # --- Novelty (DB lookups, not AI) ---
     feat["firstSeenDaysAgo"] = pd.to_numeric(df.get("firstSeenDaysAgo"), errors="coerce")
@@ -130,17 +175,25 @@ def engineer_features(df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
     feat["momentum_ratio"] = (feat["rising_count"] + feat["fresh_count"]) / signal_count
     feat["stale_ratio"] = feat["stale_count"] / signal_count
 
-    # --- Categorical features ---
-    exchange = df.get("exchange", pd.Series("", index=df.index)).fillna("").str.upper()
-    exchange_map = {"NYSE": 0, "NYQ": 0, "NASDAQ": 1, "NMS": 1, "NGM": 1, "AMEX": 2, "ASE": 2}
-    feat["exchange_cat"] = exchange.map(exchange_map).fillna(3).astype(int)
+    # --- Exchange one-hot features ---
+    exchange = df.get("exchange", pd.Series("", index=df.index)).fillna("")
+    feat["exchange_NYSE American"] = exchange.str.contains("American", case=False, na=False).astype(int)
+    feat["exchange_NasdaqGS"] = exchange.str.contains("NasdaqGS", case=False, na=False).astype(int)
+    feat["exchange_NasdaqCM"] = exchange.str.contains("NasdaqCM", case=False, na=False).astype(int)
+    feat["exchange_NasdaqGM"] = exchange.str.contains("NasdaqGM|Global Market", case=False, na=False).astype(int)
+    feat["exchange_NYSE"] = (exchange.str.upper() == "NYSE").astype(int)
+    feat["exchange_NYSEArca"] = exchange.str.contains("Arca", case=False, na=False).astype(int)
 
-    if "sector" in df.columns:
-        le = LabelEncoder()
-        values = df["sector"].fillna("unknown").astype(str)
-        feat["sector_cat"] = le.fit_transform(values)
-    else:
-        feat["sector_cat"] = 0
+    # --- Exchange-penny interaction features ---
+    price_series = feat["price"].fillna(999)
+    feat["amex_penny"] = ((feat["exchange_NYSE American"] == 1) & (price_series < 5)).astype(int)
+    feat["nasdaqcm_penny"] = ((feat["exchange_NasdaqCM"] == 1) & (price_series < 5)).astype(int)
+    feat["nasdaqgm_penny"] = ((feat["exchange_NasdaqGM"] == 1) & (price_series < 5)).astype(int)
+
+    # --- Binary price flags ---
+    feat["is_cheap"] = (price_series < 5).astype(int)
+    feat["is_penny"] = (price_series < 1).astype(int)
+    feat["is_near_low"] = (feat["pct_from_52wk_low"].fillna(1) < 0.1).astype(int)
 
     # --- Target variables ---
     feat["return_1d"] = pd.to_numeric(df.get("return1d"), errors="coerce")

@@ -12,7 +12,7 @@ SignalScope is a stock breakout signal detection platform. It harvests signals f
 npm run dev              # Next.js dev server (port 3000)
 npm run build            # Production build
 npm run lint             # ESLint
-npm test                 # Run Vitest unit tests (301 tests, 22 files)
+npm test                 # Run Vitest unit tests (353 tests, 23 files)
 npm run test:watch       # Vitest watch mode
 npm run db:generate      # Generate Prisma client (run after schema changes)
 npm run db:migrate       # Run Prisma migrations (dev)

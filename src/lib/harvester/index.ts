@@ -137,14 +137,19 @@ async function lookupNovelty(
 
 function parsePctFrom52wkLow(
   price: number | null | undefined,
-  fiftyTwoWeekRange: string | undefined
+  wk52Lo: number | null | undefined,
+  fiftyTwoWeekRange?: string,
 ): number | undefined {
-  if (!price || !fiftyTwoWeekRange) return undefined;
-  const match = fiftyTwoWeekRange.match(/^([\d.]+)\s*-\s*[\d.]+$/);
-  if (!match) return undefined;
-  const low = parseFloat(match[1]);
-  if (!low || low <= 0) return undefined;
-  return (price - low) / low;
+  if (!price) return undefined;
+  if (wk52Lo != null && wk52Lo > 0) return (price - wk52Lo) / wk52Lo;
+  if (fiftyTwoWeekRange) {
+    const match = fiftyTwoWeekRange.match(/^([\d.]+)\s*-\s*[\d.]+$/);
+    if (match) {
+      const low = parseFloat(match[1]);
+      if (low > 0) return (price - low) / low;
+    }
+  }
+  return undefined;
 }
 
 export function determineStage(
@@ -157,6 +162,8 @@ export function determineStage(
   novelty?: NoveltyContext,
   subredditCount?: number,
   pctFrom52wkLow?: number,
+  wk52Lo?: number,
+  isAmexPenny?: boolean,
 ): "EARLY" | "FORMING" | "CONFIRMED" | "FILTERED" {
   if (pndFlagged) return "FILTERED";
 
@@ -171,13 +178,25 @@ export function determineStage(
     return "CONFIRMED";
   }
 
+  // NYSE American micro-cap recovering from sub-dollar 52wk floor = highest-conviction breakout
+  if (isAmexPenny && wk52Lo != null && wk52Lo < 1.0 &&
+      pctFrom52wkLow != null && pctFrom52wkLow >= 0.007 &&
+      effectiveScore >= 48 && avgVelocity >= 2.0) {
+    return "CONFIRMED";
+  }
+
   if (effectiveScore >= 50 && sourceCount >= 2) return "FORMING";
 
-  const formingVelocityThreshold = pctFrom52wkLow != null && pctFrom52wkLow >= 0.007 ? 40 : 45;
+  const formingVelocityThreshold =
+    pctFrom52wkLow != null && pctFrom52wkLow >= 0.007 && wk52Lo != null && wk52Lo < 1.0 ? 37 :
+    pctFrom52wkLow != null && pctFrom52wkLow >= 0.007 ? 40 : 45;
   if (effectiveScore >= formingVelocityThreshold && avgVelocity >= 2.0) return "FORMING";
 
   // Novel tickers with decent score and multi-source get promoted
   if (novelty?.isNovel && aiScore >= 40 && sourceCount >= 2) return "FORMING";
+
+  if (isAmexPenny && pctFrom52wkLow != null && pctFrom52wkLow >= 0.007 &&
+      effectiveScore >= 40 && avgVelocity >= 1.5) return "FORMING";
 
   if ((subredditCount ?? 0) >= 3 && effectiveScore >= 40 && avgVelocity >= 1.5) return "FORMING";
 
@@ -447,8 +466,13 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
       const novelty = noveltyMap.get(agg.symbol);
       const sources = new Set(agg.signals.map((s) => s.source));
       const hasNonSocialSource = sources.has("SEC_INSIDER") || sources.has("OPTIONS_FLOW") || sources.has("VOLUME_SPIKE") || sources.has("CONGRESS");
-      const pctFrom52wkLow = parsePctFrom52wkLow(fundamentals?.price, fundamentals?.fiftyTwoWeekRange);
-      const stage = determineStage(score, agg.sourceCount, agg.weightedSourceScore, agg.avgVelocity, finalPndFlagged, hasNonSocialSource, novelty, agg.subredditCount, pctFrom52wkLow);
+      const pctFrom52wkLow = parsePctFrom52wkLow(fundamentals?.price, fundamentals?.wk52Lo, fundamentals?.fiftyTwoWeekRange);
+      const wk52Lo = fundamentals?.wk52Lo ?? undefined;
+      const isAmexPenny = !!(
+        fundamentals?.exchange?.toLowerCase().includes("american") &&
+        fundamentals.price != null && fundamentals.price < 5
+      );
+      const stage = determineStage(score, agg.sourceCount, agg.weightedSourceScore, agg.avgVelocity, finalPndFlagged, hasNonSocialSource, novelty, agg.subredditCount, pctFrom52wkLow, wk52Lo, isAmexPenny);
 
       const signalType = classifySignalType(agg);
 
@@ -579,6 +603,8 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
         marketCap: fundamentals?.marketCap,
         shortFloat: fundamentals?.shortFloat,
         fiftyTwoWkRange: fundamentals?.fiftyTwoWeekRange,
+        wk52Lo: fundamentals?.wk52Lo ?? null,
+        wk52Hi: fundamentals?.wk52Hi ?? null,
         exchange: fundamentals?.exchange,
         catalyst: report?.catalyst,
         risks: report?.risks,

@@ -94,6 +94,8 @@ export async function fetchFundamentals(
       marketCap: q.marketCap ?? null,
       shortFloat: extra?.shortFloat ?? null,
       fiftyTwoWeekRange,
+      wk52Lo: fiftyTwoLow ?? null,
+      wk52Hi: fiftyTwoHigh ?? null,
       name: q.longName ?? q.shortName,
       sector: extra?.sector ?? ((q as Record<string, unknown>).sector as string | undefined),
       exchange: q.fullExchangeName ?? q.exchange,

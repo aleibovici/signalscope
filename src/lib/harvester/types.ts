@@ -48,6 +48,8 @@ export interface FundamentalData {
   marketCap: number | null;
   shortFloat: number | null;
   fiftyTwoWeekRange?: string;
+  wk52Lo?: number | null;
+  wk52Hi?: number | null;
   name?: string;
   sector?: string;
   exchange?: string;
