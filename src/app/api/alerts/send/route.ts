@@ -13,8 +13,10 @@ export async function POST() {
     return NextResponse.json({ status: "skip", reason: "no completed scan" });
   }
 
+  const MAX_TICKERS = 15;
+
   // Get all validated tickers (CONFIRMED, FORMING, EARLY) sorted by score
-  const tickers = await prisma.validatedTicker.findMany({
+  const allTickers = await prisma.validatedTicker.findMany({
     where: {
       scanId: scan.id,
       stage: { in: ["CONFIRMED", "FORMING", "EARLY"] },
@@ -30,6 +32,13 @@ export async function POST() {
     orderBy: { aiScore: "desc" },
   });
 
+  // Always include all CONFIRMED, then fill with top FORMING/EARLY by score
+  const confirmed = allTickers.filter((t) => t.stage === "CONFIRMED");
+  const rest = allTickers
+    .filter((t) => t.stage !== "CONFIRMED")
+    .slice(0, Math.max(0, MAX_TICKERS - confirmed.length));
+  const tickers = [...confirmed, ...rest];
+
   await sendTickerAlerts(
     tickers.map((t) => ({
       symbol: t.symbol,
@@ -38,12 +47,14 @@ export async function POST() {
       catalyst: t.catalyst,
       signalType: t.signalType,
       stage: t.stage,
-    }))
+    })),
+    allTickers.length
   );
 
   return NextResponse.json({
     status: "sent",
     scanId: scan.id,
     tickerCount: tickers.length,
+    totalAvailable: allTickers.length,
   });
 }
