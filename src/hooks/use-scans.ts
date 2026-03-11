@@ -31,6 +31,9 @@ export interface ValidatedTickerData {
   firstSeenDaysAgo: number | null;
   priorAppearances: number;
   return7d: number | null;
+  exchange: string | null;
+  wk52Lo: number | null;
+  wk52Hi: number | null;
   createdAt: string;
 }
 

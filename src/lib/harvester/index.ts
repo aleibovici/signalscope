@@ -164,8 +164,12 @@ export function determineStage(
   pctFrom52wkLow?: number,
   wk52Lo?: number,
   isAmexPenny?: boolean,
+  isNasdaqSmallPenny?: boolean,
 ): "EARLY" | "FORMING" | "CONFIRMED" | "FILTERED" {
   if (pndFlagged) return "FILTERED";
+
+  // Sub-dime 52wk floor = zombie/shell stock: cap at EARLY unless a hard catalyst exists
+  if (wk52Lo != null && wk52Lo < 0.09 && !hasNonSocialSource) return "EARLY";
 
   const effectiveScore = novelty?.isNovel ? aiScore + 5 : aiScore;
 
@@ -178,25 +182,37 @@ export function determineStage(
     return "CONFIRMED";
   }
 
-  // NYSE American micro-cap recovering from sub-dollar 52wk floor = highest-conviction breakout
-  if (isAmexPenny && wk52Lo != null && wk52Lo < 1.0 &&
+  // NYSE American micro-cap recovering from 52wk floor (but not sub-dime garbage)
+  if (isAmexPenny && wk52Lo != null && wk52Lo >= 0.09 && wk52Lo < 1.0 &&
       pctFrom52wkLow != null && pctFrom52wkLow >= 0.007 &&
       effectiveScore >= 48 && avgVelocity >= 2.0) {
+    return "CONFIRMED";
+  }
+
+  // NasdaqCM/NasdaqGM penny: same breakout pattern, slightly higher score bar
+  if (isNasdaqSmallPenny && wk52Lo != null && wk52Lo >= 0.09 && wk52Lo < 1.0 &&
+      pctFrom52wkLow != null && pctFrom52wkLow >= 0.007 &&
+      effectiveScore >= 50 && avgVelocity >= 2.0) {
     return "CONFIRMED";
   }
 
   if (effectiveScore >= 50 && sourceCount >= 2) return "FORMING";
 
   const formingVelocityThreshold =
-    pctFrom52wkLow != null && pctFrom52wkLow >= 0.007 && wk52Lo != null && wk52Lo < 1.0 ? 37 :
+    pctFrom52wkLow != null && pctFrom52wkLow >= 0.007 && wk52Lo != null && wk52Lo >= 0.09 && wk52Lo < 1.0 ? 37 :
     pctFrom52wkLow != null && pctFrom52wkLow >= 0.007 ? 40 : 45;
   if (effectiveScore >= formingVelocityThreshold && avgVelocity >= 2.0) return "FORMING";
 
   // Novel tickers with decent score and multi-source get promoted
   if (novelty?.isNovel && aiScore >= 40 && sourceCount >= 2) return "FORMING";
 
-  if (isAmexPenny && pctFrom52wkLow != null && pctFrom52wkLow >= 0.007 &&
+  if (isAmexPenny && wk52Lo != null && wk52Lo >= 0.09 &&
+      pctFrom52wkLow != null && pctFrom52wkLow >= 0.007 &&
       effectiveScore >= 40 && avgVelocity >= 1.5) return "FORMING";
+
+  if (isNasdaqSmallPenny && wk52Lo != null && wk52Lo >= 0.09 &&
+      pctFrom52wkLow != null && pctFrom52wkLow >= 0.007 &&
+      effectiveScore >= 42 && avgVelocity >= 1.5) return "FORMING";
 
   if ((subredditCount ?? 0) >= 3 && effectiveScore >= 40 && avgVelocity >= 1.5) return "FORMING";
 
@@ -472,7 +488,15 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
         fundamentals?.exchange?.toLowerCase().includes("american") &&
         fundamentals.price != null && fundamentals.price < 5
       );
-      const stage = determineStage(score, agg.sourceCount, agg.weightedSourceScore, agg.avgVelocity, finalPndFlagged, hasNonSocialSource, novelty, agg.subredditCount, pctFrom52wkLow, wk52Lo, isAmexPenny);
+      const isNasdaqSmallPenny = !!(
+        fundamentals?.exchange &&
+        (fundamentals.exchange.toLowerCase().includes("nasdaqcm") ||
+         fundamentals.exchange.toLowerCase().includes("nasdaq capital") ||
+         fundamentals.exchange.toLowerCase().includes("nasdaqgm") ||
+         fundamentals.exchange.toLowerCase().includes("nasdaq global market")) &&
+        fundamentals.price != null && fundamentals.price < 5
+      );
+      const stage = determineStage(score, agg.sourceCount, agg.weightedSourceScore, agg.avgVelocity, finalPndFlagged, hasNonSocialSource, novelty, agg.subredditCount, pctFrom52wkLow, wk52Lo, isAmexPenny, isNasdaqSmallPenny);
 
       const signalType = classifySignalType(agg);
 
