@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 // Set AUTH_SECRET before importing the module
 vi.stubEnv("AUTH_SECRET", "test-secret-for-jwt-testing-1234567890");
