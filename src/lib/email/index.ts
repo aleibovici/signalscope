@@ -41,9 +41,9 @@ export function buildEmailHtml(tickers: AlertTicker[], totalAvailable?: number):
   }
 
   const totalCount = tickers.length;
-  const headline = confirmed.length > 0
-    ? `${confirmed.length} consensus + ${forming.length + early.length} emerging`
-    : `${totalCount} emerging signal${totalCount !== 1 ? "s" : ""}`;
+  const headline = early.length > 0
+    ? `${early.length} emerging${forming.length > 0 ? ` + ${forming.length} building` : ""}${confirmed.length > 0 ? ` + ${confirmed.length} consensus` : ""}`
+    : `${totalCount} signal${totalCount !== 1 ? "s" : ""} detected`;
 
   return `
 <!DOCTYPE html>
@@ -56,7 +56,7 @@ export function buildEmailHtml(tickers: AlertTicker[], totalAvailable?: number):
       <p style="margin:4px 0 0;color:#94a3b8;font-size:14px;">${headline} detected</p>
     </div>
     <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:16px 24px;">
-      <p style="margin:0 0 12px;font-size:12px;color:#6b7280;">Early signals historically outperform — consider these as potential entry points before broader consensus forms.</p>
+      <p style="margin:0 0 12px;font-size:12px;color:#6b7280;">Emerging signals historically outperform — act on these early before broader consensus forms. Consensus-stage tickers may already be priced in.</p>
       <table style="width:100%;border-collapse:collapse;font-size:14px;">
         <thead>
           <tr style="text-align:left;color:#6b7280;">
@@ -65,7 +65,7 @@ export function buildEmailHtml(tickers: AlertTicker[], totalAvailable?: number):
             <th style="padding:8px 12px;border-bottom:2px solid #e5e7eb;">Catalyst</th>
           </tr>
         </thead>
-        <tbody>${renderSection(STAGE_LABELS.CONFIRMED, confirmed, "#16a34a")}${renderSection(STAGE_LABELS.FORMING, forming, "#2563eb")}${renderSection(STAGE_LABELS.EARLY, early, "#6b7280")}</tbody>
+        <tbody>${renderSection(STAGE_LABELS.EARLY, early, "#2563eb")}${renderSection(STAGE_LABELS.FORMING, forming, "#ca8a04")}${renderSection(STAGE_LABELS.CONFIRMED, confirmed, "#6b7280")}</tbody>
       </table>
       ${totalAvailable && totalAvailable > tickers.length ? `<p style="margin:16px 0 4px;font-size:13px;color:#6b7280;">Showing top ${tickers.length} of ${totalAvailable} signals.</p>` : ""}
       <p style="margin:8px 0;font-size:13px;color:#6b7280;">
@@ -106,11 +106,11 @@ export async function sendTickerAlerts(
   }
 
   const html = buildEmailHtml(tickers, totalAvailable);
-  const confirmed = tickers.filter((t) => t.stage === "CONFIRMED");
+  const early = tickers.filter((t) => t.stage === "EARLY");
   const topSymbols = tickers.slice(0, 5).map((t) => t.symbol).join(", ");
-  const subject = confirmed.length > 0
-    ? `SignalScope: ${confirmed.length} consensus + ${tickers.length - confirmed.length} emerging — ${topSymbols}`
-    : `SignalScope: ${tickers.length} emerging signal${tickers.length !== 1 ? "s" : ""} — ${topSymbols}`;
+  const subject = early.length > 0
+    ? `SignalScope: ${early.length} emerging signal${early.length !== 1 ? "s" : ""} — ${topSymbols}`
+    : `SignalScope: ${tickers.length} signal${tickers.length !== 1 ? "s" : ""} detected — ${topSymbols}`;
 
   console.log(`[email] Sending digest to ${users.length} user(s)...`);
 
