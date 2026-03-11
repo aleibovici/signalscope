@@ -51,8 +51,17 @@ export function SignalCard({
               {ticker.firstSeenDaysAgo === null && (
                 <Badge variant="success">NEW</Badge>
               )}
+              {ticker.price != null && ticker.wk52Lo != null && ticker.wk52Lo > 0 &&
+               ((ticker.price - ticker.wk52Lo) / ticker.wk52Lo) >= 0.007 &&
+               ((ticker.price - ticker.wk52Lo) / ticker.wk52Lo) < 0.20 && (
+                <Badge variant="warning">Near 52W Low</Badge>
+              )}
+              {ticker.exchange?.toLowerCase().includes("american") &&
+               ticker.price != null && ticker.price < 5 && (
+                <Badge variant="info">AMEX</Badge>
+              )}
               {ticker.priorAppearances >= 3 && (
-                <Badge variant="default">
+                <Badge variant="warning">
                   Seen {ticker.priorAppearances}x
                 </Badge>
               )}

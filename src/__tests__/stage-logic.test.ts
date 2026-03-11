@@ -190,23 +190,27 @@ describe("determineStage — CONFIRMED via amex_penny", () => {
 });
 
 describe("determineStage — FORMING via amex_penny", () => {
-  it("returns FORMING for amex penny with pctFrom52wkLow>=0.007, score>=40, velocity>=1.5", () => {
-    expect(determineStage(40, 1, 1, 1.5, false, false, undefined, undefined, 0.10, undefined, true)).toBe("FORMING");
+  it("returns FORMING for amex penny with pctFrom52wkLow>=0.007, wk52Lo>=0.09, score>=40, velocity>=1.5", () => {
+    expect(determineStage(40, 1, 1, 1.5, false, false, undefined, undefined, 0.10, 0.50, true)).toBe("FORMING");
   });
 
   it("does NOT form when isAmexPenny is false", () => {
-    const result = determineStage(40, 1, 1, 1.5, false, false, undefined, undefined, 0.10, undefined, false);
+    const result = determineStage(40, 1, 1, 1.5, false, false, undefined, undefined, 0.10, 0.50, false);
     expect(result).not.toBe("FORMING");
   });
 
   it("does NOT form when pctFrom52wkLow < 0.007", () => {
-    const result = determineStage(40, 1, 1, 1.5, false, false, undefined, undefined, 0.005, undefined, true);
+    const result = determineStage(40, 1, 1, 1.5, false, false, undefined, undefined, 0.005, 0.50, true);
     expect(result).not.toBe("FORMING");
   });
 
   it("does NOT form when score < 40", () => {
-    const result = determineStage(39, 1, 1, 1.5, false, false, undefined, undefined, 0.10, undefined, true);
+    const result = determineStage(39, 1, 1, 1.5, false, false, undefined, undefined, 0.10, 0.50, true);
     expect(result).not.toBe("FORMING");
+  });
+
+  it("returns EARLY when wk52Lo is sub-dime (zombie stock)", () => {
+    expect(determineStage(40, 1, 1, 1.5, false, false, undefined, undefined, 0.10, 0.05, true)).toBe("EARLY");
   });
 });
 

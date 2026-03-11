@@ -55,6 +55,22 @@ export function checkPndFlags(
     flags.push("penny_price");
   }
 
+  // 1b. 52-week floor is sub-dime — stock has historically traded at near-zero levels (shell/zombie risk)
+  if (fundamentals?.wk52Lo != null && fundamentals.wk52Lo < 0.09 && !hasNewsCatalyst) {
+    flags.push("sub_dime_52wk_floor");
+  }
+
+  // 1c. Disproportionately high upvotes relative to post count — coordinated vote boosting without organic discussion
+  const redditPostCount = agg.signals.filter((s) => s.source === "REDDIT").length;
+  if (
+    !hasNewsCatalyst &&
+    agg.totalUpvotes > 1000 &&
+    redditPostCount <= 3 &&
+    agg.totalComments < 50
+  ) {
+    flags.push("upvote_pump");
+  }
+
   // 2. Listed on OTC/Pink Sheets (not NYSE/NASDAQ/AMEX)
   if (fundamentals?.exchange) {
     const ex = fundamentals.exchange.toUpperCase();
