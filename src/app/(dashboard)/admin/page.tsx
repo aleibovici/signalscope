@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAdminStats } from "@/hooks/use-admin-stats";
+import { useAdminUsers } from "@/hooks/use-admin-users";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -74,6 +75,7 @@ export default function AdminPage() {
   const { data: session, status } = useSession();
   const queryClient = useQueryClient();
   const { data, isLoading, error } = useAdminStats();
+  const { data: usersData, isLoading: usersLoading } = useAdminUsers();
 
   // Redirect non-admins once session loads
   useEffect(() => {
@@ -87,6 +89,14 @@ export default function AdminPage() {
     return null;
   }
 
+  function formatDate(dateStr: string): string {
+    return new Date(dateStr).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -95,7 +105,10 @@ export default function AdminPage() {
           <p className="mt-1 text-sm text-gray-500">Platform overview</p>
         </div>
         <button
-          onClick={() => queryClient.invalidateQueries({ queryKey: ["admin-stats"] })}
+          onClick={() => {
+            queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+          }}
           className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100"
         >
           Refresh
@@ -201,6 +214,65 @@ export default function AdminPage() {
           </SectionCard>
         </div>
       )}
+
+      {/* Users Table */}
+      <Card>
+        <CardHeader>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-600">
+            Registered Users
+          </h2>
+        </CardHeader>
+        <CardContent className="p-0">
+          {usersLoading ? (
+            <div className="flex justify-center py-8">
+              <Spinner />
+            </div>
+          ) : usersData && usersData.users.length > 0 ? (
+            <div className="max-h-[260px] overflow-y-auto overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                    <th className="px-4 py-2">Email</th>
+                    <th className="hidden sm:table-cell px-4 py-2">Username</th>
+                    <th className="px-4 py-2">Joined</th>
+                    <th className="hidden md:table-cell px-4 py-2 text-right">Positions</th>
+                    <th className="hidden md:table-cell px-4 py-2 text-right">Watchlist</th>
+                    <th className="hidden md:table-cell px-4 py-2 text-center">Alerts</th>
+                    <th className="hidden md:table-cell px-4 py-2 text-center">API Key</th>
+                    <th className="px-4 py-2 text-right">Last Active</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {usersData.users.map((u) => (
+                    <tr key={u.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-2 font-medium text-gray-900 max-w-[160px] truncate">{u.email}</td>
+                      <td className="hidden sm:table-cell px-4 py-2 text-gray-500">{u.username ?? "—"}</td>
+                      <td className="px-4 py-2 text-gray-500 whitespace-nowrap">{formatDate(u.createdAt)}</td>
+                      <td className="hidden md:table-cell px-4 py-2 text-right text-gray-700">{u._count.positions}</td>
+                      <td className="hidden md:table-cell px-4 py-2 text-right text-gray-700">{u._count.watchlist}</td>
+                      <td className="hidden md:table-cell px-4 py-2 text-center">
+                        <span className={u.emailAlerts ? "text-green-600" : "text-gray-300"}>
+                          {u.emailAlerts ? "On" : "Off"}
+                        </span>
+                      </td>
+                      <td className="hidden md:table-cell px-4 py-2 text-center">
+                        <span className={u._count.apiKeys > 0 ? "text-green-600" : "text-gray-300"}>
+                          {u._count.apiKeys > 0 ? "Yes" : "No"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 text-right text-gray-500 whitespace-nowrap">
+                        {u.lastActiveAt ? formatRelative(u.lastActiveAt) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="px-4 py-6 text-sm text-gray-400">No users found.</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

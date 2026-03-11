@@ -11,6 +11,11 @@ import { createHash } from "crypto";
 const pendingLastUsed = new Set<string>();
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
+function trackUserActivity(userId: string): void {
+  prisma.user.update({ where: { id: userId }, data: { lastActiveAt: new Date() } })
+    .catch(() => {});
+}
+
 function trackApiKeyUsage(id: string) {
   pendingLastUsed.add(id);
   if (pendingLastUsed.size >= 100) {
@@ -79,7 +84,10 @@ export async function getCurrentUserId(): Promise<string> {
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.slice(7);
     const payload = await verifyAccessToken(token);
-    if (payload?.sub) return payload.sub;
+    if (payload?.sub) {
+      trackUserActivity(payload.sub);
+      return payload.sub;
+    }
     throw new Error("Not authenticated");
   }
 
@@ -90,6 +98,7 @@ export async function getCurrentUserId(): Promise<string> {
     const record = await prisma.apiKey.findUnique({ where: { key: hash } });
     if (record && !record.revokedAt) {
       trackApiKeyUsage(record.id);
+      trackUserActivity(record.userId);
       return record.userId;
     }
     throw new Error("Not authenticated");
@@ -100,5 +109,6 @@ export async function getCurrentUserId(): Promise<string> {
   if (!session?.user?.id) {
     throw new Error("Not authenticated");
   }
+  trackUserActivity(session.user.id);
   return session.user.id;
 }
