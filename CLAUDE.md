@@ -418,6 +418,16 @@ python sweep.py               # Sweeps thresholds, bootstrap CIs, permutation p-
 - **Statistical validation** — `sweep.py` adds bootstrap 95% CIs (10K resamples) and permutation p-values (2K permutations) with Benjamini-Hochberg FDR correction for multiple testing. Configs must survive both CI-not-crossing-zero AND BH-FDR significance to be "validated". No scipy dependency — BH-FDR implemented manually. Output CSV includes `avg_return_ci_lo/hi`, `sharpe_ci_lo/hi`, `ci_crosses_zero`, `p_value`, `p_value_corrected`, `significant` columns.
 - **Current data status (248 symbols, 7d horizon)** — 0 of 115 configs survive statistical validation. All apparent patterns (micro-cap, multi-source) have CIs crossing zero. Pipeline thresholds should not be changed until dataset grows to 500+ symbols.
 
+## Deploy Workflow
+
+When the user says "deploy" or "deploy to production", execute these steps in order:
+
+1. **Update changelog** — Add major new features/improvements to `src/lib/changelog-data.ts`
+2. **Test** — Run `npm test` and ensure all tests pass
+3. **Commit** — Stage and commit all changes
+4. **Push** — `git push origin main`
+5. **Deploy** — Wait for `CI — Build & Push` workflow to complete, then trigger `Deploy to Cloud Run` workflow
+
 ## Path Alias
 
 `@/*` maps to `./src/*`
