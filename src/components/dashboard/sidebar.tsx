@@ -122,11 +122,6 @@ export function Sidebar({ revision }: { revision: string }) {
                 >
                   <span>{item.icon}</span>
                   <span className="flex-1">{item.label}</span>
-                  {"badge" in item && item.badge && (
-                    <span className="rounded bg-blue-600 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
-                      {item.badge}
-                    </span>
-                  )}
                 </Link>
               );
             })}
