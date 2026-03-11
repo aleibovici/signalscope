@@ -423,10 +423,11 @@ python sweep.py               # Sweeps thresholds, bootstrap CIs, permutation p-
 When the user says "deploy" or "deploy to production", execute these steps in order:
 
 1. **Update changelog** — Add major new features/improvements to `src/lib/changelog-data.ts`
-2. **Test** — Run `npm test` and ensure all tests pass
-3. **Commit** — Stage and commit all changes
-4. **Push** — `git push origin main`
-5. **Deploy** — Wait for `CI — Build & Push` workflow to complete, then trigger `Deploy to Cloud Run` workflow
+2. **Lint** — Run `npm run lint` and fix any issues
+3. **Test** — Run `npm test` and ensure all tests pass
+4. **Commit** — Stage and commit all changes
+5. **Push** — `git push origin main` (always push the commits to remote)
+6. **Deploy** — Wait for `CI — Build & Push` workflow to complete, then trigger `Deploy to Cloud Run` workflow
 
 ## Path Alias
 
