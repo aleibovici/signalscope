@@ -71,7 +71,7 @@ export const signalSources: SignalSource[] = [
     name: "Options Flow",
     description: "Detects unusual call volume, heavy OTM call activity, and call sweeps across a watchlist of liquid stocks.",
     params: "89 symbols · Vol/OI ≥3× · OTM 10%+ · nearest expiry",
-    status: "active",
+    status: "disabled",
   },
   {
     icon: "📣",
@@ -110,6 +110,8 @@ export const scoringBands: ScoringBand[] = [
 
 export const pndFlags: PndFlag[] = [
   { flag: "penny_price", desc: "Price below $1 with no verifiable catalyst" },
+  { flag: "sub_dime_52wk_floor", desc: "52-week low below $0.09 — shell/zombie stock risk" },
+  { flag: "upvote_pump", desc: ">1000 upvotes with ≤3 posts and <50 comments — coordinated vote boosting" },
   { flag: "otc_listing", desc: "Listed on OTC / Pink Sheets" },
   { flag: "micro_cap_no_catalyst", desc: "Market cap < $50 M with no news" },
   { flag: "only_penny_subs", desc: "Only in r/pennystocks or r/smallstreetbets" },
@@ -125,18 +127,18 @@ export const pndFlags: PndFlag[] = [
 export const signalStages: SignalStage[] = [
   {
     stage: "EARLY",
-    color: "bg-yellow-100 text-yellow-800",
+    color: "bg-green-100 text-green-800",
     desc: "Score ≥40, multiple sources or novel ticker. Earliest detection point with highest alpha potential.",
   },
   {
     stage: "FORMING",
-    color: "bg-orange-100 text-orange-800",
+    color: "bg-yellow-100 text-yellow-800",
     desc: "Score ≥45–50 with velocity or multi-source. Momentum is building but the move may have started.",
   },
   {
     stage: "CONFIRMED",
-    color: "bg-green-100 text-green-800",
-    desc: "Score ≥65–70 with broad social agreement. The opportunity may already be priced in — consider as an exit signal.",
+    color: "bg-blue-100 text-blue-800",
+    desc: "Score ≥65–70 with broad, fresh social agreement or exchange-specific breakout patterns. Stale signals (median age ≥6 h) are excluded — the move may already be priced in.",
   },
   {
     stage: "FILTERED",
@@ -169,9 +171,9 @@ export const recommendationLevels: RecommendationLevel[] = [
 ];
 
 export const methodologyDescription =
-  "SignalScope monitors public ticker mentions across eight signal sources — from social media to SEC filings, " +
-  "congressional trades, and options flow — aggregates them by symbol, scores each candidate with AI, runs an " +
-  "11-flag pump-and-dump filter, and surfaces only the tickers with the strongest multi-source backing and " +
+  "SignalScope monitors public ticker mentions across seven signal sources — from social media to SEC filings " +
+  "and congressional trades — aggregates them by symbol, scores each candidate with AI, runs a " +
+  "13-flag pump-and-dump filter, and surfaces only the tickers with the strongest multi-source backing and " +
   "verifiable catalysts. The result is a prioritised watchlist you can act on before the crowd.";
 
 export const aggregationDescription =
@@ -184,13 +186,14 @@ export const scoringDescription =
   "Each candidate is scored by AI using source weights, catalyst quality, novelty, and " +
   "cross-source corroboration. Pure social signals (Reddit / StockTwits / Twitter only) " +
   "are hard-capped at 50 — this is enforced programmatically regardless of what the AI " +
-  "returns. Only tickers with a verifiable catalyst source (SEC Insider, Congress, or Options Flow) " +
+  "returns. Only tickers with a verifiable catalyst source (SEC Insider or Congress) " +
   "can score above 50. First-appearance tickers receive a +5–10 novelty boost; tickers " +
-  "seen 3+ times or older than 7 days receive a staleness penalty.";
+  "seen 3+ times or older than 7 days receive a staleness penalty. Signal freshness is " +
+  "also tracked — stale consensus (median signal age ≥6 h) is excluded from the highest stage.";
 
 export const pndDescription =
-  "Every candidate is checked against 11 statistical flags before scoring. A ticker that " +
-  "triggers ≥3 flags is moved to FILTERED status and quarantined. Exactly " +
+  "Every candidate is checked against 13 statistical flags before scoring. A ticker that " +
+  "triggers ≥3 flags is moved to Filtered status and quarantined. Exactly " +
   "2 flags triggers an additional AI edge-case assessment.";
 
 export const backtestDescription =

@@ -12,9 +12,9 @@ import { stageLabel } from "@/lib/stage-labels";
 
 const STAGE_ORDER = ["EARLY", "FORMING", "CONFIRMED", "FILTERED", "UNSCORED"];
 const STAGE_COLORS: Record<string, string> = {
-  EARLY: "text-yellow-600",
-  FORMING: "text-orange-600",
-  CONFIRMED: "text-green-600",
+  EARLY: "text-green-600",
+  FORMING: "text-yellow-600",
+  CONFIRMED: "text-blue-600",
   FILTERED: "text-red-500",
   UNSCORED: "text-gray-400",
 };

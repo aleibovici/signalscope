@@ -12,7 +12,7 @@ const howItWorksSteps = [
   { step: "1", label: "Discover", desc: "Monitor Reddit, X/Twitter, SEC insider filings, congressional trades, options flow, and volume data for ticker mentions." },
   { step: "2", label: "Aggregate", desc: "Group signals by symbol, count sources, and calculate mention velocity." },
   { step: "3", label: "Score", desc: "AI models evaluate breakout potential with confidence scores and reasoning." },
-  { step: "4", label: "Filter", desc: "11 statistical flags plus AI assessment catch pump-and-dump schemes." },
+  { step: "4", label: "Filter", desc: "13 statistical flags plus AI assessment catch pump-and-dump schemes." },
   { step: "5", label: "Validate", desc: "Surviving tickers get fundamentals, a report, and enter the dashboard." },
 ];
 
@@ -316,7 +316,7 @@ export default function LoginPage() {
             Signal sources
           </h2>
           <p className="mx-auto mb-8 max-w-2xl text-center text-sm text-gray-500 md:mb-12 md:text-base">
-            Eight data feeds monitored on every scan — from social chatter to institutional filings.
+            Seven data feeds monitored on every scan — from social chatter to institutional filings.
           </p>
 
           <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">

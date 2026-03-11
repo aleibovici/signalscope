@@ -9,9 +9,9 @@ interface SparklineProps {
 }
 
 const STAGE_COLORS: Record<string, string> = {
-  CONFIRMED: "#16a34a",
+  EARLY: "#16a34a",
   FORMING: "#ca8a04",
-  EARLY: "#2563eb",
+  CONFIRMED: "#2563eb",
   FILTERED: "#dc2626",
 };
 
