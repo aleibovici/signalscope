@@ -14,7 +14,7 @@ interface AlertTicker {
   stage: string;
 }
 
-export function buildEmailHtml(tickers: AlertTicker[]): string {
+export function buildEmailHtml(tickers: AlertTicker[], totalAvailable?: number): string {
   const confirmed = tickers.filter((t) => t.stage === "CONFIRMED");
   const forming = tickers.filter((t) => t.stage === "FORMING");
   const early = tickers.filter((t) => t.stage === "EARLY");
@@ -66,8 +66,9 @@ export function buildEmailHtml(tickers: AlertTicker[]): string {
         </thead>
         <tbody>${renderSection("Confirmed", confirmed, "#16a34a")}${renderSection("Forming", forming, "#2563eb")}${renderSection("Early", early, "#6b7280")}</tbody>
       </table>
-      <p style="margin:20px 0 8px;font-size:13px;color:#6b7280;">
-        <a href="http://localhost:3000" style="color:#2563eb;text-decoration:none;">View full dashboard →</a>
+      ${totalAvailable && totalAvailable > tickers.length ? `<p style="margin:16px 0 4px;font-size:13px;color:#6b7280;">Showing top ${tickers.length} of ${totalAvailable} signals.</p>` : ""}
+      <p style="margin:8px 0;font-size:13px;color:#6b7280;">
+        <a href="http://localhost:3000" style="color:#2563eb;text-decoration:none;">View all on dashboard →</a>
       </p>
       <p style="margin:0;font-size:12px;color:#9ca3af;">
         You're receiving this because email alerts are enabled on your SignalScope profile.
@@ -80,7 +81,8 @@ export function buildEmailHtml(tickers: AlertTicker[]): string {
 }
 
 export async function sendTickerAlerts(
-  tickers: AlertTicker[]
+  tickers: AlertTicker[],
+  totalAvailable?: number
 ): Promise<void> {
   if (!resend) {
     console.log("[email] RESEND_API_KEY not set — skipping email alerts");
@@ -102,7 +104,7 @@ export async function sendTickerAlerts(
     return;
   }
 
-  const html = buildEmailHtml(tickers);
+  const html = buildEmailHtml(tickers, totalAvailable);
   const confirmed = tickers.filter((t) => t.stage === "CONFIRMED");
   const topSymbols = tickers.slice(0, 5).map((t) => t.symbol).join(", ");
   const subject = confirmed.length > 0
