@@ -15,7 +15,7 @@ export async function POST() {
 
   const MAX_TICKERS = 15;
 
-  // Get all validated tickers (CONFIRMED, FORMING, EARLY) sorted by score
+  // Get all validated tickers (EARLY, FORMING, CONFIRMED) sorted by score
   const allTickers = await prisma.validatedTicker.findMany({
     where: {
       scanId: scan.id,
@@ -32,12 +32,11 @@ export async function POST() {
     orderBy: { aiScore: "desc" },
   });
 
-  // Always include all CONFIRMED, then fill with top FORMING/EARLY by score
+  // Prioritize Emerging (EARLY) signals — highest alpha potential — then Building, then Consensus
+  const early = allTickers.filter((t) => t.stage === "EARLY");
+  const forming = allTickers.filter((t) => t.stage === "FORMING");
   const confirmed = allTickers.filter((t) => t.stage === "CONFIRMED");
-  const rest = allTickers
-    .filter((t) => t.stage !== "CONFIRMED")
-    .slice(0, Math.max(0, MAX_TICKERS - confirmed.length));
-  const tickers = [...confirmed, ...rest];
+  const tickers = [...early, ...forming, ...confirmed].slice(0, MAX_TICKERS);
 
   await sendTickerAlerts(
     tickers.map((t) => ({
