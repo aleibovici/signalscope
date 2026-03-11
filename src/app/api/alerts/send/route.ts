@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sendConfirmedTickerAlerts } from "@/lib/email";
+import { sendTickerAlerts } from "@/lib/email";
 
 export async function POST() {
   // Find the most recent completed scan
@@ -13,25 +13,31 @@ export async function POST() {
     return NextResponse.json({ status: "skip", reason: "no completed scan" });
   }
 
-  // Get confirmed tickers from this scan
+  // Get all validated tickers (CONFIRMED, FORMING, EARLY) sorted by score
   const tickers = await prisma.validatedTicker.findMany({
-    where: { scanId: scan.id, stage: "CONFIRMED" },
+    where: {
+      scanId: scan.id,
+      stage: { in: ["CONFIRMED", "FORMING", "EARLY"] },
+    },
     select: {
       symbol: true,
       price: true,
       aiScore: true,
       catalyst: true,
       signalType: true,
+      stage: true,
     },
+    orderBy: { aiScore: "desc" },
   });
 
-  await sendConfirmedTickerAlerts(
+  await sendTickerAlerts(
     tickers.map((t) => ({
       symbol: t.symbol,
       price: t.price,
       aiScore: t.aiScore,
       catalyst: t.catalyst,
       signalType: t.signalType,
+      stage: t.stage,
     }))
   );
 
