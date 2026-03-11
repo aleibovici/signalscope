@@ -492,9 +492,11 @@ export default function LoginPage() {
           <p className="mt-3 text-xs leading-relaxed text-gray-400">
             Not financial advice. SignalScope is a research tool — always do your own due diligence before making investment decisions.
           </p>
-          <p className="mt-2 text-xs text-gray-500">
-            &copy; {new Date().getFullYear()} SignalScope. All rights reserved.
-          </p>
+          <div className="mt-3 flex items-center justify-center gap-4 text-xs text-gray-500">
+            <span>&copy; {new Date().getFullYear()} SignalScope. All rights reserved.</span>
+            <span className="text-gray-600">&middot;</span>
+            <a href="/changelog" className="hover:text-gray-300 transition-colors">Changelog</a>
+          </div>
         </div>
       </footer>
     </div>
