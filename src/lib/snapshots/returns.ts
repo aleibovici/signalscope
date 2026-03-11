@@ -50,7 +50,6 @@ export function computeReturnsFromSnapshots(
   snapshots: Snapshot[],
   detectionPrice: number,
   detectedAt: Date,
-  _now?: Date
 ): ComputedReturns {
   const result: ComputedReturns = {
     price1d: null, return1d: null, snapped1dAt: null,
