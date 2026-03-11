@@ -41,6 +41,19 @@ export default auth((req) => {
     const loginUrl = new URL("/login", req.url);
     return Response.redirect(loginUrl);
   }
+
+  // Admin-only routes — require role === "admin"
+  const isAdminRoute =
+    pathname === "/admin" ||
+    pathname.startsWith("/admin/") ||
+    pathname === "/api/admin" ||
+    pathname.startsWith("/api/admin/");
+  if (isAdminRoute && req.auth.user?.role !== "admin") {
+    if (pathname.startsWith("/api/")) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
+    return Response.redirect(new URL("/dashboard", req.url));
+  }
 });
 
 export const config = {

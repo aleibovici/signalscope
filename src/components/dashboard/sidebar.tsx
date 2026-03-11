@@ -125,6 +125,19 @@ export function Sidebar({ revision }: { revision: string }) {
                 </Link>
               );
             })}
+            {session?.user?.role === "admin" && (
+              <Link
+                href="/admin"
+                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                  pathname === "/admin"
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                <span>🛡️</span>
+                Admin
+              </Link>
+            )}
           </nav>
 
           <div className="border-t border-gray-200 px-4 py-3">
