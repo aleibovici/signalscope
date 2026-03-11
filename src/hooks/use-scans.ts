@@ -15,8 +15,10 @@ export interface ScanSummary {
 export interface ValidatedTickerData {
   id: string;
   symbol: string;
+  name?: string | null;
   price: number | null;
   marketCap: number | null;
+  sector?: string | null;
   catalyst: string | null;
   risks: string | null;
   recommendation: string | null;
@@ -30,10 +32,16 @@ export interface ValidatedTickerData {
   avgSentiment: number | null;
   firstSeenDaysAgo: number | null;
   priorAppearances: number;
+  return1d?: number | null;
+  return3d?: number | null;
   return7d: number | null;
+  return30d?: number | null;
   exchange: string | null;
   wk52Lo: number | null;
   wk52Hi: number | null;
+  pndFlagged?: boolean;
+  pndScore?: number;
+  pndFlags?: string[];
   createdAt: string;
 }
 

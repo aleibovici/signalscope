@@ -8,11 +8,34 @@ import { TTLCache } from "@/lib/cache";
 
 export const trendingCache = new TTLCache<unknown>(5 * 60 * 1000);
 
+const SOURCES = ["REDDIT", "TWITTER", "STOCKTWITS", "SEC_INSIDER", "CONGRESS", "VOLUME_SPIKE", "OPTIONS_FLOW"] as const;
+
+const MARKET_CAP_RANGES: Record<string, { min: number; max: number }> = {
+  micro: { min: 0, max: 300_000_000 },
+  small: { min: 300_000_000, max: 2_000_000_000 },
+  mid: { min: 2_000_000_000, max: 10_000_000_000 },
+  large: { min: 10_000_000_000, max: Infinity },
+};
+
 const trendingSchema = paginationSchema.extend({
   minAppearances: z.coerce.number().int().min(2).default(2),
   stage: z.enum(["EARLY", "FORMING", "CONFIRMED"]).optional(),
   trend: z.enum(["rising", "falling", "stable"]).optional(),
+  sector: z.string().optional(),
+  marketCap: z.enum(["micro", "small", "mid", "large"]).optional(),
+  sortBy: z.enum(["appearances", "aiScore", "price", "return", "marketCap"]).default("appearances"),
+  source: z.enum(SOURCES).optional(),
+  hidePnd: z.coerce.boolean().default(false),
+  returnPeriod: z.enum(["1d", "3d", "7d", "30d"]).default("7d"),
+  near52wLow: z.coerce.boolean().default(false),
 });
+
+const RETURN_FIELD_MAP: Record<string, "return1d" | "return3d" | "return7d" | "return30d"> = {
+  "1d": "return1d",
+  "3d": "return3d",
+  "7d": "return7d",
+  "30d": "return30d",
+};
 
 function computeTrend(scores: number[]): "rising" | "falling" | "stable" {
   if (scores.length < 2) return "stable";
@@ -39,9 +62,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { page, limit, minAppearances, stage, trend } = parsed.data;
+    const { page, limit, minAppearances, stage, trend, sector, marketCap, sortBy, source, hidePnd, returnPeriod, near52wLow } = parsed.data;
 
-    const cacheKey = `trending:${page}:${limit}:${minAppearances}:${stage ?? ""}:${trend ?? ""}`;
+    const cacheKey = `trending:${page}:${limit}:${minAppearances}:${stage ?? ""}:${trend ?? ""}:${sector ?? ""}:${marketCap ?? ""}:${sortBy}:${source ?? ""}:${hidePnd}:${returnPeriod}:${near52wLow}`;
     const cached = trendingCache.get(cacheKey);
     if (cached) {
       return NextResponse.json(cached, {
@@ -118,18 +141,39 @@ export async function GET(request: NextRequest) {
         symbol: { in: filteredSymbols },
         scan: { status: "COMPLETED" },
         stage: stage ? stage : { notIn: ["FILTERED", "UNSCORED"] },
+        ...(sector ? { sector } : {}),
+        ...(hidePnd ? { pndFlagged: false } : {}),
       },
       distinct: ["symbol"],
       orderBy: { createdAt: "desc" },
       include: {
-        performance: { select: { return7d: true } },
+        performance: { select: { return1d: true, return3d: true, return7d: true, return30d: true } },
       },
     });
 
-    // Apply stage filter — only keep symbols that have the latest record matching
+    // Apply stage/sector/pnd filter — only keep symbols that have a matching latest record
     const latestBySymbol = new Map(latestRecords.map((r) => [r.symbol, r]));
-    if (stage) {
+    if (stage || sector || hidePnd) {
       filteredSymbols = filteredSymbols.filter((s) => latestBySymbol.has(s));
+    }
+
+    // Apply market cap bucket filter
+    if (marketCap) {
+      const range = MARKET_CAP_RANGES[marketCap];
+      filteredSymbols = filteredSymbols.filter((s) => {
+        const mc = latestBySymbol.get(s)?.marketCap;
+        return mc != null && mc >= range.min && mc < range.max;
+      });
+    }
+
+    // Apply near 52-week low filter
+    if (near52wLow) {
+      filteredSymbols = filteredSymbols.filter((s) => {
+        const r = latestBySymbol.get(s);
+        if (!r || r.price == null || r.wk52Lo == null || r.wk52Lo <= 0) return false;
+        const pct = (r.price - r.wk52Lo) / r.wk52Lo;
+        return pct >= 0.007 && pct < 0.20;
+      });
     }
 
     // Fetch distinct signal sources for latest scan per symbol
@@ -153,13 +197,37 @@ export async function GET(request: NextRequest) {
       set.add(s.source);
     }
 
-    // Build sorted results: appearance count desc, then latest aiScore desc
+    // Apply source filter
+    if (source) {
+      filteredSymbols = filteredSymbols.filter((s) => sourcesBySymbol.get(s)?.has(source));
+    }
+
+    // Build sorted results
+    const returnField = RETURN_FIELD_MAP[returnPeriod];
     const sortedSymbols = filteredSymbols
       .filter((s) => latestBySymbol.has(s))
       .sort((a, b) => {
-        const countDiff = (countBySymbol.get(b) ?? 0) - (countBySymbol.get(a) ?? 0);
-        if (countDiff !== 0) return countDiff;
-        return (latestBySymbol.get(b)!.aiScore) - (latestBySymbol.get(a)!.aiScore);
+        const ra = latestBySymbol.get(a)!;
+        const rb = latestBySymbol.get(b)!;
+        switch (sortBy) {
+          case "aiScore":
+            return rb.aiScore - ra.aiScore;
+          case "price":
+            return (rb.price ?? 0) - (ra.price ?? 0);
+          case "return": {
+            const retA = ra.performance?.[returnField] ?? -Infinity;
+            const retB = rb.performance?.[returnField] ?? -Infinity;
+            return retB - retA;
+          }
+          case "marketCap":
+            return (rb.marketCap ?? 0) - (ra.marketCap ?? 0);
+          case "appearances":
+          default: {
+            const countDiff = (countBySymbol.get(b) ?? 0) - (countBySymbol.get(a) ?? 0);
+            if (countDiff !== 0) return countDiff;
+            return rb.aiScore - ra.aiScore;
+          }
+        }
       });
 
     // Compute summary before pagination
@@ -187,8 +255,10 @@ export async function GET(request: NextRequest) {
       return {
         id: record.id,
         symbol: record.symbol,
+        name: record.name,
         price: record.price,
         marketCap: record.marketCap,
+        sector: record.sector,
         catalyst: record.catalyst,
         risks: record.risks,
         recommendation: record.recommendation,
@@ -202,7 +272,16 @@ export async function GET(request: NextRequest) {
         avgSentiment: record.avgSentiment,
         firstSeenDaysAgo: record.firstSeenDaysAgo,
         priorAppearances: record.priorAppearances,
+        exchange: record.exchange,
+        wk52Lo: record.wk52Lo,
+        wk52Hi: record.wk52Hi,
+        pndFlagged: record.pndFlagged,
+        pndScore: record.pndScore,
+        pndFlags: record.pndFlags,
+        return1d: record.performance?.return1d ?? null,
+        return3d: record.performance?.return3d ?? null,
         return7d: record.performance?.return7d ?? null,
+        return30d: record.performance?.return30d ?? null,
         createdAt: record.createdAt.toISOString(),
         appearanceCount: countBySymbol.get(symbol) ?? 0,
         trend: trendMap.get(symbol) ?? "stable",

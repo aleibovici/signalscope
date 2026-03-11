@@ -30,13 +30,22 @@ function makeRequest(params: Record<string, string> = {}): NextRequest {
 const now = new Date();
 const daysAgo = (d: number) => new Date(now.getTime() - d * 24 * 60 * 60 * 1000);
 
-function makeTicker(symbol: string, aiScore: number, stage: string, createdAt: Date, scanId = "scan_1") {
+function makeTicker(
+  symbol: string,
+  aiScore: number,
+  stage: string,
+  createdAt: Date,
+  scanId = "scan_1",
+  overrides: Record<string, unknown> = {},
+) {
   return {
     id: `vt_${symbol}_${createdAt.getTime()}`,
     scanId,
     symbol,
-    price: 10.5,
-    marketCap: 500_000_000,
+    name: overrides.name ?? "Test Corp",
+    price: overrides.price ?? 10.5,
+    marketCap: overrides.marketCap ?? 500_000_000,
+    sector: overrides.sector ?? "Technology",
     catalyst: "Test catalyst",
     risks: "Test risks",
     recommendation: "Buy",
@@ -49,8 +58,14 @@ function makeTicker(symbol: string, aiScore: number, stage: string, createdAt: D
     avgSentiment: 0.7,
     firstSeenDaysAgo: 5,
     priorAppearances: 2,
+    exchange: overrides.exchange ?? null,
+    wk52Lo: overrides.wk52Lo ?? null,
+    wk52Hi: overrides.wk52Hi ?? null,
+    pndFlagged: overrides.pndFlagged ?? false,
+    pndScore: overrides.pndScore ?? 0,
+    pndFlags: overrides.pndFlags ?? [],
     createdAt,
-    performance: { return7d: 0.05 },
+    performance: overrides.performance ?? { return1d: 0.01, return3d: 0.03, return7d: 0.05, return30d: 0.10 },
   };
 }
 
@@ -120,6 +135,16 @@ describe("GET /api/tickers/trending", () => {
     expect(ticker.sources).toEqual(expect.arrayContaining(["REDDIT", "TWITTER"]));
     expect(ticker.aiScore).toBe(65);
     expect(ticker.return7d).toBe(0.05);
+
+    // New fields
+    expect(ticker.name).toBe("Test Corp");
+    expect(ticker.sector).toBe("Technology");
+    expect(ticker.pndFlagged).toBe(false);
+    expect(ticker.pndScore).toBe(0);
+    expect(ticker.pndFlags).toEqual([]);
+    expect(ticker.return1d).toBe(0.01);
+    expect(ticker.return3d).toBe(0.03);
+    expect(ticker.return30d).toBe(0.10);
 
     expect(body.summary.totalTrending).toBe(1);
     expect(body.summary.risingCount).toBe(1);
@@ -387,5 +412,386 @@ describe("GET /api/tickers/trending", () => {
 
     expect(res.status).toBe(200);
     expect(body.tickers).toEqual([]);
+  });
+
+  // --- New filter tests ---
+
+  it("filters by sector", async () => {
+    mockQueryRaw.mockResolvedValue([
+      { symbol: "TECH", cnt: BigInt(2) },
+      { symbol: "HLTH", cnt: BigInt(2) },
+    ]);
+
+    mockFindManyTicker.mockImplementation((args: { distinct?: string[]; where?: { sector?: string } }) => {
+      if (args.distinct) {
+        // When sector filter is applied, Prisma only returns matching records
+        const sector = args.where?.sector;
+        const records = [
+          makeTicker("TECH", 70, "CONFIRMED", daysAgo(1), "scan_1", { sector: "Technology" }),
+          makeTicker("HLTH", 60, "FORMING", daysAgo(1), "scan_1", { sector: "Healthcare" }),
+        ];
+        return sector ? records.filter((r) => r.sector === sector) : records;
+      }
+      return [
+        { symbol: "TECH", aiScore: 70, stage: "CONFIRMED", createdAt: daysAgo(1) },
+        { symbol: "HLTH", aiScore: 60, stage: "FORMING", createdAt: daysAgo(1) },
+        { symbol: "TECH", aiScore: 65, stage: "FORMING", createdAt: daysAgo(5) },
+        { symbol: "HLTH", aiScore: 55, stage: "EARLY", createdAt: daysAgo(5) },
+      ];
+    });
+    mockFindManySignal.mockResolvedValue([]);
+
+    const res = await GET(makeRequest({ sector: "Technology" }));
+    const body = await res.json();
+
+    expect(body.tickers).toHaveLength(1);
+    expect(body.tickers[0].symbol).toBe("TECH");
+    expect(body.tickers[0].sector).toBe("Technology");
+  });
+
+  it("filters by market cap bucket", async () => {
+    mockQueryRaw.mockResolvedValue([
+      { symbol: "BIG", cnt: BigInt(2) },
+      { symbol: "SML", cnt: BigInt(2) },
+    ]);
+
+    mockFindManyTicker.mockImplementation((args: { distinct?: string[] }) => {
+      if (args.distinct) {
+        return [
+          makeTicker("BIG", 70, "CONFIRMED", daysAgo(1), "scan_1", { marketCap: 15_000_000_000 }),
+          makeTicker("SML", 60, "FORMING", daysAgo(1), "scan_1", { marketCap: 100_000_000 }),
+        ];
+      }
+      return [
+        { symbol: "BIG", aiScore: 70, stage: "CONFIRMED", createdAt: daysAgo(1) },
+        { symbol: "BIG", aiScore: 65, stage: "FORMING", createdAt: daysAgo(5) },
+        { symbol: "SML", aiScore: 60, stage: "FORMING", createdAt: daysAgo(1) },
+        { symbol: "SML", aiScore: 55, stage: "EARLY", createdAt: daysAgo(5) },
+      ];
+    });
+    mockFindManySignal.mockResolvedValue([]);
+
+    const res = await GET(makeRequest({ marketCap: "micro" }));
+    const body = await res.json();
+
+    expect(body.tickers).toHaveLength(1);
+    expect(body.tickers[0].symbol).toBe("SML");
+  });
+
+  it("excludes null marketCap when bucket filter is applied", async () => {
+    mockQueryRaw.mockResolvedValue([
+      { symbol: "NOMC", cnt: BigInt(2) },
+    ]);
+
+    mockFindManyTicker.mockImplementation((args: { distinct?: string[] }) => {
+      if (args.distinct) {
+        return [makeTicker("NOMC", 70, "CONFIRMED", daysAgo(1), "scan_1", { marketCap: null })];
+      }
+      return [
+        { symbol: "NOMC", aiScore: 70, stage: "CONFIRMED", createdAt: daysAgo(1) },
+        { symbol: "NOMC", aiScore: 65, stage: "FORMING", createdAt: daysAgo(5) },
+      ];
+    });
+    mockFindManySignal.mockResolvedValue([]);
+
+    const res = await GET(makeRequest({ marketCap: "micro" }));
+    const body = await res.json();
+
+    expect(body.tickers).toHaveLength(0);
+  });
+
+  it("sorts by AI score descending", async () => {
+    mockQueryRaw.mockResolvedValue([
+      { symbol: "LOW", cnt: BigInt(2) },
+      { symbol: "HI", cnt: BigInt(5) },
+    ]);
+
+    mockFindManyTicker.mockImplementation((args: { distinct?: string[] }) => {
+      if (args.distinct) {
+        return [
+          makeTicker("LOW", 40, "EARLY", daysAgo(1)),
+          makeTicker("HI", 90, "CONFIRMED", daysAgo(1)),
+        ];
+      }
+      return [
+        { symbol: "LOW", aiScore: 40, stage: "EARLY", createdAt: daysAgo(1) },
+        { symbol: "LOW", aiScore: 35, stage: "EARLY", createdAt: daysAgo(5) },
+        { symbol: "HI", aiScore: 90, stage: "CONFIRMED", createdAt: daysAgo(1) },
+        { symbol: "HI", aiScore: 85, stage: "CONFIRMED", createdAt: daysAgo(5) },
+        { symbol: "HI", aiScore: 80, stage: "FORMING", createdAt: daysAgo(10) },
+        { symbol: "HI", aiScore: 75, stage: "EARLY", createdAt: daysAgo(15) },
+        { symbol: "HI", aiScore: 70, stage: "EARLY", createdAt: daysAgo(20) },
+      ];
+    });
+    mockFindManySignal.mockResolvedValue([]);
+
+    // Default sort: HI first (5 appearances vs 2)
+    const res1 = await GET(makeRequest());
+    const body1 = await res1.json();
+    expect(body1.tickers[0].symbol).toBe("HI");
+
+    // Sort by aiScore: HI (90) still first but for different reason
+    trendingCache.clear();
+    const res2 = await GET(makeRequest({ sortBy: "aiScore" }));
+    const body2 = await res2.json();
+    expect(body2.tickers[0].symbol).toBe("HI");
+    expect(body2.tickers[1].symbol).toBe("LOW");
+  });
+
+  it("sorts by price descending", async () => {
+    mockQueryRaw.mockResolvedValue([
+      { symbol: "CHEAP", cnt: BigInt(2) },
+      { symbol: "PRICEY", cnt: BigInt(2) },
+    ]);
+
+    mockFindManyTicker.mockImplementation((args: { distinct?: string[] }) => {
+      if (args.distinct) {
+        return [
+          makeTicker("CHEAP", 70, "CONFIRMED", daysAgo(1), "scan_1", { price: 5 }),
+          makeTicker("PRICEY", 60, "FORMING", daysAgo(1), "scan_1", { price: 200 }),
+        ];
+      }
+      return [
+        { symbol: "CHEAP", aiScore: 70, stage: "CONFIRMED", createdAt: daysAgo(1) },
+        { symbol: "CHEAP", aiScore: 65, stage: "FORMING", createdAt: daysAgo(5) },
+        { symbol: "PRICEY", aiScore: 60, stage: "FORMING", createdAt: daysAgo(1) },
+        { symbol: "PRICEY", aiScore: 55, stage: "EARLY", createdAt: daysAgo(5) },
+      ];
+    });
+    mockFindManySignal.mockResolvedValue([]);
+
+    const res = await GET(makeRequest({ sortBy: "price" }));
+    const body = await res.json();
+
+    expect(body.tickers[0].symbol).toBe("PRICEY");
+    expect(body.tickers[1].symbol).toBe("CHEAP");
+  });
+
+  it("sorts by return for selected period", async () => {
+    mockQueryRaw.mockResolvedValue([
+      { symbol: "SLOW", cnt: BigInt(2) },
+      { symbol: "FAST", cnt: BigInt(2) },
+    ]);
+
+    mockFindManyTicker.mockImplementation((args: { distinct?: string[] }) => {
+      if (args.distinct) {
+        return [
+          makeTicker("SLOW", 70, "CONFIRMED", daysAgo(1), "scan_1", {
+            performance: { return1d: 0.01, return3d: 0.02, return7d: 0.03, return30d: 0.04 },
+          }),
+          makeTicker("FAST", 60, "FORMING", daysAgo(1), "scan_1", {
+            performance: { return1d: 0.05, return3d: 0.10, return7d: 0.15, return30d: 0.20 },
+          }),
+        ];
+      }
+      return [
+        { symbol: "SLOW", aiScore: 70, stage: "CONFIRMED", createdAt: daysAgo(1) },
+        { symbol: "SLOW", aiScore: 65, stage: "FORMING", createdAt: daysAgo(5) },
+        { symbol: "FAST", aiScore: 60, stage: "FORMING", createdAt: daysAgo(1) },
+        { symbol: "FAST", aiScore: 55, stage: "EARLY", createdAt: daysAgo(5) },
+      ];
+    });
+    mockFindManySignal.mockResolvedValue([]);
+
+    const res = await GET(makeRequest({ sortBy: "return", returnPeriod: "3d" }));
+    const body = await res.json();
+
+    expect(body.tickers[0].symbol).toBe("FAST");
+    expect(body.tickers[0].return3d).toBe(0.10);
+  });
+
+  it("sorts by market cap descending", async () => {
+    mockQueryRaw.mockResolvedValue([
+      { symbol: "SML", cnt: BigInt(2) },
+      { symbol: "BIG", cnt: BigInt(2) },
+    ]);
+
+    mockFindManyTicker.mockImplementation((args: { distinct?: string[] }) => {
+      if (args.distinct) {
+        return [
+          makeTicker("SML", 70, "CONFIRMED", daysAgo(1), "scan_1", { marketCap: 100_000_000 }),
+          makeTicker("BIG", 60, "FORMING", daysAgo(1), "scan_1", { marketCap: 50_000_000_000 }),
+        ];
+      }
+      return [
+        { symbol: "SML", aiScore: 70, stage: "CONFIRMED", createdAt: daysAgo(1) },
+        { symbol: "SML", aiScore: 65, stage: "FORMING", createdAt: daysAgo(5) },
+        { symbol: "BIG", aiScore: 60, stage: "FORMING", createdAt: daysAgo(1) },
+        { symbol: "BIG", aiScore: 55, stage: "EARLY", createdAt: daysAgo(5) },
+      ];
+    });
+    mockFindManySignal.mockResolvedValue([]);
+
+    const res = await GET(makeRequest({ sortBy: "marketCap" }));
+    const body = await res.json();
+
+    expect(body.tickers[0].symbol).toBe("BIG");
+  });
+
+  it("filters by source", async () => {
+    mockQueryRaw.mockResolvedValue([
+      { symbol: "RED", cnt: BigInt(2) },
+      { symbol: "SEC", cnt: BigInt(2) },
+    ]);
+
+    mockFindManyTicker.mockImplementation((args: { distinct?: string[] }) => {
+      if (args.distinct) {
+        return [
+          makeTicker("RED", 70, "CONFIRMED", daysAgo(1)),
+          makeTicker("SEC", 60, "FORMING", daysAgo(1)),
+        ];
+      }
+      return [
+        { symbol: "RED", aiScore: 70, stage: "CONFIRMED", createdAt: daysAgo(1) },
+        { symbol: "RED", aiScore: 65, stage: "FORMING", createdAt: daysAgo(5) },
+        { symbol: "SEC", aiScore: 60, stage: "FORMING", createdAt: daysAgo(1) },
+        { symbol: "SEC", aiScore: 55, stage: "EARLY", createdAt: daysAgo(5) },
+      ];
+    });
+    mockFindManySignal.mockResolvedValue([
+      { symbol: "RED", source: "REDDIT" },
+      { symbol: "SEC", source: "SEC_INSIDER" },
+    ]);
+
+    const res = await GET(makeRequest({ source: "SEC_INSIDER" }));
+    const body = await res.json();
+
+    expect(body.tickers).toHaveLength(1);
+    expect(body.tickers[0].symbol).toBe("SEC");
+  });
+
+  it("hides P&D flagged tickers when hidePnd=true", async () => {
+    mockQueryRaw.mockResolvedValue([
+      { symbol: "SAFE", cnt: BigInt(2) },
+      { symbol: "PUMP", cnt: BigInt(2) },
+    ]);
+
+    mockFindManyTicker.mockImplementation((args: { distinct?: string[]; where?: { pndFlagged?: boolean } }) => {
+      if (args.distinct) {
+        const records = [
+          makeTicker("SAFE", 70, "CONFIRMED", daysAgo(1), "scan_1", { pndFlagged: false }),
+          makeTicker("PUMP", 60, "FORMING", daysAgo(1), "scan_1", { pndFlagged: true, pndScore: 85, pndFlags: ["micro_cap_no_catalyst", "low_float_surge", "social_media_only"] }),
+        ];
+        // Simulate Prisma filtering by pndFlagged
+        if (args.where?.pndFlagged === false) {
+          return records.filter((r) => !r.pndFlagged);
+        }
+        return records;
+      }
+      return [
+        { symbol: "SAFE", aiScore: 70, stage: "CONFIRMED", createdAt: daysAgo(1) },
+        { symbol: "SAFE", aiScore: 65, stage: "FORMING", createdAt: daysAgo(5) },
+        { symbol: "PUMP", aiScore: 60, stage: "FORMING", createdAt: daysAgo(1) },
+        { symbol: "PUMP", aiScore: 55, stage: "EARLY", createdAt: daysAgo(5) },
+      ];
+    });
+    mockFindManySignal.mockResolvedValue([]);
+
+    const res = await GET(makeRequest({ hidePnd: "true" }));
+    const body = await res.json();
+
+    expect(body.tickers).toHaveLength(1);
+    expect(body.tickers[0].symbol).toBe("SAFE");
+  });
+
+  it("shows P&D fields in response when not hidden", async () => {
+    mockQueryRaw.mockResolvedValue([
+      { symbol: "PUMP", cnt: BigInt(2) },
+    ]);
+
+    mockFindManyTicker.mockImplementation((args: { distinct?: string[] }) => {
+      if (args.distinct) {
+        return [makeTicker("PUMP", 60, "FORMING", daysAgo(1), "scan_1", {
+          pndFlagged: true,
+          pndScore: 85,
+          pndFlags: ["micro_cap_no_catalyst", "low_float_surge", "social_media_only"],
+        })];
+      }
+      return [
+        { symbol: "PUMP", aiScore: 60, stage: "FORMING", createdAt: daysAgo(1) },
+        { symbol: "PUMP", aiScore: 55, stage: "EARLY", createdAt: daysAgo(5) },
+      ];
+    });
+    mockFindManySignal.mockResolvedValue([]);
+
+    const res = await GET(makeRequest());
+    const body = await res.json();
+
+    expect(body.tickers[0].pndFlagged).toBe(true);
+    expect(body.tickers[0].pndScore).toBe(85);
+    expect(body.tickers[0].pndFlags).toEqual(["micro_cap_no_catalyst", "low_float_surge", "social_media_only"]);
+  });
+
+  it("filters near 52-week low tickers", async () => {
+    mockQueryRaw.mockResolvedValue([
+      { symbol: "LOW", cnt: BigInt(2) },
+      { symbol: "HIGH", cnt: BigInt(2) },
+    ]);
+
+    mockFindManyTicker.mockImplementation((args: { distinct?: string[] }) => {
+      if (args.distinct) {
+        return [
+          // LOW: price $10.50, 52wLo $10.00 → 5% above low → within range
+          makeTicker("LOW", 70, "CONFIRMED", daysAgo(1), "scan_1", { price: 10.50, wk52Lo: 10.0, wk52Hi: 30.0 }),
+          // HIGH: price $28, 52wLo $10 → 180% above low → NOT near low
+          makeTicker("HIGH", 60, "FORMING", daysAgo(1), "scan_1", { price: 28.0, wk52Lo: 10.0, wk52Hi: 30.0 }),
+        ];
+      }
+      return [
+        { symbol: "LOW", aiScore: 70, stage: "CONFIRMED", createdAt: daysAgo(1) },
+        { symbol: "LOW", aiScore: 65, stage: "FORMING", createdAt: daysAgo(5) },
+        { symbol: "HIGH", aiScore: 60, stage: "FORMING", createdAt: daysAgo(1) },
+        { symbol: "HIGH", aiScore: 55, stage: "EARLY", createdAt: daysAgo(5) },
+      ];
+    });
+    mockFindManySignal.mockResolvedValue([]);
+
+    const res = await GET(makeRequest({ near52wLow: "true" }));
+    const body = await res.json();
+
+    expect(body.tickers).toHaveLength(1);
+    expect(body.tickers[0].symbol).toBe("LOW");
+  });
+
+  it("validates new enum parameters", async () => {
+    const res1 = await GET(makeRequest({ sortBy: "invalid" }));
+    expect(res1.status).toBe(400);
+
+    const res2 = await GET(makeRequest({ marketCap: "huge" }));
+    expect(res2.status).toBe(400);
+
+    const res3 = await GET(makeRequest({ source: "FACEBOOK" }));
+    expect(res3.status).toBe(400);
+
+    const res4 = await GET(makeRequest({ returnPeriod: "2w" }));
+    expect(res4.status).toBe(400);
+  });
+
+  it("returns all return periods in response", async () => {
+    mockQueryRaw.mockResolvedValue([
+      { symbol: "RET", cnt: BigInt(2) },
+    ]);
+
+    mockFindManyTicker.mockImplementation((args: { distinct?: string[] }) => {
+      if (args.distinct) {
+        return [makeTicker("RET", 70, "CONFIRMED", daysAgo(1), "scan_1", {
+          performance: { return1d: 0.01, return3d: 0.03, return7d: 0.07, return30d: 0.15 },
+        })];
+      }
+      return [
+        { symbol: "RET", aiScore: 70, stage: "CONFIRMED", createdAt: daysAgo(1) },
+        { symbol: "RET", aiScore: 65, stage: "FORMING", createdAt: daysAgo(5) },
+      ];
+    });
+    mockFindManySignal.mockResolvedValue([]);
+
+    const res = await GET(makeRequest());
+    const body = await res.json();
+
+    const ticker = body.tickers[0];
+    expect(ticker.return1d).toBe(0.01);
+    expect(ticker.return3d).toBe(0.03);
+    expect(ticker.return7d).toBe(0.07);
+    expect(ticker.return30d).toBe(0.15);
   });
 });
