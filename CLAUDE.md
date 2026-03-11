@@ -129,6 +129,8 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 
 Dashboard pages: signals (main), trending, portfolio, leaderboard, ticker detail, performance, methodology, profile. Uses route group `(dashboard)` with shared sidebar layout. (`/subscription` directory exists but has no page yet.)
 
+Public pages (no auth): `/changelog` — statically rendered changelog page (`src/app/changelog/page.tsx`). Data in `src/lib/changelog-data.ts` (same pattern as `methodology-data.ts`). Linked from dashboard sidebar (with "NEW" badge for 14 days after latest entry) and landing page footer.
+
 Methodology page data is in `src/lib/methodology-data.ts` (shared between the page component and `GET /api/methodology`). Includes ML backtesting description and pipeline data (`backtestDescription`, `backtestPipeline`).
 
 Landing page (`src/app/(auth)/login/page.tsx`) doubles as the public marketing page with hero, features grid, "How It Works" pipeline, signal sources, ML backtesting section, Agent Skill / API section, and footer. The login form is embedded in the hero section.
@@ -144,7 +146,7 @@ Multi-user email/password auth via Auth.js v5 (Credentials provider, JWT session
 - `getCurrentUserId()` is **async** — all callers must `await` it; checks `Authorization: Bearer` header first (mobile JWT), then `x-api-key` header (API key auth), falls back to Auth.js cookie session
 - `mobile-jwt.ts` — HS256 JWT sign/verify via `jose`, signing key `"mobile:" + AUTH_SECRET` (cryptographically separate from Auth.js), 15min access token expiry, opaque 64-hex-char refresh tokens (DB-backed, 30-day expiry, rotation on use)
 - `src/proxy.ts` (middleware) — Protects dashboard routes (redirect to `/login`) and `/api/portfolio/**`, `/api/watchlist/**`, `/api/user/**` (401 JSON); requests with `Authorization: Bearer` or `x-api-key` headers bypass middleware auth (verified in route handlers); matcher allows `.txt`/`.xml` static files through
-- Public routes: `/login`, `/register`, `/api/auth/**`, `/api/health`, `/api/alerts/**`, `/api/harvest/**`, `/api/snapshots/**`
+- Public routes: `/login`, `/register`, `/changelog`, `/api/auth/**`, `/api/health`, `/api/alerts/**`, `/api/harvest/**`, `/api/snapshots/**`
 - Auth pages use route group `(auth)` with centered layout (no sidebar)
 - `SessionProvider` wrapped in `src/lib/session-provider.tsx`, added to root layout
 - Type augmentations in `src/types/next-auth.d.ts` (adds `id` and `role` to Session/JWT)
@@ -366,6 +368,7 @@ All SEO metadata lives in Next.js metadata exports. When adding features, update
 - `src/app/manifest.ts` — PWA manifest (name, description)
 - `src/app/sitemap.ts` — XML sitemap (public pages only)
 - `src/app/robots.ts` — robots.txt (allows `/`, `/login`, `/register`, `/skill/`; disallows dashboard/API)
+- `src/lib/changelog-data.ts` — Changelog entries (array of `ChangelogEntry`). Add new entries at the top; `latestChangelogDate` export drives the sidebar "NEW" badge automatically.
 
 ## API Error Handling
 
