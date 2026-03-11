@@ -21,10 +21,12 @@ export function TrendingCard({
   ticker,
   isBookmarked = false,
   onToggle,
+  returnPeriod = "7d",
 }: {
   ticker: TrendingTicker;
   isBookmarked?: boolean;
   onToggle?: (symbol: string, currentlyBookmarked: boolean) => void;
+  returnPeriod?: string;
 }) {
   return (
     <div className="flex flex-col">
@@ -49,6 +51,7 @@ export function TrendingCard({
         ticker={ticker}
         isBookmarked={isBookmarked}
         onToggle={onToggle}
+        returnPeriod={returnPeriod}
       />
     </div>
   );

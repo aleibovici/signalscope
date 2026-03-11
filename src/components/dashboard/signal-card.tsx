@@ -20,14 +20,33 @@ const recColors: Record<string, "success" | "warning" | "info" | "danger"> = {
   Avoid: "danger",
 };
 
+const RETURN_LABELS: Record<string, string> = {
+  "1d": "1d",
+  "3d": "3d",
+  "7d": "7d",
+  "30d": "30d",
+};
+
+function getReturnValue(ticker: ValidatedTickerData, period: string): number | null | undefined {
+  switch (period) {
+    case "1d": return ticker.return1d;
+    case "3d": return ticker.return3d;
+    case "7d": return ticker.return7d;
+    case "30d": return ticker.return30d;
+    default: return ticker.return7d;
+  }
+}
+
 export function SignalCard({
   ticker,
   isBookmarked = false,
   onToggle,
+  returnPeriod = "7d",
 }: {
   ticker: ValidatedTickerData;
   isBookmarked?: boolean;
   onToggle?: (symbol: string, currentlyBookmarked: boolean) => void;
+  returnPeriod?: string;
 }) {
   return (
     <Card className="group relative flex h-full cursor-pointer flex-col transition-all hover:border-blue-300 hover:shadow-md">
@@ -40,7 +59,10 @@ export function SignalCard({
             >
               {ticker.symbol}
             </Link>
-            <div className="mt-1 flex items-center gap-2">
+            {ticker.name && (
+              <span className="block truncate text-xs text-gray-500 max-w-[140px] sm:max-w-[180px]">{ticker.name}</span>
+            )}
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
               <Badge variant={stageColors[ticker.stage] || "default"}>
                 {stageLabel(ticker.stage)}
               </Badge>
@@ -66,27 +88,34 @@ export function SignalCard({
                   Seen {ticker.priorAppearances}x
                 </Badge>
               )}
+              {ticker.pndFlagged && (
+                <Badge variant="danger">P&D Risk</Badge>
+              )}
             </div>
           </div>
 
-          <div className="text-right">
+          <div className="shrink-0 text-right">
             {ticker.price && (
-              <div className="flex items-center justify-end gap-1.5">
-                <p className="text-lg font-semibold">
+              <div className="flex items-center justify-end gap-1">
+                <p className="text-base font-semibold sm:text-lg">
                   ${ticker.price.toFixed(2)}
                 </p>
-                {ticker.return7d != null && (
-                  <span
-                    className={`rounded px-1 py-0.5 text-xs font-medium ${
-                      ticker.return7d > 0
-                        ? "bg-green-50 text-green-700"
-                        : "bg-red-50 text-red-700"
-                    }`}
-                  >
-                    {ticker.return7d > 0 ? "+" : ""}
-                    {(ticker.return7d * 100).toFixed(1)}%
-                  </span>
-                )}
+                {(() => {
+                  const retVal = getReturnValue(ticker, returnPeriod);
+                  if (retVal == null) return null;
+                  return (
+                    <span
+                      className={`rounded px-1 py-0.5 text-xs font-medium ${
+                        retVal > 0
+                          ? "bg-green-50 text-green-700"
+                          : "bg-red-50 text-red-700"
+                      }`}
+                    >
+                      {retVal > 0 ? "+" : ""}
+                      {(retVal * 100).toFixed(1)}% {RETURN_LABELS[returnPeriod]}
+                    </span>
+                  );
+                })()}
               </div>
             )}
             <p className="text-sm text-gray-500">
@@ -96,12 +125,12 @@ export function SignalCard({
         </div>
 
         {ticker.catalyst && (
-          <p className="text-sm text-gray-700">
+          <p className="line-clamp-2 text-xs text-gray-700 sm:text-sm sm:line-clamp-3">
             <span className="font-medium">Thesis:</span> {ticker.catalyst}
           </p>
         )}
         {ticker.risks && (
-          <p className="text-sm text-amber-700">
+          <p className="line-clamp-2 text-xs text-amber-700 sm:text-sm sm:line-clamp-3">
             <span className="font-medium">Risks:</span> {ticker.risks}
           </p>
         )}
@@ -135,7 +164,7 @@ export function SignalCard({
                   e.stopPropagation();
                   onToggle(ticker.symbol, isBookmarked);
                 }}
-                className="relative z-10 rounded p-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+                className="relative z-10 rounded p-1.5 -m-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
               >
                 {isBookmarked ? (
                   <svg className="h-4 w-4 text-amber-400" viewBox="0 0 24 24" fill="currentColor">
