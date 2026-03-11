@@ -58,8 +58,9 @@ export function NextScanCountdown() {
   const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
-    setNow(Date.now());
-    const id = setInterval(() => setNow(Date.now()), 60_000);
+    const update = () => setNow(Date.now());
+    update();
+    const id = setInterval(update, 60_000);
     return () => clearInterval(id);
   }, []);
 

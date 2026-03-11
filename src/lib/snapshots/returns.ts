@@ -50,7 +50,7 @@ export function computeReturnsFromSnapshots(
   snapshots: Snapshot[],
   detectionPrice: number,
   detectedAt: Date,
-  _now?: Date
+  _now?: Date // eslint-disable-line @typescript-eslint/no-unused-vars
 ): ComputedReturns {
   const result: ComputedReturns = {
     price1d: null, return1d: null, snapped1dAt: null,

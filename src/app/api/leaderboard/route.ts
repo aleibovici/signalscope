@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getCurrentUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     await getCurrentUserId();
 
