@@ -40,13 +40,36 @@ describe("determineStage — CONFIRMED via non-social source", () => {
 });
 
 describe("determineStage — CONFIRMED via Reddit subreddit consensus", () => {
-  it("returns CONFIRMED when 3+ subreddits, score>=48, velocity>=2.5, no non-social source", () => {
+  it("returns CONFIRMED when 3+ subreddits, score>=48, velocity>=2.5, fresh signals", () => {
+    // medianSignalAgeHrs=2 (fresh) — should confirm
+    expect(determineStage(48, 1, 1, 2.5, false, false, undefined, 3, undefined, undefined, undefined, undefined, 2)).toBe("CONFIRMED");
+  });
+
+  it("returns CONFIRMED when medianSignalAgeHrs is null (non-social signals have no age)", () => {
+    expect(determineStage(48, 1, 1, 2.5, false, false, undefined, 3, undefined, undefined, undefined, undefined, null)).toBe("CONFIRMED");
+  });
+
+  it("returns CONFIRMED when medianSignalAgeHrs is undefined (backwards compat)", () => {
     expect(determineStage(48, 1, 1, 2.5, false, false, undefined, 3)).toBe("CONFIRMED");
+  });
+
+  it("does NOT return CONFIRMED when signals are stale (medianSignalAgeHrs >= 6)", () => {
+    const result = determineStage(48, 1, 1, 2.5, false, false, undefined, 3, undefined, undefined, undefined, undefined, 8);
+    expect(result).not.toBe("CONFIRMED");
+  });
+
+  it("does NOT return CONFIRMED at exactly medianSignalAgeHrs = 6 (boundary)", () => {
+    const result = determineStage(48, 1, 1, 2.5, false, false, undefined, 3, undefined, undefined, undefined, undefined, 6);
+    expect(result).not.toBe("CONFIRMED");
+  });
+
+  it("returns CONFIRMED at medianSignalAgeHrs just under 6", () => {
+    expect(determineStage(48, 1, 1, 2.5, false, false, undefined, 3, undefined, undefined, undefined, undefined, 5.9)).toBe("CONFIRMED");
   });
 
   it("returns CONFIRMED with novel boost pushing score above 48", () => {
     // aiScore=44, novel=true → effectiveScore=49 >= 48
-    expect(determineStage(44, 1, 1, 2.5, false, false, novel(), 3)).toBe("CONFIRMED");
+    expect(determineStage(44, 1, 1, 2.5, false, false, novel(), 3, undefined, undefined, undefined, undefined, 2)).toBe("CONFIRMED");
   });
 
   it("does not return CONFIRMED with only 2 subreddits", () => {

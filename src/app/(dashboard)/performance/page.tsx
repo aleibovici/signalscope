@@ -29,10 +29,10 @@ function formatPctShort(value: number): string {
 /* ---------- Summary Cards with Delta ---------- */
 function SummaryCards({
   summary,
-  confirmed,
+  early,
 }: {
   summary: { totalTracked: number; current: PerformanceStats; prior: PerformanceStats };
-  confirmed: PerformanceStats;
+  early: PerformanceStats;
 }) {
   const wrDelta =
     summary.current.count > 0 && summary.prior.count > 0
@@ -57,31 +57,31 @@ function SummaryCards({
 
       <Card>
         <CardContent className="pt-6 text-center">
-          <p className="text-sm text-gray-500">Win Rate (confirmed)</p>
+          <p className="text-sm text-gray-500">Win Rate (early signals)</p>
           <p className="text-3xl font-bold text-green-600">
-            {confirmed.count > 0
-              ? `${(confirmed.winRate * 100).toFixed(0)}%`
+            {early.count > 0
+              ? `${(early.winRate * 100).toFixed(0)}%`
               : "--"}
           </p>
           <p className="mt-1 text-xs text-gray-400">
-            {confirmed.count} confirmed signals
+            {early.count} early-stage signals
           </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardContent className="pt-6 text-center">
-          <p className="text-sm text-gray-500">Avg Return (confirmed)</p>
+          <p className="text-sm text-gray-500">Avg Return (early signals)</p>
           <p
             className={`text-3xl font-bold ${
-              confirmed.avgReturn > 0
+              early.avgReturn > 0
                 ? "text-green-600"
-                : confirmed.avgReturn < 0
+                : early.avgReturn < 0
                   ? "text-red-600"
                   : "text-gray-900"
             }`}
           >
-            {confirmed.count > 0 ? formatPct(confirmed.avgReturn) : "--"}
+            {early.count > 0 ? formatPct(early.avgReturn) : "--"}
           </p>
           <p className="mt-1 text-xs text-gray-400">for selected horizon</p>
         </CardContent>
@@ -501,7 +501,21 @@ export default function PerformancePage() {
       {data && (
         <>
           {/* Summary cards with period comparison */}
-          <SummaryCards summary={data.summary} confirmed={data.confirmed} />
+          <SummaryCards summary={data.summary} early={data.early} />
+
+          {/* Stage performance insight */}
+          {data.byStage.EARLY && data.byStage.CONFIRMED && data.byStage.EARLY.avgReturn > data.byStage.CONFIRMED.avgReturn && (
+            <Card>
+              <CardContent className="py-4">
+                <p className="text-sm text-gray-600">
+                  <span className="font-semibold text-gray-900">Insight:</span>{" "}
+                  Early-stage signals outperform later stages. EARLY signals catch momentum before consensus forms
+                  — by the time a ticker reaches CONFIRMED (broad social agreement), the move has often already happened.
+                  Consider EARLY signals as entry points and CONFIRMED as a signal that the opportunity may be priced in.
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Weekly cohort table */}
           <CohortTable cohorts={data.cohorts} />

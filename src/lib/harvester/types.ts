@@ -111,4 +111,5 @@ export interface AggregatedSymbol {
   totalComments: number;
   avgVelocity: number;
   momentum: MomentumBreakdown;
+  medianSignalAgeHrs: number | null; // median postAge across social signals (hours)
 }
