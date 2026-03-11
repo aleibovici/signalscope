@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { stageLabel } from "@/lib/stage-labels";
 
 interface SparklineProps {
   points: { score: number; stage: string; date: string }[];
@@ -135,7 +136,7 @@ export function Sparkline({ points, height = 56 }: SparklineProps) {
               onMouseEnter={() => setHoveredIndex(i)}
               onMouseLeave={() => setHoveredIndex(null)}
             >
-              <title>{`${p.date}: ${p.score} (${p.stage})`}</title>
+              <title>{`${p.date}: ${p.score} (${stageLabel(p.stage)})`}</title>
             </circle>
 
             {/* Score label above dot */}

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import { stageLabel } from "@/lib/stage-labels";
 
 interface SearchResult {
   symbol: string;
@@ -132,7 +133,7 @@ export function TickerSearch() {
               <div className="flex items-center gap-2 text-xs">
                 {r.stage && (
                   <span className={`font-medium ${STAGE_COLORS[r.stage] ?? "text-gray-500"}`}>
-                    {r.stage}
+                    {stageLabel(r.stage)}
                   </span>
                 )}
                 {r.aiScore != null && (

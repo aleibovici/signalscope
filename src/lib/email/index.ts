@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
+import { STAGE_LABELS } from "@/lib/stage-labels";
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -41,7 +42,7 @@ export function buildEmailHtml(tickers: AlertTicker[], totalAvailable?: number):
 
   const totalCount = tickers.length;
   const headline = confirmed.length > 0
-    ? `${confirmed.length} confirmed + ${forming.length + early.length} emerging`
+    ? `${confirmed.length} consensus + ${forming.length + early.length} emerging`
     : `${totalCount} emerging signal${totalCount !== 1 ? "s" : ""}`;
 
   return `
@@ -64,7 +65,7 @@ export function buildEmailHtml(tickers: AlertTicker[], totalAvailable?: number):
             <th style="padding:8px 12px;border-bottom:2px solid #e5e7eb;">Catalyst</th>
           </tr>
         </thead>
-        <tbody>${renderSection("Confirmed", confirmed, "#16a34a")}${renderSection("Forming", forming, "#2563eb")}${renderSection("Early", early, "#6b7280")}</tbody>
+        <tbody>${renderSection(STAGE_LABELS.CONFIRMED, confirmed, "#16a34a")}${renderSection(STAGE_LABELS.FORMING, forming, "#2563eb")}${renderSection(STAGE_LABELS.EARLY, early, "#6b7280")}</tbody>
       </table>
       ${totalAvailable && totalAvailable > tickers.length ? `<p style="margin:16px 0 4px;font-size:13px;color:#6b7280;">Showing top ${tickers.length} of ${totalAvailable} signals.</p>` : ""}
       <p style="margin:8px 0;font-size:13px;color:#6b7280;">
@@ -108,7 +109,7 @@ export async function sendTickerAlerts(
   const confirmed = tickers.filter((t) => t.stage === "CONFIRMED");
   const topSymbols = tickers.slice(0, 5).map((t) => t.symbol).join(", ");
   const subject = confirmed.length > 0
-    ? `SignalScope: ${confirmed.length} confirmed + ${tickers.length - confirmed.length} emerging — ${topSymbols}`
+    ? `SignalScope: ${confirmed.length} consensus + ${tickers.length - confirmed.length} emerging — ${topSymbols}`
     : `SignalScope: ${tickers.length} emerging signal${tickers.length !== 1 ? "s" : ""} — ${topSymbols}`;
 
   console.log(`[email] Sending digest to ${users.length} user(s)...`);

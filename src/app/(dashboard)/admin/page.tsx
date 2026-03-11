@@ -8,6 +8,7 @@ import { useAdminStats } from "@/hooks/use-admin-stats";
 import { useAdminUsers } from "@/hooks/use-admin-users";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
+import { stageLabel } from "@/lib/stage-labels";
 
 const STAGE_ORDER = ["EARLY", "FORMING", "CONFIRMED", "FILTERED", "UNSCORED"];
 const STAGE_COLORS: Record<string, string> = {
@@ -171,7 +172,7 @@ export default function AdminPage() {
                   key={stage}
                   className="flex items-center justify-between py-1.5 text-sm"
                 >
-                  <span className="text-gray-500">{stage}</span>
+                  <span className="text-gray-500">{stageLabel(stage)}</span>
                   <span
                     className={`font-semibold ${STAGE_COLORS[stage] ?? "text-gray-900"}`}
                   >

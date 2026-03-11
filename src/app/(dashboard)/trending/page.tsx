@@ -6,6 +6,7 @@ import { useWatchlist, useToggleWatchlist } from "@/hooks/use-watchlist";
 import { TrendingCard } from "@/components/dashboard/trending-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
+import { STAGE_LABELS } from "@/lib/stage-labels";
 
 const PAGE_SIZE = 12;
 const filterInputClass =
@@ -62,9 +63,9 @@ export default function TrendingPage() {
             className={filterInputClass}
           >
             <option value="">All</option>
-            <option value="EARLY">Early</option>
-            <option value="FORMING">Forming</option>
-            <option value="CONFIRMED">Confirmed</option>
+            <option value="EARLY">{STAGE_LABELS.EARLY}</option>
+            <option value="FORMING">{STAGE_LABELS.FORMING}</option>
+            <option value="CONFIRMED">{STAGE_LABELS.CONFIRMED}</option>
           </select>
         </div>
 

@@ -1,3 +1,4 @@
+import { stageLabel } from "@/lib/stage-labels";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   pipelineSteps,
@@ -167,7 +168,7 @@ export default function MethodologyPage() {
             {signalStages.map((item) => (
               <div key={item.stage} className="flex items-start gap-3 rounded-lg border border-gray-200 p-3">
                 <span className={`rounded px-2 py-0.5 text-xs font-semibold ${item.color}`}>
-                  {item.stage}
+                  {stageLabel(item.stage)}
                 </span>
                 <p className="text-sm text-gray-600">{item.desc}</p>
               </div>
