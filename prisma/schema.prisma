@@ -17,6 +17,7 @@ model User {
   emailAlerts  Boolean         @default(true)
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
+  lastActiveAt DateTime?
   positions      UserPosition[]
   watchlist      UserWatchlist[]
   refreshTokens  RefreshToken[]
