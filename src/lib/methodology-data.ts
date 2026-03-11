@@ -126,17 +126,17 @@ export const signalStages: SignalStage[] = [
   {
     stage: "EARLY",
     color: "bg-yellow-100 text-yellow-800",
-    desc: "Score ≥40, multiple sources or novel ticker. Worth watching but needs confirmation.",
+    desc: "Score ≥40, multiple sources or novel ticker. Earliest detection point with highest alpha potential.",
   },
   {
     stage: "FORMING",
     color: "bg-orange-100 text-orange-800",
-    desc: "Score ≥45–50 with velocity or multi-source. Catalyst indicators present.",
+    desc: "Score ≥45–50 with velocity or multi-source. Momentum is building but the move may have started.",
   },
   {
     stage: "CONFIRMED",
     color: "bg-green-100 text-green-800",
-    desc: "Score ≥65–70 with strong multi-source or insider/options backing.",
+    desc: "Score ≥65–70 with broad social agreement. The opportunity may already be priced in — consider as an exit signal.",
   },
   {
     stage: "FILTERED",

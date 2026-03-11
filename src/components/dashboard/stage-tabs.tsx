@@ -1,10 +1,12 @@
 "use client";
 
+import { STAGE_LABELS } from "@/lib/stage-labels";
+
 const stages = [
   { key: "ALL", label: "All" },
-  { key: "EARLY", label: "Early" },
-  { key: "FORMING", label: "Forming" },
-  { key: "CONFIRMED", label: "Confirmed" },
+  { key: "EARLY", label: STAGE_LABELS.EARLY },
+  { key: "FORMING", label: STAGE_LABELS.FORMING },
+  { key: "CONFIRMED", label: STAGE_LABELS.CONFIRMED },
 ];
 
 export function StageTabs({

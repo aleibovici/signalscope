@@ -10,6 +10,7 @@ import type {
 } from "@/hooks/use-performance";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
+import { stageLabel, STAGE_LABELS } from "@/lib/stage-labels";
 
 const INTERVALS = [
   { label: "1d", days: 1 },
@@ -369,7 +370,7 @@ function StatsTable({
               {entries.map(([key, stats]) => (
                 <tr key={key} className="border-b border-gray-50">
                   <td className="py-1.5 pr-4 font-medium text-gray-700">
-                    {key.replace(/_/g, " ")}
+                    {STAGE_LABELS[key] ?? key.replace(/_/g, " ")}
                   </td>
                   <td className="py-1.5 pr-4 text-right text-gray-600">
                     {stats.count}
@@ -441,7 +442,7 @@ function PerformersTable({
                   <td className="py-1.5 pr-4 text-right text-gray-600">
                     {p.aiScore}
                   </td>
-                  <td className="py-1.5 pr-4 text-gray-600">{p.stage}</td>
+                  <td className="py-1.5 pr-4 text-gray-600">{stageLabel(p.stage)}</td>
                   <td className="py-1.5 text-right text-gray-600">
                     ${p.detectionPrice.toFixed(2)} → ${p.currentPrice.toFixed(2)}
                   </td>
@@ -509,9 +510,9 @@ export default function PerformancePage() {
               <CardContent className="py-4">
                 <p className="text-sm text-gray-600">
                   <span className="font-semibold text-gray-900">Insight:</span>{" "}
-                  Early-stage signals outperform later stages. EARLY signals catch momentum before consensus forms
-                  — by the time a ticker reaches CONFIRMED (broad social agreement), the move has often already happened.
-                  Consider EARLY signals as entry points and CONFIRMED as a signal that the opportunity may be priced in.
+                  Emerging signals outperform later stages. They catch momentum before consensus forms
+                  — by the time a ticker reaches Consensus (broad social agreement), the move has often already happened.
+                  Consider Emerging signals as entry points and Consensus as a signal that the opportunity may be priced in.
                 </p>
               </CardContent>
             </Card>

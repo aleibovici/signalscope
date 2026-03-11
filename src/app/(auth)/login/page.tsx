@@ -201,7 +201,7 @@ export default function LoginPage() {
               },
               {
                 title: "Signal stages",
-                desc: "Signals progress through Early, Forming, Confirmed, and Filtered stages as conviction grows.",
+                desc: "Signals progress through Emerging, Building, Consensus, and Filtered stages as conviction grows.",
                 icon: (
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 7.5 7.5 3m0 0L12 7.5M7.5 3v13.5m13.5-6L16.5 16.5m0 0L12 10.5m4.5 6V3" />
                 ),

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { Sparkline } from "@/components/ui/sparkline";
+import { stageLabel } from "@/lib/stage-labels";
 
 export default function TickerDetailPage() {
   const router = useRouter();
@@ -85,7 +86,7 @@ export default function TickerDetailPage() {
           )}
         </button>
         <Badge variant={ticker.stage === "CONFIRMED" ? "success" : ticker.stage === "FORMING" ? "warning" : "info"}>
-          {ticker.stage}
+          {stageLabel(ticker.stage)}
         </Badge>
         {ticker.recommendation && (
           <Badge variant={ticker.recommendation === "Avoid" ? "danger" : "success"}>
@@ -364,7 +365,7 @@ export default function TickerDetailPage() {
                                           : "info"
                                     }
                                   >
-                                    {group.best.stage}
+                                    {stageLabel(group.best.stage)}
                                   </Badge>
                                 </td>
                                 <td className="py-1.5 pr-4 text-gray-600">
@@ -414,7 +415,7 @@ export default function TickerDetailPage() {
                                               : "info"
                                         }
                                       >
-                                        {h.stage}
+                                        {stageLabel(h.stage)}
                                       </Badge>
                                     </td>
                                     <td className="py-1 pr-4 text-xs text-gray-500">

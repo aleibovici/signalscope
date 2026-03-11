@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { ValidatedTickerData } from "@/hooks/use-scans";
+import { stageLabel } from "@/lib/stage-labels";
 
 const stageColors: Record<string, "success" | "warning" | "info" | "danger"> = {
   CONFIRMED: "success",
@@ -41,7 +42,7 @@ export function SignalCard({
             </Link>
             <div className="mt-1 flex items-center gap-2">
               <Badge variant={stageColors[ticker.stage] || "default"}>
-                {ticker.stage}
+                {stageLabel(ticker.stage)}
               </Badge>
               {ticker.recommendation && (
                 <Badge variant={recColors[ticker.recommendation] || "default"}>
