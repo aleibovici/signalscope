@@ -9,6 +9,26 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-03-12",
+    title: "Signal Stage Renames & Options Flow",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "Signal stages renamed for clarity: Early → Emerging, Forming → Building, Confirmed → Consensus.",
+          "Email alerts now lead with Emerging signals for earlier actionability.",
+          "Methodology page updated with recolored stage badges matching signal semantics.",
+        ],
+      },
+      {
+        category: "new",
+        items: [
+          "Options Flow source marked active with updated symbol counts.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-03-11",
     title: "ML-Tuned Filtering",
     changes: [
