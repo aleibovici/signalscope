@@ -10,20 +10,23 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-03-12",
-    title: "Signal Stage Renames & Options Flow",
+    title: "Trending Page Overhaul & Stage Renames",
     changes: [
+      {
+        category: "new",
+        items: [
+          "Advanced filters on trending page: filter by stage, source, trend direction, and minimum appearances.",
+          "Multiple sort options for trending tickers: appearances, trend, latest score, and latest price.",
+          "Mobile-optimized trending UI with collapsible filter panel and responsive card layout.",
+          "Options Flow source marked active with updated symbol counts.",
+        ],
+      },
       {
         category: "improved",
         items: [
           "Signal stages renamed for clarity: Early → Emerging, Forming → Building, Confirmed → Consensus.",
           "Email alerts now lead with Emerging signals for earlier actionability.",
           "Methodology page updated with recolored stage badges matching signal semantics.",
-        ],
-      },
-      {
-        category: "new",
-        items: [
-          "Options Flow source marked active with updated symbol counts.",
         ],
       },
     ],
