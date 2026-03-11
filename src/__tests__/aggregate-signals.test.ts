@@ -263,6 +263,51 @@ describe("aggregateSignals — momentum breakdown", () => {
   });
 });
 
+// ── medianSignalAgeHrs ───────────────────────────────────────────────────────
+
+describe("aggregateSignals — medianSignalAgeHrs", () => {
+  it("computes median of signal postAge values", () => {
+    const signals = [
+      sig("PTON", { postAge: 2 }),
+      sig("PTON", { postAge: 8 }),
+      sig("PTON", { postAge: 14 }),
+    ];
+    const [agg] = aggregateSignals(signals);
+    expect(agg.medianSignalAgeHrs).toBe(8);
+  });
+
+  it("averages two middle values for even count", () => {
+    const signals = [
+      sig("PTON", { postAge: 2 }),
+      sig("PTON", { postAge: 10 }),
+    ];
+    const [agg] = aggregateSignals(signals);
+    expect(agg.medianSignalAgeHrs).toBe(6); // (2 + 10) / 2
+  });
+
+  it("returns null when no signals have postAge", () => {
+    const signals = [sig("PTON"), sig("PTON")];
+    const [agg] = aggregateSignals(signals);
+    expect(agg.medianSignalAgeHrs).toBeNull();
+  });
+
+  it("ignores signals without postAge when computing median", () => {
+    const signals = [
+      sig("PTON", { postAge: 4 }),
+      sig("PTON"), // no postAge
+      sig("PTON", { postAge: 10 }),
+    ];
+    const [agg] = aggregateSignals(signals);
+    expect(agg.medianSignalAgeHrs).toBe(7); // (4 + 10) / 2
+  });
+
+  it("returns exact value for single signal", () => {
+    const signals = [sig("PTON", { postAge: 5 })];
+    const [agg] = aggregateSignals(signals);
+    expect(agg.medianSignalAgeHrs).toBe(5);
+  });
+});
+
 // ── candidate filter (weightedSourceScore >= 2) ──────────────────────────────
 
 describe("aggregateSignals — high-value single source bypass", () => {

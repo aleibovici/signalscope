@@ -28,6 +28,7 @@ function makeAgg(overrides: Partial<AggregatedSymbol> = {}): AggregatedSymbol {
       commentDerivedCount: 0,
       staleCount: 0,
     },
+    medianSignalAgeHrs: null,
     ...overrides,
   };
 }
@@ -161,5 +162,38 @@ describe("scoreSymbolBatch — heuristic fallback (AI mocked to fail)", () => {
     });
     const result = await scoreSymbolBatch([agg]);
     expect(result[0].score).toBeGreaterThanOrEqual(50);
+  });
+
+  it("very stale signals (>12h) get a score penalty", async () => {
+    const fresh = makeAgg({ medianSignalAgeHrs: 1 });
+    const stale = makeAgg({ medianSignalAgeHrs: 15 });
+
+    const [freshResult] = await scoreSymbolBatch([fresh]);
+    const [staleResult] = await scoreSymbolBatch([stale]);
+
+    expect(staleResult.score).toBeLessThan(freshResult.score);
+  });
+
+  it("moderately stale signals (6-12h) get a smaller penalty", async () => {
+    const fresh = makeAgg({ medianSignalAgeHrs: 1 });
+    const moderate = makeAgg({ medianSignalAgeHrs: 8 });
+    const veryStale = makeAgg({ medianSignalAgeHrs: 15 });
+
+    const [freshResult] = await scoreSymbolBatch([fresh]);
+    const [modResult] = await scoreSymbolBatch([moderate]);
+    const [staleResult] = await scoreSymbolBatch([veryStale]);
+
+    expect(modResult.score).toBeLessThan(freshResult.score);
+    expect(modResult.score).toBeGreaterThanOrEqual(staleResult.score);
+  });
+
+  it("null medianSignalAgeHrs gets no staleness penalty", async () => {
+    const noAge = makeAgg({ medianSignalAgeHrs: null });
+    const fresh = makeAgg({ medianSignalAgeHrs: 1 });
+
+    const [noAgeResult] = await scoreSymbolBatch([noAge]);
+    const [freshResult] = await scoreSymbolBatch([fresh]);
+
+    expect(noAgeResult.score).toBe(freshResult.score);
   });
 });

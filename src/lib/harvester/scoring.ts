@@ -41,6 +41,7 @@ export async function scoreSymbolBatch(
             priorAppearances: novelty.priorAppearances,
           }
         : {}),
+      medianSignalAgeHrs: s.medianSignalAgeHrs,
     };
   });
 
@@ -76,6 +77,13 @@ Also consider:
   Multiple rising signals = strong trending evidence. commentDerivedCount > 0 means organic discussion (tickers mentioned in comments, not just post titles). High staleCount dilutes the signal.
 - subredditCount = number of unique subreddits mentioning the ticker. 3+ subreddits = broad consensus across communities (stronger signal, +3-5 boost). 1 subreddit = possible echo chamber (weaker).
 - A high-velocity social signal with real engagement (high upvotes, comments) can reach 45-49 without a confirmed catalyst — it may be the FIRST signal before institutional confirmation arrives, but social alone NEVER exceeds 50.
+
+Signal age (medianSignalAgeHrs field — median age of social signals in hours):
+- medianSignalAgeHrs < 3: Fresh signals — potential early breakout, no penalty.
+- medianSignalAgeHrs 3-6: Moderately fresh — no penalty but note the move may have started.
+- medianSignalAgeHrs 6-12: Stale signals — apply -3 to -5 penalty. Price has likely already moved.
+- medianSignalAgeHrs > 12: Very stale — apply -5 to -10 penalty. By the time signals are this old, the initial momentum is exhausted and you're buying at or near the top.
+- null: Non-social signals (insider, congress) — no age penalty, these are filed disclosures.
 
 Signal novelty (check isNovel, daysSinceFirstSeen, priorAppearances fields):
 - Novel tickers (first appearance, isNovel=true): apply +5 to +10 boost — potential early signals before consensus.
@@ -157,7 +165,14 @@ export function defaultScore(s: AggregatedSymbol, novelty?: NoveltyContext): AiS
     noveltyAdj = -10;
   }
 
-  const raw = base + engagement + velocityBoost + noveltyAdj;
+  // Signal age penalty: stale signals have already moved, penalize late detection
+  let stalenessAdj = 0;
+  if (s.medianSignalAgeHrs != null) {
+    if (s.medianSignalAgeHrs > 12) stalenessAdj = -8;
+    else if (s.medianSignalAgeHrs > 6) stalenessAdj = -4;
+  }
+
+  const raw = base + engagement + velocityBoost + noveltyAdj + stalenessAdj;
   const rawScore = Math.round(raw);
   const score = Math.min(rawScore, hasCatalystSource ? 100 : 50);
 
