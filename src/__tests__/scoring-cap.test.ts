@@ -26,6 +26,7 @@ function makeAgg(overrides: Partial<AggregatedSymbol> = {}): AggregatedSymbol {
       commentDerivedCount: 0,
       staleCount: 0,
     },
+    medianSignalAgeHrs: null,
     ...overrides,
   };
 }

@@ -138,6 +138,7 @@ model ValidatedTicker {
   rawAiScore          Int?
   pndAiConfidence     Int?
   pndAiReasoning      String?     @db.Text
+  medianSignalAgeHrs  Float?      // median post age (hours) of social signals at harvest time
   createdAt           DateTime    @default(now())
   performance      TickerPerformance?
   priceSnapshots   PriceSnapshot[]

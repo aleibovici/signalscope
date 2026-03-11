@@ -77,6 +77,17 @@ export function aggregateSignals(signals: RawSignal[]): AggregatedSymbol[] {
           },
           { risingCount: 0, freshCount: 0, recentCount: 0, commentDerivedCount: 0, staleCount: 0 }
         ),
+        medianSignalAgeHrs: (() => {
+          const ages = sigs
+            .filter((s) => s.postAge != null)
+            .map((s) => s.postAge!);
+          if (ages.length === 0) return null;
+          ages.sort((a, b) => a - b);
+          const mid = Math.floor(ages.length / 2);
+          return ages.length % 2 === 0
+            ? (ages[mid - 1] + ages[mid]) / 2
+            : ages[mid];
+        })(),
       };
     })
     .sort((a, b) => b.sourceCount - a.sourceCount || b.signals.length - a.signals.length);
@@ -165,6 +176,7 @@ export function determineStage(
   wk52Lo?: number,
   isAmexPenny?: boolean,
   isNasdaqSmallPenny?: boolean,
+  medianSignalAgeHrs?: number | null,
 ): "EARLY" | "FORMING" | "CONFIRMED" | "FILTERED" {
   if (pndFlagged) return "FILTERED";
 
@@ -178,7 +190,9 @@ export function determineStage(
   if (hasNonSocialSource && effectiveScore >= 65 && sourceCount >= 2 && avgVelocity >= 2.0) return "CONFIRMED";
 
   // Reddit CONFIRMED: cross-community consensus is structural multi-source corroboration
-  if (!hasNonSocialSource && (subredditCount ?? 0) >= 3 && effectiveScore >= 48 && avgVelocity >= 2.5) {
+  // Require signals to be fresh (median age < 6h) — stale consensus means the move already happened
+  const signalsFresh = medianSignalAgeHrs == null || medianSignalAgeHrs < 6;
+  if (!hasNonSocialSource && (subredditCount ?? 0) >= 3 && effectiveScore >= 48 && avgVelocity >= 2.5 && signalsFresh) {
     return "CONFIRMED";
   }
 
@@ -496,7 +510,7 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
          fundamentals.exchange.toLowerCase().includes("nasdaq global market")) &&
         fundamentals.price != null && fundamentals.price < 5
       );
-      const stage = determineStage(score, agg.sourceCount, agg.weightedSourceScore, agg.avgVelocity, finalPndFlagged, hasNonSocialSource, novelty, agg.subredditCount, pctFrom52wkLow, wk52Lo, isAmexPenny, isNasdaqSmallPenny);
+      const stage = determineStage(score, agg.sourceCount, agg.weightedSourceScore, agg.avgVelocity, finalPndFlagged, hasNonSocialSource, novelty, agg.subredditCount, pctFrom52wkLow, wk52Lo, isAmexPenny, isNasdaqSmallPenny, agg.medianSignalAgeHrs);
 
       const signalType = classifySignalType(agg);
 
@@ -663,6 +677,7 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
         rawAiScore: result.rawAiScore,
         pndAiConfidence: result.pndAiConfidence,
         pndAiReasoning: result.pndAiReasoning,
+        medianSignalAgeHrs: result.agg.medianSignalAgeHrs,
       };
     });
 
