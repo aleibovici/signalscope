@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What is SignalScope
 
-SignalScope is a stock breakout signal detection platform. It harvests signals from multiple sources (Reddit, X/Twitter, StockTwits, SEC insider filings, options flow, volume spikes), scores them with AI, filters pump-and-dump candidates, and presents validated tickers in a dashboard with portfolio tracking.
+SignalScope is a stock breakout signal detection platform. It harvests signals from multiple sources (Reddit, X/Twitter, StockTwits, SEC insider filings, congressional trades, volume spikes), scores them with AI, filters pump-and-dump candidates, and presents validated tickers in a dashboard with portfolio tracking.
 
 ## Commands
 
@@ -18,6 +18,7 @@ npm run db:generate      # Generate Prisma client (run after schema changes)
 npm run db:migrate       # Run Prisma migrations (dev)
 npm run db:seed          # Seed database with default user (user_1)
 npm run harvest          # Run signal harvester scan (requires HARVEST_ENDPOINT_URL + HARVEST_API_KEY)
+npm run snapshots        # Trigger price snapshot collection (requires SNAPSHOT_API_KEY)
 ```
 
 Docker (local dev):
@@ -54,15 +55,15 @@ gcloud scheduler jobs run signalscope-snapshots --location=us-central1
 ### Signal Harvesting Pipeline (`src/lib/harvester/`)
 
 ```
-Sources (6 in parallel) → Aggregate by symbol → Fetch fundamentals for ALL symbols (Yahoo Finance)
+Sources (7 in parallel) → Aggregate by symbol → Fetch fundamentals for ALL symbols (Yahoo Finance)
   ↓ candidates (≥2 signals / sources / weighted score)        ↓ non-candidates with YF price
   AI Scoring → P&D Filter (11 flags + AI edge-case)          Heuristic score + P&D flags (no AI)
   → Report Generation → stage: EARLY/FORMING/CONFIRMED/FILTERED    → stage: UNSCORED
   └──────────────────────────────── DB ───────────────────────────────────────┘
 ```
 
-- `index.ts` — `fetchSignals()` (source fetching), `processSignals()` (AI scoring, P&D filter, reports, DB writes)
-- `sources/` — reddit, twitter, stocktwits (disabled), sec-insider, options-flow (disabled), volume-spike
+- `index.ts` — `fetchSignals()` (source fetching), `processSignals()` (AI scoring, P&D filter, reports, DB writes); includes `extractTxIdsFromUrls()` and `deduplicateCongressSignals()` for Congress dedup
+- `sources/` — reddit, twitter, stocktwits, sec-insider, congress, volume-spike, options-flow (disabled)
 - `sources/ticker-utils.ts` — Shared ticker regex, blacklist, mega-caps, extraction functions
 - `scoring.ts` — AI batch scoring with hard-rule overrides
 - `pnd-filter.ts` — Pump & dump detection (statistical flags + AI fallback)
@@ -70,6 +71,18 @@ Sources (6 in parallel) → Aggregate by symbol → Fetch fundamentals for ALL s
 - `report.ts` — AI-generated ticker reports
 
 Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs to Cloud Run (`/api/harvest/ingest`) for processing
+
+### Email Alerts (`src/lib/email/`)
+
+- `index.ts` — `sendConfirmedTickerAlerts()` sends a digest of CONFIRMED tickers via Resend. Requires `RESEND_API_KEY` env var; silently skipped if absent.
+- Triggered by `POST /api/alerts/send` (authenticated via `x-snapshot-key` header, same as snapshots)
+- Users can opt out via `User.emailAlerts = false` (set in profile)
+
+### Utility Libs
+
+- `src/lib/cache.ts` — `TTLCache<T>` in-memory cache with max-entries eviction
+- `src/lib/rate-limit.ts` — IP-based rate limiting for auth endpoints; `getClientIP()` handles `X-Forwarded-For` for Cloud Run
+- `src/lib/price-verification.ts` — `verifyPriceAgainstSnapshot()` validates user-reported prices against latest `PriceSnapshot` (5% deviation threshold)
 
 ### AI Provider System (`src/lib/ai/`)
 
@@ -92,6 +105,7 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 | `/api/portfolio` | GET/POST | List or add positions |
 | `/api/portfolio/[id]` | PATCH/DELETE | Update or delete position |
 | `/api/watchlist` | GET/POST | List or add watchlist items |
+| `/api/watchlist/tickers` | GET | Watchlist symbols with latest ticker data and sources |
 | `/api/watchlist/[symbol]` | DELETE | Remove from watchlist |
 | `/api/prices` | GET | Current prices for given symbols (query: `symbols`) |
 | `/api/search` | GET | Search tickers by symbol/name |
@@ -107,12 +121,13 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 | `/api/auth/logout` | POST | Revoke refresh tokens (all or by deviceId) |
 | `/api/auth/register` | POST | User registration — returns user + tokens |
 | `/api/methodology` | GET | Methodology data (public, structured JSON) |
+| `/api/alerts/send` | POST | Send email alerts for CONFIRMED tickers via Resend (x-snapshot-key auth) |
 | `/api/harvest/ingest` | POST | Receive raw signals for cloud processing (x-harvest-key auth) |
 | `/api/snapshots/collect` | POST | Collect price snapshots for validated tickers (x-snapshot-key auth) |
 
 ### Frontend (`src/app/(dashboard)/`)
 
-Dashboard pages: signals (main), trending, portfolio, leaderboard, history, ticker detail, performance, methodology, profile, subscription. Uses route group `(dashboard)` with shared sidebar layout.
+Dashboard pages: signals (main), trending, portfolio, leaderboard, ticker detail, performance, methodology, profile. Uses route group `(dashboard)` with shared sidebar layout. (`/subscription` directory exists but has no page yet.)
 
 Methodology page data is in `src/lib/methodology-data.ts` (shared between the page component and `GET /api/methodology`). Includes ML backtesting description and pipeline data (`backtestDescription`, `backtestPipeline`).
 
@@ -145,7 +160,11 @@ Multi-user email/password auth via Auth.js v5 (Credentials provider, JWT session
 
 ### Database Models
 
-Key models in `prisma/schema.prisma`: **User**, **Scan** (harvest run), **Signal** (raw from sources), **ValidatedTicker** (scored candidates with fundamentals/report), **TickerPerformance** (post-scan price performance tracking), **PriceSnapshot** (continuous price time-series for return computation), **UserPosition** (portfolio), **UserWatchlist** (bookmarked tickers), **RefreshToken** (mobile auth token rotation, indexed on token/userId/expiresAt), **ApiKey** (SHA-256 hashed API keys for programmatic access, single key per user, `sk_sig_` prefix).
+Key models in `prisma/schema.prisma`: **User** (with `emailAlerts: Boolean`), **Scan** (harvest run), **Signal** (raw from sources), **ValidatedTicker** (scored candidates with fundamentals/report), **TickerPerformance** (post-scan price performance tracking), **PriceSnapshot** (continuous price time-series for return computation), **UserPosition** (portfolio), **UserWatchlist** (bookmarked tickers), **RefreshToken** (mobile auth token rotation, indexed on token/userId/expiresAt), **ApiKey** (SHA-256 hashed API keys for programmatic access, single key per user, `sk_sig_` prefix).
+
+`ValidatedTicker` notable fields: `wk52Lo/wk52Hi` (52-week range), `firstSeenDaysAgo` (null = truly novel, 0 = first seen today, N = days ago), `priorAppearances` (count of prior appearances in 30d window), `exchange`, `aiReasoning`, `pndFlagged/pndFlags/pndScore/pndAiConfidence/pndAiReasoning`.
+
+`SignalSource` enum: `REDDIT | TWITTER | STOCKTWITS | SEC_INSIDER | SEC_FILING | CONGRESS | OPTIONS_FLOW | VOLUME_SPIKE`
 
 Signal stages: `EARLY | FORMING | CONFIRMED | FILTERED | UNSCORED`
 
@@ -178,6 +197,13 @@ HARVEST_API_KEY=<openssl rand -base64 32>
 
 # Snapshots (Cloud Scheduler → Cloud Run)
 SNAPSHOT_API_KEY=<openssl rand -base64 32>
+
+# Optional: Email alerts via Resend (no emails sent if absent)
+RESEND_API_KEY=re_...
+
+# Optional: SEO site verification meta tags
+GOOGLE_SITE_VERIFICATION=...
+BING_SITE_VERIFICATION=...
 ```
 
 ## GCP Deployment
@@ -187,7 +213,7 @@ SNAPSHOT_API_KEY=<openssl rand -base64 32>
 - **Cloud Run** — web app (`signalscope-web`) serving Next.js standalone on port 3000
 - **Cloud SQL** — PostgreSQL 16 (`signalscope-db`, db-f1-micro), connected via Unix socket
 - **Cloud Scheduler** — 3 jobs: email alerts (9:15 AM ET), snapshots open (9:30 AM ET), snapshots close (4:05 PM ET), all weekdays America/New_York
-- **Secret Manager** — stores `DATABASE_URL`, `AUTH_SECRET`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `SNAPSHOT_API_KEY`
+- **Secret Manager** — stores `DATABASE_URL`, `AUTH_SECRET`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `SNAPSHOT_API_KEY`, `RESEND_API_KEY`
 - **Artifact Registry** — Docker images (`signalscope` repo)
 - **GitHub Actions** — CI/CD on push to `main` (`.github/workflows/deploy.yml`)
 - **Workload Identity Federation** — keyless GitHub Actions → GCP auth
@@ -249,6 +275,7 @@ gcloud scheduler jobs create http signalscope-snapshots-close \
 | Reddit | Active | Uses `old.reddit.com` JSON, sequential with 1.5s delay, browser UA |
 | X/Twitter | Active | X API v2 Recent Search (api.x.com), single keyword query, requires Basic tier ($200/mo) — Free tier returns 403, requires `X_BEARER_TOKEN` |
 | SEC Insider | Active | OpenInsider HTML + EDGAR RSS, filters C-suite $50K+ purchases |
+| Congress | Active | CapitolTrades.com — congressional stock trades; deduplicates by transaction ID across runs |
 | Volume Spike | Active | Yahoo Finance, 110 symbols, 2x avg volume threshold |
 | StockTwits | Active | Uses TrendSpider mirror (server-side rendered); direct StockTwits access is Cloudflare-blocked |
 | Options Flow | Disabled | Requires paid API (Unusual Whales, FlowAlgo) |
@@ -306,6 +333,11 @@ gh workflow run "Deploy to Cloud Run" --ref main
 | `snapshot-returns.test.ts` | `computeReturnsFromSnapshots` — all 4 periods, tolerance windows, weekend gaps, closest-match selection, progressive improvement, penny stocks, non-overlapping windows |
 | `trending-endpoint.test.ts` | `GET /api/tickers/trending` — empty results, response shape, trend computation (rising/falling/stable), trend filter, validation (minAppearances/stage/trend), sorting, pagination, summary before pagination, error handling |
 | `leaderboard-endpoint.test.ts` | `GET /api/leaderboard` — empty results, response shape, timeframe filtering, username exclusion, gain calc (open/closed), snapshot pricing, sorting, pagination, win rate, validation, auth required, best pick tracking |
+| `congress-dedup.test.ts` | `extractTxIdsFromUrls()` and `deduplicateCongressSignals()` — URL parsing, dedup logic |
+| `fetch-signals.test.ts` | `fetchSignals()` with all 7 sources including Congress |
+| `harvest-ingest-endpoint.test.ts` | `POST /api/harvest/ingest` — auth, signal ingestion |
+| `price-verification.test.ts` | `verifyPriceAgainstSnapshot()` — 5% deviation threshold, snapshot lookup |
+| `stage-logic.test.ts` | `determineStage()` — novel/recurring tickers, Reddit subreddit consensus, novelty boost |
 
 Key gotchas:
 - `BUY` is NOT in BLACKLIST (but `SELL`, `HOLD` are)
