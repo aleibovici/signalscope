@@ -85,7 +85,7 @@ export default function TickerDetailPage() {
             </svg>
           )}
         </button>
-        <Badge variant={ticker.stage === "CONFIRMED" ? "success" : ticker.stage === "FORMING" ? "warning" : "info"}>
+        <Badge variant={ticker.stage === "EARLY" ? "success" : ticker.stage === "FORMING" ? "warning" : ticker.stage === "CONFIRMED" ? "info" : "info"}>
           {stageLabel(ticker.stage)}
         </Badge>
         {ticker.recommendation && (
@@ -358,11 +358,13 @@ export default function TickerDetailPage() {
                                 <td className="py-1.5 pr-4">
                                   <Badge
                                     variant={
-                                      group.best.stage === "CONFIRMED"
+                                      group.best.stage === "EARLY"
                                         ? "success"
                                         : group.best.stage === "FORMING"
                                           ? "warning"
-                                          : "info"
+                                          : group.best.stage === "CONFIRMED"
+                                            ? "info"
+                                            : "info"
                                     }
                                   >
                                     {stageLabel(group.best.stage)}
@@ -408,11 +410,13 @@ export default function TickerDetailPage() {
                                     <td className="py-1 pr-4">
                                       <Badge
                                         variant={
-                                          h.stage === "CONFIRMED"
+                                          h.stage === "EARLY"
                                             ? "success"
                                             : h.stage === "FORMING"
                                               ? "warning"
-                                              : "info"
+                                              : h.stage === "CONFIRMED"
+                                                ? "info"
+                                                : "info"
                                         }
                                       >
                                         {stageLabel(h.stage)}

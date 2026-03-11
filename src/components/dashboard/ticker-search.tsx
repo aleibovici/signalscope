@@ -13,9 +13,9 @@ interface SearchResult {
 }
 
 const STAGE_COLORS: Record<string, string> = {
-  CONFIRMED: "text-green-600",
+  EARLY: "text-green-600",
   FORMING: "text-yellow-600",
-  EARLY: "text-blue-600",
+  CONFIRMED: "text-blue-600",
   FILTERED: "text-red-500",
 };
 

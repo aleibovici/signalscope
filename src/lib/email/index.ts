@@ -65,7 +65,7 @@ export function buildEmailHtml(tickers: AlertTicker[], totalAvailable?: number):
             <th style="padding:8px 12px;border-bottom:2px solid #e5e7eb;">Catalyst</th>
           </tr>
         </thead>
-        <tbody>${renderSection(STAGE_LABELS.EARLY, early, "#2563eb")}${renderSection(STAGE_LABELS.FORMING, forming, "#ca8a04")}${renderSection(STAGE_LABELS.CONFIRMED, confirmed, "#6b7280")}</tbody>
+        <tbody>${renderSection(STAGE_LABELS.EARLY, early, "#16a34a")}${renderSection(STAGE_LABELS.FORMING, forming, "#ca8a04")}${renderSection(STAGE_LABELS.CONFIRMED, confirmed, "#6b7280")}</tbody>
       </table>
       ${totalAvailable && totalAvailable > tickers.length ? `<p style="margin:16px 0 4px;font-size:13px;color:#6b7280;">Showing top ${tickers.length} of ${totalAvailable} signals.</p>` : ""}
       <p style="margin:8px 0;font-size:13px;color:#6b7280;">

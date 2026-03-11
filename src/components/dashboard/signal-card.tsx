@@ -7,9 +7,9 @@ import type { ValidatedTickerData } from "@/hooks/use-scans";
 import { stageLabel } from "@/lib/stage-labels";
 
 const stageColors: Record<string, "success" | "warning" | "info" | "danger"> = {
-  CONFIRMED: "success",
+  EARLY: "success",
   FORMING: "warning",
-  EARLY: "info",
+  CONFIRMED: "info",
   FILTERED: "danger",
 };
 
