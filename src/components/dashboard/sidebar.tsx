@@ -7,21 +7,14 @@ import { useSession } from "next-auth/react";
 import { NextScanCountdown } from "@/components/dashboard/next-scan-countdown";
 import { StatsWidget } from "@/components/dashboard/stats-widget";
 import { TickerSearch } from "@/components/dashboard/ticker-search";
-import { latestChangelogDate } from "@/lib/changelog-data";
-
-const CHANGELOG_NEW_DAYS = 14;
-const latestEntry = new Date(latestChangelogDate + "T00:00:00Z");
-const isChangelogNew =
-  Date.now() - latestEntry.getTime() < CHANGELOG_NEW_DAYS * 24 * 60 * 60 * 1000;
-
 const navItems = [
   { href: "/dashboard", label: "Signals", icon: "📡" },
   { href: "/trending", label: "Trending", icon: "📈" },
   { href: "/portfolio", label: "Portfolio", icon: "💼" },
   // { href: "/leaderboard", label: "Leaderboard", icon: "🏆" }, // Temporarily disabled
-{ href: "/performance", label: "Performance", icon: "🎯" },
+  { href: "/performance", label: "Performance", icon: "🎯" },
   { href: "/methodology", label: "How It Works", icon: "ℹ️" },
-  { href: "/changelog", label: "Changelog", icon: "📋", badge: isChangelogNew ? "NEW" : undefined },
+  { href: "/changelog", label: "Changelog", icon: "📋" },
   { href: "/profile", label: "Profile", icon: "⚙️" },
 ];
 
