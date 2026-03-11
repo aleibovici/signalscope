@@ -1,4 +1,4 @@
-export type SourceStatus = "active" | "coming_soon" | "disabled";
+export type SourceStatus = "active";
 
 export interface SignalSource {
   icon: string;
