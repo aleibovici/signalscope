@@ -57,6 +57,12 @@ Remove from watchlist.
 
 **Response:** `{ success: true }`
 
+### GET /api/watchlist/tickers
+
+Watchlist symbols enriched with latest ticker data, performance, and signal sources.
+
+**Response:** `{ tickers: [{ symbol, name, aiScore, stage, price, marketCap, catalyst, recommendation, report, signalCount, sourceCount, return7d, sources, ... }] }`
+
 ## Leaderboard
 
 > **Temporarily disabled** — returns 503. Will be re-enabled once there are more active users.
@@ -124,3 +130,23 @@ Update profile settings.
 Username: 3-20 chars, lowercase letters, numbers, underscores only.
 
 **Response:** `{ id, email, username, emailAlerts }`
+
+## API Key Management
+
+### GET /api/user/api-key
+
+Get metadata for your current API key (does not reveal the key itself).
+
+**Response:** `{ apiKey: { prefix, createdAt, lastUsedAt } | null }`
+
+### POST /api/user/api-key
+
+Generate a new API key. Revokes any existing key. The full key is shown only once.
+
+**Response:** `{ key: "sk_sig_...", prefix: "sk_sig_abcdef...", skill: "https://signalscopes.com/skill/SKILL.md" }`
+
+### DELETE /api/user/api-key
+
+Revoke your current API key.
+
+**Response:** `{ success: true }`

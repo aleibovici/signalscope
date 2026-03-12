@@ -39,7 +39,7 @@ x-api-key: sk_sig_your_key_here
 ## API Reference
 
 - [Signal & scan endpoints](api-public.md) — 9 endpoints for scans, signals, tickers, trending, methodology
-- [Account endpoints](api-authenticated.md) — 12 endpoints for portfolio, watchlist, performance, profile
+- [Account endpoints](api-authenticated.md) — 16 endpoints for portfolio, watchlist, performance, profile, API key management
 
 ## Common Workflows
 
@@ -67,6 +67,12 @@ curl -H "x-api-key: $KEY" "https://signalscopes.com/api/tickers/trending?minAppe
 
 # Filter by stage
 curl -H "x-api-key: $KEY" "https://signalscopes.com/api/tickers/trending?stage=CONFIRMED"
+
+# Advanced: micro-cap tickers sorted by return, hiding P&D flagged
+curl -H "x-api-key: $KEY" "https://signalscopes.com/api/tickers/trending?marketCap=micro&sortBy=return&hidePnd=true"
+
+# Tickers near 52-week low from Reddit
+curl -H "x-api-key: $KEY" "https://signalscopes.com/api/tickers/trending?near52wLow=true&source=REDDIT"
 ```
 
 ### Deep-dive a specific ticker
@@ -115,6 +121,19 @@ curl -X POST -H "x-api-key: $KEY" -H "Content-Type: application/json" \
 
 # Remove from watchlist
 curl -X DELETE -H "x-api-key: $KEY" https://signalscopes.com/api/watchlist/TSLA
+```
+
+### Manage API key
+
+```bash
+# Check if you have an active key
+curl -H "x-api-key: $KEY" https://signalscopes.com/api/user/api-key
+
+# Generate a new key (revokes existing)
+curl -X POST -H "x-api-key: $KEY" https://signalscopes.com/api/user/api-key
+
+# Revoke your key
+curl -X DELETE -H "x-api-key: $KEY" https://signalscopes.com/api/user/api-key
 ```
 
 ### Check platform performance
