@@ -55,8 +55,15 @@ Cross-scan trending tickers (last 30 days).
 | minAppearances | number | 2 | Minimum scan appearances (min 2) |
 | stage | string | — | Filter by latest stage: `EARLY`, `FORMING`, `CONFIRMED` |
 | trend | string | — | Filter: `rising`, `falling`, `stable` |
+| sector | string | — | Filter by sector (e.g., `Technology`, `Healthcare`) |
+| marketCap | string | — | Filter by market cap bucket: `micro` (<300M), `small` (300M-2B), `mid` (2B-10B), `large` (10B+) |
+| sortBy | string | appearances | Sort: `appearances`, `aiScore`, `price`, `return`, `marketCap` |
+| source | string | — | Filter by signal source: `REDDIT`, `TWITTER`, `STOCKTWITS`, `SEC_INSIDER`, `CONGRESS`, `VOLUME_SPIKE`, `OPTIONS_FLOW` |
+| hidePnd | boolean | false | Hide pump-and-dump flagged tickers |
+| returnPeriod | string | 7d | Return period for sort/display: `1d`, `3d`, `7d`, `30d` |
+| near52wLow | boolean | false | Only show tickers within 20% of 52-week low |
 
-**Response:** `{ tickers: [{ symbol, aiScore, stage, price, marketCap, catalyst, recommendation, appearanceCount, trend, scoreTrajectory: [{ score, stage, date }], return7d, sources, ... }], total, summary: { totalTrending, risingCount, fallingCount, stableCount, avgScore } }`
+**Response:** `{ tickers: [{ symbol, name, aiScore, stage, price, marketCap, sector, catalyst, risks, recommendation, report, appearanceCount, trend, scoreTrajectory: [{ score, stage, date }], return1d, return3d, return7d, return30d, sources, exchange, wk52Lo, wk52Hi, pndFlagged, pndScore, pndFlags, firstSeenDaysAgo, priorAppearances, ... }], total, summary: { totalTrending, risingCount, fallingCount, stableCount, avgScore } }`
 
 ## GET /api/tickers/:symbol
 
