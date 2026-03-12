@@ -20,9 +20,11 @@ export function buildEmailHtml(tickers: AlertTicker[], totalAvailable?: number):
   const forming = tickers.filter((t) => t.stage === "FORMING");
   const early = tickers.filter((t) => t.stage === "EARLY");
 
-  function renderSection(label: string, items: AlertTicker[], color: string): string {
+  function renderSection(label: string, items: AlertTicker[], color: string, maxItems?: number): string {
     if (items.length === 0) return "";
-    const rows = items
+    const displayed = maxItems ? items.slice(0, maxItems) : items;
+    const remaining = items.length - displayed.length;
+    const rows = displayed
       .map(
         (t) => `
       <tr>
@@ -35,9 +37,13 @@ export function buildEmailHtml(tickers: AlertTicker[], totalAvailable?: number):
       )
       .join("");
 
+    const moreLink = remaining > 0
+      ? `<tr><td colspan="3" style="padding:8px 12px;border-bottom:1px solid #e5e7eb;"><a href="https://signalscopes.com/dashboard" style="color:#2563eb;font-size:13px;text-decoration:none;">+${remaining} more emerging signal${remaining !== 1 ? "s" : ""} — view on dashboard →</a></td></tr>`
+      : "";
+
     return `
       <tr><td colspan="3" style="padding:12px 12px 4px;font-weight:700;font-size:13px;color:${color};text-transform:uppercase;letter-spacing:0.5px;">${label} (${items.length})</td></tr>
-      ${rows}`;
+      ${rows}${moreLink}`;
   }
 
   const totalCount = tickers.length;
@@ -65,7 +71,7 @@ export function buildEmailHtml(tickers: AlertTicker[], totalAvailable?: number):
             <th style="padding:8px 12px;border-bottom:2px solid #e5e7eb;">Catalyst</th>
           </tr>
         </thead>
-        <tbody>${renderSection(STAGE_LABELS.EARLY, early, "#16a34a")}${renderSection(STAGE_LABELS.FORMING, forming, "#ca8a04")}${renderSection(STAGE_LABELS.CONFIRMED, confirmed, "#6b7280")}</tbody>
+        <tbody>${renderSection(STAGE_LABELS.EARLY, early, "#16a34a", 3)}${renderSection(STAGE_LABELS.FORMING, forming, "#ca8a04")}${renderSection(STAGE_LABELS.CONFIRMED, confirmed, "#6b7280")}</tbody>
       </table>
       ${totalAvailable && totalAvailable > tickers.length ? `<p style="margin:16px 0 4px;font-size:13px;color:#6b7280;">Showing top ${tickers.length} of ${totalAvailable} signals.</p>` : ""}
       <p style="margin:8px 0;font-size:13px;color:#6b7280;">
