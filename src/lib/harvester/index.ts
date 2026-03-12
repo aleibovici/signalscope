@@ -177,11 +177,16 @@ export function determineStage(
   isAmexPenny?: boolean,
   isNasdaqSmallPenny?: boolean,
   medianSignalAgeHrs?: number | null,
+  marketCap?: number | null,
+  shortFloat?: number | null,
 ): "EARLY" | "FORMING" | "CONFIRMED" | "FILTERED" {
   if (pndFlagged) return "FILTERED";
 
   // Sub-dime 52wk floor = zombie/shell stock: cap at EARLY unless a hard catalyst exists
   if (wk52Lo != null && wk52Lo < 0.09 && !hasNonSocialSource) return "EARLY";
+
+  // Market cap floor: sub-$10M without a catalyst source is noise (ML top-2 feature)
+  if (marketCap != null && marketCap < 10_000_000 && !hasNonSocialSource) return "EARLY";
 
   const effectiveScore = novelty?.isNovel ? aiScore + 5 : aiScore;
 
@@ -189,10 +194,19 @@ export function determineStage(
   if (hasNonSocialSource && effectiveScore >= 65 && weightedSourceScore >= 4) return "CONFIRMED";
   if (hasNonSocialSource && effectiveScore >= 65 && sourceCount >= 2 && avgVelocity >= 2.0) return "CONFIRMED";
 
+  // Short squeeze CONFIRMED: high short float on NasdaqCM/AMEX penny near 52wk low (ML top-5 for 7d)
+  if ((isNasdaqSmallPenny || isAmexPenny) &&
+      shortFloat != null && shortFloat >= 0.20 &&
+      pctFrom52wkLow != null && pctFrom52wkLow < 0.98 &&
+      effectiveScore >= 45 && avgVelocity >= 1.5) {
+    return "CONFIRMED";
+  }
+
   // Reddit CONFIRMED: cross-community consensus is structural multi-source corroboration
   // Require signals to be fresh (median age < 6h) — stale consensus means the move already happened
+  // ML shows breadth (distinct_subreddits) matters more than speed — velocity relaxed from 2.5 to 2.0
   const signalsFresh = medianSignalAgeHrs == null || medianSignalAgeHrs < 6;
-  if (!hasNonSocialSource && (subredditCount ?? 0) >= 3 && effectiveScore >= 48 && avgVelocity >= 2.5 && signalsFresh) {
+  if (!hasNonSocialSource && (subredditCount ?? 0) >= 3 && effectiveScore >= 48 && avgVelocity >= 2.0 && signalsFresh) {
     return "CONFIRMED";
   }
 
@@ -510,7 +524,7 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
          fundamentals.exchange.toLowerCase().includes("nasdaq global market")) &&
         fundamentals.price != null && fundamentals.price < 5
       );
-      const stage = determineStage(score, agg.sourceCount, agg.weightedSourceScore, agg.avgVelocity, finalPndFlagged, hasNonSocialSource, novelty, agg.subredditCount, pctFrom52wkLow, wk52Lo, isAmexPenny, isNasdaqSmallPenny, agg.medianSignalAgeHrs);
+      const stage = determineStage(score, agg.sourceCount, agg.weightedSourceScore, agg.avgVelocity, finalPndFlagged, hasNonSocialSource, novelty, agg.subredditCount, pctFrom52wkLow, wk52Lo, isAmexPenny, isNasdaqSmallPenny, agg.medianSignalAgeHrs, fundamentals?.marketCap, fundamentals?.shortFloat);
 
       const signalType = classifySignalType(agg);
 

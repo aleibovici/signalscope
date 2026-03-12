@@ -42,6 +42,7 @@ export interface ValidatedTickerData {
   pndFlagged?: boolean;
   pndScore?: number;
   pndFlags?: string[];
+  subredditCount?: number | null;
   createdAt: string;
 }
 

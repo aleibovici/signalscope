@@ -40,56 +40,56 @@ describe("determineStage — CONFIRMED via non-social source", () => {
 });
 
 describe("determineStage — CONFIRMED via Reddit subreddit consensus", () => {
-  it("returns CONFIRMED when 3+ subreddits, score>=48, velocity>=2.5, fresh signals", () => {
+  it("returns CONFIRMED when 3+ subreddits, score>=48, velocity>=2.0, fresh signals", () => {
     // medianSignalAgeHrs=2 (fresh) — should confirm
-    expect(determineStage(48, 1, 1, 2.5, false, false, undefined, 3, undefined, undefined, undefined, undefined, 2)).toBe("CONFIRMED");
+    expect(determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, 2)).toBe("CONFIRMED");
   });
 
   it("returns CONFIRMED when medianSignalAgeHrs is null (non-social signals have no age)", () => {
-    expect(determineStage(48, 1, 1, 2.5, false, false, undefined, 3, undefined, undefined, undefined, undefined, null)).toBe("CONFIRMED");
+    expect(determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, null)).toBe("CONFIRMED");
   });
 
   it("returns CONFIRMED when medianSignalAgeHrs is undefined (backwards compat)", () => {
-    expect(determineStage(48, 1, 1, 2.5, false, false, undefined, 3)).toBe("CONFIRMED");
+    expect(determineStage(48, 1, 1, 2.0, false, false, undefined, 3)).toBe("CONFIRMED");
   });
 
   it("does NOT return CONFIRMED when signals are stale (medianSignalAgeHrs >= 6)", () => {
-    const result = determineStage(48, 1, 1, 2.5, false, false, undefined, 3, undefined, undefined, undefined, undefined, 8);
+    const result = determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, 8);
     expect(result).not.toBe("CONFIRMED");
   });
 
   it("does NOT return CONFIRMED at exactly medianSignalAgeHrs = 6 (boundary)", () => {
-    const result = determineStage(48, 1, 1, 2.5, false, false, undefined, 3, undefined, undefined, undefined, undefined, 6);
+    const result = determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, 6);
     expect(result).not.toBe("CONFIRMED");
   });
 
   it("returns CONFIRMED at medianSignalAgeHrs just under 6", () => {
-    expect(determineStage(48, 1, 1, 2.5, false, false, undefined, 3, undefined, undefined, undefined, undefined, 5.9)).toBe("CONFIRMED");
+    expect(determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, 5.9)).toBe("CONFIRMED");
   });
 
   it("returns CONFIRMED with novel boost pushing score above 48", () => {
     // aiScore=44, novel=true → effectiveScore=49 >= 48
-    expect(determineStage(44, 1, 1, 2.5, false, false, novel(), 3, undefined, undefined, undefined, undefined, 2)).toBe("CONFIRMED");
+    expect(determineStage(44, 1, 1, 2.0, false, false, novel(), 3, undefined, undefined, undefined, undefined, 2)).toBe("CONFIRMED");
   });
 
   it("does not return CONFIRMED with only 2 subreddits", () => {
-    const result = determineStage(48, 1, 1, 2.5, false, false, undefined, 2);
+    const result = determineStage(48, 1, 1, 2.0, false, false, undefined, 2);
     expect(result).not.toBe("CONFIRMED");
   });
 
   it("does not return CONFIRMED with subredditCount>=3 but score below 48", () => {
-    const result = determineStage(47, 1, 1, 2.5, false, false, undefined, 3);
+    const result = determineStage(47, 1, 1, 2.0, false, false, undefined, 3);
     expect(result).not.toBe("CONFIRMED");
   });
 
-  it("does not return CONFIRMED with subredditCount>=3 but velocity below 2.5", () => {
-    const result = determineStage(48, 1, 1, 2.4, false, false, undefined, 3);
+  it("does not return CONFIRMED with subredditCount>=3 but velocity below 2.0", () => {
+    const result = determineStage(48, 1, 1, 1.9, false, false, undefined, 3);
     expect(result).not.toBe("CONFIRMED");
   });
 
   it("does not apply Reddit CONFIRMED when hasNonSocialSource is true", () => {
     // With non-social source, path checks different conditions
-    const result = determineStage(48, 1, 1, 2.5, false, true, undefined, 3);
+    const result = determineStage(48, 1, 1, 2.0, false, true, undefined, 3);
     // Score 48 with sourceCount=1 doesn't meet any non-social CONFIRMED threshold
     expect(result).not.toBe("CONFIRMED");
   });
@@ -281,5 +281,70 @@ describe("determineStage — novelty +5 boost affecting stage boundary", () => {
   it("novel ticker with aiScore=45 gets effectiveScore=50 → CONFIRMED if non-social path matches", () => {
     // non-social + effectiveScore=50 doesn't meet 65 threshold → FORMING via score+sourceCount
     expect(determineStage(45, 3, 5, 1.0, false, true, novel())).toBe("FORMING");
+  });
+});
+
+describe("determineStage — market cap floor", () => {
+  it("returns EARLY when marketCap < $10M and no catalyst source", () => {
+    // score=60 + sourceCount=3 would normally be FORMING, but sub-$10M blocks it
+    expect(determineStage(60, 3, 3, 2.0, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 5_000_000)).toBe("EARLY");
+  });
+
+  it("allows FORMING when marketCap >= $10M", () => {
+    expect(determineStage(50, 2, 2, 0.5, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 15_000_000)).toBe("FORMING");
+  });
+
+  it("allows promotion when marketCap < $10M but has catalyst source", () => {
+    // hasNonSocialSource=true bypasses the market cap floor
+    expect(determineStage(70, 3, 5, 1.0, false, true, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 5_000_000)).toBe("CONFIRMED");
+  });
+
+  it("allows promotion when marketCap is null (unknown)", () => {
+    expect(determineStage(50, 2, 2, 0.5, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, null)).toBe("FORMING");
+  });
+
+  it("allows promotion when marketCap is undefined", () => {
+    expect(determineStage(50, 2, 2, 0.5, false, false)).toBe("FORMING");
+  });
+});
+
+describe("determineStage — CONFIRMED via short squeeze", () => {
+  it("returns CONFIRMED for AMEX penny with high short float near 52wk low", () => {
+    // isAmexPenny=true, shortFloat=0.25, pctFrom52wkLow=0.50, score=45, velocity=1.5
+    expect(determineStage(45, 1, 1, 1.5, false, false, undefined, undefined, 0.50, 0.50, true, false, undefined, 20_000_000, 0.25)).toBe("CONFIRMED");
+  });
+
+  it("returns CONFIRMED for NasdaqCM penny with high short float near 52wk low", () => {
+    expect(determineStage(45, 1, 1, 1.5, false, false, undefined, undefined, 0.50, 0.50, false, true, undefined, 20_000_000, 0.25)).toBe("CONFIRMED");
+  });
+
+  it("does NOT confirm when shortFloat < 0.20", () => {
+    const result = determineStage(45, 1, 1, 1.5, false, false, undefined, undefined, 0.50, 0.50, true, false, undefined, 20_000_000, 0.19);
+    expect(result).not.toBe("CONFIRMED");
+  });
+
+  it("does NOT confirm when pctFrom52wkLow >= 0.98 (already doubled)", () => {
+    const result = determineStage(45, 1, 1, 1.5, false, false, undefined, undefined, 0.98, 0.50, true, false, undefined, 20_000_000, 0.25);
+    expect(result).not.toBe("CONFIRMED");
+  });
+
+  it("does NOT confirm when neither AMEX nor NasdaqCM penny", () => {
+    const result = determineStage(45, 1, 1, 1.5, false, false, undefined, undefined, 0.50, 0.50, false, false, undefined, 20_000_000, 0.25);
+    expect(result).not.toBe("CONFIRMED");
+  });
+
+  it("does NOT confirm when score < 45", () => {
+    const result = determineStage(44, 1, 1, 1.5, false, false, undefined, undefined, 0.50, 0.50, true, false, undefined, 20_000_000, 0.25);
+    expect(result).not.toBe("CONFIRMED");
+  });
+
+  it("does NOT confirm when velocity < 1.5", () => {
+    const result = determineStage(45, 1, 1, 1.4, false, false, undefined, undefined, 0.50, 0.50, true, false, undefined, 20_000_000, 0.25);
+    expect(result).not.toBe("CONFIRMED");
+  });
+
+  it("does NOT confirm when shortFloat is null", () => {
+    const result = determineStage(45, 1, 1, 1.5, false, false, undefined, undefined, 0.50, 0.50, true, false, undefined, 20_000_000, null);
+    expect(result).not.toBe("CONFIRMED");
   });
 });
