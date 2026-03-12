@@ -11,7 +11,7 @@ import { fetchCongressSignals } from "./sources/congress";
 import { scoreSymbolBatch, defaultScore } from "./scoring";
 import { checkPndFlags, aiPndAssessment } from "./pnd-filter";
 import { fetchFundamentals } from "./fundamentals";
-import { generateTickerReport } from "./report";
+
 import { resetCostTracker, getTotalCost } from "@/lib/ai";
 
 const SOURCE_WEIGHTS: Record<string, number> = {
@@ -567,37 +567,7 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
     // Merge candidate + unscored results for DB write
     const allValidatedResults = [...validatedResults, ...unscoredResults];
 
-    // 7. Generate AI reports for non-filtered tickers (top 50)
-    const reportCandidates = validatedResults
-      .filter((r) => !r.pndFlagged)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 50);
-
-    const reports = new Map<string, Awaited<ReturnType<typeof generateTickerReport>>>();
-    const reportEntries = await Promise.allSettled(
-      reportCandidates.map(async (r) => {
-        const fundamentals = fundamentalsMap.get(r.agg.symbol) || null;
-        const novelty = noveltyMap.get(r.agg.symbol);
-        const report = await generateTickerReport(
-          r.agg.symbol,
-          r.agg,
-          fundamentals,
-          r.score,
-          r.signalType,
-          novelty
-        );
-        return { symbol: r.agg.symbol, report };
-      })
-    );
-    for (const entry of reportEntries) {
-      if (entry.status === "fulfilled") {
-        reports.set(entry.value.symbol, entry.value.report);
-      } else {
-        console.warn(`[report] Generation failed:`, entry.reason);
-      }
-    }
-
-    // 8. Store everything in database
+    // 7. Store everything in database (reports generated on-demand when users view tickers)
     console.log("Storing results...");
 
     // Store ALL signals first (including single-mention symbols) with neutral defaults
@@ -646,7 +616,6 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
     // Store validated tickers (candidates + UNSCORED non-candidates)
     const tickerDataList = allValidatedResults.map((result) => {
       const fundamentals = fundamentalsMap.get(result.agg.symbol);
-      const report = reports.get(result.agg.symbol);
       const novelty = noveltyMap.get(result.agg.symbol);
       return {
         scanId: scan.id,
@@ -658,10 +627,6 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
         wk52Lo: fundamentals?.wk52Lo ?? null,
         wk52Hi: fundamentals?.wk52Hi ?? null,
         exchange: fundamentals?.exchange,
-        catalyst: report?.catalyst,
-        risks: report?.risks,
-        recommendation: report?.recommendation,
-        report: report?.report,
         aiScore: result.score,
         stage: result.stage,
         signalCount: result.agg.signals.length,

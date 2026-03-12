@@ -12,7 +12,7 @@ SignalScope is a stock breakout signal detection platform. It harvests signals f
 npm run dev              # Next.js dev server (port 3000)
 npm run build            # Production build
 npm run lint             # ESLint
-npm test                 # Run Vitest unit tests (353 tests, 23 files)
+npm test                 # Run Vitest unit tests (393 tests, 23 files)
 npm run test:watch       # Vitest watch mode
 npm run db:generate      # Generate Prisma client (run after schema changes)
 npm run db:migrate       # Run Prisma migrations (dev)
@@ -58,17 +58,18 @@ gcloud scheduler jobs run signalscope-snapshots --location=us-central1
 Sources (7 in parallel) → Aggregate by symbol → Fetch fundamentals for ALL symbols (Yahoo Finance)
   ↓ candidates (≥2 signals / sources / weighted score)        ↓ non-candidates with YF price
   AI Scoring → P&D Filter (11 flags + AI edge-case)          Heuristic score + P&D flags (no AI)
-  → Report Generation → stage: EARLY/FORMING/CONFIRMED/FILTERED    → stage: UNSCORED
+  → stage: EARLY/FORMING/CONFIRMED/FILTERED                       → stage: UNSCORED
   └──────────────────────────────── DB ───────────────────────────────────────┘
+  Reports + Trade Setups generated ON-DEMAND when users view ticker detail page
 ```
 
-- `index.ts` — `fetchSignals()` (source fetching), `processSignals()` (AI scoring, P&D filter, reports, DB writes); includes `extractTxIdsFromUrls()` and `deduplicateCongressSignals()` for Congress dedup
-- `sources/` — reddit, twitter, stocktwits, sec-insider, congress, volume-spike, options-flow (disabled)
+- `index.ts` — `fetchSignals()` (source fetching), `processSignals()` (AI scoring, P&D filter, DB writes — no report generation); includes `extractTxIdsFromUrls()` and `deduplicateCongressSignals()` for Congress dedup
+- `sources/` — reddit, twitter, stocktwits, sec-insider, congress, volume-spike, options-flow
 - `sources/ticker-utils.ts` — Shared ticker regex, blacklist, mega-caps, extraction functions
 - `scoring.ts` — AI batch scoring with hard-rule overrides
 - `pnd-filter.ts` — Pump & dump detection (statistical flags + AI fallback)
 - `fundamentals.ts` — Yahoo Finance v8 for price/market cap
-- `report.ts` — AI-generated ticker reports
+- `report.ts` — AI-generated ticker reports + trade setups (called on-demand via `POST /api/tickers/[symbol]/report`, not during harvest)
 
 Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs to Cloud Run (`/api/harvest/ingest`) for processing
 
@@ -102,6 +103,7 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 | `/api/tickers/[symbol]` | GET | Latest ticker + raw signals |
 | `/api/tickers/[symbol]/history` | GET | Historical appearances for a ticker |
 | `/api/tickers/[symbol]/performance` | GET | Performance data for a ticker |
+| `/api/tickers/[symbol]/report` | POST | Generate AI report + trade setup on-demand (cached after first generation) |
 | `/api/portfolio` | GET/POST | List or add positions |
 | `/api/portfolio/[id]` | PATCH/DELETE | Update or delete position |
 | `/api/watchlist` | GET/POST | List or add watchlist items |
@@ -164,7 +166,7 @@ Multi-user email/password auth via Auth.js v5 (Credentials provider, JWT session
 
 Key models in `prisma/schema.prisma`: **User** (with `emailAlerts: Boolean`), **Scan** (harvest run), **Signal** (raw from sources), **ValidatedTicker** (scored candidates with fundamentals/report), **TickerPerformance** (post-scan price performance tracking), **PriceSnapshot** (continuous price time-series for return computation), **UserPosition** (portfolio), **UserWatchlist** (bookmarked tickers), **RefreshToken** (mobile auth token rotation, indexed on token/userId/expiresAt), **ApiKey** (SHA-256 hashed API keys for programmatic access, single key per user, `sk_sig_` prefix).
 
-`ValidatedTicker` notable fields: `wk52Lo/wk52Hi` (52-week range), `firstSeenDaysAgo` (null = truly novel, 0 = first seen today, N = days ago), `priorAppearances` (count of prior appearances in 30d window), `exchange`, `aiReasoning`, `pndFlagged/pndFlags/pndScore/pndAiConfidence/pndAiReasoning`.
+`ValidatedTicker` notable fields: `wk52Lo/wk52Hi` (52-week range), `firstSeenDaysAgo` (null = truly novel, 0 = first seen today, N = days ago), `priorAppearances` (count of prior appearances in 30d window), `exchange`, `aiReasoning`, `pndFlagged/pndFlags/pndScore/pndAiConfidence/pndAiReasoning`, `tradeSetupEntryLo/EntryHi/StopLoss/Target1/Target2/Timeframe/RiskReward/Confidence` (AI trade setup, generated on-demand for Buy/Strong Buy recommendations).
 
 `SignalSource` enum: `REDDIT | TWITTER | STOCKTWITS | SEC_INSIDER | SEC_FILING | CONGRESS | OPTIONS_FLOW | VOLUME_SPIKE`
 
@@ -222,7 +224,7 @@ BING_SITE_VERIFICATION=...
 
 ### Harvester
 
-Reddit blocks cloud IPs, so signal **fetching** runs locally. Processing (AI scoring, P&D filter, reports, DB writes) runs on Cloud Run via `POST /api/harvest/ingest`.
+Reddit blocks cloud IPs, so signal **fetching** runs locally. Processing (AI scoring, P&D filter, DB writes) runs on Cloud Run via `POST /api/harvest/ingest`. Reports and trade setups are generated on-demand when users view tickers.
 
 - **Dockerfile**: `Dockerfile.harvester` (lightweight, no Cloud SQL proxy)
 - **Compose file**: `docker-compose.harvest.yml`
@@ -280,7 +282,7 @@ gcloud scheduler jobs create http signalscope-snapshots-close \
 | Congress | Active | CapitolTrades.com — congressional stock trades; deduplicates by transaction ID across runs |
 | Volume Spike | Active | Yahoo Finance, 110 symbols, 2x avg volume threshold |
 | StockTwits | Active | Uses TrendSpider mirror (server-side rendered); direct StockTwits access is Cloudflare-blocked |
-| Options Flow | Disabled | Requires paid API (Unusual Whales, FlowAlgo) |
+| Options Flow | Active | Yahoo Finance options chain API, scans SCAN_SYMBOLS for unusual call volume, OTM activity, and call sweeps |
 
 ### Initial Setup
 

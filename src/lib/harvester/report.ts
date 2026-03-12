@@ -41,12 +41,33 @@ Recommendation guidance:
 - Watch: Interesting signal but needs more confirmation or catalyst is unverified.
 - Avoid: No real catalyst, pure social hype, or P&D risk indicators.
 
+Trade setup rules (ONLY for Buy or Strong Buy — omit tradeSetup entirely for Watch or Avoid):
+- entryLo/entryHi: tight range around current price or a technical level (typically within 2-5% of current price)
+- stopLoss: below key support, recent low, or 52-week low — never wider than 12% from entry midpoint
+- target1: nearest resistance or 15-25% above entry midpoint
+- target2: extended target if catalyst fully plays out (30-50% above entry)
+- timeframe: realistic holding period given catalyst type (insider/congress: "1-3 weeks"; options flow: "3-7 days"; social only: "1-3 days")
+- riskReward: must be at minimum "1:1.5" to recommend Buy; "1:2" or better for Strong Buy
+- confidence: "High" = insider/congress + multi-source; "Medium" = real catalyst, fewer sources; "Low" = speculative setup
+- All price fields must be numbers (not strings). Use the current price and 52-week range to derive realistic levels.
+- If you cannot derive a technically sound setup, omit tradeSetup entirely even for Buy.
+
 Return JSON:
 {
   "catalyst": "1-2 sentence catalyst summary — lead with insider/options if present",
   "risks": "1-2 sentence key risks — be specific",
   "recommendation": "Strong Buy|Buy|Watch|Avoid",
-  "report": "3-5 paragraph analysis covering catalyst, technical setup, short interest, risk factors, and outlook. State confidence level explicitly."
+  "report": "3-5 paragraph analysis covering catalyst, technical setup, short interest, risk factors, and outlook. State confidence level explicitly.",
+  "tradeSetup": {
+    "entryLo": <number>,
+    "entryHi": <number>,
+    "stopLoss": <number>,
+    "target1": <number>,
+    "target2": <number>,
+    "timeframe": "<string>",
+    "riskReward": "<string e.g. 1:2.5>",
+    "confidence": "Low|Medium|High"
+  }
 }`,
       userMessage: JSON.stringify({
         symbol,
@@ -100,6 +121,21 @@ Return JSON:
       console.warn(`Report for ${symbol} returned invalid structure, using default`);
       return defaultReport(symbol);
     }
+
+    // Validate optional tradeSetup — drop silently if malformed
+    if (raw.tradeSetup !== undefined && raw.tradeSetup !== null) {
+      const ts = raw.tradeSetup;
+      if (
+        typeof ts.entryLo !== "number" || typeof ts.entryHi !== "number" ||
+        typeof ts.stopLoss !== "number" || typeof ts.target1 !== "number" ||
+        typeof ts.target2 !== "number" || typeof ts.timeframe !== "string" ||
+        typeof ts.riskReward !== "string" || typeof ts.confidence !== "string"
+      ) {
+        console.warn(`Report for ${symbol} has invalid tradeSetup shape, dropping it`);
+        delete raw.tradeSetup;
+      }
+    }
+
     return raw as TickerReport;
   } catch (err) {
     console.error(`Report generation for ${symbol} error:`, err);

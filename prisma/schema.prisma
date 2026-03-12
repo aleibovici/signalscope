@@ -139,6 +139,14 @@ model ValidatedTicker {
   pndAiConfidence     Int?
   pndAiReasoning      String?     @db.Text
   medianSignalAgeHrs  Float?      // median post age (hours) of social signals at harvest time
+  tradeSetupEntryLo    Float?     // Entry range low price
+  tradeSetupEntryHi    Float?     // Entry range high price
+  tradeSetupStopLoss   Float?     // Stop loss price
+  tradeSetupTarget1    Float?     // First target price
+  tradeSetupTarget2    Float?     // Second / extended target price
+  tradeSetupTimeframe  String?    // e.g. "3-5 days", "1-2 weeks"
+  tradeSetupRiskReward String?    // e.g. "1:2.5"
+  tradeSetupConfidence String?    // "Low" | "Medium" | "High"
   createdAt           DateTime    @default(now())
   performance      TickerPerformance?
   priceSnapshots   PriceSnapshot[]

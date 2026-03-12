@@ -12,6 +12,17 @@ export interface ScanSummary {
   filteredCount: number;
 }
 
+export interface TradeSetup {
+  entryLo: number;
+  entryHi: number;
+  stopLoss: number;
+  target1: number;
+  target2: number;
+  timeframe: string;
+  riskReward: string;
+  confidence: "Low" | "Medium" | "High";
+}
+
 export interface ValidatedTickerData {
   id: string;
   symbol: string;
@@ -43,6 +54,14 @@ export interface ValidatedTickerData {
   pndScore?: number;
   pndFlags?: string[];
   subredditCount?: number | null;
+  tradeSetupEntryLo?: number | null;
+  tradeSetupEntryHi?: number | null;
+  tradeSetupStopLoss?: number | null;
+  tradeSetupTarget1?: number | null;
+  tradeSetupTarget2?: number | null;
+  tradeSetupTimeframe?: string | null;
+  tradeSetupRiskReward?: string | null;
+  tradeSetupConfidence?: string | null;
   createdAt: string;
 }
 
@@ -152,6 +171,7 @@ export interface TickerReportData {
   risks: string;
   recommendation: string;
   report: string;
+  tradeSetup?: TradeSetup | null;
 }
 
 export function useGenerateReport(symbol: string | null) {
@@ -175,6 +195,16 @@ export function useGenerateReport(symbol: string | null) {
               risks: reportData.risks,
               recommendation: reportData.recommendation,
               report: reportData.report,
+              ...(reportData.tradeSetup ? {
+                tradeSetupEntryLo: reportData.tradeSetup.entryLo,
+                tradeSetupEntryHi: reportData.tradeSetup.entryHi,
+                tradeSetupStopLoss: reportData.tradeSetup.stopLoss,
+                tradeSetupTarget1: reportData.tradeSetup.target1,
+                tradeSetupTarget2: reportData.tradeSetup.target2,
+                tradeSetupTimeframe: reportData.tradeSetup.timeframe,
+                tradeSetupRiskReward: reportData.tradeSetup.riskReward,
+                tradeSetupConfidence: reportData.tradeSetup.confidence,
+              } : {}),
             },
           };
         }
