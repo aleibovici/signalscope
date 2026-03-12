@@ -172,7 +172,7 @@ export async function GET(request: NextRequest) {
         const r = latestBySymbol.get(s);
         if (!r || r.price == null || r.wk52Lo == null || r.wk52Lo <= 0) return false;
         const pct = (r.price - r.wk52Lo) / r.wk52Lo;
-        return pct >= 0.007 && pct < 0.20;
+        return pct >= 0.007 && pct < 0.50;
       });
     }
 
@@ -278,6 +278,7 @@ export async function GET(request: NextRequest) {
         pndFlagged: record.pndFlagged,
         pndScore: record.pndScore,
         pndFlags: record.pndFlags,
+        subredditCount: record.subredditCount,
         return1d: record.performance?.return1d ?? null,
         return3d: record.performance?.return3d ?? null,
         return7d: record.performance?.return7d ?? null,

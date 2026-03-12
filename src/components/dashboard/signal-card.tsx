@@ -76,8 +76,20 @@ export function SignalCard({
               )}
               {ticker.price != null && ticker.wk52Lo != null && ticker.wk52Lo > 0 &&
                ((ticker.price - ticker.wk52Lo) / ticker.wk52Lo) >= 0.007 &&
-               ((ticker.price - ticker.wk52Lo) / ticker.wk52Lo) < 0.20 && (
+               ((ticker.price - ticker.wk52Lo) / ticker.wk52Lo) < 0.50 && (
                 <Badge variant="warning">Near 52W Low</Badge>
+              )}
+              {ticker.shortFloat != null && ticker.shortFloat >= 0.20 &&
+               ticker.price != null && ticker.price < 5 &&
+               ticker.exchange != null && (
+                 ticker.exchange.toLowerCase().includes("american") ||
+                 ticker.exchange.toLowerCase().includes("nasdaqcm") ||
+                 ticker.exchange.toLowerCase().includes("nasdaq capital")
+               ) && (
+                <Badge variant="danger">Short Squeeze</Badge>
+              )}
+              {ticker.subredditCount != null && ticker.subredditCount >= 3 && (
+                <Badge variant="info">Multi-Reddit</Badge>
               )}
               {ticker.exchange?.toLowerCase().includes("american") &&
                ticker.price != null && ticker.price < 5 && (
