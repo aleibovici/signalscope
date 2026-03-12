@@ -9,6 +9,24 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-03-13",
+    title: "AI Trade Setups & On-Demand Reports",
+    changes: [
+      {
+        category: "new",
+        items: [
+          "AI Trade Setup card on ticker detail page: entry range, stop loss, two price targets, timeframe, risk/reward ratio, and confidence level for Buy and Strong Buy tickers.",
+        ],
+      },
+      {
+        category: "improved",
+        items: [
+          "Reports and trade setups now generate on-demand when you view a ticker, reducing harvest processing time and AI costs.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-03-12",
     title: "Trending Page Overhaul & Stage Renames",
     changes: [
