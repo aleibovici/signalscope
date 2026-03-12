@@ -1,8 +1,8 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useTickerDetail, useTickerHistory } from "@/hooks/use-scans";
+import { useTickerDetail, useTickerHistory, useGenerateReport } from "@/hooks/use-scans";
 import { useTickerPerformance } from "@/hooks/use-performance";
 import { useWatchlist, useToggleWatchlist } from "@/hooks/use-watchlist";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,8 @@ export default function TickerDetailPage() {
   const [signalsOpen, setSignalsOpen] = useState(false);
   const [livePrice, setLivePrice] = useState<number | null | undefined>(undefined);
   const [priceRefreshing, setPriceRefreshing] = useState(false);
+  const reportGenerated = useRef(false);
+  const { mutate: generateReport, isPending: reportGenerating, isError: reportError } = useGenerateReport(symbol);
 
   async function refreshPrice() {
     if (priceRefreshing) return;
@@ -39,6 +41,14 @@ export default function TickerDetailPage() {
       setPriceRefreshing(false);
     }
   }
+
+  // Auto-generate report if missing
+  useEffect(() => {
+    if (data?.ticker && !data.ticker.catalyst && !reportGenerated.current && !reportGenerating) {
+      reportGenerated.current = true;
+      generateReport();
+    }
+  }, [data?.ticker, generateReport, reportGenerating]);
 
   if (isLoading) {
     return (
@@ -162,19 +172,28 @@ export default function TickerDetailPage() {
             <h3 className="font-semibold">Thesis & Risks</h3>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="rounded-md bg-blue-50 p-3">
-              <p className="text-sm text-blue-900">
-                <span className="mr-1 font-semibold">Thesis:</span>
-                {ticker.catalyst || "No catalyst data available."}
-              </p>
-            </div>
-            {ticker.risks && (
-              <div className="rounded-md bg-amber-50 p-3">
-                <p className="text-sm text-amber-900">
-                  <span className="mr-1 font-semibold">Risks:</span>
-                  {ticker.risks}
-                </p>
+            {reportGenerating ? (
+              <div className="flex items-center gap-2 rounded-md bg-gray-50 p-3">
+                <Spinner className="h-4 w-4 text-blue-600" />
+                <p className="text-sm text-gray-600">Generating AI analysis...</p>
               </div>
+            ) : (
+              <>
+                <div className="rounded-md bg-blue-50 p-3">
+                  <p className="text-sm text-blue-900">
+                    <span className="mr-1 font-semibold">Thesis:</span>
+                    {ticker.catalyst || (reportError ? "AI analysis unavailable." : "No catalyst data available.")}
+                  </p>
+                </div>
+                {ticker.risks && (
+                  <div className="rounded-md bg-amber-50 p-3">
+                    <p className="text-sm text-amber-900">
+                      <span className="mr-1 font-semibold">Risks:</span>
+                      {ticker.risks}
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
@@ -225,17 +244,24 @@ export default function TickerDetailPage() {
         </Card>
       )}
 
-      {ticker.report && (
+      {(ticker.report || reportGenerating) && (
         <Card>
           <CardHeader>
             <h3 className="font-semibold">AI Analysis Report</h3>
           </CardHeader>
           <CardContent>
-            <div className="prose prose-sm max-w-none text-gray-700">
-              {ticker.report.split("\n").map((paragraph, i) => (
-                <p key={i}>{paragraph}</p>
-              ))}
-            </div>
+            {reportGenerating ? (
+              <div className="flex items-center gap-2 py-4">
+                <Spinner className="h-4 w-4 text-blue-600" />
+                <p className="text-sm text-gray-600">Generating full report...</p>
+              </div>
+            ) : (
+              <div className="prose prose-sm max-w-none text-gray-700">
+                {ticker.report!.split("\n").map((paragraph, i) => (
+                  <p key={i}>{paragraph}</p>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

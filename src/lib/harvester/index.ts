@@ -567,11 +567,11 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
     // Merge candidate + unscored results for DB write
     const allValidatedResults = [...validatedResults, ...unscoredResults];
 
-    // 7. Generate AI reports for non-filtered tickers (top 20)
+    // 7. Generate AI reports for non-filtered tickers (top 50)
     const reportCandidates = validatedResults
       .filter((r) => !r.pndFlagged)
       .sort((a, b) => b.score - a.score)
-      .slice(0, 20);
+      .slice(0, 50);
 
     const reports = new Map<string, Awaited<ReturnType<typeof generateTickerReport>>>();
     const reportEntries = await Promise.allSettled(

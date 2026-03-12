@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export interface ScanSummary {
   id: string;
@@ -144,5 +144,41 @@ export function useTickerDetail(symbol: string | null) {
       return res.json();
     },
     enabled: !!symbol,
+  });
+}
+
+export interface TickerReportData {
+  catalyst: string;
+  risks: string;
+  recommendation: string;
+  report: string;
+}
+
+export function useGenerateReport(symbol: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation<TickerReportData>({
+    mutationFn: async () => {
+      const res = await fetch(`/api/tickers/${symbol}/report`, { method: "POST" });
+      if (!res.ok) throw new Error("Failed to generate report");
+      return res.json();
+    },
+    onSuccess: (reportData) => {
+      queryClient.setQueryData<{ ticker: ValidatedTickerData; signals: SignalData[] }>(
+        ["ticker", symbol],
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            ticker: {
+              ...old.ticker,
+              catalyst: reportData.catalyst,
+              risks: reportData.risks,
+              recommendation: reportData.recommendation,
+              report: reportData.report,
+            },
+          };
+        }
+      );
+    },
   });
 }
