@@ -74,11 +74,23 @@ export interface PndAiResult {
   reasoning?: string;
 }
 
+export interface TradeSetup {
+  entryLo: number;
+  entryHi: number;
+  stopLoss: number;
+  target1: number;
+  target2: number;
+  timeframe: string;
+  riskReward: string;
+  confidence: "Low" | "Medium" | "High";
+}
+
 export interface TickerReport {
   catalyst: string;
   risks: string;
   recommendation: string;
   report: string;
+  tradeSetup?: TradeSetup;
 }
 
 export interface NoveltyContext {
