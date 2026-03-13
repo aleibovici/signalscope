@@ -9,6 +9,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-03-14",
+    title: "Portfolio Consensus Alerts",
+    changes: [
+      {
+        category: "new",
+        items: [
+          "Personalized portfolio alert emails: get notified when stocks in your portfolio reach Consensus or Building stage in the daily scan.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-03-13",
     title: "AI Trade Setups & On-Demand Reports",
     changes: [
