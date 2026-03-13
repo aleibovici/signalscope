@@ -1,11 +1,9 @@
-export type SourceStatus = "active" | "coming_soon" | "disabled";
-
 export interface SignalSource {
   icon: string;
   name: string;
   description: string;
   params: string;
-  status: SourceStatus;
+  status: "active";
 }
 
 export interface SourceWeight {
