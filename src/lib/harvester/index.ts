@@ -181,6 +181,8 @@ export function determineStage(
   marketCap?: number | null,
   shortFloat?: number | null,
   wk52HighRatio?: number | null,
+  totalUpvotes?: number,
+  totalComments?: number,
 ): "EARLY" | "FORMING" | "CONFIRMED" | "FILTERED" {
   if (pndFlagged) return "FILTERED";
 
@@ -191,6 +193,11 @@ export function determineStage(
   if (marketCap != null && marketCap < 5_000_000 && !hasNonSocialSource) return "EARLY";
 
   const effectiveScore = novelty?.isNovel ? aiScore + 5 : aiScore;
+
+  // Comment-heavy penalty: high comments with low upvote/comment ratio = peak hype (ML: comments negatively predict 7d returns)
+  const isCommentHeavy = (totalComments ?? 0) > 150 && (totalUpvotes ?? 0) / (totalComments ?? 1) < 2;
+  // Conviction boost: high upvotes with high ratio = strong conviction (ML: upvotes positively predict returns)
+  const hasConviction = (totalUpvotes ?? 0) > 200 && (totalUpvotes ?? 0) / (totalComments ?? 1) > 5;
 
   if (hasNonSocialSource && effectiveScore >= 70 && sourceCount >= 3) return "CONFIRMED";
   if (hasNonSocialSource && effectiveScore >= 65 && weightedSourceScore >= 4) return "CONFIRMED";
@@ -214,8 +221,9 @@ export function determineStage(
   // Reddit CONFIRMED: cross-community consensus is structural multi-source corroboration
   // Require signals to be fresh (median age < 6h) — stale consensus means the move already happened
   // ML shows breadth (distinct_subreddits) matters more than speed — velocity relaxed from 2.5 to 2.0
+  // Comment-heavy signals block CONFIRMED — peak hype predicts worse 7d returns (ML SHAP -0.004)
   const signalsFresh = medianSignalAgeHrs == null || medianSignalAgeHrs < 6;
-  if (!hasNonSocialSource && (subredditCount ?? 0) >= 3 && effectiveScore >= 48 && avgVelocity >= 2.0 && signalsFresh) {
+  if (!hasNonSocialSource && !isCommentHeavy && (subredditCount ?? 0) >= 3 && effectiveScore >= 48 && avgVelocity >= 2.0 && signalsFresh) {
     return "CONFIRMED";
   }
 
@@ -226,10 +234,10 @@ export function determineStage(
     return "CONFIRMED";
   }
 
-  // NasdaqCM/NasdaqGM penny: same breakout pattern, slightly higher score bar
+  // NasdaqCM/NasdaqGM penny: same breakout pattern, higher score bar (ML: NasdaqCM underperforms AMEX, SHAP -0.002 vs +0.001)
   if (isNasdaqSmallPenny && wk52Lo != null && wk52Lo >= 0.09 && wk52Lo < 1.0 &&
       pctFrom52wkLow != null && pctFrom52wkLow >= 0.007 &&
-      effectiveScore >= 50 && avgVelocity >= 2.0) {
+      effectiveScore >= 52 && avgVelocity >= 2.0) {
     return "CONFIRMED";
   }
 
@@ -240,25 +248,28 @@ export function determineStage(
     return "CONFIRMED";
   }
 
-  if (effectiveScore >= 50 && sourceCount >= 2) return "FORMING";
+  // Conviction boost: treat high upvote-to-comment ratio as +3 effective score for FORMING thresholds
+  const formingEffective = hasConviction ? effectiveScore + 3 : effectiveScore;
+
+  if (formingEffective >= 50 && sourceCount >= 2) return "FORMING";
 
   const formingVelocityThreshold =
     pctFrom52wkLow != null && pctFrom52wkLow >= 0.007 && wk52Lo != null && wk52Lo >= 0.09 && wk52Lo < 1.0 ? 37 :
     pctFrom52wkLow != null && pctFrom52wkLow >= 0.007 ? 40 : 45;
-  if (effectiveScore >= formingVelocityThreshold && avgVelocity >= 2.0) return "FORMING";
+  if (formingEffective >= formingVelocityThreshold && avgVelocity >= 2.0) return "FORMING";
 
   // Novel tickers with decent score and multi-source get promoted
   if (novelty?.isNovel && aiScore >= 40 && sourceCount >= 2) return "FORMING";
 
   if (isAmexPenny && wk52Lo != null && wk52Lo >= 0.09 &&
       pctFrom52wkLow != null && pctFrom52wkLow >= 0.007 &&
-      effectiveScore >= 40 && avgVelocity >= 1.5) return "FORMING";
+      formingEffective >= 40 && avgVelocity >= 1.5) return "FORMING";
 
   if (isNasdaqSmallPenny && wk52Lo != null && wk52Lo >= 0.09 &&
       pctFrom52wkLow != null && pctFrom52wkLow >= 0.007 &&
-      effectiveScore >= 42 && avgVelocity >= 1.5) return "FORMING";
+      formingEffective >= 44 && avgVelocity >= 1.5) return "FORMING";
 
-  if ((subredditCount ?? 0) >= 3 && effectiveScore >= 40 && avgVelocity >= 1.5) return "FORMING";
+  if ((subredditCount ?? 0) >= 3 && formingEffective >= 40 && avgVelocity >= 1.5) return "FORMING";
 
   return "EARLY";
 }
@@ -541,7 +552,7 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
         fundamentals.price != null && fundamentals.price < 5
       );
       const wk52HighRatio = (fundamentals?.wk52Hi && fundamentals?.price) ? fundamentals.wk52Hi / fundamentals.price : undefined;
-      const stage = determineStage(score, agg.sourceCount, agg.weightedSourceScore, agg.avgVelocity, finalPndFlagged, hasNonSocialSource, novelty, agg.subredditCount, pctFrom52wkLow, wk52Lo, isAmexPenny, isNasdaqSmallPenny, agg.medianSignalAgeHrs, fundamentals?.marketCap, fundamentals?.shortFloat, wk52HighRatio);
+      const stage = determineStage(score, agg.sourceCount, agg.weightedSourceScore, agg.avgVelocity, finalPndFlagged, hasNonSocialSource, novelty, agg.subredditCount, pctFrom52wkLow, wk52Lo, isAmexPenny, isNasdaqSmallPenny, agg.medianSignalAgeHrs, fundamentals?.marketCap, fundamentals?.shortFloat, wk52HighRatio, agg.totalUpvotes, agg.totalComments);
 
       const signalType = classifySignalType(agg);
 
@@ -658,6 +669,8 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
           shortFloat: fundamentals?.shortFloat,
           sourceCount: result.agg.sourceCount,
           stage: result.stage,
+          totalUpvotes: result.agg.totalUpvotes,
+          totalComments: result.agg.totalComments,
         }),
         stage: result.stage,
         signalCount: result.agg.signals.length,

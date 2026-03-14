@@ -64,9 +64,9 @@ export function checkPndFlags(
   const redditPostCount = agg.signals.filter((s) => s.source === "REDDIT").length;
   if (
     !hasNewsCatalyst &&
-    agg.totalUpvotes > 1000 &&
+    agg.totalUpvotes > 2000 &&
     redditPostCount <= 3 &&
-    agg.totalComments < 50
+    agg.totalComments < 30
   ) {
     flags.push("upvote_pump");
   }
@@ -84,7 +84,7 @@ export function checkPndFlags(
   // 3. Market cap < $50M with no real news catalyst
   if (
     fundamentals?.marketCap != null &&
-    fundamentals.marketCap < 25_000_000 &&
+    fundamentals.marketCap < 40_000_000 &&
     !hasNewsCatalyst &&
     agg.totalUpvotes < 500 &&
     agg.subredditCount < 3

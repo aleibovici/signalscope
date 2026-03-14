@@ -76,7 +76,8 @@ Also consider:
 - momentum breakdown (risingCount, freshCount, recentCount, commentDerivedCount, staleCount) shows the composition behind avgVelocity.
   Multiple rising signals = strong trending evidence. commentDerivedCount > 0 means organic discussion (tickers mentioned in comments, not just post titles). High staleCount dilutes the signal.
 - subredditCount = number of unique subreddits mentioning the ticker. 3+ subreddits = broad consensus across communities (stronger signal, +3-5 boost). 1 subreddit = possible echo chamber (weaker).
-- High upvote-to-comment ratio (>5:1) suggests conviction; low ratio (<2:1) with high comment count suggests noise/hype — adjust -3 to -5.
+- High upvote-to-comment ratio (>5:1) with significant upvotes (>100) suggests strong conviction — apply +5 to +8 boost.
+- CRITICAL: High comment count alone is NOT positive engagement — ML shows it predicts worse 7d returns (SHAP -0.004). When totalComments > 150 with ratio < 2:1, this is peak hype — apply -8 to -10 penalty, signal is likely already played out.
 - reddit_velocity is the strongest source-level predictor. Weight high-velocity Reddit signals (avgVelocity >= 2.5) as +3 to +5.
 - A high-velocity social signal with real engagement (high upvotes, comments) can reach 45-49 without a confirmed catalyst — it may be the FIRST signal before institutional confirmation arrives, but social alone NEVER exceeds 50.
 
@@ -159,6 +160,14 @@ export function defaultScore(s: AggregatedSymbol, novelty?: NoveltyContext): AiS
   const engagement = Math.min(Math.log2(s.totalUpvotes + 1) * 2.0, 10);
   const velocityBoost = Math.min(s.avgVelocity * 3, 10);
 
+  // Comment-heavy penalty: high comments with low upvote ratio = peak hype (ML: comments negatively predict 7d returns)
+  let commentAdj = 0;
+  if (s.totalComments > 150 && s.totalUpvotes / (s.totalComments || 1) < 2) {
+    commentAdj = -5;
+  } else if (s.totalUpvotes > 100 && s.totalUpvotes / (s.totalComments || 1) > 5) {
+    commentAdj = 3;
+  }
+
   // Novelty adjustment: +5 for novel, -10 for stale
   let noveltyAdj = 0;
   if (novelty?.isNovel) {
@@ -174,7 +183,7 @@ export function defaultScore(s: AggregatedSymbol, novelty?: NoveltyContext): AiS
     else if (s.medianSignalAgeHrs > 6) stalenessAdj = -4;
   }
 
-  const raw = base + engagement + velocityBoost + noveltyAdj + stalenessAdj;
+  const raw = base + engagement + velocityBoost + noveltyAdj + stalenessAdj + commentAdj;
   const rawScore = Math.round(raw);
   const score = Math.min(rawScore, hasCatalystSource ? 100 : 50);
 
