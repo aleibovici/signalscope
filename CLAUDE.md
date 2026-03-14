@@ -384,7 +384,7 @@ All SEO metadata lives in Next.js metadata exports. When adding features, update
 - `src/app/manifest.ts` — PWA manifest (name, description)
 - `src/app/sitemap.ts` — XML sitemap (public pages only)
 - `src/app/robots.ts` — robots.txt (allows `/`, `/login`, `/register`, `/skill/`; disallows dashboard/API)
-- `src/lib/changelog-data.ts` — Changelog entries (array of `ChangelogEntry`). Add new entries at the top; `latestChangelogDate` export drives the sidebar "NEW" badge automatically.
+- `src/lib/changelog-data.ts` — Changelog entries (array of `ChangelogEntry`). Add new entries at the top; `latestChangelogDate` export drives the sidebar "NEW" badge automatically. **One entry per date** — if today already has an entry, merge new changes into it instead of creating a duplicate.
 
 ## API Error Handling
 
