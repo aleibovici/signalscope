@@ -142,7 +142,7 @@ export function SignalCard({
               </div>
             )}
             <p className="text-sm text-gray-500">
-              Score: {ticker.aiScore}/100
+              Score: {ticker.opportunityScore}/100
             </p>
           </div>
         </div>

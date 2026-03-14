@@ -51,6 +51,7 @@ function makeTicker(
     recommendation: "Buy",
     report: null,
     aiScore,
+    opportunityScore: overrides.opportunityScore ?? Math.max(0, 100 - aiScore),
     stage,
     signalCount: 3,
     sourceCount: 2,
@@ -598,6 +599,36 @@ describe("GET /api/tickers/trending", () => {
 
     expect(body.tickers[0].symbol).toBe("FAST");
     expect(body.tickers[0].return3d).toBe(0.10);
+  });
+
+  it("sorts by opportunity score descending", async () => {
+    mockQueryRaw.mockResolvedValue([
+      { symbol: "LO_OPP", cnt: BigInt(2) },
+      { symbol: "HI_OPP", cnt: BigInt(2) },
+    ]);
+
+    mockFindManyTicker.mockImplementation((args: { distinct?: string[] }) => {
+      if (args.distinct) {
+        return [
+          makeTicker("LO_OPP", 90, "CONFIRMED", daysAgo(1), "scan_1", { opportunityScore: 10 }),
+          makeTicker("HI_OPP", 30, "EARLY", daysAgo(1), "scan_1", { opportunityScore: 85 }),
+        ];
+      }
+      return [
+        { symbol: "LO_OPP", aiScore: 90, stage: "CONFIRMED", createdAt: daysAgo(1) },
+        { symbol: "LO_OPP", aiScore: 85, stage: "CONFIRMED", createdAt: daysAgo(5) },
+        { symbol: "HI_OPP", aiScore: 30, stage: "EARLY", createdAt: daysAgo(1) },
+        { symbol: "HI_OPP", aiScore: 25, stage: "EARLY", createdAt: daysAgo(5) },
+      ];
+    });
+    mockFindManySignal.mockResolvedValue([]);
+
+    const res = await GET(makeRequest({ sortBy: "opportunityScore" }));
+    const body = await res.json();
+
+    expect(body.tickers[0].symbol).toBe("HI_OPP");
+    expect(body.tickers[0].opportunityScore).toBe(85);
+    expect(body.tickers[1].symbol).toBe("LO_OPP");
   });
 
   it("sorts by market cap descending", async () => {

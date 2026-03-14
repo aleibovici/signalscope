@@ -22,6 +22,7 @@ interface PerformanceRecord {
   createdAt: Date;
   validatedTicker: {
     aiScore: number;
+    opportunityScore: number;
     stage: string;
     signalType: string | null;
     createdAt: Date;
@@ -90,6 +91,7 @@ export async function GET(request: NextRequest) {
           validatedTicker: {
             select: {
               aiScore: true,
+              opportunityScore: true,
               stage: true,
               signalType: true,
               createdAt: true,
@@ -115,6 +117,7 @@ export async function GET(request: NextRequest) {
         byStage: {},
         byType: {},
         byScoreRange: {},
+        byOpportunityScoreRange: {},
         bestPerformers: [],
         worstPerformers: [],
       });
@@ -276,6 +279,29 @@ export async function GET(request: NextRequest) {
       byScoreRange[label] = computeStats(group, returnCol);
     }
 
+    // By opportunity score range
+    const byOpportunityScoreRange: Record<string, ReturnType<typeof computeStats>> = {};
+    const oppRanges = [
+      { label: "0-25", min: 0, max: 25 },
+      { label: "25-50", min: 25, max: 50 },
+      { label: "50-75", min: 50, max: 75 },
+      { label: "75-100", min: 75, max: 101 },
+    ];
+    const oppRangeGroups = new Map<string, PerformanceRecord[]>();
+    for (const r of recordsWithReturn) {
+      const oppScore = r.validatedTicker.opportunityScore;
+      for (const range of oppRanges) {
+        if (oppScore >= range.min && oppScore < range.max) {
+          if (!oppRangeGroups.has(range.label)) oppRangeGroups.set(range.label, []);
+          oppRangeGroups.get(range.label)!.push(r);
+          break;
+        }
+      }
+    }
+    for (const [label, group] of oppRangeGroups) {
+      byOpportunityScoreRange[label] = computeStats(group, returnCol);
+    }
+
     // Best/Worst performers
     const sorted = [...recordsWithReturn].sort(
       (a, b) => (b[returnCol] as number) - (a[returnCol] as number),
@@ -303,6 +329,7 @@ export async function GET(request: NextRequest) {
       byStage,
       byType,
       byScoreRange,
+      byOpportunityScoreRange,
       bestPerformers,
       worstPerformers,
     });

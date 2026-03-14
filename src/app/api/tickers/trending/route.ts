@@ -23,7 +23,7 @@ const trendingSchema = paginationSchema.extend({
   trend: z.enum(["rising", "falling", "stable"]).optional(),
   sector: z.string().optional(),
   marketCap: z.enum(["micro", "small", "mid", "large"]).optional(),
-  sortBy: z.enum(["appearances", "aiScore", "price", "return", "marketCap"]).default("appearances"),
+  sortBy: z.enum(["appearances", "aiScore", "opportunityScore", "price", "return", "marketCap"]).default("appearances"),
   source: z.enum(SOURCES).optional(),
   hidePnd: z.coerce.boolean().default(false),
   returnPeriod: z.enum(["1d", "3d", "7d", "30d"]).default("7d"),
@@ -212,6 +212,8 @@ export async function GET(request: NextRequest) {
         switch (sortBy) {
           case "aiScore":
             return rb.aiScore - ra.aiScore;
+          case "opportunityScore":
+            return (rb.opportunityScore ?? 0) - (ra.opportunityScore ?? 0);
           case "price":
             return (rb.price ?? 0) - (ra.price ?? 0);
           case "return": {
@@ -225,7 +227,7 @@ export async function GET(request: NextRequest) {
           default: {
             const countDiff = (countBySymbol.get(b) ?? 0) - (countBySymbol.get(a) ?? 0);
             if (countDiff !== 0) return countDiff;
-            return rb.aiScore - ra.aiScore;
+            return (rb.opportunityScore ?? 0) - (ra.opportunityScore ?? 0);
           }
         }
       });
@@ -264,6 +266,7 @@ export async function GET(request: NextRequest) {
         recommendation: record.recommendation,
         report: record.report,
         aiScore: record.aiScore,
+        opportunityScore: record.opportunityScore,
         stage: record.stage,
         signalCount: record.signalCount,
         sourceCount: record.sourceCount,

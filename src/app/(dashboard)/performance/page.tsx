@@ -525,10 +525,13 @@ export default function PerformancePage() {
           <CumulativeReturns data={data.cumulativeReturns} horizon={days} />
 
           {/* Breakdown tables */}
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid gap-4 lg:grid-cols-2">
             <StatsTable title="By Stage" data={data.byStage} />
             <StatsTable title="By Signal Type" data={data.byType} />
-            <StatsTable title="By Score Range" data={data.byScoreRange} />
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <StatsTable title="By Signal Confidence (AI Score)" data={data.byScoreRange} />
+            <StatsTable title="By Early-Mover Score (Opportunity)" data={data.byOpportunityScoreRange} />
           </div>
 
           {/* Best/Worst performers */}

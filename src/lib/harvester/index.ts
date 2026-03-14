@@ -12,6 +12,7 @@ import { scoreSymbolBatch, defaultScore } from "./scoring";
 import { checkPndFlags, aiPndAssessment } from "./pnd-filter";
 import { fetchFundamentals } from "./fundamentals";
 
+import { computeOpportunityScore } from "./opportunity-score";
 import { resetCostTracker, getTotalCost } from "@/lib/ai";
 
 const SOURCE_WEIGHTS: Record<string, number> = {
@@ -644,6 +645,20 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
         wk52Hi: fundamentals?.wk52Hi ?? null,
         exchange: fundamentals?.exchange,
         aiScore: result.score,
+        opportunityScore: computeOpportunityScore({
+          aiScore: result.score,
+          firstSeenDaysAgo: novelty?.daysSinceFirstSeen ?? null,
+          priorAppearances: novelty?.priorAppearances ?? 0,
+          avgVelocity: result.agg.avgVelocity,
+          price: fundamentals?.price,
+          marketCap: fundamentals?.marketCap,
+          wk52Lo: fundamentals?.wk52Lo,
+          wk52Hi: fundamentals?.wk52Hi,
+          medianSignalAgeHrs: result.agg.medianSignalAgeHrs,
+          shortFloat: fundamentals?.shortFloat,
+          sourceCount: result.agg.sourceCount,
+          stage: result.stage,
+        }),
         stage: result.stage,
         signalCount: result.agg.signals.length,
         sourceCount: result.agg.sourceCount,
