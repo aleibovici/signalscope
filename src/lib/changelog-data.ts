@@ -10,26 +10,7 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-03-15",
-    title: "Batch AI Report Pre-Generation",
-    changes: [
-      {
-        category: "new",
-        items: [
-          "AI reports for top 10 emerging tickers are now pre-generated automatically after each harvest — no more waiting on first view.",
-          "New Cloud Scheduler job runs 30 minutes after harvest to generate reports for the highest Opportunity Score EARLY and FORMING tickers.",
-        ],
-      },
-      {
-        category: "improved",
-        items: [
-          "Refactored signal reconstruction into a shared helper, reducing code duplication between on-demand and batch report generation.",
-        ],
-      },
-    ],
-  },
-  {
-    date: "2026-03-15",
-    title: "Opportunity Score & ML-Informed Tuning",
+    title: "Opportunity Score, Batch Reports & ML Pipeline Tuning",
     changes: [
       {
         category: "new",
@@ -38,6 +19,7 @@ export const changelog: ChangelogEntry[] = [
           "Dashboard and trending pages now sort by Opportunity Score instead of AI confidence, surfacing highest-alpha signals first.",
           "Performance page shows returns broken down by both Signal Confidence (AI Score) and Early-Mover Score (Opportunity).",
           "New 'Opportunity Score' sort option on the Trending page.",
+          "AI reports for top 10 emerging tickers are now pre-generated automatically after each harvest — no more waiting on first view.",
           "High SI badge for stocks with 7.5–15% short interest.",
           "High Velocity badge for signals with avgVelocity >= 2.5.",
           "Recovery badge for stocks near 52-week lows with 3x+ upside to prior highs.",
@@ -55,12 +37,15 @@ export const changelog: ChangelogEntry[] = [
         items: [
           "Ticker detail page shows Opportunity Score prominently with AI Score as a secondary metric.",
           "Email alerts now prioritize tickers by opportunity score.",
-          "Tuned P&D filter thresholds based on gradient boosting analysis: penny price flag lowered to $0.50, micro-cap threshold to $25M — fewer false positives on legitimate small-caps.",
+          "Comment-heavy signals (>150 comments, low upvote ratio) now demoted — ML shows high comment counts predict worse 7d returns.",
+          "High-conviction signals (>200 upvotes, >5:1 upvote/comment ratio) get a scoring and stage boost.",
+          "Widened NasdaqCM vs AMEX penny stock gap: NasdaqCM requires higher scores for CONFIRMED and FORMING stages, matching ML performance data.",
+          "Raised micro-cap P&D threshold from $25M to $40M and tightened upvote-pump detection to flag only extreme manipulation cases.",
           "New short squeeze FORMING stage for stocks with 7.5%+ short interest on AMEX/Nasdaq small-cap exchanges.",
           "New recovery play CONFIRMED path for beaten-down stocks near 52-week lows with high upside ratio.",
           "Lowered short squeeze CONFIRMED threshold from 20% to 15% short float.",
           "Market cap EARLY floor reduced from $10M to $5M to capture more micro-cap opportunities.",
-          "Scoring now weights Reddit upvotes more heavily and deprioritizes comment noise, based on ML feature importance.",
+          "Refactored signal reconstruction into a shared helper, reducing code duplication between on-demand and batch report generation.",
         ],
       },
     ],
