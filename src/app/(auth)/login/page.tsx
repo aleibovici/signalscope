@@ -589,7 +589,6 @@ export default function LoginPage() {
             <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-gray-500">
               <a href="/changelog" className="hover:text-gray-300 transition-colors touch-manipulation">Changelog</a>
               <a href="/skill/SKILL.md" target="_blank" className="hover:text-gray-300 transition-colors touch-manipulation">API Docs</a>
-              <a href="mailto:support@localhost:3000" className="hover:text-gray-300 transition-colors touch-manipulation">Contact</a>
             </div>
           </div>
           <p className="mt-4 text-center text-xs leading-relaxed text-gray-500 sm:text-left">
