@@ -10,6 +10,24 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-03-15",
+    title: "Batch AI Report Pre-Generation",
+    changes: [
+      {
+        category: "new",
+        items: [
+          "AI reports for top 10 emerging tickers are now pre-generated automatically after each harvest — no more waiting on first view.",
+          "New Cloud Scheduler job runs 30 minutes after harvest to generate reports for the highest Opportunity Score EARLY and FORMING tickers.",
+        ],
+      },
+      {
+        category: "improved",
+        items: [
+          "Refactored signal reconstruction into a shared helper, reducing code duplication between on-demand and batch report generation.",
+        ],
+      },
+    ],
+  },
+  {
     title: "Opportunity Score & ML-Informed Tuning",
     changes: [
       {
