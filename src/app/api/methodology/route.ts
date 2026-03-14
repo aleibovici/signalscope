@@ -21,10 +21,15 @@ import {
 export async function GET() {
   try {
     await getCurrentUserId();
+    const activeSignalSources = signalSources.map((source) => ({
+      ...source,
+      status: "active" as const,
+    }));
+
     return NextResponse.json({
       description: methodologyDescription,
       pipelineSteps: [...pipelineSteps],
-      signalSources,
+      signalSources: activeSignalSources,
       aggregation: {
         description: aggregationDescription,
         sourceWeights,
