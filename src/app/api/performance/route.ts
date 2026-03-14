@@ -240,8 +240,9 @@ export async function GET(request: NextRequest) {
       if (!stageGroups.has(stage)) stageGroups.set(stage, []);
       stageGroups.get(stage)!.push(r);
     }
-    for (const [stage, group] of stageGroups) {
-      byStage[stage] = computeStats(group, returnCol);
+    for (const s of ["EARLY", "FORMING", "CONFIRMED"] as const) {
+      const group = stageGroups.get(s);
+      if (group) byStage[s] = computeStats(group, returnCol);
     }
 
     // By signal type
@@ -275,8 +276,9 @@ export async function GET(request: NextRequest) {
         }
       }
     }
-    for (const [label, group] of rangeGroups) {
-      byScoreRange[label] = computeStats(group, returnCol);
+    for (const range of ranges) {
+      const group = rangeGroups.get(range.label);
+      if (group) byScoreRange[range.label] = computeStats(group, returnCol);
     }
 
     // By opportunity score range
@@ -298,8 +300,9 @@ export async function GET(request: NextRequest) {
         }
       }
     }
-    for (const [label, group] of oppRangeGroups) {
-      byOpportunityScoreRange[label] = computeStats(group, returnCol);
+    for (const range of oppRanges) {
+      const group = oppRangeGroups.get(range.label);
+      if (group) byOpportunityScoreRange[range.label] = computeStats(group, returnCol);
     }
 
     // Best/Worst performers

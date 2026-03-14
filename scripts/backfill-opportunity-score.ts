@@ -7,7 +7,7 @@ import { computeOpportunityScore } from "../src/lib/harvester/opportunity-score.
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
-const BATCH_SIZE = 500;
+const BATCH_SIZE = 100;
 
 async function main() {
   let cursor: string | undefined;
@@ -37,7 +37,7 @@ async function main() {
 
     if (tickers.length === 0) break;
 
-    const updates = tickers.map((t) => {
+    for (const t of tickers) {
       const score = computeOpportunityScore({
         aiScore: t.aiScore,
         firstSeenDaysAgo: t.firstSeenDaysAgo,
@@ -52,13 +52,11 @@ async function main() {
         sourceCount: t.sourceCount,
         stage: t.stage,
       });
-      return prisma.validatedTicker.update({
+      await prisma.validatedTicker.update({
         where: { id: t.id },
         data: { opportunityScore: score },
       });
-    });
-
-    await prisma.$transaction(updates);
+    }
     updated += tickers.length;
     cursor = tickers[tickers.length - 1].id;
     console.log(`Updated ${updated} tickers...`);
