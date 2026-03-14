@@ -61,6 +61,7 @@ Sources (7 in parallel) → Aggregate by symbol → Fetch fundamentals for ALL s
   → stage: EARLY/FORMING/CONFIRMED/FILTERED                       → stage: UNSCORED
   └──────────────────────────────── DB ───────────────────────────────────────┘
   Reports + Trade Setups generated ON-DEMAND when users view ticker detail page
+  (or batch pre-generated for top 10 EARLY/FORMING tickers via POST /api/reports/generate)
 ```
 
 - `index.ts` — `fetchSignals()` (source fetching), `processSignals()` (AI scoring, P&D filter, DB writes — no report generation); includes `extractTxIdsFromUrls()` and `deduplicateCongressSignals()` for Congress dedup
@@ -69,7 +70,7 @@ Sources (7 in parallel) → Aggregate by symbol → Fetch fundamentals for ALL s
 - `scoring.ts` — AI batch scoring with hard-rule overrides
 - `pnd-filter.ts` — Pump & dump detection (statistical flags + AI fallback)
 - `fundamentals.ts` — Yahoo Finance v8 for price/market cap
-- `report.ts` — AI-generated ticker reports + trade setups (called on-demand via `POST /api/tickers/[symbol]/report`, not during harvest)
+- `report.ts` — AI-generated ticker reports + trade setups (on-demand via `POST /api/tickers/[symbol]/report`, or batch via `POST /api/reports/generate`)
 
 Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs to Cloud Run (`/api/harvest/ingest`) for processing
 
@@ -81,6 +82,7 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 
 ### Utility Libs
 
+- `src/lib/reconstruct-aggregated.ts` — Reconstructs `AggregatedSymbol`, `FundamentalData`, `NoveltyContext` from DB records (shared by on-demand and batch report endpoints)
 - `src/lib/cache.ts` — `TTLCache<T>` in-memory cache with max-entries eviction
 - `src/lib/rate-limit.ts` — IP-based rate limiting for auth endpoints; `getClientIP()` handles `X-Forwarded-For` for Cloud Run
 - `src/lib/price-verification.ts` — `verifyPriceAgainstSnapshot()` validates user-reported prices against latest `PriceSnapshot` (5% deviation threshold)
@@ -125,6 +127,7 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 | `/api/methodology` | GET | Methodology data (public, structured JSON) |
 | `/api/alerts/send` | POST | Send email alerts for CONFIRMED tickers via Resend (x-snapshot-key auth) |
 | `/api/harvest/ingest` | POST | Receive raw signals for cloud processing (x-harvest-key auth) |
+| `/api/reports/generate` | POST | Batch pre-generate AI reports for top 10 emerging tickers (x-snapshot-key auth) |
 | `/api/snapshots/collect` | POST | Collect price snapshots for validated tickers (x-snapshot-key auth) |
 
 ### Frontend (`src/app/(dashboard)/`)
@@ -148,7 +151,7 @@ Multi-user email/password auth via Auth.js v5 (Credentials provider, JWT session
 - `getCurrentUserId()` is **async** — all callers must `await` it; checks `Authorization: Bearer` header first (mobile JWT), then `x-api-key` header (API key auth), falls back to Auth.js cookie session
 - `mobile-jwt.ts` — HS256 JWT sign/verify via `jose`, signing key `"mobile:" + AUTH_SECRET` (cryptographically separate from Auth.js), 15min access token expiry, opaque 64-hex-char refresh tokens (DB-backed, 30-day expiry, rotation on use)
 - `src/proxy.ts` (middleware) — Protects dashboard routes (redirect to `/login`) and `/api/portfolio/**`, `/api/watchlist/**`, `/api/user/**` (401 JSON); requests with `Authorization: Bearer` or `x-api-key` headers bypass middleware auth (verified in route handlers); matcher allows `.txt`/`.xml` static files through
-- Public routes: `/login`, `/register`, `/changelog`, `/api/auth/**`, `/api/health`, `/api/alerts/**`, `/api/harvest/**`, `/api/snapshots/**`
+- Public routes: `/login`, `/register`, `/changelog`, `/api/auth/**`, `/api/health`, `/api/alerts/**`, `/api/harvest/**`, `/api/snapshots/**`, `/api/reports/**`
 - Auth pages use route group `(auth)` with centered layout (no sidebar)
 - `SessionProvider` wrapped in `src/lib/session-provider.tsx`, added to root layout
 - Type augmentations in `src/types/next-auth.d.ts` (adds `id` and `role` to Session/JWT)
@@ -216,7 +219,7 @@ BING_SITE_VERIFICATION=...
 
 - **Cloud Run** — web app (`signalscope-web`) serving Next.js standalone on port 3000
 - **Cloud SQL** — PostgreSQL 16 (`signalscope-db`, db-f1-micro), connected via Unix socket
-- **Cloud Scheduler** — 3 jobs: email alerts (9:15 AM ET), snapshots open (9:30 AM ET), snapshots close (4:05 PM ET), all weekdays America/New_York
+- **Cloud Scheduler** — 4 jobs: email alerts (9:15 AM ET), snapshots open (9:30 AM ET), snapshots close (4:05 PM ET), reports (3:30 AM NZDT Tue-Sat), all weekdays
 - **Secret Manager** — stores `DATABASE_URL`, `AUTH_SECRET`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `SNAPSHOT_API_KEY`, `RESEND_API_KEY`
 - **Artifact Registry** — Docker images (`signalscope` repo)
 - **GitHub Actions** — CI/CD on push to `main` (`.github/workflows/deploy.yml`)
@@ -244,9 +247,10 @@ Continuous price tracking for all validated tickers, runs on Cloud Run triggered
 - **Return computation**: `returns.ts` — pure function `computeReturnsFromSnapshots()` with tolerance windows (1d: 18–48h, 3d: 54–120h, 7d: 120–264h, 30d: 600–888h) to handle weekends/holidays. Always picks the snapshot closest to target time. Returns improve as more snapshots accumulate.
 - **Collector**: `index.ts` — `collectSnapshots()` fetches prices via Yahoo Finance in batches of 50, creates `PriceSnapshot` rows, recomputes returns, and upserts `TickerPerformance`.
 - **Endpoint**: `POST /api/snapshots/collect` (auth via `x-snapshot-key` header)
-- **Cloud Scheduler jobs** (all `America/New_York`, weekdays):
-  - `signalscope-snapshots` — `30 9 * * 1-5` (9:30 AM ET, 30 min after market open)
-  - `signalscope-snapshots-close` — `5 16 * * 1-5` (4:05 PM ET, 5 min after market close)
+- **Cloud Scheduler jobs** (all weekdays):
+  - `signalscope-snapshots` — `30 9 * * 1-5` America/New_York (9:30 AM ET, 30 min after market open)
+  - `signalscope-snapshots-close` — `5 16 * * 1-5` America/New_York (4:05 PM ET, 5 min after market close)
+  - `signalscope-reports` — `30 3 * * 2-6` Pacific/Auckland (3:30 AM NZDT, 30 min after harvest)
 - **Auth**: `x-snapshot-key` header checked against `SNAPSHOT_API_KEY` env var (stored in Secret Manager)
 
 ```bash
@@ -270,6 +274,16 @@ gcloud scheduler jobs create http signalscope-snapshots-close \
   --headers="x-snapshot-key=<SNAPSHOT_API_KEY_VALUE>" \
   --attempt-deadline=300s \
   --description="Collect closing price snapshots for validated tickers"
+
+gcloud scheduler jobs create http signalscope-reports \
+  --location=us-central1 \
+  --schedule="30 3 * * 2-6" \
+  --time-zone="Pacific/Auckland" \
+  --uri="https://signalscopes.com/api/reports/generate" \
+  --http-method=POST \
+  --headers="x-snapshot-key=<SNAPSHOT_API_KEY_VALUE>" \
+  --attempt-deadline=600s \
+  --description="Pre-generate AI reports for top 10 emerging tickers after harvest"
 ```
 
 ### Source Status
