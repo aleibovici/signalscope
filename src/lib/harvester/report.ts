@@ -1,6 +1,17 @@
 import { chatJSON } from "@/lib/ai";
 import type { AggregatedSymbol, FundamentalData, NoveltyContext, SignalType, TickerReport } from "./types";
 
+const CATALYST_SOURCES = new Set(["SEC_INSIDER", "SEC_FILING", "CONGRESS", "OPTIONS_FLOW", "VOLUME_SPIKE"]);
+
+/** Pick up to `limit` sample signals, prioritizing catalyst sources so they aren't cut off */
+function pickDiverseSample(signals: AggregatedSymbol["signals"], limit: number) {
+  const catalyst = signals.filter((s) => CATALYST_SOURCES.has(s.source));
+  const social = signals.filter((s) => !CATALYST_SOURCES.has(s.source));
+  // Take all catalyst signals first (up to limit), fill remainder with social
+  const picked = [...catalyst.slice(0, limit), ...social.slice(0, Math.max(0, limit - catalyst.length))];
+  return picked.slice(0, limit);
+}
+
 export async function generateTickerReport(
   symbol: string,
   agg: AggregatedSymbol,
@@ -10,6 +21,10 @@ export async function generateTickerReport(
   novelty?: NoveltyContext
 ): Promise<TickerReport> {
   try {
+    // Compute unique sources present for this ticker
+    const uniqueSources = [...new Set(agg.signals.map((s) => s.source))];
+    const hasCatalystSource = uniqueSources.some((s) => CATALYST_SOURCES.has(s));
+
     const response = await chatJSON({
       callPoint: "report",
       tier: "standard",
@@ -37,9 +52,11 @@ Also analyze:
 
 Recommendation guidance:
 - Strong Buy: Real catalyst + insider/options confirmation + multi-source. Rare.
-- Buy: Real catalyst with at least 2 corroborating sources.
-- Watch: Interesting signal but needs more confirmation or catalyst is unverified.
-- Avoid: No real catalyst, pure social hype, or P&D risk indicators.
+- Buy: Real catalyst with at least 2 corroborating sources. Also appropriate for strong multi-source social consensus (3+ subreddits or cross-platform agreement) with high velocity and favorable fundamentals, even without an institutional catalyst.
+- Watch: Interesting signal but needs more confirmation or catalyst is unverified. Single-source social signals without strong engagement belong here.
+- Avoid: P&D risk indicators, deteriorating fundamentals, or single low-quality social mention with no engagement.
+
+IMPORTANT: Check the "sources" array in the input — it shows ALL source types that contributed signals, not just the sample. A ticker with signals from 3+ sources or 3+ subreddits represents genuine cross-platform consensus, not mere hype. Do not dismiss multi-source social consensus as "pure social hype" — coordinated independent discovery across platforms is a meaningful signal. Reserve "Avoid" for genuinely weak setups (single source, low engagement, bad fundamentals, P&D flags), not for well-corroborated emerging signals.
 
 Trade setup rules (ONLY for Buy or Strong Buy — omit tradeSetup entirely for Watch or Avoid):
 - entryLo/entryHi: tight range around current price or a technical level (typically within 2-5% of current price)
@@ -74,6 +91,9 @@ Return JSON:
         signalType: signalType || "unknown",
         signalCount: agg.signals.length,
         sourceCount: agg.sourceCount,
+        sources: uniqueSources,
+        hasCatalystSource,
+        subredditCount: agg.subredditCount,
         avgVelocity: agg.avgVelocity,
         aiScore,
         fundamentals: fundamentals
@@ -87,7 +107,7 @@ Return JSON:
               exchange: fundamentals.exchange,
             }
           : null,
-        sampleSignals: agg.signals.slice(0, 5).map((s) => ({
+        sampleSignals: pickDiverseSample(agg.signals, 5).map((s) => ({
           source: s.source,
           title: s.title,
           upvotes: s.upvotes,
