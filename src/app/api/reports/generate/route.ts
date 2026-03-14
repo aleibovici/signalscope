@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-error";
-import { generateTickerReport } from "@/lib/harvester/report";
+import { generateTickerReportReACT } from "@/lib/harvester/report";
 import { reconstructAggregatedSymbol } from "@/lib/reconstruct-aggregated";
 import type { SignalType } from "@/lib/harvester/types";
 
@@ -66,11 +66,12 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        const tickerReport = await generateTickerReport(
+        const tickerReport = await generateTickerReportReACT(
           ticker.symbol,
           agg,
           fundamentals,
           ticker.aiScore,
+          ticker.scanId,
           (ticker.signalType as SignalType) ?? undefined,
           novelty
         );
