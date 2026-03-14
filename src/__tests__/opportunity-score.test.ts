@@ -143,4 +143,45 @@ describe("computeOpportunityScore", () => {
     expect(score).toBeGreaterThanOrEqual(0);
     expect(score).toBeLessThanOrEqual(100);
   });
+
+  it("applies comment-heavy penalty (>150 comments, ratio < 2:1)", () => {
+    const withPenalty = computeOpportunityScore({
+      ...baseInput,
+      totalUpvotes: 200,
+      totalComments: 200, // ratio 1:1, comments > 150
+    });
+    const without = computeOpportunityScore({
+      ...baseInput,
+      totalUpvotes: 200,
+      totalComments: 20, // ratio 10:1, no penalty
+    });
+    expect(withPenalty).toBeLessThan(without);
+  });
+
+  it("applies conviction bonus (>200 upvotes, ratio > 5:1)", () => {
+    const withBonus = computeOpportunityScore({
+      ...baseInput,
+      totalUpvotes: 500,
+      totalComments: 30, // ratio ~17:1
+    });
+    const without = computeOpportunityScore({
+      ...baseInput,
+      totalUpvotes: 100,
+      totalComments: 30, // upvotes <= 200, no bonus
+    });
+    expect(withBonus).toBeGreaterThan(without);
+  });
+
+  it("does not apply comment-heavy penalty when comments <= 150", () => {
+    const a = computeOpportunityScore({
+      ...baseInput,
+      totalUpvotes: 100,
+      totalComments: 100, // ratio < 2 but comments <= 150
+    });
+    const b = computeOpportunityScore({
+      ...baseInput,
+      // no upvotes/comments → no adjustment
+    });
+    expect(a).toBe(b);
+  });
 });

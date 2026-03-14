@@ -131,21 +131,21 @@ describe("checkPndFlags — otc_listing", () => {
 });
 
 describe("checkPndFlags — micro_cap_no_catalyst", () => {
-  it("flags micro cap below $25M with no catalyst keywords", () => {
+  it("flags micro cap below $40M with no catalyst keywords", () => {
     const agg = makeAgg({
       signals: [makeRedditSignal({ title: "Check out TEST stock!" })],
       sourceCount: 1,
     });
-    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 20_000_000 }));
+    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 30_000_000 }));
     expect(result.flags).toContain("micro_cap_no_catalyst");
   });
 
-  it("does not flag $40M cap (above $25M threshold)", () => {
+  it("does not flag $50M cap (above $40M threshold)", () => {
     const agg = makeAgg({
       signals: [makeRedditSignal({ title: "Check out TEST stock!" })],
       sourceCount: 1,
     });
-    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 40_000_000 }));
+    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 50_000_000 }));
     expect(result.flags).not.toContain("micro_cap_no_catalyst");
   });
 
@@ -153,7 +153,7 @@ describe("checkPndFlags — micro_cap_no_catalyst", () => {
     const agg = makeAgg({
       signals: [makeRedditSignal({ title: "TEST has an FDA approval catalyst" })],
     });
-    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 20_000_000 }));
+    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 30_000_000 }));
     expect(result.flags).not.toContain("micro_cap_no_catalyst");
   });
 
@@ -164,7 +164,7 @@ describe("checkPndFlags — micro_cap_no_catalyst", () => {
         { symbol: "TEST", source: "SEC_INSIDER", title: "CEO buys" },
       ],
     });
-    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 20_000_000 }));
+    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 30_000_000 }));
     expect(result.flags).not.toContain("micro_cap_no_catalyst");
   });
 
@@ -175,11 +175,11 @@ describe("checkPndFlags — micro_cap_no_catalyst", () => {
         { symbol: "TEST", source: "OPTIONS_FLOW", title: "Unusual calls" },
       ],
     });
-    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 20_000_000 }));
+    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 30_000_000 }));
     expect(result.flags).not.toContain("micro_cap_no_catalyst");
   });
 
-  it("does not flag cap above $25M", () => {
+  it("does not flag cap above $40M", () => {
     const agg = makeAgg({ signals: [makeRedditSignal()] });
     const result = checkPndFlags(agg, makeFundamentals({ marketCap: 100_000_000 }));
     expect(result.flags).not.toContain("micro_cap_no_catalyst");
@@ -195,7 +195,7 @@ describe("checkPndFlags — micro_cap_no_catalyst", () => {
     const agg = makeAgg({
       signals: [makeRedditSignal({ title: "Check out TEST", body: "earnings beat expectations" })],
     });
-    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 20_000_000 }));
+    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 30_000_000 }));
     expect(result.flags).not.toContain("micro_cap_no_catalyst");
   });
 });
@@ -553,7 +553,7 @@ describe("checkPndFlags — micro_cap_no_catalyst bypasses", () => {
       totalUpvotes: 600,
       subredditCount: 1,
     });
-    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 20_000_000 }));
+    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 30_000_000 }));
     expect(result.flags).not.toContain("micro_cap_no_catalyst");
   });
 
@@ -564,8 +564,46 @@ describe("checkPndFlags — micro_cap_no_catalyst bypasses", () => {
       totalUpvotes: 100,
       subredditCount: 3,
     });
-    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 20_000_000 }));
+    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 30_000_000 }));
     expect(result.flags).not.toContain("micro_cap_no_catalyst");
+  });
+});
+
+describe("checkPndFlags — upvote_pump thresholds", () => {
+  it("flags when upvotes > 2000 with few posts and very low comments", () => {
+    const agg = makeAgg({
+      signals: [
+        makeRedditSignal({ title: "TEST is great", upvotes: 2500 }),
+      ],
+      totalUpvotes: 2500,
+      totalComments: 15,
+    });
+    const result = checkPndFlags(agg, makeFundamentals());
+    expect(result.flags).toContain("upvote_pump");
+  });
+
+  it("does not flag at 1500 upvotes (below 2000 threshold)", () => {
+    const agg = makeAgg({
+      signals: [
+        makeRedditSignal({ title: "TEST is great", upvotes: 1500 }),
+      ],
+      totalUpvotes: 1500,
+      totalComments: 15,
+    });
+    const result = checkPndFlags(agg, makeFundamentals());
+    expect(result.flags).not.toContain("upvote_pump");
+  });
+
+  it("does not flag when comments >= 30", () => {
+    const agg = makeAgg({
+      signals: [
+        makeRedditSignal({ title: "TEST is great", upvotes: 2500 }),
+      ],
+      totalUpvotes: 2500,
+      totalComments: 35,
+    });
+    const result = checkPndFlags(agg, makeFundamentals());
+    expect(result.flags).not.toContain("upvote_pump");
   });
 });
 

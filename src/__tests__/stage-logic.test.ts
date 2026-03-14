@@ -386,6 +386,69 @@ describe("determineStage — FORMING via short squeeze (moderate SI)", () => {
   });
 });
 
+describe("determineStage — CONFIRMED via NasdaqCM penny (updated threshold 52)", () => {
+  it("returns CONFIRMED at score=52 for NasdaqCM penny", () => {
+    expect(determineStage(52, 1, 1, 2.0, false, false, undefined, undefined, 0.10, 0.50, false, true)).toBe("CONFIRMED");
+  });
+
+  it("does NOT confirm at score=51 for NasdaqCM penny (raised from 50)", () => {
+    expect(determineStage(51, 1, 1, 2.0, false, false, undefined, undefined, 0.10, 0.50, false, true)).not.toBe("CONFIRMED");
+  });
+
+  it("still confirms AMEX penny at score=48 (unchanged)", () => {
+    expect(determineStage(48, 1, 1, 2.0, false, false, undefined, undefined, 0.10, 0.50, true, false)).toBe("CONFIRMED");
+  });
+});
+
+describe("determineStage — FORMING via NasdaqCM penny (updated threshold 44)", () => {
+  it("returns FORMING at score=44 for NasdaqCM penny", () => {
+    expect(determineStage(44, 1, 1, 1.5, false, false, undefined, undefined, 0.10, 0.50, false, true)).toBe("FORMING");
+  });
+
+  it("does NOT form at score=43 for NasdaqCM penny (raised from 42)", () => {
+    const result = determineStage(43, 1, 1, 1.5, false, false, undefined, undefined, 0.10, 0.50, false, true);
+    expect(result).not.toBe("FORMING");
+  });
+});
+
+describe("determineStage — comment-heavy demotion", () => {
+  it("blocks Reddit CONFIRMED when comment-heavy (>150 comments, ratio < 2:1)", () => {
+    // Without comment-heavy: 3 subreddits, score=48, velocity=2.0 → CONFIRMED
+    // With comment-heavy: should NOT be CONFIRMED
+    const result = determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, 2, undefined, undefined, undefined, 200, 200);
+    expect(result).not.toBe("CONFIRMED");
+  });
+
+  it("allows Reddit CONFIRMED when comments are high but ratio is good", () => {
+    // 200 upvotes, 50 comments → ratio 4:1, not comment-heavy
+    expect(determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, 2, undefined, undefined, undefined, 200, 50)).toBe("CONFIRMED");
+  });
+
+  it("allows Reddit CONFIRMED when comment count is below 150", () => {
+    // 100 comments with low ratio — but below 150 threshold
+    expect(determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, 2, undefined, undefined, undefined, 100, 100)).toBe("CONFIRMED");
+  });
+});
+
+describe("determineStage — conviction boost", () => {
+  it("boosts FORMING threshold with high upvote/comment ratio (>5:1, >200 upvotes)", () => {
+    // score=47 < 50 normally, but conviction +3 → 50, with sourceCount=2 → FORMING
+    expect(determineStage(47, 2, 2, 0.5, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 300, 20)).toBe("FORMING");
+  });
+
+  it("does not boost when upvotes <= 200", () => {
+    // score=47, upvotes=150 (<=200) → no conviction, stays EARLY
+    const result = determineStage(47, 2, 2, 0.5, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 150, 20);
+    expect(result).not.toBe("FORMING");
+  });
+
+  it("does not boost when ratio <= 5:1", () => {
+    // score=47, 300 upvotes but 100 comments → ratio 3:1, no conviction
+    const result = determineStage(47, 2, 2, 0.5, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 300, 100);
+    expect(result).not.toBe("FORMING");
+  });
+});
+
 describe("determineStage — CONFIRMED via recovery play", () => {
   it("returns CONFIRMED for beaten-down stock with high wk52HighRatio", () => {
     // pctFrom52wkLow=0.20, wk52HighRatio=4.0, score=55, sourceCount=2

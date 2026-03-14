@@ -19,6 +19,8 @@ interface OpportunityScoreInput {
   shortFloat: number | null | undefined;
   sourceCount: number;
   stage: string;
+  totalUpvotes?: number;
+  totalComments?: number;
 }
 
 export function computeOpportunityScore(input: OpportunityScoreInput): number {
@@ -68,6 +70,15 @@ export function computeOpportunityScore(input: OpportunityScoreInput): number {
   if (input.medianSignalAgeHrs != null) {
     if (input.medianSignalAgeHrs < 3) score += 5;
     else if (input.medianSignalAgeHrs < 6) score += 3;
+  }
+
+  // --- Comment-heavy penalty / conviction bonus (ML: upvote/comment ratio) ---
+  const upvotes = input.totalUpvotes ?? 0;
+  const comments = input.totalComments ?? 0;
+  if (comments > 150 && upvotes / (comments || 1) < 2) {
+    score -= 8; // peak hype
+  } else if (upvotes > 200 && upvotes / (comments || 1) > 5) {
+    score += 3; // conviction
   }
 
   return Math.max(0, Math.min(100, score));
