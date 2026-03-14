@@ -10,12 +10,19 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-03-14",
-    title: "Portfolio Consensus Alerts",
+    title: "Portfolio Alerts & Live Performance Stats",
     changes: [
       {
         category: "new",
         items: [
           "Personalized portfolio alert emails: get notified when stocks in your portfolio reach Consensus or Building stage in the daily scan.",
+          "Live performance stats on the landing page: win rate, average 7-day return, and a rolling cumulative return chart for emerging and building signals.",
+        ],
+      },
+      {
+        category: "improved",
+        items: [
+          "Performance page summary cards and cumulative chart now focus on emerging and building signals for more actionable metrics.",
         ],
       },
     ],
