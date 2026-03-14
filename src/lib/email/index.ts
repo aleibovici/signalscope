@@ -155,6 +155,7 @@ interface PortfolioAlertTicker {
   symbol: string;
   price?: number | null;
   aiScore: number;
+  opportunityScore?: number;
   catalyst?: string | null;
   stage: string;
   entryPrice: number;
@@ -250,6 +251,7 @@ export async function sendPortfolioAlerts(): Promise<{ usersNotified: number; ti
       symbol: true,
       price: true,
       aiScore: true,
+      opportunityScore: true,
       catalyst: true,
       stage: true,
     },
@@ -296,6 +298,7 @@ export async function sendPortfolioAlerts(): Promise<{ usersNotified: number; ti
           symbol: ticker.symbol,
           price: ticker.price,
           aiScore: ticker.aiScore,
+          opportunityScore: ticker.opportunityScore,
           catalyst: ticker.catalyst,
           stage: ticker.stage,
           entryPrice: pos.entryPrice,
@@ -309,7 +312,7 @@ export async function sendPortfolioAlerts(): Promise<{ usersNotified: number; ti
     matches.sort((a, b) => {
       if (a.stage === "CONFIRMED" && b.stage !== "CONFIRMED") return -1;
       if (b.stage === "CONFIRMED" && a.stage !== "CONFIRMED") return 1;
-      return b.aiScore - a.aiScore;
+      return (b.opportunityScore ?? 0) - (a.opportunityScore ?? 0);
     });
 
     const html = buildPortfolioAlertHtml(matches);

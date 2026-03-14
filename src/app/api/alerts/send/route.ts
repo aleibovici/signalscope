@@ -29,7 +29,7 @@ export async function POST() {
       signalType: true,
       stage: true,
     },
-    orderBy: { aiScore: "desc" },
+    orderBy: { opportunityScore: "desc" },
   });
 
   // Prioritize Emerging (EARLY) signals — highest alpha potential — then Building, then Consensus

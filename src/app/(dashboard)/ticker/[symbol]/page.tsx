@@ -152,8 +152,14 @@ export default function TickerDetailPage() {
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">AI Score</span>
+              <span className="text-gray-500">Opportunity Score</span>
               <span className="font-bold text-blue-600">
+                {ticker.opportunityScore}/100
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">AI Score</span>
+              <span className="text-gray-600">
                 {ticker.aiScore}/100
               </span>
             </div>

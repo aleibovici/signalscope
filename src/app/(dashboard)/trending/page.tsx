@@ -39,6 +39,7 @@ const SOURCES = [
 
 const SORT_OPTIONS = [
   { value: "", label: "Appearances" },
+  { value: "opportunityScore", label: "Opportunity Score" },
   { value: "aiScore", label: "AI Score" },
   { value: "price", label: "Price" },
   { value: "return", label: "Return" },

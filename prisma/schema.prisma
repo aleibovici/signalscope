@@ -106,7 +106,8 @@ model ValidatedTicker {
   risks          String?     @db.Text
   recommendation String?
   report         String?     @db.Text
-  aiScore        Int         @default(0)
+  aiScore          Int         @default(0)
+  opportunityScore Int         @default(0)
   stage          TickerStage @default(EARLY)
   signalCount    Int         @default(0)
   sourceCount    Int         @default(0)

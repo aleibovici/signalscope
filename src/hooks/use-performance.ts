@@ -89,6 +89,7 @@ export interface AggregatePerformance {
   byStage: Record<string, PerformanceStats>;
   byType: Record<string, PerformanceStats>;
   byScoreRange: Record<string, PerformanceStats>;
+  byOpportunityScoreRange: Record<string, PerformanceStats>;
   bestPerformers: PerformerEntry[];
   worstPerformers: PerformerEntry[];
 }

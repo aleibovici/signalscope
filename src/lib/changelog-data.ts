@@ -10,6 +10,28 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-03-15",
+    title: "Opportunity Score — Early-Mover Ranking",
+    changes: [
+      {
+        category: "new",
+        items: [
+          "New Opportunity Score (0–100) ranks signals by early-mover potential — novel, fast-moving, small-cap tickers near 52-week lows score highest.",
+          "Dashboard and trending pages now sort by Opportunity Score instead of AI confidence, surfacing highest-alpha signals first.",
+          "Performance page shows returns broken down by both Signal Confidence (AI Score) and Early-Mover Score (Opportunity).",
+          "New 'Opportunity Score' sort option on the Trending page.",
+        ],
+      },
+      {
+        category: "improved",
+        items: [
+          "Ticker detail page shows Opportunity Score prominently with AI Score as a secondary metric.",
+          "Email alerts now prioritize tickers by opportunity score.",
+        ],
+      },
+    ],
+  },
+  {
+    date: "2026-03-15",
     title: "ML-Informed Filter & Stage Tuning",
     changes: [
       {

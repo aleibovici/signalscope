@@ -35,6 +35,7 @@ export interface ValidatedTickerData {
   recommendation: string | null;
   report: string | null;
   aiScore: number;
+  opportunityScore: number;
   stage: string;
   signalCount: number;
   sourceCount: number;
