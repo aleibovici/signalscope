@@ -28,6 +28,7 @@ export const changelog: ChangelogEntry[] = [
     ],
   },
   {
+    date: "2026-03-15",
     title: "Opportunity Score & ML-Informed Tuning",
     changes: [
       {
