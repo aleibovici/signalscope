@@ -285,18 +285,18 @@ describe("determineStage — novelty +5 boost affecting stage boundary", () => {
 });
 
 describe("determineStage — market cap floor", () => {
-  it("returns EARLY when marketCap < $10M and no catalyst source", () => {
-    // score=60 + sourceCount=3 would normally be FORMING, but sub-$10M blocks it
-    expect(determineStage(60, 3, 3, 2.0, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 5_000_000)).toBe("EARLY");
+  it("returns EARLY when marketCap < $5M and no catalyst source", () => {
+    // score=60 + sourceCount=3 would normally be FORMING, but sub-$5M blocks it
+    expect(determineStage(60, 3, 3, 2.0, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 3_000_000)).toBe("EARLY");
   });
 
-  it("allows FORMING when marketCap >= $10M", () => {
-    expect(determineStage(50, 2, 2, 0.5, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 15_000_000)).toBe("FORMING");
+  it("allows FORMING when marketCap >= $5M", () => {
+    expect(determineStage(50, 2, 2, 0.5, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 6_000_000)).toBe("FORMING");
   });
 
-  it("allows promotion when marketCap < $10M but has catalyst source", () => {
+  it("allows promotion when marketCap < $5M but has catalyst source", () => {
     // hasNonSocialSource=true bypasses the market cap floor
-    expect(determineStage(70, 3, 5, 1.0, false, true, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 5_000_000)).toBe("CONFIRMED");
+    expect(determineStage(70, 3, 5, 1.0, false, true, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 3_000_000)).toBe("CONFIRMED");
   });
 
   it("allows promotion when marketCap is null (unknown)", () => {
@@ -318,8 +318,8 @@ describe("determineStage — CONFIRMED via short squeeze", () => {
     expect(determineStage(45, 1, 1, 1.5, false, false, undefined, undefined, 0.50, 0.50, false, true, undefined, 20_000_000, 0.25)).toBe("CONFIRMED");
   });
 
-  it("does NOT confirm when shortFloat < 0.20", () => {
-    const result = determineStage(45, 1, 1, 1.5, false, false, undefined, undefined, 0.50, 0.50, true, false, undefined, 20_000_000, 0.19);
+  it("does NOT confirm when shortFloat < 0.15", () => {
+    const result = determineStage(45, 1, 1, 1.5, false, false, undefined, undefined, 0.50, 0.50, true, false, undefined, 20_000_000, 0.14);
     expect(result).not.toBe("CONFIRMED");
   });
 
@@ -345,6 +345,75 @@ describe("determineStage — CONFIRMED via short squeeze", () => {
 
   it("does NOT confirm when shortFloat is null", () => {
     const result = determineStage(45, 1, 1, 1.5, false, false, undefined, undefined, 0.50, 0.50, true, false, undefined, 20_000_000, null);
+    expect(result).not.toBe("CONFIRMED");
+  });
+
+  it("confirms with shortFloat=0.15 (lowered threshold)", () => {
+    expect(determineStage(45, 1, 1, 1.5, false, false, undefined, undefined, 0.50, 0.50, true, false, undefined, 20_000_000, 0.15)).toBe("CONFIRMED");
+  });
+});
+
+describe("determineStage — FORMING via short squeeze (moderate SI)", () => {
+  it("returns FORMING for AMEX penny with shortFloat>=0.075, score>=45, velocity>=2.0", () => {
+    expect(determineStage(45, 1, 1, 2.0, false, false, undefined, undefined, undefined, undefined, true, false, undefined, 20_000_000, 0.08)).toBe("FORMING");
+  });
+
+  it("returns FORMING for NasdaqCM penny with shortFloat>=0.075, score>=45, velocity>=2.0", () => {
+    expect(determineStage(45, 1, 1, 2.0, false, false, undefined, undefined, undefined, undefined, false, true, undefined, 20_000_000, 0.08)).toBe("FORMING");
+  });
+
+  it("does NOT form via short squeeze when shortFloat < 0.075 (may form via other paths)", () => {
+    // shortFloat below threshold — but score=45 + velocity=2.0 still hits generic FORMING path
+    // Use score=42 to isolate: 42 < 45 generic threshold but >= 45 not met without SI path
+    const result = determineStage(42, 1, 1, 2.0, false, false, undefined, undefined, undefined, undefined, true, false, undefined, 20_000_000, 0.07);
+    expect(result).not.toBe("FORMING");
+  });
+
+  it("does NOT form when score < 45", () => {
+    const result = determineStage(44, 1, 1, 2.0, false, false, undefined, undefined, undefined, undefined, true, false, undefined, 20_000_000, 0.08);
+    expect(result).not.toBe("FORMING");
+  });
+
+  it("does NOT form when velocity < 2.0", () => {
+    const result = determineStage(42, 1, 1, 1.9, false, false, undefined, undefined, undefined, undefined, true, false, undefined, 20_000_000, 0.08);
+    expect(result).not.toBe("FORMING");
+  });
+
+  it("does NOT form via short squeeze when neither AMEX nor NasdaqCM penny (may form via other paths)", () => {
+    // Use score=42 to isolate: below generic FORMING threshold of 45
+    const result = determineStage(42, 1, 1, 2.0, false, false, undefined, undefined, undefined, undefined, false, false, undefined, 20_000_000, 0.08);
+    expect(result).not.toBe("FORMING");
+  });
+});
+
+describe("determineStage — CONFIRMED via recovery play", () => {
+  it("returns CONFIRMED for beaten-down stock with high wk52HighRatio", () => {
+    // pctFrom52wkLow=0.20, wk52HighRatio=4.0, score=55, sourceCount=2
+    expect(determineStage(55, 2, 2, 1.0, false, false, undefined, undefined, 0.20, undefined, undefined, undefined, undefined, undefined, undefined, 4.0)).toBe("CONFIRMED");
+  });
+
+  it("does NOT confirm when pctFrom52wkLow >= 0.30", () => {
+    const result = determineStage(55, 2, 2, 1.0, false, false, undefined, undefined, 0.30, undefined, undefined, undefined, undefined, undefined, undefined, 4.0);
+    expect(result).not.toBe("CONFIRMED");
+  });
+
+  it("does NOT confirm when wk52HighRatio <= 3.0", () => {
+    const result = determineStage(55, 2, 2, 1.0, false, false, undefined, undefined, 0.20, undefined, undefined, undefined, undefined, undefined, undefined, 3.0);
+    expect(result).not.toBe("CONFIRMED");
+  });
+
+  it("does NOT confirm when score < 55", () => {
+    const result = determineStage(54, 2, 2, 1.0, false, false, undefined, undefined, 0.20, undefined, undefined, undefined, undefined, undefined, undefined, 4.0);
+    expect(result).not.toBe("CONFIRMED");
+  });
+
+  it("does NOT confirm when sourceCount < 2", () => {
+    const result = determineStage(55, 1, 1, 1.0, false, false, undefined, undefined, 0.20, undefined, undefined, undefined, undefined, undefined, undefined, 4.0);
+    expect(result).not.toBe("CONFIRMED");
+  });
+
+  it("does NOT confirm when wk52HighRatio is null", () => {
+    const result = determineStage(55, 2, 2, 1.0, false, false, undefined, undefined, 0.20, undefined, undefined, undefined, undefined, undefined, undefined, null);
     expect(result).not.toBe("CONFIRMED");
   });
 });

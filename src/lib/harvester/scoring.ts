@@ -76,6 +76,8 @@ Also consider:
 - momentum breakdown (risingCount, freshCount, recentCount, commentDerivedCount, staleCount) shows the composition behind avgVelocity.
   Multiple rising signals = strong trending evidence. commentDerivedCount > 0 means organic discussion (tickers mentioned in comments, not just post titles). High staleCount dilutes the signal.
 - subredditCount = number of unique subreddits mentioning the ticker. 3+ subreddits = broad consensus across communities (stronger signal, +3-5 boost). 1 subreddit = possible echo chamber (weaker).
+- High upvote-to-comment ratio (>5:1) suggests conviction; low ratio (<2:1) with high comment count suggests noise/hype — adjust -3 to -5.
+- reddit_velocity is the strongest source-level predictor. Weight high-velocity Reddit signals (avgVelocity >= 2.5) as +3 to +5.
 - A high-velocity social signal with real engagement (high upvotes, comments) can reach 45-49 without a confirmed catalyst — it may be the FIRST signal before institutional confirmation arrives, but social alone NEVER exceeds 50.
 
 Signal age (medianSignalAgeHrs field — median age of social signals in hours):
@@ -154,7 +156,7 @@ export function defaultScore(s: AggregatedSymbol, novelty?: NoveltyContext): AiS
     base = Math.min(s.sourceCount * 15, 40); // social-only, capped low
   }
 
-  const engagement = Math.min(Math.log2(s.totalUpvotes + s.totalComments + 1) * 1.5, 10);
+  const engagement = Math.min(Math.log2(s.totalUpvotes + 1) * 2.0, 10);
   const velocityBoost = Math.min(s.avgVelocity * 3, 10);
 
   // Novelty adjustment: +5 for novel, -10 for stale

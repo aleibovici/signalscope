@@ -51,18 +51,23 @@ function makeFundamentals(overrides: Partial<FundamentalData> = {}): Fundamental
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe("checkPndFlags — penny_price", () => {
-  it("flags when price is below $1 with no catalyst", () => {
-    const result = checkPndFlags(makeAgg(), makeFundamentals({ price: 0.50 }));
+  it("flags when price is below $0.50 with no catalyst", () => {
+    const result = checkPndFlags(makeAgg(), makeFundamentals({ price: 0.30 }));
     expect(result.flags).toContain("penny_price");
+  });
+
+  it("does not flag when price is exactly $0.50", () => {
+    const result = checkPndFlags(makeAgg(), makeFundamentals({ price: 0.50 }));
+    expect(result.flags).not.toContain("penny_price");
+  });
+
+  it("does not flag when price is $0.75 (between $0.50 and $1)", () => {
+    const result = checkPndFlags(makeAgg(), makeFundamentals({ price: 0.75 }));
+    expect(result.flags).not.toContain("penny_price");
   });
 
   it("does not flag when price is exactly $1", () => {
     const result = checkPndFlags(makeAgg(), makeFundamentals({ price: 1.00 }));
-    expect(result.flags).not.toContain("penny_price");
-  });
-
-  it("does not flag when price is between $1 and $2", () => {
-    const result = checkPndFlags(makeAgg(), makeFundamentals({ price: 1.50 }));
     expect(result.flags).not.toContain("penny_price");
   });
 
@@ -80,7 +85,7 @@ describe("checkPndFlags — penny_price", () => {
     const agg = makeAgg({
       signals: [makeRedditSignal({ title: "TEST gets FDA approval for new drug" })],
     });
-    const result = checkPndFlags(agg, makeFundamentals({ price: 0.50 }));
+    const result = checkPndFlags(agg, makeFundamentals({ price: 0.30 }));
     expect(result.flags).not.toContain("penny_price");
   });
 
@@ -88,7 +93,7 @@ describe("checkPndFlags — penny_price", () => {
     const agg = makeAgg({
       signals: [{ symbol: "TEST", source: "SEC_INSIDER", title: "CEO buys shares" }],
     });
-    const result = checkPndFlags(agg, makeFundamentals({ price: 0.50 }));
+    const result = checkPndFlags(agg, makeFundamentals({ price: 0.30 }));
     expect(result.flags).not.toContain("penny_price");
   });
 });
@@ -126,20 +131,29 @@ describe("checkPndFlags — otc_listing", () => {
 });
 
 describe("checkPndFlags — micro_cap_no_catalyst", () => {
-  it("flags micro cap below $50M with no catalyst keywords", () => {
+  it("flags micro cap below $25M with no catalyst keywords", () => {
+    const agg = makeAgg({
+      signals: [makeRedditSignal({ title: "Check out TEST stock!" })],
+      sourceCount: 1,
+    });
+    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 20_000_000 }));
+    expect(result.flags).toContain("micro_cap_no_catalyst");
+  });
+
+  it("does not flag $40M cap (above $25M threshold)", () => {
     const agg = makeAgg({
       signals: [makeRedditSignal({ title: "Check out TEST stock!" })],
       sourceCount: 1,
     });
     const result = checkPndFlags(agg, makeFundamentals({ marketCap: 40_000_000 }));
-    expect(result.flags).toContain("micro_cap_no_catalyst");
+    expect(result.flags).not.toContain("micro_cap_no_catalyst");
   });
 
   it("does not flag micro cap if title contains catalyst keyword", () => {
     const agg = makeAgg({
       signals: [makeRedditSignal({ title: "TEST has an FDA approval catalyst" })],
     });
-    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 40_000_000 }));
+    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 20_000_000 }));
     expect(result.flags).not.toContain("micro_cap_no_catalyst");
   });
 
@@ -150,7 +164,7 @@ describe("checkPndFlags — micro_cap_no_catalyst", () => {
         { symbol: "TEST", source: "SEC_INSIDER", title: "CEO buys" },
       ],
     });
-    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 40_000_000 }));
+    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 20_000_000 }));
     expect(result.flags).not.toContain("micro_cap_no_catalyst");
   });
 
@@ -161,11 +175,11 @@ describe("checkPndFlags — micro_cap_no_catalyst", () => {
         { symbol: "TEST", source: "OPTIONS_FLOW", title: "Unusual calls" },
       ],
     });
-    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 40_000_000 }));
+    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 20_000_000 }));
     expect(result.flags).not.toContain("micro_cap_no_catalyst");
   });
 
-  it("does not flag cap above $50M", () => {
+  it("does not flag cap above $25M", () => {
     const agg = makeAgg({ signals: [makeRedditSignal()] });
     const result = checkPndFlags(agg, makeFundamentals({ marketCap: 100_000_000 }));
     expect(result.flags).not.toContain("micro_cap_no_catalyst");
@@ -181,7 +195,7 @@ describe("checkPndFlags — micro_cap_no_catalyst", () => {
     const agg = makeAgg({
       signals: [makeRedditSignal({ title: "Check out TEST", body: "earnings beat expectations" })],
     });
-    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 40_000_000 }));
+    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 20_000_000 }));
     expect(result.flags).not.toContain("micro_cap_no_catalyst");
   });
 });
@@ -500,7 +514,7 @@ describe("checkPndFlags — flagged threshold", () => {
     const agg = makeAgg({ sourceCount: 1, signals, totalUpvotes: 10 });
     const result = checkPndFlags(
       agg,
-      makeFundamentals({ price: 0.50, exchange: "OTC" })
+      makeFundamentals({ price: 0.30, exchange: "OTC" })
     );
     expect(result.flags.length).toBeGreaterThanOrEqual(4);
     expect(result.flagged).toBe(true);
@@ -509,7 +523,7 @@ describe("checkPndFlags — flagged threshold", () => {
   it("is not flagged with fewer than 4 flags", () => {
     // Only trigger: penny_price + otc_listing (2 flags — below threshold of 4)
     const agg = makeAgg({ sourceCount: 2, signals: [] });
-    const result = checkPndFlags(agg, makeFundamentals({ price: 0.50, exchange: "OTC" }));
+    const result = checkPndFlags(agg, makeFundamentals({ price: 0.30, exchange: "OTC" }));
     expect(result.flags.length).toBeLessThan(4);
     expect(result.flagged).toBe(false);
   });
@@ -525,7 +539,7 @@ describe("checkPndFlags — flagged threshold", () => {
     const agg = makeAgg({ sourceCount: 1, signals, totalUpvotes: 10 });
     const result = checkPndFlags(
       agg,
-      makeFundamentals({ price: 0.50, exchange: "OTC" })
+      makeFundamentals({ price: 0.30, exchange: "OTC" })
     );
     expect(result.score).toBe(result.flags.length);
   });
@@ -539,7 +553,7 @@ describe("checkPndFlags — micro_cap_no_catalyst bypasses", () => {
       totalUpvotes: 600,
       subredditCount: 1,
     });
-    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 40_000_000 }));
+    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 20_000_000 }));
     expect(result.flags).not.toContain("micro_cap_no_catalyst");
   });
 
@@ -550,7 +564,7 @@ describe("checkPndFlags — micro_cap_no_catalyst bypasses", () => {
       totalUpvotes: 100,
       subredditCount: 3,
     });
-    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 40_000_000 }));
+    const result = checkPndFlags(agg, makeFundamentals({ marketCap: 20_000_000 }));
     expect(result.flags).not.toContain("micro_cap_no_catalyst");
   });
 });

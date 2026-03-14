@@ -9,6 +9,32 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-03-15",
+    title: "ML-Informed Filter & Stage Tuning",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "Tuned P&D filter thresholds based on gradient boosting analysis: penny price flag lowered to $0.50, micro-cap threshold to $25M — fewer false positives on legitimate small-caps.",
+          "New short squeeze FORMING stage for stocks with 7.5%+ short interest on AMEX/Nasdaq small-cap exchanges.",
+          "New recovery play CONFIRMED path for beaten-down stocks near 52-week lows with high upside ratio.",
+          "Lowered short squeeze CONFIRMED threshold from 20% to 15% short float.",
+          "Market cap EARLY floor reduced from $10M to $5M to capture more micro-cap opportunities.",
+          "Scoring now weights Reddit upvotes more heavily and deprioritizes comment noise, based on ML feature importance.",
+        ],
+      },
+      {
+        category: "new",
+        items: [
+          "High SI badge for stocks with 7.5–15% short interest.",
+          "High Velocity badge for signals with avgVelocity >= 2.5.",
+          "Recovery badge for stocks near 52-week lows with 3x+ upside to prior highs.",
+          "Near 52W Low badge now green (positive signal per ML analysis).",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-03-14",
     title: "Portfolio Alerts & Live Performance Stats",
     changes: [
