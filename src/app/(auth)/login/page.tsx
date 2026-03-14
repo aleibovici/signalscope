@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 
@@ -16,11 +16,36 @@ const howItWorksSteps = [
   { step: "5", label: "Validate", desc: "Surviving tickers get fundamentals, a report, and enter the dashboard." },
 ];
 
+interface CumulativeReturnEntry {
+  date: string;
+  cumReturn: number;
+  tradeCount: number;
+}
+
+interface PerfStats {
+  totalTracked: number;
+  signalsWithReturns: number;
+  winRate: number;
+  avgReturn: number;
+  earlyWinRate: number;
+  earlyAvgReturn: number;
+  earlyCount: number;
+  cumulativeReturns: CumulativeReturnEntry[];
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [perfStats, setPerfStats] = useState<PerfStats | null>(null);
+
+  useEffect(() => {
+    fetch("/api/stats/performance")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d && d.signalsWithReturns > 0) setPerfStats(d); })
+      .catch(() => {});
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -258,6 +283,111 @@ export default function LoginPage() {
           </div>
         </div>
       </section>
+
+      {/* ── Live Performance ──────────────────────────────────────── */}
+      {perfStats && (
+        <section className="bg-gray-50 py-12 md:py-20">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6">
+            <h2 className="mb-3 text-center text-2xl font-bold text-gray-900 md:text-3xl">
+              Real signal performance
+            </h2>
+            <p className="mx-auto mb-8 max-w-2xl text-center text-sm text-gray-500 md:mb-12 md:text-base">
+              Live stats from our signal pipeline — measured automatically 7 days after each detection.
+            </p>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              {/* Win rate */}
+              <div className="rounded-xl border border-gray-100 bg-white p-6 text-center shadow-sm">
+                <p className="text-sm font-medium text-gray-500">Win Rate</p>
+                <p className="mt-1 text-4xl font-bold text-green-600">
+                  {(perfStats.earlyWinRate * 100).toFixed(0)}%
+                </p>
+                <p className="mt-1 text-xs text-gray-400">
+                  emerging &amp; building, {perfStats.earlyCount} measured
+                </p>
+              </div>
+
+              {/* Avg 7d return */}
+              <div className="rounded-xl border border-gray-100 bg-white p-6 text-center shadow-sm">
+                <p className="text-sm font-medium text-gray-500">Avg 7-Day Return</p>
+                <p className={`mt-1 text-4xl font-bold ${perfStats.earlyAvgReturn > 0 ? "text-green-600" : "text-red-600"}`}>
+                  {perfStats.earlyAvgReturn > 0 ? "+" : ""}{(perfStats.earlyAvgReturn * 100).toFixed(1)}%
+                </p>
+                <p className="mt-1 text-xs text-gray-400">emerging &amp; building, {perfStats.earlyCount} measured</p>
+              </div>
+
+              {/* Tickers tracked */}
+              <div className="rounded-xl border border-gray-100 bg-white p-6 text-center shadow-sm">
+                <p className="text-sm font-medium text-gray-500">Tickers Tracked</p>
+                <p className="mt-1 text-4xl font-bold text-gray-900">
+                  {perfStats.totalTracked}
+                </p>
+                <p className="mt-1 text-xs text-gray-400">unique symbols, all time</p>
+              </div>
+            </div>
+
+            {/* Cumulative 7d avg return chart */}
+            {perfStats.cumulativeReturns.length > 0 && (() => {
+              const points = perfStats.cumulativeReturns.slice(-20);
+              const maxAbs = Math.max(...points.map((p) => Math.abs(p.cumReturn)), 0.001);
+              const latest = points[points.length - 1];
+              return (
+                <div className="mt-6 rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
+                  <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900">Emerging &amp; Building — Avg 7d Return</h3>
+                      <p className="text-xs text-gray-400">Rolling average 7-day return, by detection date</p>
+                    </div>
+                    {latest && (
+                      <p className={`text-xl font-bold ${latest.cumReturn > 0 ? "text-green-600" : "text-red-600"}`}>
+                        {latest.cumReturn > 0 ? "+" : ""}{(latest.cumReturn * 100).toFixed(1)}%
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    {points.map((p) => {
+                      const width = Math.abs(p.cumReturn) / maxAbs;
+                      const isPositive = p.cumReturn >= 0;
+                      return (
+                        <div key={p.date} className="flex items-center gap-1.5 text-xs sm:gap-2">
+                          <span className="w-12 shrink-0 text-gray-500 sm:w-16">
+                            {new Date(p.date + "T00:00:00Z").toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              timeZone: "UTC",
+                            })}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="relative h-4 rounded bg-gray-50">
+                              <div
+                                className={`absolute top-0 h-4 rounded ${isPositive ? "bg-green-200" : "bg-red-200"}`}
+                                style={{
+                                  width: `${Math.max(width * 100, 2)}%`,
+                                  left: isPositive ? "0" : undefined,
+                                  right: isPositive ? undefined : "0",
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <span className={`w-12 shrink-0 text-right font-medium sm:w-14 ${isPositive ? "text-green-600" : "text-red-600"}`}>
+                            {p.cumReturn > 0 ? "+" : ""}{(p.cumReturn * 100).toFixed(1)}%
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Disclaimer */}
+            <p className="mx-auto mt-6 max-w-2xl text-center text-xs leading-relaxed text-gray-400">
+              These are real, automatically measured results from our live signal pipeline.
+              Past performance does not guarantee future results. All investments carry risk — always do your own research before making trading decisions.
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* ── How It Works — Pipeline ─────────────────────────────── */}
       <section id="how-it-works" className="scroll-mt-16 bg-gray-50 py-12 md:py-20">

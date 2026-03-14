@@ -191,9 +191,9 @@ export async function GET(request: NextRequest) {
         };
       });
 
-    // --- Cumulative equal-weight returns (for selected horizon) ---
+    // --- Cumulative equal-weight returns — emerging + building signals ---
     const withReturn = records
-      .filter((r) => r[returnCol] !== null)
+      .filter((r) => r[returnCol] !== null && (r.validatedTicker.stage === "EARLY" || r.validatedTicker.stage === "FORMING"))
       .sort(
         (a, b) =>
           a.validatedTicker.createdAt.getTime() -
@@ -225,7 +225,7 @@ export async function GET(request: NextRequest) {
     );
     const confirmed = computeStats(confirmedRecords, returnCol);
     const earlyRecords = recordsWithReturn.filter(
-      (r) => r.validatedTicker.stage === "EARLY",
+      (r) => r.validatedTicker.stage === "EARLY" || r.validatedTicker.stage === "FORMING",
     );
     const early = computeStats(earlyRecords, returnCol);
 

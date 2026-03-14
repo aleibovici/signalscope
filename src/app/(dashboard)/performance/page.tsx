@@ -58,21 +58,21 @@ function SummaryCards({
 
       <Card>
         <CardContent className="pt-6 text-center">
-          <p className="text-sm text-gray-500">Win Rate (early signals)</p>
+          <p className="text-sm text-gray-500">Win Rate (emerging &amp; building)</p>
           <p className="text-3xl font-bold text-green-600">
             {early.count > 0
               ? `${(early.winRate * 100).toFixed(0)}%`
               : "--"}
           </p>
           <p className="mt-1 text-xs text-gray-400">
-            {early.count} early-stage signals
+            {early.count} signals
           </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardContent className="pt-6 text-center">
-          <p className="text-sm text-gray-500">Avg Return (early signals)</p>
+          <p className="text-sm text-gray-500">Avg Return (emerging &amp; building)</p>
           <p
             className={`text-3xl font-bold ${
               early.avgReturn > 0
@@ -84,7 +84,7 @@ function SummaryCards({
           >
             {early.count > 0 ? formatPct(early.avgReturn) : "--"}
           </p>
-          <p className="mt-1 text-xs text-gray-400">for selected horizon</p>
+          <p className="mt-1 text-xs text-gray-400">{early.count} signals, selected horizon</p>
         </CardContent>
       </Card>
 
@@ -272,9 +272,9 @@ function CumulativeReturns({
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-semibold">Cumulative Avg Return ({horizon}d)</h3>
+            <h3 className="font-semibold">Emerging &amp; Building — Avg {horizon}d Return</h3>
             <p className="text-xs text-gray-400">
-              Running average {horizon}-day return across all signals, by detection date
+              Rolling average {horizon}-day return for emerging and building signals, by detection date
             </p>
           </div>
           {finalReturn && (
