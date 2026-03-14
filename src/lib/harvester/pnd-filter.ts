@@ -51,7 +51,7 @@ export function checkPndFlags(
     signalSources.has("CONGRESS");
 
   // 1. Price < $1.00 (skip if a verifiable catalyst exists — legitimate biotech/pharma trade under $1 with FDA catalysts)
-  if (fundamentals?.price != null && fundamentals.price < 1 && !hasNewsCatalyst) {
+  if (fundamentals?.price != null && fundamentals.price < 0.50 && !hasNewsCatalyst) {
     flags.push("penny_price");
   }
 
@@ -84,7 +84,7 @@ export function checkPndFlags(
   // 3. Market cap < $50M with no real news catalyst
   if (
     fundamentals?.marketCap != null &&
-    fundamentals.marketCap < 50_000_000 &&
+    fundamentals.marketCap < 25_000_000 &&
     !hasNewsCatalyst &&
     agg.totalUpvotes < 500 &&
     agg.subredditCount < 3

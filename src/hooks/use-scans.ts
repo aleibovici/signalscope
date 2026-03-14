@@ -54,6 +54,7 @@ export interface ValidatedTickerData {
   pndScore?: number;
   pndFlags?: string[];
   subredditCount?: number | null;
+  avgVelocity?: number | null;
   tradeSetupEntryLo?: number | null;
   tradeSetupEntryHi?: number | null;
   tradeSetupStopLoss?: number | null;

@@ -77,9 +77,9 @@ export function SignalCard({
               {ticker.price != null && ticker.wk52Lo != null && ticker.wk52Lo > 0 &&
                ((ticker.price - ticker.wk52Lo) / ticker.wk52Lo) >= 0.007 &&
                ((ticker.price - ticker.wk52Lo) / ticker.wk52Lo) < 0.50 && (
-                <Badge variant="warning">Near 52W Low</Badge>
+                <Badge variant="success">Near 52W Low</Badge>
               )}
-              {ticker.shortFloat != null && ticker.shortFloat >= 0.20 &&
+              {ticker.shortFloat != null && ticker.shortFloat >= 0.15 &&
                ticker.price != null && ticker.price < 5 &&
                ticker.exchange != null && (
                  ticker.exchange.toLowerCase().includes("american") ||
@@ -87,6 +87,17 @@ export function SignalCard({
                  ticker.exchange.toLowerCase().includes("nasdaq capital")
                ) && (
                 <Badge variant="danger">Short Squeeze</Badge>
+              )}
+              {ticker.shortFloat != null && ticker.shortFloat >= 0.075 && ticker.shortFloat < 0.15 && (
+                <Badge variant="warning">High SI</Badge>
+              )}
+              {ticker.avgVelocity != null && ticker.avgVelocity >= 2.5 && (
+                <Badge variant="info">High Velocity</Badge>
+              )}
+              {ticker.price != null && ticker.wk52Hi != null && ticker.wk52Lo != null && ticker.wk52Lo > 0 &&
+               ((ticker.price - ticker.wk52Lo) / ticker.wk52Lo) < 0.30 &&
+               ticker.wk52Hi / ticker.price > 3.0 && (
+                <Badge variant="success">Recovery</Badge>
               )}
               {ticker.subredditCount != null && ticker.subredditCount >= 3 && (
                 <Badge variant="info">Multi-Reddit</Badge>
