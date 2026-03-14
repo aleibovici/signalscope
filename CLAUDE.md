@@ -12,7 +12,7 @@ SignalScope is a stock breakout signal detection platform. It harvests signals f
 npm run dev              # Next.js dev server (port 3000)
 npm run build            # Production build
 npm run lint             # ESLint
-npm test                 # Run Vitest unit tests (393 tests, 23 files)
+npm test                 # Run Vitest unit tests (499 tests, 31 files)
 npm run test:watch       # Vitest watch mode
 npm run db:generate      # Generate Prisma client (run after schema changes)
 npm run db:migrate       # Run Prisma migrations (dev)
@@ -86,6 +86,7 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 - `src/lib/cache.ts` — `TTLCache<T>` in-memory cache with max-entries eviction
 - `src/lib/rate-limit.ts` — IP-based rate limiting for auth endpoints; `getClientIP()` handles `X-Forwarded-For` for Cloud Run
 - `src/lib/price-verification.ts` — `verifyPriceAgainstSnapshot()` validates user-reported prices against latest `PriceSnapshot` (5% deviation threshold)
+- `src/lib/co-occurrence.ts` — `getCoOccurringSymbols()`, `getPairwiseEdges()`, `jaccardScore()` — co-occurrence queries and Jaccard similarity for ticker connections
 
 ### AI Provider System (`src/lib/ai/`)
 
@@ -105,6 +106,8 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 | `/api/tickers/[symbol]` | GET | Latest ticker + raw signals |
 | `/api/tickers/[symbol]/history` | GET | Historical appearances for a ticker |
 | `/api/tickers/[symbol]/performance` | GET | Performance data for a ticker |
+| `/api/tickers/[symbol]/related` | GET | Co-occurring tickers with Jaccard correlation scores |
+| `/api/tickers/network` | GET | Network graph nodes and edges for ticker co-occurrence |
 | `/api/tickers/[symbol]/report` | POST | Generate AI report + trade setup on-demand (cached after first generation) |
 | `/api/portfolio` | GET/POST | List or add positions |
 | `/api/portfolio/[id]` | PATCH/DELETE | Update or delete position |
@@ -132,7 +135,7 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 
 ### Frontend (`src/app/(dashboard)/`)
 
-Dashboard pages: signals (main), trending, portfolio, leaderboard, ticker detail, performance, methodology, profile. Uses route group `(dashboard)` with shared sidebar layout. (`/subscription` directory exists but has no page yet.)
+Dashboard pages: signals (main), trending, connections, portfolio, leaderboard, ticker detail, performance, methodology, profile. Uses route group `(dashboard)` with shared sidebar layout. (`/subscription` directory exists but has no page yet.)
 
 Public pages (no auth): `/changelog` — statically rendered changelog page (`src/app/changelog/page.tsx`). Data in `src/lib/changelog-data.ts` (same pattern as `methodology-data.ts`). Linked from dashboard sidebar (with "NEW" badge for 14 days after latest entry) and landing page footer.
 
@@ -356,6 +359,9 @@ gh workflow run "Deploy to Cloud Run" --ref main
 | `harvest-ingest-endpoint.test.ts` | `POST /api/harvest/ingest` — auth, signal ingestion |
 | `price-verification.test.ts` | `verifyPriceAgainstSnapshot()` — 5% deviation threshold, snapshot lookup |
 | `stage-logic.test.ts` | `determineStage()` — novel/recurring tickers, Reddit subreddit consensus, novelty boost |
+| `co-occurrence.test.ts` | `jaccardScore` pure function — identical sets, disjoint sets, partial overlap, symmetry |
+| `related-endpoint.test.ts` | `GET /api/tickers/[symbol]/related` — empty results, co-occurrence counts, Jaccard computation, stage filtering, pagination, auth (401), validation (400) |
+| `network-endpoint.test.ts` | `GET /api/tickers/network` — node/edge structure, symbol-centered vs trending-based, minWeight filtering, maxNodes cap, auth (401) |
 
 Key gotchas:
 - `BUY` is NOT in BLACKLIST (but `SELL`, `HOLD` are)

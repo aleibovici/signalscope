@@ -4,6 +4,8 @@ import { Fragment, useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTickerDetail, useTickerHistory, useGenerateReport } from "@/hooks/use-scans";
 import { useTickerPerformance } from "@/hooks/use-performance";
+import { useRelatedTickers } from "@/hooks/use-related";
+import { RelatedTickers } from "@/components/ticker/related-tickers";
 import { useWatchlist, useToggleWatchlist } from "@/hooks/use-watchlist";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
@@ -18,6 +20,7 @@ export default function TickerDetailPage() {
   const { data, isLoading, error } = useTickerDetail(symbol);
   const { data: historyData } = useTickerHistory(symbol);
   const { data: perfData } = useTickerPerformance(symbol);
+  const { data: relatedData, isLoading: relatedLoading } = useRelatedTickers(symbol);
   const { data: bookmarkedSymbols = new Set<string>() } = useWatchlist();
   const { mutate: toggleWatchlist } = useToggleWatchlist();
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -274,6 +277,11 @@ export default function TickerDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      <RelatedTickers
+        tickers={relatedData?.relatedTickers ?? []}
+        isLoading={relatedLoading}
+      />
 
       {/* Score History */}
       <Card>

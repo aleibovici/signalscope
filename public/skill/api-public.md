@@ -65,6 +65,34 @@ Cross-scan trending tickers (last 30 days).
 
 **Response:** `{ tickers: [{ symbol, name, aiScore, stage, price, marketCap, sector, catalyst, risks, recommendation, report, appearanceCount, trend, scoreTrajectory: [{ score, stage, date }], return1d, return3d, return7d, return30d, sources, exchange, wk52Lo, wk52Hi, pndFlagged, pndScore, pndFlags, firstSeenDaysAgo, priorAppearances, ... }], total, summary: { totalTrending, risingCount, fallingCount, stableCount, avgScore } }`
 
+## GET /api/tickers/:symbol/related
+
+Co-occurring tickers (tickers that appear in the same scans).
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| page | number | 1 | Page number |
+| limit | number | 20 | Results per page (max 100) |
+| minCoOccurrences | number | 2 | Minimum shared scan appearances |
+| days | number | 30 | Lookback window in days (max 90) |
+| stage | string | — | Filter by latest stage: `EARLY`, `FORMING`, `CONFIRMED` |
+
+**Response:** `{ relatedTickers: [{ symbol, name, coOccurrenceCount, correlationScore, latestAiScore, latestStage, sector, sources, price, marketCap, recommendation }], targetSymbol, targetScanCount, total }`
+
+## GET /api/tickers/network
+
+Network graph of ticker co-occurrences.
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| symbol | string | — | Center node symbol (omit for top trending tickers) |
+| minWeight | number | 2 | Minimum co-occurrence count for edges |
+| stage | string | — | Filter by stage: `EARLY`, `FORMING`, `CONFIRMED` |
+| days | number | 30 | Lookback window in days (max 90) |
+| maxNodes | number | 30 | Maximum nodes to return (max 50) |
+
+**Response:** `{ nodes: [{ symbol, name, aiScore, stage, price, marketCap, sector, recommendation, appearances }], edges: [{ source, target, weight, correlation }], centerSymbol }`
+
 ## GET /api/tickers/:symbol
 
 Latest validated ticker data plus raw signals.

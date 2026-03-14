@@ -24,6 +24,8 @@ export const changelog: ChangelogEntry[] = [
           "High Velocity badge for signals with avgVelocity >= 2.5.",
           "Recovery badge for stocks near 52-week lows with 3x+ upside to prior highs.",
           "Near 52W Low badge now green (positive signal per ML analysis).",
+          "Ticker Connections page: interactive network graph showing how tickers are related through scan co-occurrence, with drag-to-explore and click-to-center.",
+          "Related Tickers section on ticker detail pages — see which tickers frequently appear alongside the one you're viewing, with Jaccard correlation scores.",
         ],
       },
       {
