@@ -12,7 +12,6 @@ const navItems = [
   { href: "/trending", label: "Trending", icon: "📈" },
   { href: "/connections", label: "Connections", icon: "🔗" },
   { href: "/portfolio", label: "Portfolio", icon: "💼" },
-  // { href: "/leaderboard", label: "Leaderboard", icon: "🏆" }, // Temporarily disabled
   { href: "/performance", label: "Performance", icon: "🎯" },
   { href: "/methodology", label: "How It Works", icon: "ℹ️" },
   { href: "/changelog", label: "Changelog", icon: "📋" },
