@@ -3,7 +3,6 @@ export interface SignalSource {
   name: string;
   description: string;
   params: string;
-  status: "active";
 }
 
 export interface SourceWeight {
@@ -41,49 +40,42 @@ export const signalSources: SignalSource[] = [
     name: "Reddit",
     description: "Monitors 17 investing subreddits for posts and high-engagement comments.",
     params: "Posts + comments · 17 subreddits · 1.5 s delay between requests",
-    status: "active",
   },
   {
     icon: "🐦",
     name: "X / Twitter",
     description: "Keyword search for ticker mentions from the past 24 hours, run once daily before market open.",
     params: "X API v2 · 24 h lookback · up to 300 tweets/run",
-    status: "active",
   },
   {
     icon: "📋",
     name: "SEC Insider",
     description: "C-suite open-market purchases of $50 K or more from OpenInsider and EDGAR.",
     params: "C-suite only · $50 K+ purchases · open market only",
-    status: "active",
   },
   {
     icon: "📈",
     name: "Volume Spike",
     description: "Flags symbols whose volume is ≥2× their 10-day average.",
     params: "99 symbols · ≥2× 10-day avg",
-    status: "active",
   },
   {
     icon: "💎",
     name: "Options Flow",
     description: "Detects unusual call volume, heavy OTM call activity, and call sweeps across a watchlist of liquid stocks.",
     params: "99 symbols · Vol/OI ≥3× · OTM 10%+ · nearest expiry",
-    status: "active",
   },
   {
     icon: "📣",
     name: "StockTwits",
     description: "Trending tickers from StockTwits for real-time retail sentiment and momentum.",
     params: "Trending symbols · price + day gain",
-    status: "active",
   },
   {
     icon: "🏛️",
     name: "Congress",
     description: "Congressional stock purchases from public STOCK Act disclosures. Cross-scan dedup prevents repeated ingestion of the same transaction.",
     params: "Buys only · US tickers · 7-day pub window · txId dedup",
-    status: "active",
   },
 ];
 
