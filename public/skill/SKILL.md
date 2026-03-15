@@ -39,7 +39,7 @@ x-api-key: sk_sig_your_key_here
 ## API Reference
 
 - [Signal & scan endpoints](api-public.md) — 11 endpoints for scans, signals, tickers, trending, methodology
-- [Account endpoints](api-authenticated.md) — 17 endpoints for portfolio, watchlist, performance, profile, API key management
+- [Account endpoints](api-authenticated.md) — 16 endpoints for portfolio, watchlist, performance, profile, API key management
 
 ## Common Workflows
 

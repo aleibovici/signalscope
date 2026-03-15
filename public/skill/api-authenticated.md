@@ -63,10 +63,6 @@ Watchlist symbols enriched with latest ticker data, performance, and signal sour
 
 **Response:** `{ tickers: [{ symbol, name, aiScore, stage, price, marketCap, catalyst, recommendation, report, signalCount, sourceCount, return7d, sources, ... }] }`
 
-## Leaderboard
-
-> **Temporarily disabled** — returns 503. Will be re-enabled once there are more active users.
-
 ## Performance
 
 ### GET /api/performance
