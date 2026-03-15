@@ -102,7 +102,6 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 | `/api/scans/[scanId]` | GET | Scan detail with validated tickers |
 | `/api/signals` | GET | Signals filtered by scanId and stage |
 | `/api/tickers/trending` | GET | Cross-scan trending tickers (query: `minAppearances`, `stage`, `trend`) |
-| `/api/leaderboard` | GET | Portfolio leaderboard with 3d/7d/30d gain columns (query: `page`, `limit`) |
 | `/api/tickers/[symbol]` | GET | Latest ticker + raw signals |
 | `/api/tickers/[symbol]/history` | GET | Historical appearances for a ticker |
 | `/api/tickers/[symbol]/performance` | GET | Performance data for a ticker |
@@ -135,7 +134,7 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 
 ### Frontend (`src/app/(dashboard)/`)
 
-Dashboard pages: signals (main), trending, connections, portfolio, leaderboard, ticker detail, performance, methodology, profile. Uses route group `(dashboard)` with shared sidebar layout. (`/subscription` directory exists but has no page yet.)
+Dashboard pages: signals (main), trending, connections, portfolio, ticker detail, performance, methodology, profile. Uses route group `(dashboard)` with shared sidebar layout. (`/subscription` directory exists but has no page yet.)
 
 Public pages (no auth): `/changelog` — statically rendered changelog page (`src/app/changelog/page.tsx`). Data in `src/lib/changelog-data.ts` (same pattern as `methodology-data.ts`). Linked from dashboard sidebar (with "NEW" badge for 14 days after latest entry) and landing page footer.
 
@@ -353,7 +352,6 @@ gh workflow run "Deploy to Cloud Run" --ref main
 | `refresh-endpoint.test.ts` | `POST /api/auth/refresh` — token rotation, expired (401), revoked (401), non-existent (401), rate limiting (429) |
 | `snapshot-returns.test.ts` | `computeReturnsFromSnapshots` — all 4 periods, tolerance windows, weekend gaps, closest-match selection, progressive improvement, penny stocks, non-overlapping windows |
 | `trending-endpoint.test.ts` | `GET /api/tickers/trending` — empty results, response shape, trend computation (rising/falling/stable), trend filter, validation (minAppearances/stage/trend), sorting, pagination, summary before pagination, error handling |
-| `leaderboard-endpoint.test.ts` | `GET /api/leaderboard` — empty results, response shape, timeframe filtering, username exclusion, gain calc (open/closed), snapshot pricing, sorting, pagination, win rate, validation, auth required, best pick tracking |
 | `congress-dedup.test.ts` | `extractTxIdsFromUrls()` and `deduplicateCongressSignals()` — URL parsing, dedup logic |
 | `fetch-signals.test.ts` | `fetchSignals()` with all 7 sources including Congress |
 | `harvest-ingest-endpoint.test.ts` | `POST /api/harvest/ingest` — auth, signal ingestion |
@@ -375,7 +373,7 @@ Claude Agent Skill files are served from `public/skill/` (accessible at `http://
 
 - `SKILL.md` — Main skill file with overview, auth, key concepts, workflow examples, error handling
 - `api-public.md` — Signal & scan API reference (9 endpoints)
-- `api-authenticated.md` — Account API reference (13 endpoints: portfolio, watchlist, leaderboard, profile)
+- `api-authenticated.md` — Account API reference (12 endpoints: portfolio, watchlist, performance, profile)
 
 API key auth uses SHA-256 hashed keys stored in the `ApiKey` model. Key format: `sk_sig_<48 hex chars>`. Single key per user with revoke-and-replace flow. Profile page UI at `/profile` allows generating, viewing metadata, and revoking keys.
 
