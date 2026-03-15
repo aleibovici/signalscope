@@ -3,6 +3,10 @@
     "cloudflare": {
       "command": "npx",
       "args": ["mcp-remote", "https://mcp.cloudflare.com/mcp"]
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["chrome-devtools-mcp@latest"]
     }
   }
 }
