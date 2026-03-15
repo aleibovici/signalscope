@@ -38,8 +38,8 @@ x-api-key: sk_sig_your_key_here
 
 ## API Reference
 
-- [Signal & scan endpoints](api-public.md) — 9 endpoints for scans, signals, tickers, trending, methodology
-- [Account endpoints](api-authenticated.md) — 16 endpoints for portfolio, watchlist, performance, profile, API key management
+- [Signal & scan endpoints](api-public.md) — 11 endpoints for scans, signals, tickers, trending, methodology
+- [Account endpoints](api-authenticated.md) — 17 endpoints for portfolio, watchlist, performance, profile, API key management
 
 ## Common Workflows
 
@@ -86,6 +86,9 @@ curl -H "x-api-key: $KEY" https://signalscopes.com/api/tickers/AAPL/history
 
 # Price performance (1d/3d/7d/30d returns)
 curl -H "x-api-key: $KEY" https://signalscopes.com/api/tickers/AAPL/performance
+
+# Co-occurring tickers (appear in same scans)
+curl -H "x-api-key: $KEY" https://signalscopes.com/api/tickers/AAPL/related
 ```
 
 ### Manage portfolio

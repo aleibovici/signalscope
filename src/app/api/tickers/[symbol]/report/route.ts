@@ -7,10 +7,13 @@ import { reconstructAggregatedSymbol } from "@/lib/reconstruct-aggregated";
 import type { SignalType, TradeSetup } from "@/lib/harvester/types";
 
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ symbol: string }> }
 ) {
   try {
+    if (request.headers.get("x-api-key")) {
+      return NextResponse.json({ error: "Not available via API key" }, { status: 403 });
+    }
     await getCurrentUserId();
     const { symbol } = await params;
     const upperSymbol = symbol.toUpperCase();
