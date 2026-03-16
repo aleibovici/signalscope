@@ -189,8 +189,8 @@ export function determineStage(
   // Sub-dime 52wk floor = zombie/shell stock: cap at EARLY unless a hard catalyst exists
   if (wk52Lo != null && wk52Lo < 0.09 && !hasNonSocialSource) return "EARLY";
 
-  // Market cap floor: sub-$10M without a catalyst source is noise (ML top-2 feature)
-  if (marketCap != null && marketCap < 5_000_000 && !hasNonSocialSource) return "EARLY";
+  // Market cap floor: sub-$10M without a catalyst source is noise (ML: nano <$10M returns -25.1%)
+  if (marketCap != null && marketCap < 10_000_000 && !hasNonSocialSource) return "EARLY";
 
   const effectiveScore = novelty?.isNovel ? aiScore + 5 : aiScore;
 
@@ -671,6 +671,7 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
           stage: result.stage,
           totalUpvotes: result.agg.totalUpvotes,
           totalComments: result.agg.totalComments,
+          exchange: fundamentals?.exchange,
         }),
         stage: result.stage,
         signalCount: result.agg.signals.length,

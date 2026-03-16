@@ -106,6 +106,12 @@ export function SignalCard({
                ticker.price != null && ticker.price < 5 && (
                 <Badge variant="info">AMEX</Badge>
               )}
+              {ticker.exchange != null &&
+               (ticker.exchange.toLowerCase().includes("nasdaqcm") ||
+                ticker.exchange.toLowerCase().includes("nasdaq capital")) &&
+               ticker.price != null && ticker.price < 5 && (
+                <Badge variant="info">NasdaqCM</Badge>
+              )}
               {ticker.priorAppearances >= 3 && (
                 <Badge variant="warning">
                   Seen {ticker.priorAppearances}x

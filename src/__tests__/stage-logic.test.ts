@@ -285,16 +285,17 @@ describe("determineStage — novelty +5 boost affecting stage boundary", () => {
 });
 
 describe("determineStage — market cap floor", () => {
-  it("returns EARLY when marketCap < $5M and no catalyst source", () => {
-    // score=60 + sourceCount=3 would normally be FORMING, but sub-$5M blocks it
+  it("returns EARLY when marketCap < $10M and no catalyst source", () => {
+    // score=60 + sourceCount=3 would normally be FORMING, but sub-$10M blocks it (ML: nano <$10M returns -25.1%)
     expect(determineStage(60, 3, 3, 2.0, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 3_000_000)).toBe("EARLY");
+    expect(determineStage(60, 3, 3, 2.0, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 8_000_000)).toBe("EARLY");
   });
 
-  it("allows FORMING when marketCap >= $5M", () => {
-    expect(determineStage(50, 2, 2, 0.5, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 6_000_000)).toBe("FORMING");
+  it("allows FORMING when marketCap >= $10M", () => {
+    expect(determineStage(50, 2, 2, 0.5, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 12_000_000)).toBe("FORMING");
   });
 
-  it("allows promotion when marketCap < $5M but has catalyst source", () => {
+  it("allows promotion when marketCap < $10M but has catalyst source", () => {
     // hasNonSocialSource=true bypasses the market cap floor
     expect(determineStage(70, 3, 5, 1.0, false, true, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 3_000_000)).toBe("CONFIRMED");
   });

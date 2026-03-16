@@ -21,20 +21,21 @@ interface OpportunityScoreInput {
   stage: string;
   totalUpvotes?: number;
   totalComments?: number;
+  exchange?: string | null;
 }
 
 export function computeOpportunityScore(input: OpportunityScoreInput): number {
   let score = 0;
 
-  // --- Novelty (0-30) ---
+  // --- Novelty (0-20) --- ML: firstSeenDaysAgo matters but reduced weight to make room for exchange/recovery
   if (input.firstSeenDaysAgo === null) {
-    score += 30; // truly novel
+    score += 20; // truly novel
   } else if (input.firstSeenDaysAgo === 0) {
-    score += 25; // first seen today
+    score += 16; // first seen today
   } else if (input.firstSeenDaysAgo <= 2) {
-    score += 15;
+    score += 10;
   } else {
-    score += Math.max(0, 8 - input.priorAppearances);
+    score += Math.max(0, 6 - input.priorAppearances);
   }
 
   // --- Inverted confidence (0-25): low aiScore = more upside ---
@@ -70,6 +71,21 @@ export function computeOpportunityScore(input: OpportunityScoreInput): number {
   if (input.medianSignalAgeHrs != null) {
     if (input.medianSignalAgeHrs < 3) score += 5;
     else if (input.medianSignalAgeHrs < 6) score += 3;
+  }
+
+  // --- Exchange penny bonus (0-8) --- ML: NasdaqCM/AMEX penny is #1 exchange feature across all horizons
+  const exLower = input.exchange?.toLowerCase() ?? "";
+  const isPenny = input.price != null && input.price < 5;
+  if (isPenny && (exLower.includes("american") || exLower.includes("nasdaqcm") || exLower.includes("nasdaq capital"))) {
+    score += 8;
+  }
+
+  // --- Recovery ratio (0-7) --- ML: wk52_high_ratio is top-1 feature for 1d returns
+  if (input.price != null && input.wk52Hi != null && input.price > 0) {
+    const highRatio = input.wk52Hi / input.price;
+    if (highRatio > 5.0) score += 7;
+    else if (highRatio > 3.0) score += 5;
+    else if (highRatio > 2.0) score += 3;
   }
 
   // --- Comment-heavy penalty / conviction bonus (ML: upvote/comment ratio) ---
