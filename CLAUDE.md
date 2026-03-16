@@ -408,8 +408,18 @@ python scripts/extract.py
 # Output: scripts/output/dataset.parquet
 ```
 
-- Auto-starts/stops Cloud SQL Auth Proxy on port 5433
+- Auto-starts/stops Cloud SQL Auth Proxy on port 5434
 - Read-only — only SELECTs, never writes
+
+## Backtesting Experiment Log (`scripts/backtesting-experiments.md`)
+
+Tracks ML model runs from the external backtesting harness. Each row is one experiment with its commit hash, date, performance metrics, and a description of what changed. The purpose is to track research progress over time — as the dataset grows and the model improves, this log shows which changes moved the needle and informs fine-tuning of the pipeline filters (score thresholds, stage logic, P&D flags, etc.).
+
+**Rules when adding entries:**
+- **Never add a duplicate** — if a commit hash already exists in the table, skip it. The commit hash is the unique identifier.
+- Add new rows at the bottom (chronological order).
+- `status: keep` = this experiment improved or matched the best result and is worth building on. `status: discard` = regression or noise, reverted.
+- The `features` column in the source data can be long — summarize to top features only in `top_features`.
 
 ## Deploy Workflow
 
