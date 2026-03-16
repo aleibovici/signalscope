@@ -45,9 +45,12 @@ interface VolumeData {
   averageDailyVolume10Day: number;
 }
 
-async function fetchVolumeData(symbol: string): Promise<VolumeData | null> {
+export async function fetchVolumeData(symbol: string): Promise<VolumeData | null> {
   try {
-    const url = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`;
+    // Use 15d range to get enough daily bars to compute a 10-day average.
+    // The v8 chart API no longer returns averageDailyVolume10Day in meta,
+    // so we compute it from the historical volume time-series.
+    const url = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=15d`;
     const res = await fetch(url, {
       headers: {
         "User-Agent":
@@ -59,11 +62,20 @@ async function fetchVolumeData(symbol: string): Promise<VolumeData | null> {
     if (!res.ok) return null;
 
     const json = await res.json();
-    const meta = json?.chart?.result?.[0]?.meta;
-    if (!meta) return null;
+    const result = json?.chart?.result?.[0];
+    if (!result) return null;
 
-    const regularMarketVolume = meta.regularMarketVolume ?? 0;
-    const averageDailyVolume10Day = meta.averageDailyVolume10Day ?? 0;
+    const meta = result.meta;
+    const volumes: (number | null)[] = result?.indicators?.quote?.[0]?.volume ?? [];
+    const validVolumes = volumes.filter((v): v is number => v != null && v > 0);
+
+    if (validVolumes.length < 2) return null;
+
+    // Last bar is current/most-recent day; prior bars form the average
+    const regularMarketVolume = meta?.regularMarketVolume ?? validVolumes[validVolumes.length - 1];
+    const priorVolumes = validVolumes.slice(0, -1);
+    const averageDailyVolume10Day =
+      priorVolumes.reduce((sum, v) => sum + v, 0) / priorVolumes.length;
 
     return { symbol, regularMarketVolume, averageDailyVolume10Day };
   } catch {
