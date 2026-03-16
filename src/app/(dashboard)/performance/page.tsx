@@ -258,13 +258,13 @@ function CumulativeReturns({
   }
   const points = [...byDate.values()];
 
+  // Show last 7 points (dates) to keep it readable
+  const recent = points.slice(-7);
+
   const maxAbs = Math.max(
-    ...points.map((p) => Math.abs(p.cumReturn)),
+    ...recent.map((p) => Math.abs(p.cumReturn)),
     0.001,
   );
-
-  // Show last 20 points (dates) to keep it readable
-  const recent = points.slice(-20);
   const finalReturn = recent[recent.length - 1];
 
   return (

@@ -331,7 +331,7 @@ export default function LoginPage() {
 
             {/* Cumulative 7d avg return chart */}
             {perfStats.cumulativeReturns.length > 0 && (() => {
-              const points = perfStats.cumulativeReturns.slice(-20);
+              const points = perfStats.cumulativeReturns.slice(-7);
               const maxAbs = Math.max(...points.map((p) => Math.abs(p.cumReturn)), 0.001);
               const latest = points[points.length - 1];
               return (
