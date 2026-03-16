@@ -144,9 +144,6 @@ export async function sendTickerAlerts(
   console.log(`[email] Done: ${sent} sent, 0 failed`);
 }
 
-// Backwards-compatible alias
-export const sendConfirmedTickerAlerts = sendTickerAlerts;
-
 // ---------------------------------------------------------------------------
 // Portfolio consensus alerts — personalized per user
 // ---------------------------------------------------------------------------
