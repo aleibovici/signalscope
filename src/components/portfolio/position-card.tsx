@@ -10,7 +10,7 @@ export function PositionCard({
   onEdit,
   onDelete,
 }: {
-  position: PositionData;
+  position: PositionData & { daysOpen?: number };
   onClose: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
@@ -49,6 +49,9 @@ export function PositionCard({
                 {isPositive ? "+" : ""}
                 {gainPct.toFixed(2)}%
               </p>
+            )}
+            {isOpen && position.daysOpen != null && (
+              <p className="text-xs text-gray-400">{position.daysOpen}d open</p>
             )}
           </div>
         </div>
