@@ -32,7 +32,7 @@ describe("computeOpportunityScore", () => {
       sourceCount: 2,
       stage: "EARLY",
     });
-    // novelty 30 + inverted confidence 20 + velocity 15 + cap 15 + near52wkLow 10 + short 5 + freshness 5 = 100
+    // novelty 20 + inverted 20 + velocity 15 + cap 15 + near52wkLow 10 + short 5 + freshness 5 + recovery 5 (ratio 4.0) = 95
     expect(score).toBeGreaterThanOrEqual(90);
     expect(score).toBeLessThanOrEqual(100);
   });
@@ -52,18 +52,18 @@ describe("computeOpportunityScore", () => {
       sourceCount: 4,
       stage: "CONFIRMED",
     });
-    // novelty ~0 + inverted confidence ~2 + velocity 0 + cap 0 + near52wk 5 + short 0 + fresh 0 = ~7
+    // novelty ~0 + inverted ~2 + velocity 0 + cap 0 + near52wk 5 + short 0 + fresh 0 + recovery 0 (ratio 1.3) = ~7
     expect(score).toBeLessThanOrEqual(20);
     expect(score).toBeGreaterThanOrEqual(0);
   });
 
-  it("truly novel ticker gets max novelty (30)", () => {
+  it("truly novel ticker gets max novelty (20)", () => {
     const score = computeOpportunityScore({ ...baseInput, firstSeenDaysAgo: null });
     const scoreNotNovel = computeOpportunityScore({ ...baseInput, firstSeenDaysAgo: 10 });
     expect(score).toBeGreaterThan(scoreNotNovel);
   });
 
-  it("first seen today gets 25 novelty", () => {
+  it("first seen today gets 16 novelty", () => {
     const score0 = computeOpportunityScore({ ...baseInput, firstSeenDaysAgo: 0 });
     const score5 = computeOpportunityScore({ ...baseInput, firstSeenDaysAgo: 5 });
     expect(score0).toBeGreaterThan(score5);
