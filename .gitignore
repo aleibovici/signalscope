@@ -49,8 +49,5 @@ next-env.d.ts
 # python
 __pycache__/
 
-# backtesting
-backtesting/output/
-!backtesting/output/.gitkeep
-backtesting/.env
-backtesting/venv/
+# scripts
+scripts/output/
