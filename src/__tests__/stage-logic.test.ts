@@ -49,10 +49,6 @@ describe("determineStage — CONFIRMED via Reddit subreddit consensus", () => {
     expect(determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, null)).toBe("CONFIRMED");
   });
 
-  it("returns CONFIRMED when medianSignalAgeHrs is undefined (backwards compat)", () => {
-    expect(determineStage(48, 1, 1, 2.0, false, false, undefined, 3)).toBe("CONFIRMED");
-  });
-
   it("does NOT return CONFIRMED when signals are stale (medianSignalAgeHrs >= 6)", () => {
     const result = determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, 8);
     expect(result).not.toBe("CONFIRMED");

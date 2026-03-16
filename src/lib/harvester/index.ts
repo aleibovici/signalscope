@@ -222,7 +222,8 @@ export function determineStage(
   // Require signals to be fresh (median age < 6h) — stale consensus means the move already happened
   // ML shows breadth (distinct_subreddits) matters more than speed — velocity relaxed from 2.5 to 2.0
   // Comment-heavy signals block CONFIRMED — peak hype predicts worse 7d returns (ML SHAP -0.004)
-  const signalsFresh = medianSignalAgeHrs == null || medianSignalAgeHrs < 6;
+  // Undefined age was a legacy compatibility path; active pipeline provides number|null.
+  const signalsFresh = medianSignalAgeHrs === null || (typeof medianSignalAgeHrs === "number" && medianSignalAgeHrs < 6);
   if (!hasNonSocialSource && !isCommentHeavy && (subredditCount ?? 0) >= 3 && effectiveScore >= 48 && avgVelocity >= 2.0 && signalsFresh) {
     return "CONFIRMED";
   }
