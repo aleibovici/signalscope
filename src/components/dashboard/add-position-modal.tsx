@@ -1,21 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAddPosition } from "@/hooks/use-portfolio";
 
 export function AddPositionModal({
   symbol,
-  price,
   onClose,
 }: {
   symbol: string;
-  price: number;
   onClose: () => void;
 }) {
-  const [entryPrice, setEntryPrice] = useState(price.toString());
-  const [shares, setShares] = useState("");
-  const [notes, setNotes] = useState("");
+  const [entryPrice, setEntryPrice] = useState("");
   const addPosition = useAddPosition();
+
+  // Prevent body scroll while modal is open
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,8 +25,6 @@ export function AddPositionModal({
       await addPosition.mutateAsync({
         symbol,
         entryPrice: parseFloat(entryPrice),
-        shares: shares ? parseFloat(shares) : undefined,
-        notes: notes || undefined,
       });
       onClose();
     } catch {
@@ -33,8 +33,14 @@ export function AddPositionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center">
-      <div className="w-full max-w-md rounded-t-lg bg-white p-6 shadow-xl sm:rounded-lg">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center" onClick={onClose}>
+      <div
+        className="w-full max-w-sm rounded-t-2xl bg-white px-5 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-xl sm:pb-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Drag handle for mobile bottom-sheet feel */}
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-gray-300 sm:hidden" />
+
         <h2 className="mb-4 text-lg font-bold">Add position — {symbol}</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -44,36 +50,14 @@ export function AddPositionModal({
             </label>
             <input
               type="number"
+              inputMode="decimal"
               step="0.01"
+              placeholder="0.00"
               value={entryPrice}
               onChange={(e) => setEntryPrice(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-gray-300 px-3 py-3 text-base sm:py-2 sm:text-sm"
               required
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Shares (optional)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              value={shares}
-              onChange={(e) => setShares(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Notes (optional)
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-              rows={2}
+              autoFocus
             />
           </div>
 
@@ -83,18 +67,18 @@ export function AddPositionModal({
             </p>
           )}
 
-          <div className="flex justify-end gap-3">
+          <div className="flex gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
+              className="flex-1 rounded-lg px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-100 sm:flex-none sm:py-2"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={addPosition.isPending}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              className="flex-1 rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 sm:flex-none sm:py-2"
             >
               {addPosition.isPending ? "Adding..." : "Add Position"}
             </button>
