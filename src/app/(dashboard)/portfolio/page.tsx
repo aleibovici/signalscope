@@ -6,6 +6,7 @@ import {
   useAddPosition,
   useUpdatePosition,
   useDeletePosition,
+  type PositionData,
 } from "@/hooks/use-portfolio";
 import { PositionCard } from "@/components/portfolio/position-card";
 import { Spinner } from "@/components/ui/spinner";
@@ -26,7 +27,15 @@ export default function PortfolioPage() {
   const [editEntryPrice, setEditEntryPrice] = useState("");
 
   const positions = data?.positions || [];
-  const openPositions = positions.filter((p) => p.status === "OPEN");
+  const openPositions: (PositionData & { daysOpen: number })[] = positions
+    .filter((p: PositionData) => p.status === "OPEN")
+    .map((p: PositionData) => ({
+      ...p,
+      daysOpen: Math.floor(
+        (Date.now() - new Date(p.openedAt).getTime()) / (1000 * 60 * 60 * 24)
+      ),
+    }))
+    .sort((a, b) => b.daysOpen - a.daysOpen);
   const closedPositions = positions.filter((p) => p.status === "CLOSED");
 
   const avgOpenGain =
@@ -34,6 +43,25 @@ export default function PortfolioPage() {
       ? openPositions.reduce((sum, p) => sum + (p.gainPct || 0), 0) /
         openPositions.length
       : 0;
+
+  const avgGainByBucket = (minDays: number, maxDays: number) => {
+    const bucket = openPositions.filter(
+      (p) => p.daysOpen >= minDays && p.daysOpen <= maxDays
+    );
+    if (bucket.length === 0) return null;
+    return {
+      avg:
+        bucket.reduce((sum, p) => sum + (p.gainPct || 0), 0) / bucket.length,
+      count: bucket.length,
+    };
+  };
+
+  const dayBuckets = [
+    { label: "1d", ...({ data: avgGainByBucket(0, 1) } as const) },
+    { label: "3d", ...({ data: avgGainByBucket(2, 3) } as const) },
+    { label: "7d", ...({ data: avgGainByBucket(4, 7) } as const) },
+    { label: "30d", ...({ data: avgGainByBucket(8, 30) } as const) },
+  ];
 
   const avgClosedGain =
     closedPositions.length > 0
@@ -215,7 +243,7 @@ export default function PortfolioPage() {
         <>
           {openPositions.length > 0 && (
             <div>
-              <div className="mb-3 flex items-center gap-3">
+              <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
                 <h2 className="text-lg font-semibold text-gray-900">
                   Open Positions
                   <span className="ml-2 text-sm font-normal text-gray-500">
@@ -230,6 +258,26 @@ export default function PortfolioPage() {
                     </span>
                   </span>
                 </h2>
+                <div className="flex items-center gap-3">
+                  {dayBuckets.map((b) => (
+                    <span key={b.label} className="text-xs text-gray-500">
+                      <span className="font-medium text-gray-600">{b.label}:</span>{" "}
+                      {b.data ? (
+                        <span
+                          className={
+                            b.data.avg >= 0 ? "text-green-600" : "text-red-600"
+                          }
+                        >
+                          {b.data.avg >= 0 ? "+" : ""}
+                          {b.data.avg.toFixed(1)}%
+                          <span className="text-gray-400"> ({b.data.count})</span>
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">--</span>
+                      )}
+                    </span>
+                  ))}
+                </div>
                 <button
                   onClick={() => refetch()}
                   disabled={isFetching}
