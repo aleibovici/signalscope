@@ -9,6 +9,26 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-03-16",
+    title: "ML-Driven Scoring & Badge Refresh",
+    changes: [
+      {
+        category: "new",
+        items: [
+          "NasdaqCM badge on signal cards — ML backtesting shows NasdaqCM penny stocks are the top-performing exchange segment across all return horizons.",
+        ],
+      },
+      {
+        category: "improved",
+        items: [
+          "Opportunity Score now factors in exchange (AMEX/NasdaqCM penny +8pts) and recovery ratio (wk52 high/price, up to +7pts), both top ML features.",
+          "Novelty weight reduced (30→20pts) to make room for exchange and recovery signals that better predict returns.",
+          "Nano-cap floor raised from $5M to $10M for social-only tickers — ML analysis shows sub-$10M stocks without a catalyst source average -25% returns.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-03-15",
     title: "Opportunity Score, Batch Reports & ML Pipeline Tuning",
     changes: [
