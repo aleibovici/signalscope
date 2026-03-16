@@ -397,46 +397,19 @@ All authenticated API routes use `handleApiError()` from `src/lib/api-error.ts` 
 - 400 for Zod validation errors (with `details` containing issues)
 - 500 for unexpected errors (logged via `console.error` for Cloud Run log inspection)
 
-## Backtesting ML Pipeline (`backtesting/`)
+## DB Extract Script (`scripts/extract.py`)
 
-Python-based XGBoost analysis of historical ticker data to discover optimal scoring/filtering thresholds. Completely decoupled from the Next.js app — connects directly to production PostgreSQL (read-only).
-
-### Directory Structure
-
-```
-backtesting/
-├── requirements.txt          # psycopg2-binary, pandas, xgboost, scikit-learn, shap, matplotlib, python-dotenv
-├── .env.example              # DATABASE_URL placeholder
-├── extract.py                # Step 1: Pull data from prod DB → local parquet (auto-starts Cloud SQL proxy)
-├── features.py               # Step 2: Feature engineering (48 features from raw DB columns)
-├── train.py                  # Step 3: XGBoost training + evaluation + SHAP analysis
-├── sweep.py                  # Step 4: Threshold sweep + bootstrap CIs + permutation testing
-├── README.md                 # Usage instructions
-└── output/                   # Generated artifacts (gitignored)
-```
-
-### Usage
+Python script that pulls `ValidatedTicker` + `TickerPerformance` + raw `Signal` aggregates from production PostgreSQL into a local parquet file. Used by the external ML harness.
 
 ```bash
-cd backtesting
-source venv/bin/activate      # Python venv (create with: python -m venv venv && pip install -r requirements.txt)
-python extract.py             # Extracts data via Cloud SQL Auth Proxy (auto-starts/stops proxy, reads DB_PASSWORD from .env.production)
-python train.py               # Trains XGBoost classifier + regressor, generates SHAP plots
-python sweep.py               # Sweeps thresholds, bootstrap CIs, permutation p-values → sweep_results.csv
+# Requires: pip install psycopg2-binary pandas pyarrow python-dotenv
+# Reads DB_PASSWORD from .env.production
+python scripts/extract.py
+# Output: scripts/output/dataset.parquet
 ```
 
-### Key Design Decisions
-
-- **Raw signals only** — `extract.py` pulls only raw signal data (source, upvotes, postAge, sortType, purchaseValue, etc.) and Yahoo Finance fundamentals. No AI scores, P&D flags, pipeline stages, or computed aggregates are used as ML features. Velocity/momentum metrics are recomputed from raw `postAge`/`sortType` in SQL. This prevents the model from learning to mimic the AI scorer.
-- **Cloud SQL Auth Proxy** — `extract.py` auto-starts `cloud-sql-proxy` on port 5433, reads `DB_PASSWORD` from `.env.production`
-- **Read-only DB access** — all scripts only SELECT, never write
-- **Parquet intermediate** — extract once, iterate fast locally without hitting DB
-- **Auto horizon selection** — uses longest available return period (7d > 3d > 1d) based on data availability
-- **Time-series split** — last 20% by date as test set (no random shuffle — prevents look-ahead bias)
-- **SHAP over just feature importance** — shows direction (positive/negative impact), not just magnitude
-- **Both classification + regression** — classification answers "should we include this ticker?", regression answers "what return can we expect?"
-- **Statistical validation** — `sweep.py` adds bootstrap 95% CIs (10K resamples) and permutation p-values (2K permutations) with Benjamini-Hochberg FDR correction for multiple testing. Configs must survive both CI-not-crossing-zero AND BH-FDR significance to be "validated". No scipy dependency — BH-FDR implemented manually. Output CSV includes `avg_return_ci_lo/hi`, `sharpe_ci_lo/hi`, `ci_crosses_zero`, `p_value`, `p_value_corrected`, `significant` columns.
-- **Current data status (248 symbols, 7d horizon)** — 0 of 115 configs survive statistical validation. All apparent patterns (micro-cap, multi-source) have CIs crossing zero. Pipeline thresholds should not be changed until dataset grows to 500+ symbols.
+- Auto-starts/stops Cloud SQL Auth Proxy on port 5433
+- Read-only — only SELECTs, never writes
 
 ## Deploy Workflow
 

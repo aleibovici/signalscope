@@ -23,8 +23,8 @@ from dotenv import load_dotenv
 
 PROJECT_ROOT = Path(__file__).parent.parent
 
-# Load from backtesting/.env first, fall back to project root .env.production
-load_dotenv(Path(__file__).parent / ".env")
+# Load from project root .env, fall back to .env.production
+load_dotenv(PROJECT_ROOT / ".env")
 load_dotenv(PROJECT_ROOT / ".env.production")
 
 OUTPUT_DIR = Path(__file__).parent / "output"
@@ -35,7 +35,7 @@ GCP_PROJECT = os.environ.get("GCP_PROJECT_ID", "signalscope-488702")
 GCP_REGION = os.environ.get("GCP_REGION", "us-central1")
 INSTANCE_NAME = "signalscope-db"
 INSTANCE_CONNECTION = f"{GCP_PROJECT}:{GCP_REGION}:{INSTANCE_NAME}"
-PROXY_PORT = 5433
+PROXY_PORT = 5434
 DB_USER = "signalscope"
 DB_NAME = "signalscope"
 
