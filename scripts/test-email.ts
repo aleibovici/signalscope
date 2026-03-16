@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { sendConfirmedTickerAlerts } from "../src/lib/email/index.js";
+import { sendTickerAlerts } from "../src/lib/email/index.js";
 
 const fakeTickers = [
   { symbol: "NVDA", price: 142.5, aiScore: 82, catalyst: "Record AI chip demand; data center revenue +150% YoY", signalType: "multi_source" },
@@ -11,7 +11,7 @@ async function main() {
   console.log("=== Email Alert Test ===");
   console.log("Sending digest with 3 fake confirmed tickers...\n");
 
-  await sendConfirmedTickerAlerts(fakeTickers);
+  await sendTickerAlerts(fakeTickers);
 
   console.log("\nDone.");
   process.exit(0);

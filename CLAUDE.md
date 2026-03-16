@@ -76,7 +76,7 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 
 ### Email Alerts (`src/lib/email/`)
 
-- `index.ts` — `sendConfirmedTickerAlerts()` sends a digest of CONFIRMED tickers via Resend. Requires `RESEND_API_KEY` env var; silently skipped if absent.
+- `index.ts` — `sendTickerAlerts()` sends a digest of CONFIRMED tickers via Resend. Requires `RESEND_API_KEY` env var; silently skipped if absent.
 - Triggered by `POST /api/alerts/send` (authenticated via `x-snapshot-key` header, same as snapshots)
 - Users can opt out via `User.emailAlerts = false` (set in profile)
 
