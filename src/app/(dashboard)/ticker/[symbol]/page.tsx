@@ -570,7 +570,6 @@ export default function TickerDetailPage() {
       {showAddPosition && (
         <AddPositionModal
           symbol={ticker.symbol}
-          price={livePrice ?? ticker.price ?? 0}
           onClose={() => setShowAddPosition(false)}
         />
       )}

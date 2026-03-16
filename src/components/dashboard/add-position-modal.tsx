@@ -5,14 +5,12 @@ import { useAddPosition } from "@/hooks/use-portfolio";
 
 export function AddPositionModal({
   symbol,
-  price,
   onClose,
 }: {
   symbol: string;
-  price: number;
   onClose: () => void;
 }) {
-  const [entryPrice, setEntryPrice] = useState(price.toString());
+  const [entryPrice, setEntryPrice] = useState("");
   const addPosition = useAddPosition();
 
   const handleSubmit = async (e: React.FormEvent) => {
