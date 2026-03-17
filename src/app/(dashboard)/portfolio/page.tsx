@@ -26,13 +26,14 @@ export default function PortfolioPage() {
   const [editingPosition, setEditingPosition] = useState<string | null>(null);
   const [editEntryPrice, setEditEntryPrice] = useState("");
 
+  const [now] = useState<number>(() => Date.now());
   const positions = data?.positions || [];
   const openPositions: (PositionData & { daysOpen: number })[] = positions
     .filter((p: PositionData) => p.status === "OPEN")
     .map((p: PositionData) => ({
       ...p,
       daysOpen: Math.floor(
-        (Date.now() - new Date(p.openedAt).getTime()) / (1000 * 60 * 60 * 24)
+        (now - new Date(p.openedAt).getTime()) / (1000 * 60 * 60 * 24)
       ),
     }))
     .sort((a, b) => b.daysOpen - a.daysOpen);
