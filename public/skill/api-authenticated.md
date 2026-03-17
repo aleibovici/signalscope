@@ -13,6 +13,10 @@ List all positions (open and closed).
 
 **Response:** `{ positions: [{ id, symbol, entryPrice, shares, notes, status, closePrice, openedAt, closedAt, verified, currentPrice, gainPct }] }`
 
+Notes:
+- Open positions are enriched with live `currentPrice`.
+- `gainPct` is computed server-side from `entryPrice` vs `currentPrice`.
+
 ### POST /api/portfolio
 
 Add a new position.
@@ -21,6 +25,16 @@ Add a new position.
 
 **Response (201):** `{ position: { id, symbol, entryPrice, shares, notes, status, verified, openedAt } }`
 
+Constraints:
+- `symbol` is normalized to uppercase, max length 10
+- `entryPrice` must be positive
+- `shares` (if provided) must be positive
+- `notes` (if provided) max length is 500
+
+Verification behavior:
+- `verified` is set by comparing the submitted price to the latest snapshot price.
+- If no snapshot exists yet for the symbol, the position is accepted as verified.
+
 ### PATCH /api/portfolio/:id
 
 Update a position. To close: set `status: "CLOSED"` with `closePrice`.
@@ -28,6 +42,11 @@ Update a position. To close: set `status: "CLOSED"` with `closePrice`.
 **Body:** `{ status?: "OPEN" | "CLOSED", closePrice?: number, entryPrice?: number, shares?: number, notes?: string }`
 
 **Response:** `{ position: { ... } }`
+
+Validation rules:
+- `closePrice` can only be set when `status` is `CLOSED`
+- `closePrice` is required when `status` is `CLOSED`
+- Reopening with `status: "OPEN"` clears `closedAt` and `closePrice`
 
 ### DELETE /api/portfolio/:id
 
@@ -109,6 +128,11 @@ Current prices for symbols (cached 5 min).
 
 **Response:** `{ prices: { "AAPL": 185.50, "INVALID": null } }`
 
+Notes:
+- Requires authentication (`x-api-key`, Bearer token, or valid session)
+- Missing `symbols` query parameter returns `400`
+- Maximum of 50 symbols per request
+
 ## User Profile
 
 ### GET /api/user/profile
@@ -146,3 +170,10 @@ Generate a new API key. Revokes any existing key. The full key is shown only onc
 Revoke your current API key.
 
 **Response:** `{ success: true }`
+
+## Common pitfalls
+
+- Closing a position without `closePrice` fails validation (`400`).
+- Supplying `closePrice` without `status: "CLOSED"` also fails validation.
+- Symbols are normalized to uppercase in portfolio and watchlist endpoints.
+- `/api/prices` uses a 5-minute server cache; immediate repeated reads may return cached data.
