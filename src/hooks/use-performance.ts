@@ -51,6 +51,7 @@ export interface PerformerEntry {
   stage: string;
   detectionPrice: number;
   currentPrice: number;
+  detectedAt: string;
 }
 
 export interface CohortStats {

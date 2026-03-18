@@ -318,6 +318,7 @@ export async function GET(request: NextRequest) {
       stage: r.validatedTicker.stage,
       detectionPrice: r.detectionPrice,
       currentPrice: r[priceCol] as number,
+      detectedAt: r.validatedTicker.createdAt.toISOString().slice(0, 10),
     });
 
     const bestPerformers = sorted.slice(0, 5).map(mapPerformer);
