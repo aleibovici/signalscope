@@ -422,7 +422,7 @@ function PerformersTable({
                 <th className="pb-2 pr-4 font-medium">Symbol</th>
                 <th className="pb-2 pr-4 font-medium text-right">Return</th>
                 <th className="pb-2 pr-4 font-medium text-right">Score</th>
-                <th className="pb-2 pr-4 font-medium">Stage</th>
+                <th className="pb-2 pr-4 font-medium">Detected</th>
                 <th className="pb-2 font-medium text-right">Price</th>
               </tr>
             </thead>
@@ -442,7 +442,13 @@ function PerformersTable({
                   <td className="py-1.5 pr-4 text-right text-gray-600">
                     {p.aiScore}
                   </td>
-                  <td className="py-1.5 pr-4 text-gray-600">{stageLabel(p.stage)}</td>
+                  <td className="py-1.5 pr-4 text-gray-500 whitespace-nowrap">
+                    {new Date(p.detectedAt + "T00:00:00Z").toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      timeZone: "UTC",
+                    })}
+                  </td>
                   <td className="py-1.5 text-right text-gray-600">
                     ${p.detectionPrice.toFixed(2)} → ${p.currentPrice.toFixed(2)}
                   </td>
