@@ -53,7 +53,7 @@ function DashboardContent() {
   const tickers = scanDetail?.tickers || [];
   const filteredRaw =
     selectedStage === "ALL"
-      ? tickers.filter((t) => t.stage !== "FILTERED")
+      ? tickers
       : tickers.filter((t) => t.stage === selectedStage);
 
   // Bookmarked tickers float to top; within each group, original order (aiScore DESC) is preserved
@@ -70,7 +70,7 @@ function DashboardContent() {
   );
 
   const counts: Record<string, number> = {
-    ALL: tickers.filter((t) => t.stage !== "FILTERED").length,
+    ALL: tickers.length,
     EARLY: tickers.filter((t) => t.stage === "EARLY").length,
     FORMING: tickers.filter((t) => t.stage === "FORMING").length,
     CONFIRMED: tickers.filter((t) => t.stage === "CONFIRMED").length,
