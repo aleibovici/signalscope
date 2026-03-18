@@ -32,8 +32,8 @@ describe("computeOpportunityScore", () => {
       sourceCount: 2,
       stage: "EARLY",
     });
-    // novelty 20 + inverted 20 + velocity 15 + cap 15 + near52wkLow 10 + short 5 + freshness 5 + recovery 5 (ratio 4.0) = 95
-    expect(score).toBeGreaterThanOrEqual(90);
+    // novelty 14 + inverted 20 + velocity 15 + cap 15 + near52wkLow 10 + short 5 + freshness 5 + recovery 5 (ratio 4.0) = 89
+    expect(score).toBeGreaterThanOrEqual(85);
     expect(score).toBeLessThanOrEqual(100);
   });
 
@@ -63,10 +63,12 @@ describe("computeOpportunityScore", () => {
     expect(score).toBeGreaterThan(scoreNotNovel);
   });
 
-  it("first seen today gets 16 novelty", () => {
-    const score0 = computeOpportunityScore({ ...baseInput, firstSeenDaysAgo: 0 });
-    const score5 = computeOpportunityScore({ ...baseInput, firstSeenDaysAgo: 5 });
-    expect(score0).toBeGreaterThan(score5);
+  it("3-5 day old ticker gets max age score (sweet spot for near-term returns)", () => {
+    const score0 = computeOpportunityScore({ ...baseInput, firstSeenDaysAgo: 0 }); // 14 pts
+    const score4 = computeOpportunityScore({ ...baseInput, firstSeenDaysAgo: 4 }); // 20 pts (sweet spot)
+    const scoreNovel = computeOpportunityScore({ ...baseInput, firstSeenDaysAgo: null }); // 14 pts
+    expect(score4).toBeGreaterThan(score0);
+    expect(score4).toBeGreaterThan(scoreNovel);
   });
 
   it("low aiScore gets higher inverted confidence than high aiScore", () => {
@@ -172,16 +174,16 @@ describe("computeOpportunityScore", () => {
     expect(withBonus).toBeGreaterThan(without);
   });
 
-  it("does not apply comment-heavy penalty when comments <= 150", () => {
-    const a = computeOpportunityScore({
+  it("moderate comments (33-150) get engagement boost, not penalty", () => {
+    const withModerateComments = computeOpportunityScore({
       ...baseInput,
       totalUpvotes: 100,
-      totalComments: 100, // ratio < 2 but comments <= 150
+      totalComments: 100, // ratio < 2 but comments 33-150 → moderate engagement boost (+3)
     });
-    const b = computeOpportunityScore({
+    const withoutComments = computeOpportunityScore({
       ...baseInput,
       // no upvotes/comments → no adjustment
     });
-    expect(a).toBe(b);
+    expect(withModerateComments).toBeGreaterThan(withoutComments);
   });
 });

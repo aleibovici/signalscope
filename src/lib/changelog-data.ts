@@ -15,6 +15,10 @@ export const changelog: ChangelogEntry[] = [
       {
         category: "improved",
         items: [
+          "ML-driven price floors: sub-$0.12 stocks without a catalyst are now capped at EARLY stage, and social-only CONFIRMED requires price >= $0.52 for 7d follow-through.",
+          "Reshaped opportunity scoring: tickers validated over 3-5 days now score highest (ML shows best near-term returns), while truly novel tickers get a reduced premium.",
+          "Moderate Reddit engagement (33-150 comments) now boosts opportunity score, reflecting ML finding that genuine discussion predicts positive 3d returns.",
+          "Updated AI scoring prompt with price quality guidance, age sweet-spot weighting, and moderate comment engagement signals from latest backtesting.",
           "Performance breakdown tables now include a Median Return column for a more robust view of typical outcomes alongside average returns.",
           "Signal Confidence and Early-Mover Score breakdown tables now include descriptions explaining what each tier means.",
           "Best/Worst Performers table now shows detection date so you can see how old each signal is.",
