@@ -34,10 +34,13 @@ function computeStats(records: PerformanceRecord[], col: ReturnCol) {
     .map((r) => r[col])
     .filter((v): v is number => v !== null);
   const count = returns.length;
-  if (count === 0) return { count: 0, winRate: 0, avgReturn: 0 };
+  if (count === 0) return { count: 0, winRate: 0, avgReturn: 0, medianReturn: 0 };
   const wins = returns.filter((r) => r > 0).length;
   const avgReturn = returns.reduce((a, b) => a + b, 0) / count;
-  return { count, winRate: wins / count, avgReturn };
+  const sorted = [...returns].sort((a, b) => a - b);
+  const mid = Math.floor(count / 2);
+  const medianReturn = count % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+  return { count, winRate: wins / count, avgReturn, medianReturn };
 }
 
 function getMonday(date: Date): string {
