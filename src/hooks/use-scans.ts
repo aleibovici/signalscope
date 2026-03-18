@@ -82,20 +82,11 @@ export interface SignalData {
   createdAt: string;
 }
 
-export interface ScansFilter {
-  status?: string;
-  from?: string;
-  to?: string;
-}
-
-export function useScans(page = 1, limit = 10, filters?: ScansFilter) {
+export function useScans(page = 1, limit = 10) {
   return useQuery<{ scans: ScanSummary[]; total: number }>({
-    queryKey: ["scans", page, limit, filters],
+    queryKey: ["scans", page, limit],
     queryFn: async () => {
       const params = new URLSearchParams({ page: String(page), limit: String(limit) });
-      if (filters?.status) params.set("status", filters.status);
-      if (filters?.from) params.set("from", filters.from);
-      if (filters?.to) params.set("to", filters.to);
       const res = await fetch(`/api/scans?${params}`);
       if (!res.ok) throw new Error("Failed to fetch scans");
       return res.json();
@@ -103,14 +94,11 @@ export function useScans(page = 1, limit = 10, filters?: ScansFilter) {
   });
 }
 
-export function useScanDetail(scanId: string | null, includeFiltered = false) {
+export function useScanDetail(scanId: string | null) {
   return useQuery<{ scan: ScanSummary; tickers: ValidatedTickerData[] }>({
-    queryKey: ["scan", scanId, includeFiltered],
+    queryKey: ["scan", scanId],
     queryFn: async () => {
-      const url = includeFiltered
-        ? `/api/scans/${scanId}?includeFiltered=true`
-        : `/api/scans/${scanId}`;
-      const res = await fetch(url);
+      const res = await fetch(`/api/scans/${scanId}`);
       if (!res.ok) throw new Error("Failed to fetch scan detail");
       return res.json();
     },
