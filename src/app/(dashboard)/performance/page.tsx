@@ -342,9 +342,11 @@ function CumulativeReturns({
 /* ---------- Breakdown Tables ---------- */
 function StatsTable({
   title,
+  description,
   data,
 }: {
   title: string;
+  description?: string;
   data: Record<string, PerformanceStats>;
 }) {
   const entries = Object.entries(data);
@@ -354,6 +356,9 @@ function StatsTable({
     <Card>
       <CardHeader>
         <h3 className="font-semibold">{title}</h3>
+        {description && (
+          <p className="text-xs text-gray-400">{description}</p>
+        )}
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
@@ -536,8 +541,16 @@ export default function PerformancePage() {
             <StatsTable title="By Signal Type" data={data.byType} />
           </div>
           <div className="grid gap-4 lg:grid-cols-2">
-            <StatsTable title="By Signal Confidence (AI Score)" data={data.byScoreRange} />
-            <StatsTable title="By Early-Mover Score (Opportunity)" data={data.byOpportunityScoreRange} />
+            <StatsTable
+              title="By Signal Confidence (AI Score)"
+              description="AI-assigned score (0–100) reflecting conviction in the signal — based on source quality, sentiment strength, and corroborating evidence."
+              data={data.byScoreRange}
+            />
+            <StatsTable
+              title="By Early-Mover Score (Opportunity)"
+              description="Opportunity score (0–100) measuring how early this signal was detected — higher scores mean fewer prior appearances and greater novelty."
+              data={data.byOpportunityScoreRange}
+            />
           </div>
 
           {/* Best/Worst performers */}
