@@ -37,12 +37,12 @@ async function handleTicker(request: NextRequest, upperSymbol: string) {
 
 const x402Handler = X402_ENABLED
   ? withX402(
-      async (request: NextRequest) => {
+      (async (request: NextRequest) => {
         const url = new URL(request.url);
         const symbol = url.pathname.split("/")[3]?.toUpperCase();
         if (!symbol) return NextResponse.json({ error: "Invalid path" }, { status: 400 });
         return handleTicker(request, symbol);
-      },
+      }) as (request: NextRequest) => Promise<NextResponse<unknown>>,
       x402RouteConfigs.ticker,
       x402Server,
     )

@@ -6,7 +6,7 @@ import type { NextRequest } from "next/server";
 export const X402_WALLET = process.env.X402_WALLET_ADDRESS as `0x${string}`;
 export const X402_ENABLED = !!process.env.X402_WALLET_ADDRESS;
 
-const X402_NETWORK = "eip155:8453"; // Base mainnet
+const X402_NETWORK = "eip155:8453" as const; // Base mainnet
 
 export const x402Server = new x402ResourceServer(
   new HTTPFacilitatorClient({ url: "https://api.bitrefill.com/x402" }),
