@@ -4,7 +4,7 @@ import { authConfig } from "@/lib/auth.config";
 const { auth } = NextAuth(authConfig);
 
 // Exact page paths (no sub-routes)
-const publicPages = new Set(["/login", "/register", "/changelog", "/api/stats/performance"]);
+const publicPages = new Set(["/login", "/register", "/changelog", "/api/stats/performance", "/api/search"]);
 
 // API prefixes — matched with a boundary check so /api/scans matches
 // /api/scans and /api/scans/abc but NOT /api/scans-admin
@@ -17,6 +17,12 @@ const publicApiPrefixes = [
   "/api/reports",
 ];
 
+// x402-monetized paths — bypass middleware auth so the route handler
+// can return 402 payment details or validate x-payment proofs.
+function isX402Path(pathname: string): boolean {
+  return pathname === "/api/tickers" || pathname.startsWith("/api/tickers/");
+}
+
 function isPublicPath(pathname: string): boolean {
   if (publicPages.has(pathname)) return true;
   return publicApiPrefixes.some(
@@ -28,6 +34,7 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
 
   if (isPublicPath(pathname)) return;
+  if (isX402Path(pathname)) return;
 
   // Let mobile Bearer token and API key requests through — real verification
   // happens in getCurrentUserId() inside route handlers

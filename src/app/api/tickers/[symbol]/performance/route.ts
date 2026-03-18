@@ -2,39 +2,66 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
+import { withX402, x402Server, x402RouteConfigs, hasAuthCredentials, X402_ENABLED } from "@/lib/x402";
+
+async function handlePerformance(request: NextRequest, upper: string) {
+  const performances = await prisma.tickerPerformance.findMany({
+    where: { symbol: upper },
+    include: {
+      validatedTicker: {
+        select: {
+          createdAt: true,
+          aiScore: true,
+          stage: true,
+          scanId: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (performances.length === 0) {
+    return NextResponse.json({ latest: null, history: [] });
+  }
+
+  return NextResponse.json({
+    latest: performances[0],
+    history: performances,
+  });
+}
+
+const x402Handler = X402_ENABLED
+  ? withX402(
+      async (request: NextRequest) => {
+        const url = new URL(request.url);
+        const symbol = url.pathname.split("/")[3]?.toUpperCase();
+        if (!symbol) return NextResponse.json({ error: "Invalid path" }, { status: 400 });
+        return handlePerformance(request, symbol);
+      },
+      x402RouteConfigs.performance,
+      x402Server,
+    )
+  : null;
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ symbol: string }> }
 ) {
   try {
-    await getCurrentUserId();
     const { symbol } = await params;
     const upper = symbol.toUpperCase();
 
-    const performances = await prisma.tickerPerformance.findMany({
-      where: { symbol: upper },
-      include: {
-        validatedTicker: {
-          select: {
-            createdAt: true,
-            aiScore: true,
-            stage: true,
-            scanId: true,
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    if (performances.length === 0) {
-      return NextResponse.json({ latest: null, history: [] });
+    if (hasAuthCredentials(request)) {
+      await getCurrentUserId();
+      return await handlePerformance(request, upper);
     }
 
-    return NextResponse.json({
-      latest: performances[0],
-      history: performances,
-    });
+    if (x402Handler) {
+      return x402Handler(request);
+    }
+
+    await getCurrentUserId();
+    return await handlePerformance(request, upper);
   } catch (err) {
     return handleApiError(err, "GET /api/tickers/[symbol]/performance");
   }
