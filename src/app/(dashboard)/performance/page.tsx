@@ -10,7 +10,7 @@ import type {
 } from "@/hooks/use-performance";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import { stageLabel, STAGE_LABELS } from "@/lib/stage-labels";
+import { STAGE_LABELS } from "@/lib/stage-labels";
 
 const INTERVALS = [
   { label: "1d", days: 1 },

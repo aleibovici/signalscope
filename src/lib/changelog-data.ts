@@ -9,6 +9,23 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-03-19",
+    title: "Performance Page & Portfolio Polish",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "Performance breakdown tables now include a Median Return column for a more robust view of typical outcomes alongside average returns.",
+          "Signal Confidence and Early-Mover Score breakdown tables now include descriptions explaining what each tier means.",
+          "Best/Worst Performers table now shows detection date so you can see how old each signal is.",
+          "Best/Worst Performers and Win Rate/Avg Return chart now scoped to emerging signals only (EARLY/FORMING/CONFIRMED), excluding unscored tickers.",
+          "Portfolio position cards are more compact with less vertical padding.",
+          "Portfolio page mobile layout improvements for better usability on small screens.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-03-16",
     title: "ML-Driven Scoring & Badge Refresh",
     changes: [
