@@ -300,7 +300,7 @@ export default function PortfolioPage() {
                   )}
                 </button>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {openPositions.map((p) => (
                   <PositionCard
                     key={p.id}
@@ -330,7 +330,7 @@ export default function PortfolioPage() {
                   </span>
                 </span>
               </h2>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {closedPositions.map((p) => (
                   <PositionCard
                     key={p.id}

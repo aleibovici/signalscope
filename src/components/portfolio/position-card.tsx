@@ -22,96 +22,69 @@ export function PositionCard({
 
   return (
     <Card className="transition-shadow hover:shadow-md">
-      <CardContent className="space-y-3">
-        <div className="flex items-start justify-between">
-          <div>
-            <span className="text-lg font-bold text-gray-900">
-              {position.symbol}
-            </span>
-            <Badge
-              variant={isOpen ? "success" : "default"}
-              className="ml-2"
-            >
+      <CardContent className="px-4 py-3">
+        {/* Row 1: symbol + badge + gain + days */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-gray-900">{position.symbol}</span>
+            <Badge variant={isOpen ? "success" : "default"} className="text-xs">
               {position.status}
             </Badge>
-          </div>
-          <div className="text-right">
-            {gainPct != null && (
-              <p
-                className={`text-lg font-bold ${
-                  isPositive
-                    ? "text-green-600"
-                    : isNegative
-                      ? "text-red-600"
-                      : "text-gray-600"
-                }`}
-              >
-                {isPositive ? "+" : ""}
-                {gainPct.toFixed(2)}%
-              </p>
-            )}
             {isOpen && position.daysOpen != null && (
-              <p className="text-xs text-gray-400">{position.daysOpen}d open</p>
+              <span className="text-xs text-gray-400">{position.daysOpen}d</span>
             )}
           </div>
+          {gainPct != null && (
+            <span
+              className={`text-sm font-bold ${
+                isPositive ? "text-green-600" : isNegative ? "text-red-600" : "text-gray-600"
+              }`}
+            >
+              {isPositive ? "+" : ""}{gainPct.toFixed(2)}%
+            </span>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
-          <div>
-            <span className="text-gray-400">Entry</span>
-            <p className="font-medium">${position.entryPrice.toFixed(2)}</p>
-          </div>
-          <div>
-            <span className="text-gray-400">Current</span>
-            <p className="font-medium">
-              {position.currentPrice != null
-                ? `$${position.currentPrice.toFixed(2)}`
-                : "N/A"}
-            </p>
-          </div>
+        {/* Row 2: prices inline */}
+        <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-500">
+          <span>Entry <span className="font-medium text-gray-700">${position.entryPrice.toFixed(2)}</span></span>
+          <span>Current <span className="font-medium text-gray-700">
+            {position.currentPrice != null ? `$${position.currentPrice.toFixed(2)}` : "N/A"}
+          </span></span>
           {position.shares && (
-            <div>
-              <span className="text-gray-400">Shares</span>
-              <p className="font-medium">{position.shares}</p>
-            </div>
+            <span>Shares <span className="font-medium text-gray-700">{position.shares}</span></span>
           )}
-          <div>
-            <span className="text-gray-400">Opened</span>
-            <p className="font-medium">
-              {new Date(position.openedAt).toLocaleDateString()}
-            </p>
-          </div>
+          <span>Opened <span className="font-medium text-gray-700">
+            {new Date(position.openedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+          </span></span>
           {!isOpen && position.closedAt && (
-            <div>
-              <span className="text-gray-400">Closed</span>
-              <p className="font-medium">
-                {new Date(position.closedAt).toLocaleDateString()}
-              </p>
-            </div>
+            <span>Closed <span className="font-medium text-gray-700">
+              {new Date(position.closedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+            </span></span>
           )}
         </div>
 
         {position.notes && (
-          <p className="text-xs text-gray-500">{position.notes}</p>
+          <p className="mt-1 text-xs text-gray-400">{position.notes}</p>
         )}
 
         {isOpen && (
-          <div className="flex gap-2">
+          <div className="mt-2 flex gap-2">
             <button
               onClick={() => onClose(position.id)}
-              className="rounded bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-200"
+              className="rounded bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200"
             >
-              Close Position
+              Close
             </button>
             <button
               onClick={() => onEdit(position.id)}
-              className="rounded bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-200"
+              className="rounded bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200"
             >
               Edit
             </button>
             <button
               onClick={() => onDelete(position.id)}
-              className="rounded px-3 py-1.5 text-xs text-red-600 hover:bg-red-50"
+              className="rounded px-2.5 py-1 text-xs text-red-600 hover:bg-red-50"
             >
               Delete
             </button>
