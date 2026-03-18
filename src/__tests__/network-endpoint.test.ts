@@ -16,6 +16,15 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
+// Mock x402 (avoids @x402/next ESM resolution issues in vitest)
+vi.mock("@/lib/x402", () => ({
+  X402_ENABLED: false,
+  x402Server: null,
+  x402RouteConfigs: { network: {} },
+  hasAuthCredentials: vi.fn().mockReturnValue(true),
+  withX402: vi.fn(),
+}));
+
 const { GET, networkCache } = await import("@/app/api/tickers/network/route");
 
 function makeRequest(params: Record<string, string> = {}): NextRequest {

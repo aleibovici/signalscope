@@ -1,9 +1,14 @@
 # SignalScope Authenticated API
 
-All endpoints require the `x-api-key` header:
+These endpoints manage user account data (portfolio, watchlist, profile, API keys). They require an API key or active session — x402 micropayments are not accepted here.
+
 ```
 x-api-key: sk_sig_your_key_here
 ```
+
+Generate your API key at localhost:3000/profile.
+
+---
 
 ## Portfolio
 
@@ -54,6 +59,8 @@ Delete a position.
 
 **Response:** `{ success: true }`
 
+---
+
 ## Watchlist
 
 ### GET /api/watchlist
@@ -82,6 +89,8 @@ Watchlist symbols enriched with latest ticker data, performance, and signal sour
 
 **Response:** `{ tickers: [{ symbol, name, aiScore, stage, price, marketCap, catalyst, recommendation, report, signalCount, sourceCount, return7d, sources, ... }] }`
 
+---
+
 ## Performance
 
 ### GET /api/performance
@@ -94,19 +103,7 @@ Platform-wide ticker performance breakdown.
 
 **Response:** `{ overall: { count, winRate, avgReturn }, confirmed: { count, winRate, avgReturn }, byStage, byType, byScoreRange, bestPerformers: [{ symbol, return, aiScore, stage, detectionPrice, currentPrice }], worstPerformers: [...] }`
 
-## Search
-
-### GET /api/search
-
-Search tickers by symbol or name.
-
-| Param | Type | Default | Description |
-|-------|------|---------|-------------|
-| q | string | required | Search query (1-20 chars) |
-
-**Response:** `{ results: [{ symbol, aiScore, stage, price }] }`
-
-Returns up to 8 results.
+---
 
 ## Stats
 
@@ -115,6 +112,8 @@ Returns up to 8 results.
 Platform-wide statistics.
 
 **Response:** `{ scans: number, signals: number, tickers: number, users: number }`
+
+---
 
 ## Prices
 
@@ -133,6 +132,8 @@ Notes:
 - Missing `symbols` query parameter returns `400`
 - Maximum of 50 symbols per request
 
+---
+
 ## User Profile
 
 ### GET /api/user/profile
@@ -150,6 +151,8 @@ Update profile settings.
 Username: 3-20 chars, lowercase letters, numbers, underscores only.
 
 **Response:** `{ id, email, username, emailAlerts }`
+
+---
 
 ## API Key Management
 
@@ -171,9 +174,12 @@ Revoke your current API key.
 
 **Response:** `{ success: true }`
 
+---
+
 ## Common pitfalls
 
 - Closing a position without `closePrice` fails validation (`400`).
 - Supplying `closePrice` without `status: "CLOSED"` also fails validation.
 - Symbols are normalized to uppercase in portfolio and watchlist endpoints.
 - `/api/prices` uses a 5-minute server cache; immediate repeated reads may return cached data.
+- These endpoints do not accept x402 payments — use an API key or session.

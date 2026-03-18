@@ -21,6 +21,10 @@
     "@prisma/adapter-pg": "^7.4.1",
     "@prisma/client": "^7.4.1",
     "@tanstack/react-query": "^5.90.21",
+    "@x402/core": "^2.7.0",
+    "@x402/evm": "^2.7.0",
+    "@x402/fetch": "^2.7.0",
+    "@x402/next": "^2.7.0",
     "bcryptjs": "^3.0.3",
     "next": "^16.2.0",
     "next-auth": "^5.0.0-beta.30",
@@ -30,6 +34,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "resend": "^6.9.3",
+    "viem": "^2.47.5",
     "yahoo-finance2": "^3.13.1",
     "zod": "^4.3.6"
   },

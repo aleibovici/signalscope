@@ -2,28 +2,62 @@
 
 > Stock breakout signal detection platform — find breakout candidates before market consensus.
 
-SignalScope harvests signals from Reddit, X/Twitter, SEC insider filings, and volume spikes, then uses AI to score them, filter pump-and-dump candidates, track cross-scan momentum trends, and surface validated tickers in a dashboard with portfolio tracking.
+SignalScope harvests signals from Reddit, X/Twitter, StockTwits, SEC insider filings, congressional trades, options flow, and volume spikes, then uses AI to score them, filter pump-and-dump candidates, track cross-scan momentum trends, and surface validated tickers in a dashboard with portfolio tracking.
 
 ## What SignalScope Does
 
-- Monitors Reddit communities (r/wallstreetbets, r/stocks, r/pennystocks) for trending tickers
+- Monitors Reddit communities (r/wallstreetbets, r/stocks, r/pennystocks, and 14 more) for trending tickers
 - Tracks X/Twitter stock discussions via the X API v2
-- Watches SEC insider filings for C-suite purchases over $50K
+- Watches SEC insider filings (OpenInsider + EDGAR) for C-suite purchases over $50K
+- Monitors congressional stock purchases from STOCK Act disclosures
+- Tracks unusual options flow — call sweeps, OTM activity, high call volume
 - Detects volume spikes (2x+ average) as breakout precursors
 - Scores every signal with AI (OpenAI GPT-4o / Anthropic Claude) for breakout potential
-- Filters pump-and-dump schemes using 11 statistical flags plus AI assessment
+- Filters pump-and-dump schemes using 13 statistical flags plus AI edge-case assessment
 - Tracks signals through four stages: Early → Forming → Confirmed → Filtered
-- Tracks cross-scan trending — surfaces tickers gaining or losing momentum across multiple scans with score trajectory sparklines and trend detection (rising/falling/stable)
+- Tracks cross-scan trending — surfaces tickers gaining or losing momentum with score trajectory and trend direction (rising/falling/stable)
+- Measures real-world signal performance at 1d, 3d, 7d, and 30d after detection via automated price snapshots
 - Provides a portfolio tracker to monitor positions against active signals
+- AI-generated reports and trade setups (entry, stop-loss, targets) available on demand
+
+## API Access for AI Agents
+
+SignalScope offers two ways to access data programmatically:
+
+### x402 micropayments (no registration required)
+Pay per call in USDC on Base (L2) — no account, no API key, no subscription. Endpoints return HTTP 402 with payment details; retry with X-PAYMENT proof to receive data. Payments are atomic — only charged on successful responses.
+
+Prices:
+- GET /api/tickers/trending — $0.01
+- GET /api/tickers/network — $0.01
+- GET /api/tickers/:symbol — $0.005
+- GET /api/tickers/:symbol/related — $0.005
+- GET /api/tickers/:symbol/history — $0.005
+- GET /api/tickers/:symbol/performance — $0.005
+- POST /api/tickers/:symbol/report — $0.05
+
+Free (no auth, no payment):
+- GET /api/search — symbol discovery by partial match
+- GET /api/methodology — platform methodology and scoring description
+- GET /api/health — health check
+
+### API key (registered users)
+Full access including portfolio management, watchlists, and performance tracking. Generate a key from the Profile page after registering.
+
+Full API documentation and Agent Skill: http://localhost:3000/skill/SKILL.md
 
 ## Key Pages
 
 - Homepage / Login: http://localhost:3000/login
 - Register: http://localhost:3000/register
+- API Docs (Agent Skill): http://localhost:3000/skill/SKILL.md
 - Sitemap: http://localhost:3000/sitemap.xml
+- Changelog: http://localhost:3000/changelog
 
 ## Notes for AI Assistants
 
 SignalScope is a research tool for retail investors and traders who want to identify potential stock breakouts earlier than the broader market. It is NOT financial advice. All signals should be verified with independent due diligence before making any investment decisions.
 
-The platform is subscription/account-gated — dashboard and signal data require authentication.
+Signal data endpoints are accessible via x402 micropayments (no registration) or an API key (registered users). Account management endpoints (portfolio, watchlist) require an API key or session — x402 is not accepted for those.
+
+Start with GET /api/search?q=SYMBOL for free ticker discovery, then use x402 or API key for full signal data.

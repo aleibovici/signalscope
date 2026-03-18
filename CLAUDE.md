@@ -101,20 +101,20 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 | `/api/scans` | GET | List scans (paginated) |
 | `/api/scans/[scanId]` | GET | Scan detail with validated tickers |
 | `/api/signals` | GET | Signals filtered by scanId and stage |
-| `/api/tickers/trending` | GET | Cross-scan trending tickers (query: `minAppearances`, `stage`, `trend`) |
-| `/api/tickers/[symbol]` | GET | Latest ticker + raw signals |
-| `/api/tickers/[symbol]/history` | GET | Historical appearances for a ticker |
-| `/api/tickers/[symbol]/performance` | GET | Performance data for a ticker |
-| `/api/tickers/[symbol]/related` | GET | Co-occurring tickers with Jaccard correlation scores |
-| `/api/tickers/network` | GET | Network graph nodes and edges for ticker co-occurrence |
-| `/api/tickers/[symbol]/report` | POST | Generate AI report + trade setup on-demand (cached after first generation) |
+| `/api/tickers/trending` | GET | Cross-scan trending tickers (query: `minAppearances`, `stage`, `trend`) — **x402: $0.01** |
+| `/api/tickers/[symbol]` | GET | Latest ticker + raw signals — **x402: $0.005** |
+| `/api/tickers/[symbol]/history` | GET | Historical appearances for a ticker — **x402: $0.005** |
+| `/api/tickers/[symbol]/performance` | GET | Performance data for a ticker — **x402: $0.005** |
+| `/api/tickers/[symbol]/related` | GET | Co-occurring tickers with Jaccard correlation scores — **x402: $0.005** |
+| `/api/tickers/network` | GET | Network graph nodes and edges for ticker co-occurrence — **x402: $0.01** |
+| `/api/tickers/[symbol]/report` | POST | Generate AI report + trade setup on-demand (cached after first generation) — **x402: $0.05** |
 | `/api/portfolio` | GET/POST | List or add positions |
 | `/api/portfolio/[id]` | PATCH/DELETE | Update or delete position |
 | `/api/watchlist` | GET/POST | List or add watchlist items |
 | `/api/watchlist/tickers` | GET | Watchlist symbols with latest ticker data and sources |
 | `/api/watchlist/[symbol]` | DELETE | Remove from watchlist |
 | `/api/prices` | GET | Current prices for given symbols (query: `symbols`) |
-| `/api/search` | GET | Search tickers by symbol/name |
+| `/api/search` | GET | Search tickers by symbol/name (public, no auth) |
 | `/api/stats` | GET | Platform-wide stats (scan counts, ticker counts) |
 | `/api/performance` | GET | Portfolio performance over time (query: `days`) |
 | `/api/user/profile` | GET/PATCH | Get or update current user profile |
@@ -167,6 +167,19 @@ Multi-user email/password auth via Auth.js v5 (Credentials provider, JWT session
 4. `POST /api/auth/logout` revokes refresh tokens (requires Bearer auth)
 5. `POST /api/auth/register` also returns tokens for seamless register-and-go
 
+### x402 Payment Protocol (`src/lib/x402.ts`)
+
+Anonymous pay-per-call access for AI agents via the [x402 protocol](https://www.x402.org). Agents pay in USDC on Base (L2) — no registration or API key needed. Coexists with existing auth: if request has session/Bearer/API key, normal auth is used; otherwise x402 validates payment or returns HTTP 402 with payment requirements.
+
+- `src/lib/x402.ts` — Shared x402 server config, route configs, `hasAuthCredentials()` helper
+- Monetized endpoints: `GET /api/tickers/trending` ($0.01), `GET /api/tickers/network` ($0.01), `GET /api/tickers/[symbol]` ($0.005), `GET /api/tickers/[symbol]/related` ($0.005), `GET /api/tickers/[symbol]/history` ($0.005), `GET /api/tickers/[symbol]/performance` ($0.005), `POST /api/tickers/[symbol]/report` ($0.05)
+- Public (no auth, no payment): `GET /api/search` — free discovery endpoint to drive agents toward paid ticker endpoints
+- Middleware (`src/proxy.ts`) bypasses auth for x402 paths so route handlers can return 402 payment details
+- Enabled when `X402_WALLET_ADDRESS` env var is set; disabled (normal auth only) when absent
+- Facilitator: `https://facilitator.x402.org` (Coinbase-hosted, testnet-only for Base Sepolia; production facilitators at x402.org/ecosystem)
+- Payment settles to wallet on Base mainnet (`eip155:8453`), scheme: `exact` (EIP-3009 USDC `transferWithAuthorization`)
+- Packages: `@x402/next`, `@x402/core`, `@x402/evm`, `viem`
+
 ### Database Models
 
 Key models in `prisma/schema.prisma`: **User** (with `emailAlerts: Boolean`), **Scan** (harvest run), **Signal** (raw from sources), **ValidatedTicker** (scored candidates with fundamentals/report), **TickerPerformance** (post-scan price performance tracking), **PriceSnapshot** (continuous price time-series for return computation), **UserPosition** (portfolio), **UserWatchlist** (bookmarked tickers), **RefreshToken** (mobile auth token rotation, indexed on token/userId/expiresAt), **ApiKey** (SHA-256 hashed API keys for programmatic access, single key per user, `sk_sig_` prefix).
@@ -209,6 +222,9 @@ SNAPSHOT_API_KEY=<openssl rand -base64 32>
 
 # Optional: Email alerts via Resend (no emails sent if absent)
 RESEND_API_KEY=re_...
+
+# Optional: x402 payment protocol (USDC on Base, disabled if absent)
+X402_WALLET_ADDRESS=0x...
 
 # Optional: SEO site verification meta tags
 GOOGLE_SITE_VERIFICATION=...

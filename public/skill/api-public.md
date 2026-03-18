@@ -1,50 +1,36 @@
 # SignalScope Signal & Scan API
 
-All endpoints require the `x-api-key` header:
+## Access
+
+Most endpoints can be accessed two ways:
+
+**x402 micropayments** (no account required) — pay-per-call in USDC on Base. Send the request; if you receive `402 Payment Required`, decode the `payment-required` header for payment details and retry with `X-PAYMENT` proof. See [SKILL.md](SKILL.md) for the full x402 flow.
+
+**API key** (registered users) — include in all requests:
 ```
 x-api-key: sk_sig_your_key_here
 ```
-
 Generate your API key at localhost:3000/profile.
 
-## GET /api/scans
+**Free** endpoints (no auth, no payment): `/api/search`, `/api/methodology`, `/api/health`.
 
-List harvest scans (paginated).
+---
 
-| Param | Type | Default | Description |
-|-------|------|---------|-------------|
-| page | number | 1 | Page number |
-| limit | number | 20 | Results per page (max 100) |
-| status | string | — | Filter: `RUNNING`, `COMPLETED`, or `FAILED` |
-| from | string | — | Start date (ISO format) |
-| to | string | — | End date (ISO format) |
+## GET /api/search — free
 
-**Response:** `{ scans: [{ id, status, startedAt, completedAt, signalCount, validatedCount, filteredCount }], total, page, limit }`
-
-## GET /api/scans/:scanId
-
-Get scan detail with validated tickers.
+Search tickers by symbol or name. No authentication or payment required.
 
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
-| includeFiltered | boolean | false | Include FILTERED (P&D flagged) tickers |
+| q | string | required | Search query (1-20 chars) |
 
-**Response:** `{ scan: { id, status, startedAt, completedAt, signalCount, validatedCount, filteredCount }, tickers: [{ id, symbol, aiScore, stage, price, marketCap, catalyst, risks, recommendation, report, signalCount, sourceCount, shortFloat, avgSentiment, firstSeenDaysAgo, priorAppearances, return7d, sources, createdAt }] }`
+**Response:** `{ results: [{ symbol, aiScore, stage, price }] }`
 
-## GET /api/signals
+Returns up to 8 results. Use this for free symbol discovery before calling paid endpoints.
 
-Get raw signals for a scan.
+---
 
-| Param | Type | Default | Description |
-|-------|------|---------|-------------|
-| scanId | string | required | Scan ID |
-| stage | string | — | Filter: `EARLY`, `FORMING`, `CONFIRMED`, `FILTERED` |
-
-**Response:** `{ signals: [{ id, scanId, symbol, source, title, url, velocityScore, createdAt }] }`
-
-Max 200 results, sorted by sourceCount then velocityScore descending.
-
-## GET /api/tickers/trending
+## GET /api/tickers/trending — $0.01 via x402
 
 Cross-scan trending tickers (last 30 days).
 
@@ -65,7 +51,35 @@ Cross-scan trending tickers (last 30 days).
 
 **Response:** `{ tickers: [{ symbol, name, aiScore, stage, price, marketCap, sector, catalyst, risks, recommendation, report, appearanceCount, trend, scoreTrajectory: [{ score, stage, date }], return1d, return3d, return7d, return30d, sources, exchange, wk52Lo, wk52Hi, pndFlagged, pndScore, pndFlags, firstSeenDaysAgo, priorAppearances, ... }], total, summary: { totalTrending, risingCount, fallingCount, stableCount, avgScore } }`
 
-## GET /api/tickers/:symbol/related
+---
+
+## GET /api/tickers/network — $0.01 via x402
+
+Network graph of ticker co-occurrences.
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| symbol | string | — | Center node symbol (omit for top trending tickers) |
+| minWeight | number | 2 | Minimum co-occurrence count for edges |
+| stage | string | — | Filter by stage: `EARLY`, `FORMING`, `CONFIRMED` |
+| days | number | 30 | Lookback window in days (max 90) |
+| maxNodes | number | 30 | Maximum nodes to return (max 50) |
+
+**Response:** `{ nodes: [{ symbol, name, aiScore, stage, price, marketCap, sector, recommendation, appearances }], edges: [{ source, target, weight, correlation }], centerSymbol, effectiveMinWeight }`
+
+---
+
+## GET /api/tickers/:symbol — $0.005 via x402
+
+Latest validated ticker data plus raw signals.
+
+**Response:** `{ ticker: { id, symbol, aiScore, stage, price, marketCap, catalyst, risks, recommendation, report, signalCount, sourceCount, sources, shortFloat, avgSentiment, firstSeenDaysAgo, priorAppearances, return7d, createdAt }, signals: [{ id, symbol, source, title, url, velocityScore, createdAt }] }`
+
+Returns 404 if the symbol has never been validated.
+
+---
+
+## GET /api/tickers/:symbol/related — $0.005 via x402
 
 Co-occurring tickers (tickers that appear in the same scans).
 
@@ -79,35 +93,17 @@ Co-occurring tickers (tickers that appear in the same scans).
 
 **Response:** `{ relatedTickers: [{ symbol, name, coOccurrenceCount, correlationScore, latestAiScore, latestStage, sector, sources, price, marketCap, recommendation }], targetSymbol, targetScanCount, total }`
 
-## GET /api/tickers/network
+---
 
-Network graph of ticker co-occurrences.
-
-| Param | Type | Default | Description |
-|-------|------|---------|-------------|
-| symbol | string | — | Center node symbol (omit for top trending tickers) |
-| minWeight | number | 2 | Minimum co-occurrence count for edges |
-| stage | string | — | Filter by stage: `EARLY`, `FORMING`, `CONFIRMED` |
-| days | number | 30 | Lookback window in days (max 90) |
-| maxNodes | number | 30 | Maximum nodes to return (max 50) |
-
-**Response:** `{ nodes: [{ symbol, name, aiScore, stage, price, marketCap, sector, recommendation, appearances }], edges: [{ source, target, weight, correlation }], centerSymbol }`
-
-## GET /api/tickers/:symbol
-
-Latest validated ticker data plus raw signals.
-
-**Response:** `{ ticker: { id, symbol, aiScore, stage, price, marketCap, catalyst, risks, recommendation, report, signalCount, sourceCount, sources, shortFloat, avgSentiment, firstSeenDaysAgo, priorAppearances, return7d, createdAt }, signals: [{ id, symbol, source, title, url, velocityScore, createdAt }] }`
-
-Returns 404 if the symbol has never been validated.
-
-## GET /api/tickers/:symbol/history
+## GET /api/tickers/:symbol/history — $0.005 via x402
 
 Historical appearances across scans.
 
 **Response:** `{ history: [{ scanId, startedAt, aiScore, stage, price, signalCount, sourceCount, recommendation }] }`
 
-## GET /api/tickers/:symbol/performance
+---
+
+## GET /api/tickers/:symbol/performance — $0.005 via x402
 
 Price performance data (1d/3d/7d/30d returns).
 
@@ -115,13 +111,70 @@ Price performance data (1d/3d/7d/30d returns).
 
 Returns improve over time as snapshots accumulate.
 
-## GET /api/methodology
+---
+
+## POST /api/tickers/:symbol/report — $0.05 via x402
+
+Generate an AI report and trade setup for a ticker. Cached after first generation — subsequent calls for the same ticker return immediately.
+
+**Response:** `{ report: string, tradeSetup: { entryLo, entryHi, stopLoss, target1, target2, timeframe, riskReward, confidence } | null }`
+
+Returns 404 if the ticker has never been validated. Trade setup is only generated for `Buy` or `Strong Buy` recommendations.
+
+---
+
+## GET /api/scans
+
+List harvest scans (paginated). Requires API key or session.
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| page | number | 1 | Page number |
+| limit | number | 20 | Results per page (max 100) |
+| status | string | — | Filter: `RUNNING`, `COMPLETED`, or `FAILED` |
+| from | string | — | Start date (ISO format) |
+| to | string | — | End date (ISO format) |
+
+**Response:** `{ scans: [{ id, status, startedAt, completedAt, signalCount, validatedCount, filteredCount }], total, page, limit }`
+
+---
+
+## GET /api/scans/:scanId
+
+Get scan detail with validated tickers. Requires API key or session.
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| includeFiltered | boolean | false | Include FILTERED (P&D flagged) tickers |
+
+**Response:** `{ scan: { id, status, startedAt, completedAt, signalCount, validatedCount, filteredCount }, tickers: [{ id, symbol, aiScore, stage, price, marketCap, catalyst, risks, recommendation, report, signalCount, sourceCount, shortFloat, avgSentiment, firstSeenDaysAgo, priorAppearances, return7d, sources, createdAt }] }`
+
+---
+
+## GET /api/signals
+
+Get raw signals for a scan. Requires API key or session.
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| scanId | string | required | Scan ID |
+| stage | string | — | Filter: `EARLY`, `FORMING`, `CONFIRMED`, `FILTERED` |
+
+**Response:** `{ signals: [{ id, scanId, symbol, source, title, url, velocityScore, createdAt }] }`
+
+Max 200 results, sorted by sourceCount then velocityScore descending.
+
+---
+
+## GET /api/methodology — free
 
 Platform methodology (scoring, stages, P&D detection, signal sources).
 
 **Response:** `{ description, pipelineSteps, signalSources, scoring: { bands }, pumpAndDumpDetection: { flags, threshold }, signalStages, backtesting, disclaimer }`
 
-## GET /api/health
+---
+
+## GET /api/health — free
 
 Health check.
 

@@ -218,6 +218,27 @@ export default function LoginPage() {
         </div>
       </section>
 
+      {/* -- Agent callout strip ------------------------------------ */}
+      <div className="border-y border-violet-100 bg-violet-50">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+          <div className="flex items-center gap-3">
+            <span className="text-lg">🤖</span>
+            <p className="text-sm text-violet-800">
+              <span className="font-semibold">AI agent?</span>
+              {" "}Access live breakout signal data via x402 micropayments — no account or signup required.
+            </p>
+          </div>
+          <a
+            href="/skill/SKILL.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 rounded-md bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-700 transition-colors touch-manipulation"
+          >
+            View API docs →
+          </a>
+        </div>
+      </div>
+
       {/* -- Features Grid ------------------------------------------ */}
       <section className="bg-white py-10 md:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -266,8 +287,8 @@ export default function LoginPage() {
                 ),
               },
               {
-                title: "Portfolio & AI Agent",
-                desc: "Track positions with real-time P&L. Connect any LLM via the Agent Skill to query signals and manage your portfolio.",
+                title: "AI Agent & x402 payments",
+                desc: "Connect any LLM via the Agent Skill or access data instantly via the x402 protocol — pay per call in USDC on Base, no registration required.",
                 icon: (
                   <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
                 ),
@@ -522,41 +543,115 @@ export default function LoginPage() {
       <section className="bg-white py-10 md:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <h2 className="mb-3 text-center text-2xl font-bold text-gray-900 md:text-3xl">
-            Talk to your data with AI
+            Built for AI agents
           </h2>
           <p className="mx-auto mb-6 max-w-2xl text-center text-sm text-gray-500 md:mb-12 md:text-base">
-            Connect any LLM to SignalScope via the Agent Skill and API — let AI query signals, manage your portfolio, and explore tickers on your behalf.
+            Two ways to give your AI access to live breakout signal data — no account required to get started.
           </p>
 
-          <div className="mx-auto max-w-3xl">
-            <div className="grid gap-4 sm:grid-cols-3 sm:gap-6">
-              {[
-                { step: "1", label: "Get your API key", desc: "Generate a personal API key from your Profile page — one click." },
-                { step: "2", label: "Install the skill", desc: "Add the Agent Skill to Claude, ChatGPT, or any AI assistant." },
-                { step: "3", label: "Start asking", desc: "\"Show me trending tickers\", \"Add AAPL to my portfolio\"" },
-              ].map(({ step, label, desc }) => (
-                <div key={step} className="rounded-xl border border-gray-100 bg-gray-50/50 p-5 text-center">
-                  <span className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
-                    {step}
-                  </span>
-                  <h3 className="mb-1.5 text-base font-semibold text-gray-900">{label}</h3>
-                  <p className="text-sm leading-relaxed text-gray-500">{desc}</p>
-                </div>
-              ))}
-            </div>
+          <div className="mx-auto max-w-4xl grid gap-6 sm:grid-cols-2">
 
-            <div className="mt-6 text-center sm:mt-8">
+            {/* x402 path */}
+            <div className="rounded-2xl border-2 border-blue-200 bg-blue-50/40 p-6">
+              <div className="mb-4 flex items-center gap-3">
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white">
+                  {/* Lightning bolt */}
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+                    <path fillRule="evenodd" d="M14.615 1.595a.75.75 0 0 1 .359.852L12.982 9.75h7.268a.75.75 0 0 1 .548 1.262l-10.5 11.25a.75.75 0 0 1-1.272-.71l1.992-7.302H3.818a.75.75 0 0 1-.548-1.262l10.5-11.25a.75.75 0 0 1 .845-.143Z" clipRule="evenodd" />
+                  </svg>
+                </span>
+                <div>
+                  <h3 className="text-base font-bold text-gray-900">x402 micropayments</h3>
+                  <p className="text-xs font-medium text-blue-600">No registration needed</p>
+                </div>
+              </div>
+
+              <p className="mb-4 text-sm leading-relaxed text-gray-600">
+                The <a href="https://x402.org" target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 hover:underline">x402 protocol</a> lets AI agents pay per call in USDC on Base — no account, no API key, no subscription. Just send the request and pay the 402.
+              </p>
+
+              <ul className="mb-5 space-y-2 text-sm text-gray-600">
+                {[
+                  "From $0.005 per data call",
+                  "USDC on Base (L2) — near-zero gas",
+                  "Atomic: only charged on success",
+                  "Works with any x402-compatible client",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <svg className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                    </svg>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="rounded-lg bg-gray-900 px-4 py-3 font-mono text-xs text-gray-300 overflow-x-auto">
+                <span className="text-gray-500"># Agent hits endpoint → gets 402 → pays → gets data</span>{"\n"}
+                <span className="text-blue-400">curl</span> http://localhost:3000/api/tickers/trending{"\n"}
+                <span className="text-gray-500">→ HTTP 402  payment-required: ey...</span>
+              </div>
+
               <a
                 href="/skill/SKILL.md"
                 target="_blank"
-                className="inline-block rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors touch-manipulation"
+                className="mt-4 inline-block w-full rounded-lg bg-blue-600 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-blue-700 transition-colors touch-manipulation"
               >
-                Download Agent Skill
+                View API docs
               </a>
-              <p className="mt-3 text-xs text-gray-400">
-                All endpoints require an API key. Generate one from your Profile page after signing in.
-              </p>
             </div>
+
+            {/* API key path */}
+            <div className="rounded-2xl border border-gray-200 bg-gray-50/50 p-6">
+              <div className="mb-4 flex items-center gap-3">
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gray-700 text-white">
+                  {/* Key icon */}
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+                    <path fillRule="evenodd" d="M15.75 1.5a6.75 6.75 0 0 0-6.651 7.906c.067.39-.032.717-.221.906l-6.5 6.499a.75.75 0 0 0-.878.68l-.005 3a.75.75 0 0 0 .75.75H6a.75.75 0 0 0 .75-.75v-.75h.75a.75.75 0 0 0 .75-.75v-.75h.75a.75.75 0 0 0 .53-.22l2.658-2.658c.19-.189.517-.288.906-.22A6.75 6.75 0 1 0 15.75 1.5Zm0 3a.75.75 0 0 0 0 1.5A2.25 2.25 0 0 1 18 8.25a.75.75 0 0 0 1.5 0 3.75 3.75 0 0 0-3.75-3.75Z" clipRule="evenodd" />
+                  </svg>
+                </span>
+                <div>
+                  <h3 className="text-base font-bold text-gray-900">API key + Agent Skill</h3>
+                  <p className="text-xs font-medium text-gray-500">For registered users</p>
+                </div>
+              </div>
+
+              <p className="mb-4 text-sm leading-relaxed text-gray-600">
+                Register for full access including portfolio management, watchlists, and performance tracking. Connect any LLM via the Agent Skill.
+              </p>
+
+              <div className="mb-5 space-y-3">
+                {[
+                  { step: "1", label: "Register", desc: "Create a free account — no credit card needed." },
+                  { step: "2", label: "Get API key", desc: "Generate a key from your Profile page in one click." },
+                  { step: "3", label: "Install skill", desc: "Add the Agent Skill to Claude, ChatGPT, or any LLM." },
+                ].map(({ step, label, desc }) => (
+                  <div key={step} className="flex items-start gap-3">
+                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-700 text-xs font-bold text-white">
+                      {step}
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">{label}</p>
+                      <p className="text-xs text-gray-500">{desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <a
+                  href="/skill/SKILL.md"
+                  target="_blank"
+                  className="inline-block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-center text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors touch-manipulation"
+                >
+                  Download Agent Skill
+                </a>
+                <p className="text-center text-xs text-gray-400">
+                  Full access: signals, portfolio, watchlist, performance
+                </p>
+              </div>
+            </div>
+
           </div>
         </div>
       </section>
@@ -589,6 +684,7 @@ export default function LoginPage() {
             <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-gray-500">
               <a href="/changelog" className="hover:text-gray-300 transition-colors touch-manipulation">Changelog</a>
               <a href="/skill/SKILL.md" target="_blank" className="hover:text-gray-300 transition-colors touch-manipulation">API Docs</a>
+              <a href="https://x402.org" target="_blank" rel="noopener noreferrer" className="hover:text-gray-300 transition-colors touch-manipulation">x402 Protocol</a>
             </div>
           </div>
           <p className="mt-4 text-center text-xs leading-relaxed text-gray-500 sm:text-left">

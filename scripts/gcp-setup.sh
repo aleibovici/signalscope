@@ -97,10 +97,11 @@ store_secret() {
   fi
 }
 
-store_secret "DATABASE_URL"     "${DATABASE_URL}"
-store_secret "AUTH_SECRET"      "${AUTH_SECRET}"
-store_secret "OPENAI_API_KEY"   "${OPENAI_API_KEY}"
-store_secret "ANTHROPIC_API_KEY" "${ANTHROPIC_API_KEY}"
+store_secret "DATABASE_URL"        "${DATABASE_URL}"
+store_secret "AUTH_SECRET"         "${AUTH_SECRET}"
+store_secret "OPENAI_API_KEY"      "${OPENAI_API_KEY}"
+store_secret "ANTHROPIC_API_KEY"   "${ANTHROPIC_API_KEY}"
+store_secret "X402_WALLET_ADDRESS" "${X402_WALLET_ADDRESS}"
 
 # ─── Service Account ────────────────────────────────────────────────────────
 echo "==> Creating service account"
@@ -128,7 +129,7 @@ gcloud run deploy "${WEB_SERVICE}" \
   --region="${GCP_REGION}" \
   --service-account="${SA_EMAIL}" \
   --add-cloudsql-instances="${CLOUD_SQL_CONNECTION}" \
-  --set-secrets="DATABASE_URL=DATABASE_URL:latest,AUTH_SECRET=AUTH_SECRET:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest" \
+  --set-secrets="DATABASE_URL=DATABASE_URL:latest,AUTH_SECRET=AUTH_SECRET:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest,X402_WALLET_ADDRESS=X402_WALLET_ADDRESS:latest" \
   --set-env-vars="NODE_ENV=production,AI_PRIMARY_PROVIDER=openai" \
   --port=3000 \
   --memory=512Mi \
