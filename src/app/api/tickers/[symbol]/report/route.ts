@@ -86,7 +86,7 @@ async function handleReport(request: NextRequest, upperSymbol: string) {
 // x402 payment-wrapped handler — extracts symbol from URL path
 const x402ReportHandler = X402_ENABLED
   ? withX402(
-      async (request: NextRequest) => {
+      (async (request: NextRequest) => {
         const url = new URL(request.url);
         const pathParts = url.pathname.split("/");
         // /api/tickers/AAPL/report → ["", "api", "tickers", "AAPL", "report"]
@@ -95,7 +95,7 @@ const x402ReportHandler = X402_ENABLED
           return NextResponse.json({ error: "Invalid path" }, { status: 400 });
         }
         return handleReport(request, symbol);
-      },
+      }) as (request: NextRequest) => Promise<NextResponse<unknown>>,
       x402RouteConfigs.report,
       x402Server,
     )
