@@ -58,7 +58,7 @@ function SummaryCards({
 
       <Card>
         <CardContent className="pt-6 text-center">
-          <p className="text-sm text-gray-500">Win Rate (emerging &amp; building)</p>
+          <p className="text-sm text-gray-500">Win Rate (emerging)</p>
           <p className="text-3xl font-bold text-green-600">
             {early.count > 0
               ? `${(early.winRate * 100).toFixed(0)}%`
@@ -72,7 +72,7 @@ function SummaryCards({
 
       <Card>
         <CardContent className="pt-6 text-center">
-          <p className="text-sm text-gray-500">Avg Return (emerging &amp; building)</p>
+          <p className="text-sm text-gray-500">Avg Return (emerging)</p>
           <p
             className={`text-3xl font-bold ${
               early.avgReturn > 0
@@ -272,9 +272,9 @@ function CumulativeReturns({
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-semibold">Emerging &amp; Building — Avg {horizon}d Return</h3>
+            <h3 className="font-semibold">Emerging — Avg {horizon}d Return</h3>
             <p className="text-xs text-gray-400">
-              Rolling average {horizon}-day return for emerging and building signals, by detection date
+              Rolling average {horizon}-day return for emerging signals, by detection date
             </p>
           </div>
           {finalReturn && (

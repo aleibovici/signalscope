@@ -129,12 +129,13 @@ export async function GET(request: NextRequest) {
     const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
 
     const currentRecords = records.filter(
-      (r) => r.validatedTicker.createdAt >= thirtyDaysAgo,
+      (r) => r.validatedTicker.createdAt >= thirtyDaysAgo && r.validatedTicker.stage === "EARLY",
     );
     const priorRecords = records.filter(
       (r) =>
         r.validatedTicker.createdAt >= sixtyDaysAgo &&
-        r.validatedTicker.createdAt < thirtyDaysAgo,
+        r.validatedTicker.createdAt < thirtyDaysAgo &&
+        r.validatedTicker.stage === "EARLY",
     );
 
     const summary = {
@@ -194,9 +195,9 @@ export async function GET(request: NextRequest) {
         };
       });
 
-    // --- Cumulative equal-weight returns — emerging + building signals ---
+    // --- Cumulative equal-weight returns — emerging signals only ---
     const withReturn = records
-      .filter((r) => r[returnCol] !== null && (r.validatedTicker.stage === "EARLY" || r.validatedTicker.stage === "FORMING"))
+      .filter((r) => r[returnCol] !== null && r.validatedTicker.stage === "EARLY")
       .sort(
         (a, b) =>
           a.validatedTicker.createdAt.getTime() -
@@ -228,7 +229,7 @@ export async function GET(request: NextRequest) {
     );
     const confirmed = computeStats(confirmedRecords, returnCol);
     const earlyRecords = recordsWithReturn.filter(
-      (r) => r.validatedTicker.stage === "EARLY" || r.validatedTicker.stage === "FORMING",
+      (r) => r.validatedTicker.stage === "EARLY",
     );
     const early = computeStats(earlyRecords, returnCol);
 
