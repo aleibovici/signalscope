@@ -368,7 +368,8 @@ function StatsTable({
                 <th className="pb-2 pr-4 font-medium">Category</th>
                 <th className="pb-2 pr-4 font-medium text-right">Count</th>
                 <th className="pb-2 pr-4 font-medium text-right">Win Rate</th>
-                <th className="pb-2 font-medium text-right">Avg Return</th>
+                <th className="pb-2 pr-4 font-medium text-right">Avg Return</th>
+                <th className="pb-2 font-medium text-right">Median</th>
               </tr>
             </thead>
             <tbody>
@@ -384,7 +385,7 @@ function StatsTable({
                     {(stats.winRate * 100).toFixed(0)}%
                   </td>
                   <td
-                    className={`py-1.5 text-right font-medium ${
+                    className={`py-1.5 pr-4 text-right font-medium ${
                       stats.avgReturn > 0
                         ? "text-green-600"
                         : stats.avgReturn < 0
@@ -393,6 +394,17 @@ function StatsTable({
                     }`}
                   >
                     {formatPct(stats.avgReturn)}
+                  </td>
+                  <td
+                    className={`py-1.5 text-right font-medium ${
+                      stats.medianReturn > 0
+                        ? "text-green-600"
+                        : stats.medianReturn < 0
+                          ? "text-red-600"
+                          : "text-gray-600"
+                    }`}
+                  >
+                    {formatPct(stats.medianReturn)}
                   </td>
                 </tr>
               ))}

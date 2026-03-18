@@ -42,6 +42,7 @@ export interface PerformanceStats {
   count: number;
   winRate: number;
   avgReturn: number;
+  medianReturn: number;
 }
 
 export interface PerformerEntry {
