@@ -40,13 +40,27 @@ describe("determineStage — CONFIRMED via non-social source", () => {
 });
 
 describe("determineStage — CONFIRMED via Reddit subreddit consensus", () => {
-  it("returns CONFIRMED when 3+ subreddits, score>=48, velocity>=2.0, fresh signals", () => {
-    // medianSignalAgeHrs=2 (fresh) — should confirm
-    expect(determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, 2)).toBe("CONFIRMED");
+  // Note: Reddit CONFIRMED (social-only) requires price >= $0.52 or null (ML: 7d threshold)
+  it("returns CONFIRMED when 3+ subreddits, score>=48, velocity>=2.0, fresh signals, price>=0.52", () => {
+    // medianSignalAgeHrs=2 (fresh), price=1.50 — should confirm
+    expect(determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, 2, undefined, undefined, undefined, undefined, undefined, 1.50)).toBe("CONFIRMED");
+  });
+
+  it("returns CONFIRMED when price is null (unknown)", () => {
+    expect(determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, 2, undefined, undefined, undefined, undefined, undefined, null)).toBe("CONFIRMED");
   });
 
   it("returns CONFIRMED when medianSignalAgeHrs is null (non-social signals have no age)", () => {
-    expect(determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, null)).toBe("CONFIRMED");
+    expect(determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, null, undefined, undefined, undefined, undefined, undefined, 1.00)).toBe("CONFIRMED");
+  });
+
+  it("does NOT return CONFIRMED when price < $0.52 (ML: social-only needs price >= $0.52 for 7d follow-through)", () => {
+    const result = determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, 2, undefined, undefined, undefined, undefined, undefined, 0.40);
+    expect(result).not.toBe("CONFIRMED");
+  });
+
+  it("returns CONFIRMED at price boundary $0.52", () => {
+    expect(determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, 2, undefined, undefined, undefined, undefined, undefined, 0.52)).toBe("CONFIRMED");
   });
 
   it("does NOT return CONFIRMED when signals are stale (medianSignalAgeHrs >= 6)", () => {
@@ -59,13 +73,13 @@ describe("determineStage — CONFIRMED via Reddit subreddit consensus", () => {
     expect(result).not.toBe("CONFIRMED");
   });
 
-  it("returns CONFIRMED at medianSignalAgeHrs just under 6", () => {
-    expect(determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, 5.9)).toBe("CONFIRMED");
+  it("returns CONFIRMED at medianSignalAgeHrs just under 6 with good price", () => {
+    expect(determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, 5.9, undefined, undefined, undefined, undefined, undefined, 1.00)).toBe("CONFIRMED");
   });
 
   it("returns CONFIRMED with novel boost pushing score above 48", () => {
     // aiScore=44, novel=true → effectiveScore=49 >= 48
-    expect(determineStage(44, 1, 1, 2.0, false, false, novel(), 3, undefined, undefined, undefined, undefined, 2)).toBe("CONFIRMED");
+    expect(determineStage(44, 1, 1, 2.0, false, false, novel(), 3, undefined, undefined, undefined, undefined, 2, undefined, undefined, undefined, undefined, undefined, 1.00)).toBe("CONFIRMED");
   });
 
   it("does not return CONFIRMED with only 2 subreddits", () => {
@@ -280,6 +294,39 @@ describe("determineStage — novelty +5 boost affecting stage boundary", () => {
   });
 });
 
+describe("determineStage — price floor", () => {
+  it("returns EARLY when price < $0.12 and no catalyst source", () => {
+    // score=60 + sourceCount=3 would normally be FORMING, but sub-$0.12 blocks it (ML: 1d threshold $0.12)
+    expect(determineStage(60, 3, 3, 2.0, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 0.10)).toBe("EARLY");
+    expect(determineStage(60, 3, 3, 2.0, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 0.05)).toBe("EARLY");
+  });
+
+  it("allows promotion when price >= $0.12", () => {
+    expect(determineStage(50, 2, 2, 0.5, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 0.15)).toBe("FORMING");
+  });
+
+  it("allows promotion when price < $0.12 but has catalyst source", () => {
+    // hasNonSocialSource=true bypasses the price floor
+    expect(determineStage(70, 3, 5, 1.0, false, true, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 0.05)).toBe("CONFIRMED");
+  });
+
+  it("allows promotion when price is null (unknown)", () => {
+    expect(determineStage(50, 2, 2, 0.5, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, null)).toBe("FORMING");
+  });
+
+  it("allows promotion when price is undefined", () => {
+    expect(determineStage(50, 2, 2, 0.5, false, false)).toBe("FORMING");
+  });
+
+  it("returns EARLY at price boundary $0.119 (just under $0.12)", () => {
+    expect(determineStage(60, 3, 3, 2.0, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 0.119)).toBe("EARLY");
+  });
+
+  it("allows promotion at price exactly $0.12", () => {
+    expect(determineStage(50, 2, 2, 0.5, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 0.12)).toBe("FORMING");
+  });
+});
+
 describe("determineStage — market cap floor", () => {
   it("returns EARLY when marketCap < $10M and no catalyst source", () => {
     // score=60 + sourceCount=3 would normally be FORMING, but sub-$10M blocks it (ML: nano <$10M returns -25.1%)
@@ -412,18 +459,18 @@ describe("determineStage — comment-heavy demotion", () => {
   it("blocks Reddit CONFIRMED when comment-heavy (>150 comments, ratio < 2:1)", () => {
     // Without comment-heavy: 3 subreddits, score=48, velocity=2.0 → CONFIRMED
     // With comment-heavy: should NOT be CONFIRMED
-    const result = determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, 2, undefined, undefined, undefined, 200, 200);
+    const result = determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, 2, undefined, undefined, undefined, 200, 200, 1.50);
     expect(result).not.toBe("CONFIRMED");
   });
 
   it("allows Reddit CONFIRMED when comments are high but ratio is good", () => {
     // 200 upvotes, 50 comments → ratio 4:1, not comment-heavy
-    expect(determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, 2, undefined, undefined, undefined, 200, 50)).toBe("CONFIRMED");
+    expect(determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, 2, undefined, undefined, undefined, 200, 50, 1.50)).toBe("CONFIRMED");
   });
 
   it("allows Reddit CONFIRMED when comment count is below 150", () => {
     // 100 comments with low ratio — but below 150 threshold
-    expect(determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, 2, undefined, undefined, undefined, 100, 100)).toBe("CONFIRMED");
+    expect(determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, 2, undefined, undefined, undefined, 100, 100, 1.50)).toBe("CONFIRMED");
   });
 });
 

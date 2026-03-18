@@ -27,13 +27,15 @@ interface OpportunityScoreInput {
 export function computeOpportunityScore(input: OpportunityScoreInput): number {
   let score = 0;
 
-  // --- Novelty (0-20) --- ML: firstSeenDaysAgo matters but reduced weight to make room for exchange/recovery
+  // --- Signal age (0-20) --- ML: age > 3.5 days predicts best 1d returns; truly novel is unproven
   if (input.firstSeenDaysAgo === null) {
-    score += 20; // truly novel
+    score += 14; // truly novel — unproven for near-term execution
   } else if (input.firstSeenDaysAgo === 0) {
-    score += 16; // first seen today
+    score += 14; // first seen today — same as novel
   } else if (input.firstSeenDaysAgo <= 2) {
-    score += 10;
+    score += 16; // 1-2 days: building validation
+  } else if (input.firstSeenDaysAgo <= 5) {
+    score += 20; // 3-5 days: sweet spot (ML: age > 3.5 predicts best 1d returns)
   } else {
     score += Math.max(0, 6 - input.priorAppearances);
   }
@@ -88,13 +90,25 @@ export function computeOpportunityScore(input: OpportunityScoreInput): number {
     else if (highRatio > 2.0) score += 3;
   }
 
+  // --- Moderate engagement boost (0-3) --- ML: reddit_comments > 33 predicts positive 3d returns
+  const comments = input.totalComments ?? 0;
+  if (comments >= 33 && comments <= 150) {
+    score += 3;
+  }
+
   // --- Comment-heavy penalty / conviction bonus (ML: upvote/comment ratio) ---
   const upvotes = input.totalUpvotes ?? 0;
-  const comments = input.totalComments ?? 0;
   if (comments > 150 && upvotes / (comments || 1) < 2) {
     score -= 8; // peak hype
   } else if (upvotes > 200 && upvotes / (comments || 1) > 5) {
     score += 3; // conviction
+  }
+
+  // --- Price floor penalty (0 to -8) --- ML: price is #1 feature; sub-$0.20 underperforms across horizons
+  if (input.price != null) {
+    if (input.price < 0.12) score -= 8;
+    else if (input.price < 0.20) score -= 4;
+    else if (input.price < 0.52) score -= 2;
   }
 
   return Math.max(0, Math.min(100, score));

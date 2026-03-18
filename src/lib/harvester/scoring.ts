@@ -89,10 +89,20 @@ Signal age (medianSignalAgeHrs field — median age of social signals in hours):
 - null: Non-social signals (insider, congress) — no age penalty, these are filed disclosures.
 
 Signal novelty (check isNovel, daysSinceFirstSeen, priorAppearances fields):
-- Novel tickers (first appearance, isNovel=true): apply +5 to +10 boost — potential early signals before consensus.
+- Novel tickers (first appearance, isNovel=true): apply +3 to +5 boost — potential early signal, but unproven.
+- daysSinceFirstSeen 3-5 days: SWEET SPOT — apply +5 to +8 boost. ML shows tickers validated over 3+ days have the best near-term returns. The signal has proven staying power.
 - 1-2 prior appearances in last few days: no penalty, signal is still forming.
 - 3+ appearances or 7+ days old: apply -5 to -15 staleness penalty — signal may be played out.
 - Exception: a stale ticker with a NEW catalyst type (e.g. insider buy appearing for first time on a previously social-only ticker) should NOT be penalized.
+
+Price quality (check price field):
+- price < $0.12: heavy penalty (-10 to -15). Sub-dime stocks almost never generate positive returns at any horizon. Score should rarely exceed 20 without an exceptional catalyst.
+- price $0.12-$0.50: mild penalty (-3 to -5). Low-priced stocks need stronger evidence.
+- price > $0.52: no price penalty. ML shows this is the threshold for reliable 7d follow-through.
+
+Reddit comment engagement (check totalComments field):
+- totalComments 30-100: moderate positive signal (+3 to +5) — genuine discussion indicates organic interest, especially for 3d returns.
+- totalComments > 150 with low upvote ratio: still apply the peak hype penalty as described above.
 
 Return JSON: { "scores": [{ "symbol": "X", "score": 0-100, "sentiment": "bullish|bearish|neutral", "reasoning": "brief — state confidence level and what the score is based on" }] }`,
       userMessage: JSON.stringify(symbolSummaries),

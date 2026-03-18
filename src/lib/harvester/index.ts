@@ -183,11 +183,15 @@ export function determineStage(
   wk52HighRatio?: number | null,
   totalUpvotes?: number,
   totalComments?: number,
+  price?: number | null,
 ): "EARLY" | "FORMING" | "CONFIRMED" | "FILTERED" {
   if (pndFlagged) return "FILTERED";
 
   // Sub-dime 52wk floor = zombie/shell stock: cap at EARLY unless a hard catalyst exists
   if (wk52Lo != null && wk52Lo < 0.09 && !hasNonSocialSource) return "EARLY";
+
+  // Price floor: sub-$0.12 without catalyst is noise (ML: price is #1 feature, 1d threshold $0.12)
+  if (price != null && price < 0.12 && !hasNonSocialSource) return "EARLY";
 
   // Market cap floor: sub-$10M without a catalyst source is noise (ML: nano <$10M returns -25.1%)
   if (marketCap != null && marketCap < 10_000_000 && !hasNonSocialSource) return "EARLY";
@@ -222,9 +226,10 @@ export function determineStage(
   // Require signals to be fresh (median age < 6h) — stale consensus means the move already happened
   // ML shows breadth (distinct_subreddits) matters more than speed — velocity relaxed from 2.5 to 2.0
   // Comment-heavy signals block CONFIRMED — peak hype predicts worse 7d returns (ML SHAP -0.004)
+  // Price floor: social-only CONFIRMED needs price >= $0.52 for 7d follow-through (ML: 7d threshold)
   // Undefined age was a legacy compatibility path; active pipeline provides number|null.
   const signalsFresh = medianSignalAgeHrs === null || (typeof medianSignalAgeHrs === "number" && medianSignalAgeHrs < 6);
-  if (!hasNonSocialSource && !isCommentHeavy && (subredditCount ?? 0) >= 3 && effectiveScore >= 48 && avgVelocity >= 2.0 && signalsFresh) {
+  if (!hasNonSocialSource && !isCommentHeavy && (subredditCount ?? 0) >= 3 && effectiveScore >= 48 && avgVelocity >= 2.0 && signalsFresh && (price == null || price >= 0.52)) {
     return "CONFIRMED";
   }
 
@@ -553,7 +558,7 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
         fundamentals.price != null && fundamentals.price < 5
       );
       const wk52HighRatio = (fundamentals?.wk52Hi && fundamentals?.price) ? fundamentals.wk52Hi / fundamentals.price : undefined;
-      const stage = determineStage(score, agg.sourceCount, agg.weightedSourceScore, agg.avgVelocity, finalPndFlagged, hasNonSocialSource, novelty, agg.subredditCount, pctFrom52wkLow, wk52Lo, isAmexPenny, isNasdaqSmallPenny, agg.medianSignalAgeHrs, fundamentals?.marketCap, fundamentals?.shortFloat, wk52HighRatio, agg.totalUpvotes, agg.totalComments);
+      const stage = determineStage(score, agg.sourceCount, agg.weightedSourceScore, agg.avgVelocity, finalPndFlagged, hasNonSocialSource, novelty, agg.subredditCount, pctFrom52wkLow, wk52Lo, isAmexPenny, isNasdaqSmallPenny, agg.medianSignalAgeHrs, fundamentals?.marketCap, fundamentals?.shortFloat, wk52HighRatio, agg.totalUpvotes, agg.totalComments, fundamentals?.price);
 
       const signalType = classifySignalType(agg);
 
