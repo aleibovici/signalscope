@@ -22,7 +22,7 @@
     "@prisma/client": "^7.4.1",
     "@tanstack/react-query": "^5.90.21",
     "bcryptjs": "^3.0.3",
-    "next": "16.1.6",
+    "next": "^16.2.0",
     "next-auth": "^5.0.0-beta.30",
     "openai": "^6.25.0",
     "pg": "^8.19.0",
