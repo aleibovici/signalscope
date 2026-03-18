@@ -306,10 +306,10 @@ export async function GET(request: NextRequest) {
       if (group) byOpportunityScoreRange[range.label] = computeStats(group, returnCol);
     }
 
-    // Best/Worst performers
-    const sorted = [...recordsWithReturn].sort(
-      (a, b) => (b[returnCol] as number) - (a[returnCol] as number),
-    );
+    // Best/Worst performers — emerging signals only
+    const sorted = [...recordsWithReturn]
+      .filter((r) => r.validatedTicker.stage === "EARLY")
+      .sort((a, b) => (b[returnCol] as number) - (a[returnCol] as number));
 
     const mapPerformer = (r: PerformanceRecord) => ({
       symbol: r.symbol,
