@@ -185,7 +185,7 @@ export default function PortfolioPage() {
           onSubmit={handleAdd}
           className="flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-white p-4"
         >
-          <div>
+          <div className="w-full sm:w-auto">
             <label className="mb-1 block text-xs font-medium text-gray-600">
               Symbol
             </label>
@@ -194,11 +194,11 @@ export default function PortfolioPage() {
               value={newSymbol}
               onChange={(e) => setNewSymbol(e.target.value)}
               placeholder="AAPL"
-              className="w-28 rounded border border-gray-300 px-3 py-2 text-sm"
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm sm:w-28"
               required
             />
           </div>
-          <div>
+          <div className="w-full sm:w-auto">
             <label className="mb-1 block text-xs font-medium text-gray-600">
               Entry Price
             </label>
@@ -208,7 +208,7 @@ export default function PortfolioPage() {
               value={newPrice}
               onChange={(e) => setNewPrice(e.target.value)}
               placeholder="150.00"
-              className="w-32 rounded border border-gray-300 px-3 py-2 text-sm"
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm sm:w-32"
               required
             />
           </div>
@@ -244,33 +244,45 @@ export default function PortfolioPage() {
         <>
           {openPositions.length > 0 && (
             <div>
-              <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Open Positions
-                  <span className="ml-2 text-sm font-normal text-gray-500">
-                    &middot; Avg gain:{" "}
-                    <span
-                      className={
-                        avgOpenGain >= 0 ? "text-green-600" : "text-red-600"
-                      }
-                    >
-                      {avgOpenGain >= 0 ? "+" : ""}
-                      {avgOpenGain.toFixed(2)}%
+              <div className="mb-3 space-y-1">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-base font-semibold text-gray-900">
+                    Open Positions
+                    <span className="ml-2 text-sm font-normal text-gray-500">
+                      &middot;{" "}
+                      <span className={avgOpenGain >= 0 ? "text-green-600" : "text-red-600"}>
+                        {avgOpenGain >= 0 ? "+" : ""}{avgOpenGain.toFixed(2)}%
+                      </span>
                     </span>
-                  </span>
-                </h2>
-                <div className="flex items-center gap-3">
+                  </h2>
+                  <button
+                    onClick={() => refetch()}
+                    disabled={isFetching}
+                    className="rounded-md bg-gray-100 px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+                    title="Refresh stock prices"
+                  >
+                    {isFetching ? (
+                      <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                    ) : (
+                      <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 2v6h-6" />
+                        <path d="M3 12a9 9 0 0115.36-6.36L21 8" />
+                        <path d="M3 22v-6h6" />
+                        <path d="M21 12a9 9 0 01-15.36 6.36L3 16" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5">
                   {dayBuckets.map((b) => (
                     <span key={b.label} className="text-xs text-gray-500">
                       <span className="font-medium text-gray-600">{b.label}:</span>{" "}
                       {b.data ? (
-                        <span
-                          className={
-                            b.data.avg >= 0 ? "text-green-600" : "text-red-600"
-                          }
-                        >
-                          {b.data.avg >= 0 ? "+" : ""}
-                          {b.data.avg.toFixed(1)}%
+                        <span className={b.data.avg >= 0 ? "text-green-600" : "text-red-600"}>
+                          {b.data.avg >= 0 ? "+" : ""}{b.data.avg.toFixed(1)}%
                           <span className="text-gray-400"> ({b.data.count})</span>
                         </span>
                       ) : (
@@ -279,26 +291,6 @@ export default function PortfolioPage() {
                     </span>
                   ))}
                 </div>
-                <button
-                  onClick={() => refetch()}
-                  disabled={isFetching}
-                  className="rounded-md bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50"
-                  title="Refresh stock prices"
-                >
-                  {isFetching ? (
-                    <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                  ) : (
-                    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 2v6h-6" />
-                      <path d="M3 12a9 9 0 0115.36-6.36L21 8" />
-                      <path d="M3 22v-6h6" />
-                      <path d="M21 12a9 9 0 01-15.36 6.36L3 16" />
-                    </svg>
-                  )}
-                </button>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {openPositions.map((p) => (
