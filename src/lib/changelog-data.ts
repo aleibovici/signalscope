@@ -33,6 +33,7 @@ export const changelog: ChangelogEntry[] = [
           "Best/Worst Performers and Win Rate/Avg Return chart now scoped to emerging signals only (EARLY/FORMING/CONFIRMED), excluding unscored tickers.",
           "Portfolio position cards are more compact with less vertical padding.",
           "Portfolio page mobile layout improvements for better usability on small screens.",
+          "API response fields for emerging-stage stats renamed from `early*` to `emerging*` for consistency with stage labels.",
         ],
       },
     ],
