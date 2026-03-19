@@ -1,5 +1,6 @@
 "use client";
 
+import { useTheme } from "next-themes";
 import { useState } from "react";
 import { stageLabel } from "@/lib/stage-labels";
 
@@ -20,7 +21,9 @@ const PAD_X = 20;
 const PAD_Y = 14;
 
 export function Sparkline({ points, height = 56 }: SparklineProps) {
+  const { resolvedTheme } = useTheme();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const isDark = resolvedTheme === "dark";
 
   if (points.length === 0) return null;
 
@@ -66,7 +69,11 @@ export function Sparkline({ points, height = 56 }: SparklineProps) {
     >
       <defs>
         <linearGradient id="sparkline-fill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.12" />
+          <stop
+            offset="0%"
+            stopColor="#3b82f6"
+            stopOpacity={isDark ? "0.22" : "0.12"}
+          />
           <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
         </linearGradient>
       </defs>
@@ -79,7 +86,7 @@ export function Sparkline({ points, height = 56 }: SparklineProps) {
           y1={getY(score)}
           x2={WIDTH - PAD_X}
           y2={getY(score)}
-          stroke="#f3f4f6"
+          stroke={isDark ? "#3f3f46" : "#f3f4f6"}
           strokeWidth="1"
         />
       ))}
@@ -92,7 +99,7 @@ export function Sparkline({ points, height = 56 }: SparklineProps) {
         <path
           d={linePath}
           fill="none"
-          stroke="#93c5fd"
+          stroke={isDark ? "#60a5fa" : "#93c5fd"}
           strokeWidth="1"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -122,7 +129,7 @@ export function Sparkline({ points, height = 56 }: SparklineProps) {
               cy={y}
               r={r}
               fill={color}
-              stroke="white"
+              stroke={isDark ? "#12181f" : "white"}
               strokeWidth="1"
             />
 
