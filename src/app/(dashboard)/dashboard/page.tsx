@@ -80,7 +80,7 @@ function DashboardContent() {
   return (
     <div className="space-y-4 md:space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-xl font-bold text-gray-900 md:text-2xl">Signal Dashboard</h1>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-zinc-100 md:text-2xl">Signal Dashboard</h1>
         <ScanSelector
           selectedScanId={selectedScanId}
           onSelect={setSelectedScanId}
@@ -93,17 +93,17 @@ function DashboardContent() {
         counts={counts}
       />
 
-      <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-700">
+      <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-700 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-300">
         {scoreExplainerDashboardCallout}
       </div>
 
       {missingWatchlisted.length > 0 && !isLoading && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
               Watchlist
             </h2>
-            <span className="text-xs text-gray-400">From previous scans</span>
+            <span className="text-xs text-gray-400 dark:text-zinc-500">From previous scans</span>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {missingWatchlisted.map((ticker: ValidatedTickerData) => (
@@ -121,15 +121,15 @@ function DashboardContent() {
 
       {isLoading ? (
         <div className="flex justify-center py-12">
-          <Spinner className="h-8 w-8 text-blue-600" />
+          <Spinner className="h-8 w-8 text-blue-600 dark:text-blue-400" />
         </div>
       ) : isError ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 py-12 text-center">
-          <p className="text-red-600">Failed to load signals. Please refresh and try again.</p>
+        <div className="rounded-lg border border-red-200 bg-red-50 py-12 text-center dark:border-red-900/50 dark:bg-red-950/30">
+          <p className="text-red-600 dark:text-red-400">Failed to load signals. Please refresh and try again.</p>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center">
-          <p className="text-gray-500">
+        <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center dark:border-zinc-600">
+          <p className="text-gray-500 dark:text-zinc-400">
             {selectedScanId
               ? "No signals found for this stage."
               : "No scans available. Run a scan to detect breakout signals."}
@@ -153,7 +153,13 @@ function DashboardContent() {
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={<div className="flex justify-center py-12"><Spinner className="h-8 w-8 text-blue-600" /></div>}>
+    <Suspense
+      fallback={
+        <div className="flex justify-center py-12">
+          <Spinner className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+        </div>
+      }
+    >
       <DashboardContent />
     </Suspense>
   );

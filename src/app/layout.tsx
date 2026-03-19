@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import { Suspense } from "react";
 import { QueryProvider } from "@/lib/query-provider";
+import { AppThemeProvider } from "@/lib/theme-provider";
 import { AuthSessionProvider } from "@/lib/session-provider";
 import { GoogleAnalyticsPageView } from "@/lib/google-analytics";
 import "./globals.css";
@@ -161,7 +162,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script
           type="application/ld+json"
@@ -186,9 +187,11 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <GoogleAnalyticsPageView />
         </Suspense>
-        <AuthSessionProvider>
-          <QueryProvider>{children}</QueryProvider>
-        </AuthSessionProvider>
+        <AppThemeProvider>
+          <AuthSessionProvider>
+            <QueryProvider>{children}</QueryProvider>
+          </AuthSessionProvider>
+        </AppThemeProvider>
       </body>
     </html>
   );

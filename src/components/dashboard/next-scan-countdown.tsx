@@ -72,7 +72,7 @@ export function NextScanCountdown() {
   const remaining = nextScan.getTime() - now;
 
   return (
-    <div className="text-xs leading-relaxed text-gray-400">
+    <div className="text-xs leading-relaxed text-gray-400 dark:text-zinc-500">
       {lastScanCompletedAt && (
         <p>Last scan {formatElapsed(now - new Date(lastScanCompletedAt).getTime())}</p>
       )}
