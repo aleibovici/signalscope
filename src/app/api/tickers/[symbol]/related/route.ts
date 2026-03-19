@@ -7,13 +7,14 @@ import { paginationSchema } from "@/lib/validators";
 import { TTLCache } from "@/lib/cache";
 import { getCoOccurringSymbols, jaccardScore } from "@/lib/co-occurrence";
 import { withX402Logged, x402RouteConfigs, hasAuthCredentials, X402_ENABLED } from "@/lib/x402";
+import { stageLabel, stageToDb, API_STAGE_VALUES } from "@/lib/stage-labels";
 
 export const relatedCache = new TTLCache<unknown>(5 * 60 * 1000);
 
 const relatedSchema = paginationSchema.extend({
   minCoOccurrences: z.coerce.number().int().min(1).default(2),
   days: z.coerce.number().int().min(1).max(90).default(30),
-  stage: z.enum(["EARLY", "FORMING", "CONFIRMED"]).optional(),
+  stage: z.enum([...API_STAGE_VALUES, "EARLY", "FORMING", "CONFIRMED"]).transform((v) => stageToDb(v)!).optional(),
 });
 
 async function handleRelated(request: NextRequest, upperSymbol: string) {
@@ -110,7 +111,7 @@ async function handleRelated(request: NextRequest, upperSymbol: string) {
       coOccurrenceCount: coCount,
       correlationScore: Math.round(jaccardScore(coCount, targetTotal, symTotal) * 100) / 100,
       latestAiScore: record.aiScore,
-      latestStage: record.stage,
+      latestStage: stageLabel(record.stage),
       sector: record.sector,
       sources: sourcesBySymbol.get(sym) ?? [],
       price: record.price,

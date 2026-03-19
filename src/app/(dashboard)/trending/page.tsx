@@ -183,9 +183,9 @@ export default function TrendingPage() {
                 className={selectClass}
               >
                 <option value="">All</option>
-                <option value="EARLY">{STAGE_LABELS.EARLY}</option>
-                <option value="FORMING">{STAGE_LABELS.FORMING}</option>
-                <option value="CONFIRMED">{STAGE_LABELS.CONFIRMED}</option>
+                <option value="Emerging">{STAGE_LABELS.EARLY}</option>
+                <option value="Building">{STAGE_LABELS.FORMING}</option>
+                <option value="Consensus">{STAGE_LABELS.CONFIRMED}</option>
               </select>
             </div>
 

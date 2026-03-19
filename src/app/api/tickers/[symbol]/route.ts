@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
 import { withX402Logged, x402RouteConfigs, hasAuthCredentials, X402_ENABLED } from "@/lib/x402";
+import { stageLabel } from "@/lib/stage-labels";
 
 async function handleTicker(request: NextRequest, upperSymbol: string) {
   const ticker = await prisma.validatedTicker.findFirst({
@@ -27,6 +28,7 @@ async function handleTicker(request: NextRequest, upperSymbol: string) {
   return NextResponse.json({
     ticker: {
       ...ticker,
+      stage: stageLabel(ticker.stage),
       return7d: ticker.performance?.return7d ?? null,
       performance: undefined,
       sources,

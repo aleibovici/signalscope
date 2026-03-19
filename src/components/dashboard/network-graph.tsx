@@ -22,9 +22,9 @@ interface SimNode extends NetworkNode {
 }
 
 const STAGE_COLORS: Record<string, string> = {
-  EARLY: "#22c55e",
-  FORMING: "#f59e0b",
-  CONFIRMED: "#3b82f6",
+  Emerging: "#22c55e",
+  Building: "#f59e0b",
+  Consensus: "#3b82f6",
 };
 
 const SECTOR_COLORS: Record<string, string> = {
@@ -398,7 +398,7 @@ export function NetworkGraph({ nodes, edges, centerSymbol, colorMode = "stage", 
           >
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold">{node.symbol}</span>
-              <Badge variant={node.stage === "EARLY" ? "success" : node.stage === "FORMING" ? "warning" : "info"}>
+              <Badge variant={node.stage === "Emerging" ? "success" : node.stage === "Building" ? "warning" : "info"}>
                 {stageLabel(node.stage)}
               </Badge>
             </div>
@@ -436,7 +436,7 @@ export function NetworkGraph({ nodes, edges, centerSymbol, colorMode = "stage", 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-base font-bold">{selectedData.symbol}</span>
-                <Badge variant={selectedData.stage === "EARLY" ? "success" : selectedData.stage === "FORMING" ? "warning" : "info"}>
+                <Badge variant={selectedData.stage === "Emerging" ? "success" : selectedData.stage === "Building" ? "warning" : "info"}>
                   {stageLabel(selectedData.stage)}
                 </Badge>
               </div>

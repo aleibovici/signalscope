@@ -3,8 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
 import type { Prisma } from "@/generated/prisma/client";
+import { stageToDb } from "@/lib/stage-labels";
 
-const VALID_STAGES = new Set(["EARLY", "FORMING", "CONFIRMED", "FILTERED"]);
+const VALID_STAGES = new Set(["EARLY", "FORMING", "CONFIRMED", "FILTERED", "Emerging", "Building", "Consensus", "Filtered"]);
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,6 +21,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Invalid stage value" }, { status: 400 });
     }
 
+    const dbStage = stage ? stageToDb(stage) : undefined;
+
     // Single query for both stage filtering and sourceCount lookup
     const tickers = await prisma.validatedTicker.findMany({
       where: { scanId },
@@ -27,8 +30,8 @@ export async function GET(request: NextRequest) {
     });
     const sourceCountMap = new Map(tickers.map((t) => [t.symbol, t.sourceCount]));
 
-    const symbolFilter = stage
-      ? tickers.filter((t) => t.stage === stage).map((t) => t.symbol)
+    const symbolFilter = dbStage
+      ? tickers.filter((t) => t.stage === dbStage).map((t) => t.symbol)
       : undefined;
 
     const where: Prisma.SignalWhereInput = {

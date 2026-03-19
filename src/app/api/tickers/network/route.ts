@@ -6,13 +6,14 @@ import { handleApiError } from "@/lib/api-error";
 import { TTLCache } from "@/lib/cache";
 import { getCoOccurringSymbols, getPairwiseEdges, jaccardScore } from "@/lib/co-occurrence";
 import { withX402Logged, x402RouteConfigs, hasAuthCredentials, X402_ENABLED } from "@/lib/x402";
+import { stageLabel, stageToDb, API_STAGE_VALUES } from "@/lib/stage-labels";
 
 export const networkCache = new TTLCache<unknown>(5 * 60 * 1000);
 
 const networkSchema = z.object({
   symbol: z.string().min(1).max(10).transform((s) => s.toUpperCase()).optional(),
   minWeight: z.coerce.number().int().min(1).default(2),
-  stage: z.enum(["EARLY", "FORMING", "CONFIRMED"]).optional(),
+  stage: z.enum([...API_STAGE_VALUES, "EARLY", "FORMING", "CONFIRMED"]).transform((v) => stageToDb(v)!).optional(),
   days: z.coerce.number().int().min(1).max(90).default(30),
   maxNodes: z.coerce.number().int().min(2).max(50).default(30),
 });
@@ -99,7 +100,7 @@ async function handleNetwork(request: NextRequest) {
         symbol: record.symbol,
         name: record.name,
         aiScore: record.aiScore,
-        stage: record.stage,
+        stage: stageLabel(record.stage),
         price: record.price,
         marketCap: record.marketCap,
         sector: record.sector,

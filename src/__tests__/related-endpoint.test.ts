@@ -115,7 +115,7 @@ describe("GET /api/tickers/[symbol]/related", () => {
     expect(related.correlationScore).toBeGreaterThan(0);
     expect(related.correlationScore).toBeLessThanOrEqual(1);
     expect(related.latestAiScore).toBe(70);
-    expect(related.latestStage).toBe("CONFIRMED");
+    expect(related.latestStage).toBe("Consensus");
     expect(related.sources).toEqual(expect.arrayContaining(["REDDIT", "TWITTER"]));
     expect(body.targetSymbol).toBe("AAPL");
     expect(body.targetScanCount).toBe(5);

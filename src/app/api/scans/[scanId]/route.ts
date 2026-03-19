@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
+import { stageLabel } from "@/lib/stage-labels";
 
 export async function GET(
   request: NextRequest,
@@ -47,6 +48,7 @@ export async function GET(
 
     const tickersWithSources = tickers.map((t) => ({
       ...t,
+      stage: stageLabel(t.stage),
       return7d: t.performance?.return7d ?? null,
       performance: undefined,
       sources: [...(sourcesBySymbol.get(t.symbol) ?? [])],

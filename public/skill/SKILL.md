@@ -86,7 +86,7 @@ API keys provide access to all endpoints including account management (portfolio
 ## Key Concepts
 
 - **Scan**: A monitoring run that collects signals from all sources, scores them, and produces validated tickers
-- **Signal stages**: `EARLY` (1 source), `FORMING` (2 sources), `CONFIRMED` (3+ sources), `FILTERED` (P&D flagged)
+- **Signal stages**: `Emerging` (1 source), `Building` (2 sources), `Consensus` (3+ sources), `Filtered` (P&D flagged)
 - **AI Score**: 0-100 confidence score. 70+ is strong, 50-70 moderate, below 50 weak
 - **Trending**: Tickers appearing in 2+ scans within 30 days, with trend direction (rising/falling/stable)
 - **Pagination**: Most list endpoints accept `page` (default 1) and `limit` (default 20, max 100)
@@ -139,7 +139,7 @@ curl -H "x-api-key: $KEY" https://signalscopes.com/api/tickers/trending
 curl -H "x-api-key: $KEY" "https://signalscopes.com/api/tickers/trending?minAppearances=3&trend=rising"
 
 # Filter by stage
-curl -H "x-api-key: $KEY" "https://signalscopes.com/api/tickers/trending?stage=CONFIRMED"
+curl -H "x-api-key: $KEY" "https://signalscopes.com/api/tickers/trending?stage=Consensus"
 
 # Advanced: micro-cap tickers sorted by return, hiding P&D flagged
 curl -H "x-api-key: $KEY" "https://signalscopes.com/api/tickers/trending?marketCap=micro&sortBy=return&hidePnd=true"

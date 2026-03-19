@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
 import { withX402Logged, x402RouteConfigs, hasAuthCredentials, X402_ENABLED } from "@/lib/x402";
+import { stageLabel } from "@/lib/stage-labels";
 
 async function handlePerformance(request: NextRequest, upper: string) {
   const performances = await prisma.tickerPerformance.findMany({
@@ -24,9 +25,16 @@ async function handlePerformance(request: NextRequest, upper: string) {
     return NextResponse.json({ latest: null, history: [] });
   }
 
+  const mapped = performances.map((p) => ({
+    ...p,
+    validatedTicker: p.validatedTicker
+      ? { ...p.validatedTicker, stage: stageLabel(p.validatedTicker.stage) }
+      : p.validatedTicker,
+  }));
+
   return NextResponse.json({
-    latest: performances[0],
-    history: performances,
+    latest: mapped[0],
+    history: mapped,
   });
 }
 
