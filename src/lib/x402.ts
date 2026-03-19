@@ -1,7 +1,9 @@
 import { x402ResourceServer, withX402 } from "@x402/next";
+import type { RouteConfig } from "@x402/next";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
-import type { NextRequest } from "next/server";
+import type { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export const X402_WALLET = process.env.X402_WALLET_ADDRESS as `0x${string}`;
 export const X402_ENABLED = !!process.env.X402_WALLET_ADDRESS;
@@ -89,5 +91,51 @@ export const x402RouteConfigs = {
     description: "Ticker co-occurrence network graph with nodes and edges",
   },
 };
+
+export async function logX402Payment(
+  req: NextRequest,
+  endpoint: string,
+  amountUsd: string,
+): Promise<void> {
+  let payerAddress: string | null = null;
+  const xPaymentHeader = req.headers.get("x-payment");
+  if (xPaymentHeader) {
+    try {
+      const payload = JSON.parse(
+        Buffer.from(xPaymentHeader, "base64").toString("utf-8"),
+      );
+      // EIP-3009 transferWithAuthorization has `from` field in the payload
+      payerAddress = (payload?.payload?.from as string) ?? null;
+    } catch {
+      // best-effort — don't block the response
+    }
+  }
+  await prisma.x402Payment.create({
+    data: { endpoint, amountUsd, payerAddress },
+  });
+}
+
+/**
+ * Like withX402, but also logs each successful payment to the X402Payment table.
+ * Payment is logged after verification (before settlement), so it records
+ * "verified" payments — settlement failures are extremely rare.
+ */
+export function withX402Logged<T = unknown>(
+  handler: (request: NextRequest) => Promise<NextResponse<T>>,
+  routeConfig: RouteConfig,
+  endpoint: string,
+): (request: NextRequest) => Promise<NextResponse<T>> {
+  const accepts = Array.isArray(routeConfig.accepts)
+    ? routeConfig.accepts[0]
+    : routeConfig.accepts;
+  const amountUsd = String(accepts.price).replace("$", "");
+  const logged = async (request: NextRequest): Promise<NextResponse<T>> => {
+    logX402Payment(request, endpoint, amountUsd).catch((err) =>
+      console.error("[x402] payment log error:", err),
+    );
+    return handler(request);
+  };
+  return withX402(logged, routeConfig, x402Server);
+}
 
 export { withX402 };

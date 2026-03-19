@@ -10,11 +10,19 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-03-19",
-    title: "Performance Page & Portfolio Polish",
+    title: "x402 Payment Tracking, Admin Improvements & Portfolio Polish",
     changes: [
+      {
+        category: "new",
+        items: [
+          "x402 micropayment tracking: every verified USDC payment is now recorded to the database with endpoint, amount, and payer wallet address.",
+          "Admin payment dashboard: new x402 Payments summary tile, Revenue by Endpoint table, and Recent Payments log visible in the admin panel.",
+        ],
+      },
       {
         category: "improved",
         items: [
+          "Admin page tiles are now more compact — smaller padding, tighter rows, and up to 4 columns on wide screens.",
           "ML-driven price floors: sub-$0.12 stocks without a catalyst are now capped at EARLY stage, and social-only CONFIRMED requires price >= $0.52 for 7d follow-through.",
           "Reshaped opportunity scoring: tickers validated over 3-5 days now score highest (ML shows best near-term returns), while truly novel tickers get a reduced premium.",
           "Moderate Reddit engagement (33-150 comments) now boosts opportunity score, reflecting ML finding that genuine discussion predicts positive 3d returns.",

@@ -269,3 +269,14 @@ model ApiKey {
   @@index([key])
   @@index([userId])
 }
+
+model X402Payment {
+  id           String   @id @default(cuid())
+  endpoint     String   // "trending" | "ticker" | "report" | "history" | "performance" | "related" | "network"
+  amountUsd    String   // e.g. "0.01"
+  payerAddress String?  // EVM wallet address (from EIP-3009 payload, best-effort)
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([endpoint])
+}

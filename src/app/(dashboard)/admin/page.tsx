@@ -6,7 +6,8 @@ import { useSession } from "next-auth/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAdminStats } from "@/hooks/use-admin-stats";
 import { useAdminUsers } from "@/hooks/use-admin-users";
-import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { useAdminPayments } from "@/hooks/use-admin-payments";
+import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { stageLabel } from "@/lib/stage-labels";
 
@@ -32,7 +33,7 @@ const SOURCE_LABELS: Record<string, string> = {
 
 function StatRow({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="flex items-center justify-between py-1.5 text-sm">
+    <div className="flex items-center justify-between py-0.5 text-xs">
       <span className="text-gray-500">{label}</span>
       <span className="font-semibold text-gray-900">{value}</span>
     </div>
@@ -48,14 +49,14 @@ function SectionCard({
 }) {
   return (
     <Card>
-      <CardHeader>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-600">
+      <div className="border-b border-gray-100 px-3 py-2">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
           {title}
         </h2>
-      </CardHeader>
-      <CardContent>
-        <div className="divide-y divide-gray-100">{children}</div>
-      </CardContent>
+      </div>
+      <div className="px-3 py-2">
+        <div className="divide-y divide-gray-50">{children}</div>
+      </div>
     </Card>
   );
 }
@@ -77,6 +78,7 @@ export default function AdminPage() {
   const queryClient = useQueryClient();
   const { data, isLoading, error } = useAdminStats();
   const { data: usersData, isLoading: usersLoading } = useAdminUsers();
+  const { data: paymentsData } = useAdminPayments();
 
   // Redirect non-admins once session loads
   useEffect(() => {
@@ -99,7 +101,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Admin</h1>
@@ -109,6 +111,7 @@ export default function AdminPage() {
           onClick={() => {
             queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
             queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-payments"] });
           }}
           className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100"
         >
@@ -129,7 +132,7 @@ export default function AdminPage() {
       )}
 
       {data && (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {/* Users */}
           <SectionCard title="Users">
             <StatRow label="Total" value={data.users.total} />
@@ -170,7 +173,7 @@ export default function AdminPage() {
               data.tickers.byStage[stage] != null ? (
                 <div
                   key={stage}
-                  className="flex items-center justify-between py-1.5 text-sm"
+                  className="flex items-center justify-between py-0.5 text-xs"
                 >
                   <span className="text-gray-500">{stageLabel(stage)}</span>
                   <span
@@ -213,66 +216,163 @@ export default function AdminPage() {
             <StatRow label="Active mobile sessions" value={data.system.activeSessions} />
             <StatRow label="Active API keys" value={data.system.activeApiKeys} />
           </SectionCard>
+
+          {/* x402 Payments */}
+          {paymentsData && (
+            <SectionCard title="x402 Payments">
+              <StatRow label="Total payments" value={paymentsData.total} />
+              <StatRow
+                label="All-time revenue"
+                value={`$${paymentsData.allTimeRevenue.toFixed(4)}`}
+              />
+              <StatRow
+                label="Last 7d payments"
+                value={paymentsData.last7d.count}
+              />
+              <StatRow
+                label="Last 7d revenue"
+                value={`$${paymentsData.last7d.revenue.toFixed(4)}`}
+              />
+              <StatRow
+                label="Last 30d payments"
+                value={paymentsData.last30d.count}
+              />
+              <StatRow
+                label="Last 30d revenue"
+                value={`$${paymentsData.last30d.revenue.toFixed(4)}`}
+              />
+            </SectionCard>
+          )}
         </div>
       )}
 
-      {/* Users Table */}
-      <Card>
-        <CardHeader>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-600">
-            Registered Users
-          </h2>
-        </CardHeader>
-        <CardContent className="p-0">
-          {usersLoading ? (
-            <div className="flex justify-center py-8">
-              <Spinner />
-            </div>
-          ) : usersData && usersData.users.length > 0 ? (
-            <div className="max-h-[260px] overflow-y-auto overflow-x-auto">
-              <table className="w-full text-sm">
+      {/* x402 Payments by Endpoint */}
+      {paymentsData && paymentsData.byEndpoint.length > 0 && (
+        <Card>
+          <div className="border-b border-gray-100 px-3 py-2">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              x402 Revenue by Endpoint
+            </h2>
+          </div>
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-gray-100 bg-gray-50 text-left font-medium uppercase tracking-wide text-gray-400">
+                <th className="px-3 py-1.5">Endpoint</th>
+                <th className="px-3 py-1.5 text-right">Price</th>
+                <th className="px-3 py-1.5 text-right">Calls</th>
+                <th className="px-3 py-1.5 text-right">Revenue</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {paymentsData.byEndpoint
+                .sort((a, b) => b.revenue - a.revenue)
+                .map((ep) => (
+                  <tr key={ep.endpoint} className="hover:bg-gray-50">
+                    <td className="px-3 py-1 font-medium text-gray-900">{ep.endpoint}</td>
+                    <td className="px-3 py-1 text-right text-gray-500">${ep.amountUsd}</td>
+                    <td className="px-3 py-1 text-right text-gray-700">{ep.count}</td>
+                    <td className="px-3 py-1 text-right font-semibold text-green-700">${ep.revenue.toFixed(4)}</td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </Card>
+      )}
+
+      {/* Recent x402 Payments */}
+      {paymentsData && (
+        <Card>
+          <div className="border-b border-gray-100 px-3 py-2">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Recent x402 Payments
+            </h2>
+          </div>
+          {paymentsData.recentPayments.length === 0 ? (
+            <p className="px-3 py-4 text-xs text-gray-400">No x402 payments yet.</p>
+          ) : (
+            <div className="max-h-[280px] overflow-y-auto overflow-x-auto">
+              <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                    <th className="px-4 py-2">Email</th>
-                    <th className="hidden sm:table-cell px-4 py-2">Username</th>
-                    <th className="px-4 py-2">Joined</th>
-                    <th className="hidden md:table-cell px-4 py-2 text-right">Positions</th>
-                    <th className="hidden md:table-cell px-4 py-2 text-right">Watchlist</th>
-                    <th className="hidden md:table-cell px-4 py-2 text-center">Alerts</th>
-                    <th className="hidden md:table-cell px-4 py-2 text-center">API Key</th>
-                    <th className="px-4 py-2 text-right">Last Active</th>
+                  <tr className="border-b border-gray-100 bg-gray-50 text-left font-medium uppercase tracking-wide text-gray-400">
+                    <th className="px-3 py-1.5">Time</th>
+                    <th className="px-3 py-1.5">Endpoint</th>
+                    <th className="px-3 py-1.5 text-right">Amount</th>
+                    <th className="hidden md:table-cell px-3 py-1.5">Payer</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {usersData.users.map((u) => (
-                    <tr key={u.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 font-medium text-gray-900 max-w-[160px] truncate">{u.email}</td>
-                      <td className="hidden sm:table-cell px-4 py-2 text-gray-500">{u.username ?? "—"}</td>
-                      <td className="px-4 py-2 text-gray-500 whitespace-nowrap">{formatDate(u.createdAt)}</td>
-                      <td className="hidden md:table-cell px-4 py-2 text-right text-gray-700">{u._count.positions}</td>
-                      <td className="hidden md:table-cell px-4 py-2 text-right text-gray-700">{u._count.watchlist}</td>
-                      <td className="hidden md:table-cell px-4 py-2 text-center">
-                        <span className={u.emailAlerts ? "text-green-600" : "text-gray-300"}>
-                          {u.emailAlerts ? "On" : "Off"}
-                        </span>
-                      </td>
-                      <td className="hidden md:table-cell px-4 py-2 text-center">
-                        <span className={u._count.apiKeys > 0 ? "text-green-600" : "text-gray-300"}>
-                          {u._count.apiKeys > 0 ? "Yes" : "No"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2 text-right text-gray-500 whitespace-nowrap">
-                        {u.lastActiveAt ? formatRelative(u.lastActiveAt) : "—"}
+                  {paymentsData.recentPayments.map((p) => (
+                    <tr key={p.id} className="hover:bg-gray-50">
+                      <td className="px-3 py-1 text-gray-500 whitespace-nowrap">{formatRelative(p.createdAt)}</td>
+                      <td className="px-3 py-1 font-medium text-gray-900">{p.endpoint}</td>
+                      <td className="px-3 py-1 text-right font-semibold text-green-700">${p.amountUsd}</td>
+                      <td className="hidden md:table-cell px-3 py-1 text-gray-400 font-mono max-w-[180px] truncate">
+                        {p.payerAddress ?? "—"}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          ) : (
-            <p className="px-4 py-6 text-sm text-gray-400">No users found.</p>
           )}
-        </CardContent>
+        </Card>
+      )}
+
+      {/* Users Table */}
+      <Card>
+        <div className="border-b border-gray-100 px-3 py-2">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            Registered Users
+          </h2>
+        </div>
+        {usersLoading ? (
+          <div className="flex justify-center py-6">
+            <Spinner />
+          </div>
+        ) : usersData && usersData.users.length > 0 ? (
+          <div className="max-h-[260px] overflow-y-auto overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50 text-left font-medium uppercase tracking-wide text-gray-400">
+                  <th className="px-3 py-1.5">Email</th>
+                  <th className="hidden sm:table-cell px-3 py-1.5">Username</th>
+                  <th className="px-3 py-1.5">Joined</th>
+                  <th className="hidden md:table-cell px-3 py-1.5 text-right">Pos</th>
+                  <th className="hidden md:table-cell px-3 py-1.5 text-right">Watch</th>
+                  <th className="hidden md:table-cell px-3 py-1.5 text-center">Alerts</th>
+                  <th className="hidden md:table-cell px-3 py-1.5 text-center">API Key</th>
+                  <th className="px-3 py-1.5 text-right">Last Active</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {usersData.users.map((u) => (
+                  <tr key={u.id} className="hover:bg-gray-50">
+                    <td className="px-3 py-1 font-medium text-gray-900 max-w-[160px] truncate">{u.email}</td>
+                    <td className="hidden sm:table-cell px-3 py-1 text-gray-500">{u.username ?? "—"}</td>
+                    <td className="px-3 py-1 text-gray-500 whitespace-nowrap">{formatDate(u.createdAt)}</td>
+                    <td className="hidden md:table-cell px-3 py-1 text-right text-gray-700">{u._count.positions}</td>
+                    <td className="hidden md:table-cell px-3 py-1 text-right text-gray-700">{u._count.watchlist}</td>
+                    <td className="hidden md:table-cell px-3 py-1 text-center">
+                      <span className={u.emailAlerts ? "text-green-600" : "text-gray-300"}>
+                        {u.emailAlerts ? "On" : "Off"}
+                      </span>
+                    </td>
+                    <td className="hidden md:table-cell px-3 py-1 text-center">
+                      <span className={u._count.apiKeys > 0 ? "text-green-600" : "text-gray-300"}>
+                        {u._count.apiKeys > 0 ? "Yes" : "No"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-1 text-right text-gray-500 whitespace-nowrap">
+                      {u.lastActiveAt ? formatRelative(u.lastActiveAt) : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="px-3 py-4 text-xs text-gray-400">No users found.</p>
+        )}
       </Card>
     </div>
   );
