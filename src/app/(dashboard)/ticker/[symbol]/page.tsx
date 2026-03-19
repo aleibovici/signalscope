@@ -4,30 +4,165 @@ import { Fragment, useState, useEffect, useRef, type ReactNode } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTickerDetail, useTickerHistory, useGenerateReport } from "@/hooks/use-scans";
 import { useTickerPerformance } from "@/hooks/use-performance";
-import { useRelatedTickers } from "@/hooks/use-related";
-import { RelatedTickers } from "@/components/ticker/related-tickers";
 import { useWatchlist, useToggleWatchlist } from "@/hooks/use-watchlist";
 import { AddPositionModal } from "@/components/dashboard/add-position-modal";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { Sparkline } from "@/components/ui/sparkline";
 import { TradeSetupCard } from "@/components/ticker/trade-setup-card";
 
-function TickerMetric({
+function formatTimeAgo(d: Date): string {
+  const s = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (s < 10) return "just now";
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
+}
+
+function formatExchangeLabel(ex: string | null): string | null {
+  if (!ex?.trim()) return null;
+  const t = ex.trim();
+  if (/^NMS$/i.test(t) || /^NasdaqGS$/i.test(t)) return "NASDAQ";
+  return t;
+}
+
+function marketCapTierLabel(mc: number | null): string | null {
+  if (mc == null || mc <= 0) return null;
+  const b = mc / 1e9;
+  if (b < 0.3) return "Micro / nano cap";
+  if (b < 2) return "Small cap";
+  if (b < 10) return "Mid cap";
+  if (b < 200) return "Large cap";
+  return "Mega cap";
+}
+
+function relativeStrengthFrom52w(price: number | null, lo: number | null, hi: number | null): number | null {
+  if (price == null || lo == null || hi == null || hi <= lo) return null;
+  const t = (price - lo) / (hi - lo);
+  return Math.round(Math.min(1, Math.max(0, t)) * 100);
+}
+
+function volatilityLabel(r1: number | null | undefined, r7: number | null | undefined): string {
+  const mag = Math.max(r1 != null ? Math.abs(r1) : 0, r7 != null ? Math.abs(r7) : 0);
+  if (mag === 0) return "—";
+  if (mag < 0.03) return "Low";
+  if (mag < 0.08) return "Medium";
+  return "Med–High";
+}
+
+function sentimentDescriptor(avg: number | null): string {
+  if (avg == null) return "—";
+  if (avg > 0.15) return "Bullish";
+  if (avg < -0.15) return "Bearish";
+  return "Neutral";
+}
+
+function institutionalFlowLabel(sources: string[]): string {
+  const inst = new Set(["SEC_INSIDER", "CONGRESS", "OPTIONS_FLOW", "SEC_FILING"]);
+  const hit = sources.filter((s) => inst.has(s)).length;
+  if (hit >= 2) return "Heavy inflow";
+  if (hit === 1) return "Moderate";
+  return "Retail-led";
+}
+
+function flowValueClass(label: string): string {
+  if (label === "Heavy inflow") return "text-emerald-600 dark:text-emerald-400";
+  if (label === "Moderate") return "text-amber-600 dark:text-amber-400";
+  return "text-slate-600 dark:text-zinc-400";
+}
+
+function volatilityValueClass(v: string): string {
+  if (v === "Med–High") return "text-amber-600 dark:text-amber-400";
+  if (v === "Medium") return "text-amber-600 dark:text-amber-500";
+  if (v === "Low") return "text-emerald-600 dark:text-emerald-400";
+  return "text-slate-600 dark:text-zinc-400";
+}
+
+function formatMarketCapCompact(mc: number | null): string {
+  if (mc == null || mc <= 0) return "N/A";
+  if (mc >= 1e12) return `${(mc / 1e12).toFixed(2)}T`;
+  if (mc >= 1e9) return `${(mc / 1e9).toFixed(2)}B`;
+  if (mc >= 1e6) return `${(mc / 1e6).toFixed(2)}M`;
+  return `${Math.round(mc / 1e3)}K`;
+}
+
+function InfoHint({ text }: { text: string }) {
+  return (
+    <span
+      title={text}
+      className="inline-flex shrink-0 cursor-help text-slate-400 dark:text-zinc-500"
+      aria-label={text}
+    >
+      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+        <circle cx="12" cy="12" r="10" />
+        <path d="M12 16v-4M12 8h.01" strokeLinecap="round" />
+      </svg>
+    </span>
+  );
+}
+
+function ScoreRow({
   label,
-  children,
+  value,
+  valueClassName = "text-gray-900 dark:text-white",
 }: {
   label: string;
-  children: ReactNode;
+  value: ReactNode;
+  valueClassName?: string;
 }) {
   return (
-    <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-3 dark:border-zinc-800/80 dark:bg-zinc-900/40">
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-500">
-        {label}
-      </p>
-      <div className="mt-1">{children}</div>
+    <div className="flex items-center justify-between py-2">
+      <span className="text-sm text-slate-500 dark:text-zinc-500">{label}</span>
+      <span className={`text-sm font-bold ${valueClassName}`}>{value}</span>
     </div>
+  );
+}
+
+function IconAnalytics({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+      <path d="M3 3v18h18" strokeLinecap="round" />
+      <path d="M7 12l4-4 4 4 6-6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconRocket({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+      <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91L16.5 7.5" strokeLinecap="round" />
+      <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
+      <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconPsychology({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+      <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Z" />
+      <path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconRadar({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2v2M12 20v2M2 12h2M20 12h2" strokeLinecap="round" />
+      <path d="m4.93 4.93 1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+    </svg>
+  );
+}
+
+function IconHistory({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" strokeLinecap="round" />
+      <path d="M3 3v5h5M12 7v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
@@ -37,7 +172,6 @@ export default function TickerDetailPage() {
   const { data, isLoading, error } = useTickerDetail(symbol);
   const { data: historyData } = useTickerHistory(symbol);
   const { data: perfData } = useTickerPerformance(symbol);
-  const { data: relatedData, isLoading: relatedLoading } = useRelatedTickers(symbol);
   const { data: bookmarkedSymbols = new Set<string>() } = useWatchlist();
   const { mutate: toggleWatchlist } = useToggleWatchlist();
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -47,6 +181,7 @@ export default function TickerDetailPage() {
   const [showAddPosition, setShowAddPosition] = useState(false);
   const [livePrice, setLivePrice] = useState<number | null | undefined>(undefined);
   const [priceRefreshing, setPriceRefreshing] = useState(false);
+  const [lastLiveAt, setLastLiveAt] = useState<Date | null>(null);
   const reportGenerated = useRef(false);
   const { mutate: generateReport, isPending: reportGenerating, isError: reportError } = useGenerateReport(symbol);
 
@@ -57,7 +192,9 @@ export default function TickerDetailPage() {
       const res = await fetch(`/api/prices?symbols=${symbol}`);
       if (res.ok) {
         const json = await res.json();
-        setLivePrice(json.prices?.[symbol.toUpperCase()] ?? null);
+        const p = json.prices?.[symbol.toUpperCase()];
+        setLivePrice(p ?? null);
+        if (p != null) setLastLiveAt(new Date());
       }
     } finally {
       setPriceRefreshing(false);
@@ -90,47 +227,45 @@ export default function TickerDetailPage() {
 
   const { ticker, signals } = data;
 
+  const exchangeShort = formatExchangeLabel(ticker.exchange);
+  const subtitleParts = [ticker.name?.trim() || null, exchangeShort].filter(Boolean);
+  const return1d = ticker.return1d;
+  const rs52 = relativeStrengthFrom52w(ticker.price, ticker.wk52Lo, ticker.wk52Hi);
+  const volLabel = volatilityLabel(ticker.return1d, ticker.return7d);
+  const flowLabel = institutionalFlowLabel(ticker.sources);
+  const sentimentLabel = sentimentDescriptor(ticker.avgSentiment);
+
   return (
-    <div className="space-y-4 md:space-y-6">
-      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-zinc-800/90 dark:bg-[#12181f] dark:shadow-[0_1px_3px_rgba(0,0,0,0.35)]">
-        <div className="border-b border-gray-200 px-4 py-4 md:px-6 md:py-5 dark:border-zinc-800">
+    <div className="mx-auto max-w-7xl space-y-6">
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <div className="space-y-1">
           <button
-            onClick={() => router.back()}
-            className="mb-3 text-sm text-gray-500 transition-colors hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400"
             type="button"
+            onClick={() => router.back()}
+            className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-slate-500 transition-colors hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400"
           >
-            &larr; Back
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+              <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Back to list
           </button>
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="min-w-0">
-              <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-zinc-50 md:text-4xl">
-                {ticker.symbol}
-              </h1>
-              {ticker.name ? (
-                <p className="mt-0.5 truncate text-sm text-gray-500 dark:text-zinc-400">{ticker.name}</p>
-              ) : null}
-            </div>
-            <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <h1 className="text-5xl font-black tracking-tighter text-gray-900 dark:text-white">{ticker.symbol}</h1>
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 aria-label={bookmarkedSymbols.has(ticker.symbol) ? "Remove bookmark" : "Bookmark ticker"}
                 onClick={() =>
                   toggleWatchlist({ symbol: ticker.symbol, isBookmarked: bookmarkedSymbols.has(ticker.symbol) })
                 }
-                className="rounded-lg p-1.5 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 dark:hover:bg-zinc-800/80"
+                className="text-slate-400 transition-colors hover:text-amber-400 dark:text-zinc-500"
               >
                 {bookmarkedSymbols.has(ticker.symbol) ? (
-                  <svg className="h-5 w-5 text-amber-400" viewBox="0 0 24 24" fill="currentColor">
+                  <svg className="h-8 w-8 text-amber-400" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                   </svg>
                 ) : (
-                  <svg
-                    className="h-5 w-5 text-gray-300 transition-colors hover:text-amber-400 dark:text-zinc-600 dark:hover:text-amber-400"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
+                  <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -142,235 +277,302 @@ export default function TickerDetailPage() {
               <button
                 type="button"
                 onClick={() => setShowAddPosition(true)}
-                className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100 dark:border-blue-500/35 dark:bg-blue-950/50 dark:text-blue-300 dark:hover:bg-blue-950/70"
+                className="flex items-center gap-2 rounded-lg border border-blue-600 px-4 py-2 text-sm font-bold text-blue-600 transition-colors hover:bg-blue-600/5 dark:border-blue-500 dark:text-blue-400 dark:hover:bg-blue-500/10"
               >
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+                  <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+                </svg>
                 + Position
               </button>
-              <Badge
-                variant={
-                  ticker.stage === "Emerging"
-                    ? "success"
-                    : ticker.stage === "Building"
-                      ? "warning"
-                      : ticker.stage === "Consensus"
-                        ? "info"
-                        : "info"
-                }
+            </div>
+          </div>
+          {subtitleParts.length > 0 ? (
+            <p className="font-medium text-slate-500 dark:text-zinc-400">{subtitleParts.join(" • ")}</p>
+          ) : null}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <span className="rounded-full border border-blue-600/20 bg-blue-600/10 px-3 py-1 text-xs font-bold text-blue-600 dark:text-blue-400">
+            Stage: {ticker.stage}
+          </span>
+          {ticker.recommendation ? (
+            <span
+              className={`rounded-full border px-3 py-1 text-xs font-bold ${
+                ticker.recommendation === "Avoid"
+                  ? "border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                  : "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+              }`}
+            >
+              Recommendation: {ticker.recommendation}
+            </span>
+          ) : null}
+          {ticker.sector ? (
+            <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500 dark:border-[#1e262f] dark:bg-[#12181f] dark:text-zinc-400">
+              Sector: {ticker.sector}
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-0 divide-x divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white dark:divide-[#1e262f] dark:border-[#1e262f] dark:bg-[#12181f] md:grid-cols-3 lg:grid-cols-6">
+        <div className="flex flex-col gap-1 p-5">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">Live price</p>
+          <div className="flex flex-wrap items-baseline gap-2">
+            <span className="text-2xl font-black tabular-nums text-gray-900 dark:text-white">
+              {livePrice !== undefined
+                ? livePrice !== null
+                  ? `$${livePrice.toFixed(2)}`
+                  : "N/A"
+                : ticker.price
+                  ? `$${ticker.price.toFixed(2)}`
+                  : "N/A"}
+            </span>
+            {return1d != null && (
+              <span
+                className={`text-xs font-bold tabular-nums ${
+                  return1d > 0 ? "text-emerald-500" : return1d < 0 ? "text-rose-500" : "text-slate-500"
+                }`}
               >
-                {ticker.stage}
-              </Badge>
-              {ticker.recommendation && (
-                <Badge variant={ticker.recommendation === "Avoid" ? "danger" : "success"}>
-                  {ticker.recommendation}
-                </Badge>
+                {return1d > 0 ? "+" : ""}
+                {(return1d * 100).toFixed(1)}%
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={refreshPrice}
+              disabled={priceRefreshing}
+              aria-label="Refresh price"
+              className="ml-auto text-slate-400 hover:text-slate-600 disabled:opacity-40 dark:hover:text-zinc-300"
+            >
+              {priceRefreshing ? (
+                <Spinner className="h-4 w-4 dark:text-blue-400" />
+              ) : (
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                  <path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 12a9 9 0 0 1-15 6.7L3 16" strokeLinecap="round" />
+                  <path d="M21 3v5h-5M3 21v-5h5" strokeLinecap="round" />
+                </svg>
               )}
-            </div>
+            </button>
           </div>
-        </div>
-        <div className="px-4 py-4 md:px-6 md:py-5">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            <TickerMetric label="Price">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-lg font-semibold tabular-nums text-gray-900 dark:text-zinc-50 md:text-xl">
-                  {livePrice !== undefined
-                    ? livePrice !== null
-                      ? `$${livePrice.toFixed(2)}`
-                      : "N/A"
-                    : ticker.price
-                      ? `$${ticker.price.toFixed(2)}`
-                      : "N/A"}
-                </span>
-                {livePrice != null && (
-                  <span className="rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400">
-                    Live
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={refreshPrice}
-                  disabled={priceRefreshing}
-                  aria-label="Refresh price"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-200/80 hover:text-gray-700 disabled:opacity-40 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
-                >
-                  {priceRefreshing ? (
-                    <Spinner className="h-3.5 w-3.5 dark:text-blue-400" />
-                  ) : (
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2.5}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-3.5 w-3.5"
-                    >
-                      <path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 12a9 9 0 0 1-15 6.7L3 16" />
-                      <path d="M21 3v5h-5M3 21v-5h5" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-            </TickerMetric>
-            <TickerMetric label="Market cap">
-              <span className="text-lg font-semibold tabular-nums text-gray-900 dark:text-zinc-50 md:text-xl">
-                {ticker.marketCap ? `$${(ticker.marketCap / 1e9).toFixed(2)}B` : "N/A"}
-              </span>
-            </TickerMetric>
-            <TickerMetric label="Opportunity">
-              <span className="text-lg font-semibold tabular-nums text-blue-600 dark:text-blue-400 md:text-xl">
-                {ticker.opportunityScore}
-                <span className="text-sm font-medium text-gray-400 dark:text-zinc-500">/100</span>
-              </span>
-            </TickerMetric>
-            <TickerMetric label="AI confidence">
-              <span className="text-lg font-semibold tabular-nums text-gray-800 dark:text-zinc-200 md:text-xl">
-                {ticker.aiScore}
-                <span className="text-sm font-medium text-gray-400 dark:text-zinc-500">/100</span>
-              </span>
-            </TickerMetric>
-            <TickerMetric label="Sources">
-              <span className="text-lg font-semibold tabular-nums text-gray-900 dark:text-zinc-50 md:text-xl">
-                {ticker.sourceCount}
-              </span>
-            </TickerMetric>
-            <TickerMetric label="Signals">
-              <span className="text-lg font-semibold tabular-nums text-gray-900 dark:text-zinc-50 md:text-xl">
-                {ticker.signalCount}
-              </span>
-            </TickerMetric>
-          </div>
-          <p className="mt-4 text-xs leading-relaxed text-gray-500 dark:text-zinc-500">
-            Opportunity = early-mover potential. AI score = evidence strength — high values can mean the crowd already
-            agrees.
-          </p>
-        </div>
-      </section>
-
-      <Card>
-        <CardHeader>
-          <h3 className="font-semibold text-gray-900 dark:text-zinc-100">Thesis &amp; risks</h3>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {reportGenerating ? (
-            <div className="flex items-center gap-2 rounded-xl border border-gray-100 bg-gray-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
-              <Spinner className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <p className="text-sm text-gray-600 dark:text-zinc-300">Generating AI analysis…</p>
-            </div>
-          ) : (
-            <>
-              <div className="rounded-xl border border-blue-100/80 bg-blue-50/90 p-4 dark:border-blue-900/40 dark:bg-blue-950/35">
-                <p className="text-sm leading-relaxed text-blue-950 dark:text-blue-100">
-                  <span className="mr-1 font-semibold text-blue-900 dark:text-blue-200">Thesis:</span>
-                  {ticker.catalyst || (reportError ? "AI analysis unavailable." : "No catalyst data available.")}
-                </p>
-              </div>
-              {ticker.risks && (
-                <div className="rounded-xl border border-amber-100/80 bg-amber-50/90 p-4 dark:border-amber-900/35 dark:bg-amber-950/30">
-                  <p className="text-sm leading-relaxed text-amber-950 dark:text-amber-100">
-                    <span className="mr-1 font-semibold text-amber-900 dark:text-amber-200">Risks:</span>
-                    {ticker.risks}
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      <TradeSetupCard ticker={ticker} />
-
-      {perfData?.latest && (
-        <Card>
-          <CardHeader>
-            <h3 className="font-semibold text-gray-900 dark:text-zinc-100">Price performance</h3>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4 text-center sm:grid-cols-4">
-              {([
-                { label: "1 Day", value: perfData.latest.return1d },
-                { label: "3 Day", value: perfData.latest.return3d },
-                { label: "7 Day", value: perfData.latest.return7d },
-                { label: "30 Day", value: perfData.latest.return30d },
-              ] as const).map((item) => (
-                <div
-                  key={item.label}
-                  className="rounded-xl border border-gray-100 bg-gray-50/50 py-3 dark:border-zinc-800/80 dark:bg-zinc-900/35"
-                >
-                  <p className="text-xs font-medium text-gray-500 dark:text-zinc-500">{item.label}</p>
-                  <p
-                    className={`mt-1 text-lg font-semibold tabular-nums ${
-                      item.value == null
-                        ? "text-gray-300 dark:text-zinc-600"
-                        : item.value > 0
-                          ? "text-green-600 dark:text-green-400"
-                          : item.value < 0
-                            ? "text-red-600 dark:text-red-400"
-                            : "text-gray-600 dark:text-zinc-300"
-                    }`}
-                  >
-                    {item.value != null
-                      ? `${item.value > 0 ? "+" : ""}${(item.value * 100).toFixed(1)}%`
-                      : "—"}
-                  </p>
-                </div>
-              ))}
-            </div>
-            <p className="mt-4 text-xs text-gray-400 dark:text-zinc-500">
-              Detection price: ${perfData.latest.detectionPrice.toFixed(2)} on{" "}
-              {new Date(perfData.latest.validatedTicker.createdAt).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {(ticker.report || reportGenerating) && (
-        <Card>
-          <CardHeader>
-            <h3 className="font-semibold text-gray-900 dark:text-zinc-100">AI analysis report</h3>
-          </CardHeader>
-          <CardContent>
-            {reportGenerating ? (
-              <div className="flex items-center gap-2 py-4">
-                <Spinner className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                <p className="text-sm text-gray-600 dark:text-zinc-300">Generating full report…</p>
-              </div>
+          <div className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-zinc-500">
+            {lastLiveAt ? (
+              <>
+                <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" aria-hidden />
+                Refreshed {formatTimeAgo(lastLiveAt)}
+              </>
             ) : (
-              <div className="prose prose-sm max-w-none text-gray-700 dark:prose-invert dark:text-zinc-300">
-                {ticker.report!.split("\n").map((paragraph, i) => (
-                  <p key={i}>{paragraph}</p>
+              <span>Scan snapshot — refresh for live</span>
+            )}
+          </div>
+        </div>
+        <div className="flex flex-col gap-1 p-5">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">Market cap</p>
+          <span className="text-2xl font-black tabular-nums text-gray-900 dark:text-white">
+            {formatMarketCapCompact(ticker.marketCap)}
+          </span>
+          <p className="text-[10px] text-slate-500 dark:text-zinc-500">{marketCapTierLabel(ticker.marketCap) ?? "—"}</p>
+        </div>
+        <div className="flex flex-col gap-1 p-5">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">Opp. score</p>
+            <InfoHint text="Early-mover rank for this scan — not a forecast of returns." />
+          </div>
+          <span className="text-2xl font-black text-blue-600 dark:text-blue-400">
+            {ticker.opportunityScore}
+            <span className="text-sm font-medium text-slate-500 dark:text-zinc-500">/100</span>
+          </span>
+          <p className="text-[10px] italic text-slate-500 dark:text-zinc-500">Early-mover rank</p>
+        </div>
+        <div className="flex flex-col gap-1 p-5">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">
+              AI confidence
+            </p>
+            <InfoHint text="Evidence strength from aggregated signals — not expected upside." />
+          </div>
+          <span className="text-2xl font-black text-gray-900 dark:text-white">
+            {ticker.aiScore}
+            <span className="text-sm font-medium text-slate-500 dark:text-zinc-500">/100</span>
+          </span>
+          <p className="text-[10px] italic text-slate-500 dark:text-zinc-500">Evidence strength</p>
+        </div>
+        <div className="flex flex-col gap-1 p-5">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">Sources</p>
+          <span className="text-2xl font-black text-gray-900 dark:text-white">{ticker.sourceCount}</span>
+          <p className="text-[10px] text-slate-500 dark:text-zinc-500">Institutional track</p>
+        </div>
+        <div className="flex flex-col gap-1 p-5">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">Signals</p>
+          <span className="text-2xl font-black text-gray-900 dark:text-white">{ticker.signalCount}</span>
+          <p className="text-[10px] text-slate-500 dark:text-zinc-500">Active breakouts</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="space-y-6 lg:col-span-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-[#1e262f] dark:bg-[#12181f]">
+            <h3 className="mb-4 flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-zinc-100">
+              <IconAnalytics className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              Price &amp; scores
+            </h3>
+            <div className="divide-y divide-slate-100 dark:divide-[#1e262f]">
+              <ScoreRow
+                label="Relative strength"
+                value={rs52 != null ? `${rs52}/100` : "—"}
+                valueClassName={
+                  rs52 != null && rs52 >= 70 ? "text-emerald-600 dark:text-emerald-400" : "text-gray-900 dark:text-white"
+                }
+              />
+              <ScoreRow label="Volatility index" value={volLabel} valueClassName={volatilityValueClass(volLabel)} />
+              <ScoreRow label="Institutional flow" value={flowLabel} valueClassName={flowValueClass(flowLabel)} />
+              <ScoreRow
+                label="Social sentiment"
+                value={sentimentLabel}
+                valueClassName={
+                  sentimentLabel === "Bullish"
+                    ? "text-blue-600 dark:text-blue-400"
+                    : sentimentLabel === "Bearish"
+                      ? "text-rose-500"
+                      : "text-gray-900 dark:text-white"
+                }
+              />
+              <ScoreRow
+                label="Mention velocity"
+                value={ticker.avgVelocity != null ? `${ticker.avgVelocity.toFixed(1)}×` : "—"}
+              />
+            </div>
+          </div>
+
+          {perfData?.latest && (
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white p-6 dark:border-[#1e262f] dark:bg-[#12181f]">
+              <h3 className="mb-4 text-sm font-bold text-gray-900 dark:text-zinc-100">Price performance</h3>
+              <div className="grid grid-cols-2 gap-4">
+                {([
+                  { label: "1 Day", value: perfData.latest.return1d },
+                  { label: "3 Day", value: perfData.latest.return3d },
+                  { label: "7 Day", value: perfData.latest.return7d },
+                  { label: "30 Day", value: perfData.latest.return30d },
+                ] as const).map((item) => (
+                  <div key={item.label} className="rounded-lg bg-slate-50 p-3 dark:bg-[#1e262f]/30">
+                    <p className="mb-1 text-[10px] font-bold uppercase text-slate-500 dark:text-zinc-500">
+                      {item.label}
+                    </p>
+                    <p
+                      className={`text-lg font-bold tabular-nums ${
+                        item.value == null
+                          ? "text-slate-300 dark:text-zinc-600"
+                          : item.value > 0
+                            ? "text-emerald-500"
+                            : item.value < 0
+                              ? "text-rose-500"
+                              : "text-gray-700 dark:text-zinc-300"
+                      }`}
+                    >
+                      {item.value != null
+                        ? `${item.value > 0 ? "+" : ""}${(item.value * 100).toFixed(2)}%`
+                        : "—"}
+                    </p>
+                  </div>
                 ))}
               </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+              <p className="mt-4 text-[10px] text-slate-500 dark:text-zinc-500">
+                Initial detection at ${perfData.latest.detectionPrice.toFixed(2)} on{" "}
+                {new Date(perfData.latest.validatedTicker.createdAt).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </p>
+            </div>
+          )}
+        </div>
 
-      <RelatedTickers
-        tickers={relatedData?.relatedTickers ?? []}
-        isLoading={relatedLoading}
-      />
-
-      {/* Score History */}
-      <Card>
-        <CardHeader>
-          <button
-            type="button"
-            onClick={() => setHistoryOpen((o) => !o)}
-            className="flex w-full items-center justify-between text-left"
-          >
-            <h3 className="font-semibold text-gray-900 dark:text-zinc-100">Score history</h3>
-            <div className="flex items-center gap-2">
-              {historyData && (
-                <span className="text-sm text-gray-500 dark:text-zinc-500">
-                  {historyData.history.length} scan{historyData.history.length !== 1 ? "s" : ""}
-                </span>
+        <div className="space-y-6 lg:col-span-8">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="relative overflow-hidden rounded-xl border border-blue-600/20 bg-blue-600/5 p-6 dark:border-blue-500/25 dark:bg-blue-500/5">
+              <div className="pointer-events-none absolute right-0 top-0 p-4 opacity-10">
+                <IconRocket className="h-16 w-16 text-blue-600" />
+              </div>
+              <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400">
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+                  <path d="M23 6l-9.5 9.5-5-5L1 18" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M17 6h6v6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                THESIS
+              </h4>
+              {reportGenerating ? (
+                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-zinc-400">
+                  <Spinner className="h-4 w-4" />
+                  Generating…
+                </div>
+              ) : (
+                <p className="text-sm leading-relaxed text-slate-700 dark:text-zinc-300">
+                  {ticker.catalyst || (reportError ? "AI analysis unavailable." : "No catalyst data available.")}
+                </p>
               )}
+            </div>
+            <div className="relative overflow-hidden rounded-xl border border-amber-500/20 bg-amber-500/5 p-6 dark:border-amber-500/25 dark:bg-amber-500/5">
+              <div className="pointer-events-none absolute right-0 top-0 p-4 opacity-10">
+                <svg className="h-16 w-16 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+                  <path d="M12 9v4M12 17h.01" strokeLinecap="round" />
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                </svg>
+              </div>
+              <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400">
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+                  <path d="M12 9v4M12 17h.01" strokeLinecap="round" />
+                  <circle cx="12" cy="12" r="10" />
+                </svg>
+                RISKS
+              </h4>
+              {ticker.risks ? (
+                <p className="text-sm leading-relaxed text-slate-700 dark:text-zinc-300">{ticker.risks}</p>
+              ) : (
+                <p className="text-sm text-slate-500 dark:text-zinc-500">No risk summary yet.</p>
+              )}
+            </div>
+          </div>
+
+          <TradeSetupCard ticker={ticker} />
+
+          {(ticker.report || reportGenerating) && (
+            <div
+              id="ticker-ai-analysis"
+              className="rounded-xl border border-slate-200 bg-white p-6 dark:border-[#1e262f] dark:bg-[#12181f]"
+            >
+              <h3 className="mb-4 flex items-center gap-2 font-bold text-gray-900 dark:text-zinc-100">
+                <IconPsychology className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                AI technical analysis
+              </h3>
+              {reportGenerating ? (
+                <div className="flex items-center gap-2 py-4 text-sm text-slate-600 dark:text-zinc-400">
+                  <Spinner className="h-4 w-4" />
+                  Generating full report…
+                </div>
+              ) : (
+                <div className="prose prose-sm max-w-none space-y-4 leading-relaxed text-slate-500 dark:prose-invert dark:text-zinc-400">
+                  {ticker.report!.split("\n").map((paragraph, i) => (
+                    <p key={i}>{paragraph}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-6">
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-[#1e262f] dark:bg-[#12181f]">
+            <button
+              type="button"
+              onClick={() => setSignalsOpen((o) => !o)}
+              className="flex w-full items-center justify-between bg-slate-50 p-4 text-left transition-colors hover:bg-slate-100 dark:bg-[#1e262f]/30 dark:hover:bg-[#1e262f]/50"
+            >
+              <span className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-zinc-100">
+                <IconRadar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                Active signals ({signals.length})
+              </span>
               <svg
-                className={`h-4 w-4 text-gray-400 transition-transform duration-200 dark:text-zinc-500 ${historyOpen ? "rotate-180" : ""}`}
+                className={`h-5 w-5 text-slate-400 transition-transform dark:text-zinc-500 ${signalsOpen ? "rotate-180" : ""}`}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -378,11 +580,91 @@ export default function TickerDetailPage() {
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
               </svg>
-            </div>
-          </button>
-        </CardHeader>
-        {historyOpen && (
-        <CardContent>
+            </button>
+            {signalsOpen && (
+              <div className="space-y-3 p-4">
+                {signals.map((signal) => (
+                  <div
+                    key={signal.id}
+                    className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 p-4 dark:border-[#1e262f] dark:bg-[#1e262f]/20"
+                  >
+                    <div className="flex min-w-0 items-center gap-4">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-600/10 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400">
+                        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+                          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+                      <div className="min-w-0">
+                        <h5 className="text-sm font-bold text-gray-900 dark:text-white">
+                          {signal.title ? (
+                            signal.url && /^https?:\/\//.test(signal.url) ? (
+                              <a
+                                href={signal.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hover:text-blue-600 dark:hover:text-blue-400"
+                              >
+                                {signal.title}
+                              </a>
+                            ) : (
+                              signal.title
+                            )
+                          ) : (
+                            signal.source
+                          )}
+                        </h5>
+                        <div className="mt-1 flex flex-wrap gap-2">
+                          <span className="rounded bg-blue-600/10 px-2 py-0.5 text-[10px] font-bold uppercase text-blue-600 dark:text-blue-400">
+                            {signal.source}
+                          </span>
+                          {signal.pndFlagged ? (
+                            <span className="rounded bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold uppercase text-rose-500">
+                              P&amp;D flagged
+                            </span>
+                          ) : (
+                            <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-600">
+                              P&amp;D risk: low
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="ml-3 flex shrink-0 flex-col items-end gap-1 text-right">
+                      {signal.upvotes != null && (
+                        <span className="text-xs font-bold text-slate-500 dark:text-zinc-400">{signal.upvotes} pts</span>
+                      )}
+                      <span className="text-[10px] text-slate-500 dark:text-zinc-500">
+                        {new Date(signal.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-[#1e262f] dark:bg-[#12181f]">
+            <button
+              type="button"
+              onClick={() => setHistoryOpen((o) => !o)}
+              className="flex w-full items-center justify-between bg-slate-50 p-4 text-left transition-colors hover:bg-slate-100 dark:bg-[#1e262f]/30 dark:hover:bg-[#1e262f]/50"
+            >
+              <span className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-zinc-100">
+                <IconHistory className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                Score history
+              </span>
+              <svg
+                className={`h-5 w-5 text-slate-400 transition-transform dark:text-zinc-500 ${historyOpen ? "rotate-180" : ""}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {historyOpen && (
+        <div className="p-6">
           {!historyData ? (
             <div className="py-4 text-center text-sm text-gray-400 dark:text-zinc-500">Loading history…</div>
           ) : historyData.history.length <= 1 ? (
@@ -565,71 +847,10 @@ export default function TickerDetailPage() {
               })()}
             </div>
           )}
-        </CardContent>
-        )}
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <button
-            type="button"
-            onClick={() => setSignalsOpen((o) => !o)}
-            className="flex w-full items-center justify-between text-left"
-          >
-            <h3 className="font-semibold text-gray-900 dark:text-zinc-100">Signals</h3>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500 dark:text-zinc-500">{signals.length}</span>
-              <svg
-                className={`h-4 w-4 text-gray-400 transition-transform duration-200 dark:text-zinc-500 ${signalsOpen ? "rotate-180" : ""}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </button>
-        </CardHeader>
-        {signalsOpen && <CardContent>
-          <div className="space-y-3">
-            {signals.map((signal) => (
-              <div
-                key={signal.id}
-                className="flex items-start justify-between rounded-xl border border-gray-100 p-3 transition-colors hover:border-gray-200 dark:border-zinc-800 dark:hover:border-zinc-700"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="info">{signal.source}</Badge>
-                    {signal.pndFlagged && (
-                      <Badge variant="danger">P&D Flag</Badge>
-                    )}
-                  </div>
-                  {signal.title && (
-                    <p className="mt-1 wrap-break-word text-sm font-medium text-gray-900 dark:text-zinc-100">
-                      {signal.url && /^https?:\/\//.test(signal.url) ? (
-                        <a
-                          href={signal.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                        >
-                          {signal.title}
-                        </a>
-                      ) : (
-                        signal.title
-                      )}
-                    </p>
-                  )}
-                </div>
-                <div className="ml-4 shrink-0 text-right text-xs text-gray-400 dark:text-zinc-500">
-                  {signal.upvotes != null && <span>{signal.upvotes} pts</span>}
-                </div>
-              </div>
-            ))}
+        </div>
+            )}
           </div>
-        </CardContent>}
-      </Card>
+      </div>
 
       {showAddPosition && (
         <AddPositionModal
