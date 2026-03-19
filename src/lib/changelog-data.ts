@@ -10,7 +10,7 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-03-19",
-    title: "x402 Payment Tracking, Admin Improvements & Portfolio Polish",
+    title: "Stage Rename, x402 Payment Tracking & Admin Improvements",
     changes: [
       {
         category: "new",
@@ -37,6 +37,7 @@ export const changelog: ChangelogEntry[] = [
           "Portfolio position cards are more compact with less vertical padding.",
           "Portfolio page mobile layout improvements for better usability on small screens.",
           "API response fields for emerging-stage stats renamed from `early*` to `emerging*` for consistency with stage labels.",
+          "Signal stages in all API responses now use human-readable names: Emerging, Building, and Consensus (previously EARLY, FORMING, CONFIRMED). DB schema unchanged; both old and new names accepted as filter inputs.",
         ],
       },
     ],

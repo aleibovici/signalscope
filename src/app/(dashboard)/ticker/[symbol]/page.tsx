@@ -12,7 +12,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { Sparkline } from "@/components/ui/sparkline";
-import { stageLabel } from "@/lib/stage-labels";
 import { TradeSetupCard } from "@/components/ticker/trade-setup-card";
 
 export default function TickerDetailPage() {
