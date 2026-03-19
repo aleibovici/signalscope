@@ -42,11 +42,11 @@ export function RelatedTickers({ tickers, isLoading }: RelatedTickersProps) {
                   <span className="font-semibold text-gray-900">{t.symbol}</span>
                   <Badge
                     variant={
-                      t.latestStage === "EARLY"
+                      t.latestStage === "Emerging"
                         ? "success"
-                        : t.latestStage === "FORMING"
+                        : t.latestStage === "Building"
                           ? "warning"
-                          : t.latestStage === "CONFIRMED"
+                          : t.latestStage === "Consensus"
                             ? "info"
                             : "info"
                     }

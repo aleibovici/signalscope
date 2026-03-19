@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
+import { stageLabel } from "@/lib/stage-labels";
 
 export async function GET() {
   try {
@@ -82,7 +83,7 @@ export async function GET() {
     ]);
 
     const stageMap = Object.fromEntries(
-      tickersByStage.map((r) => [r.stage, r._count.stage])
+      tickersByStage.map((r) => [stageLabel(r.stage), r._count.stage])
     );
     const sourceMap = Object.fromEntries(
       signalsBySource.map((r) => [r.source, r._count.source])

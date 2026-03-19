@@ -6,6 +6,7 @@ import { handleApiError } from "@/lib/api-error";
 import { paginationSchema } from "@/lib/validators";
 import { TTLCache } from "@/lib/cache";
 import { withX402Logged, x402RouteConfigs, hasAuthCredentials, X402_ENABLED } from "@/lib/x402";
+import { stageLabel, stageToDb, API_STAGE_VALUES } from "@/lib/stage-labels";
 
 export const trendingCache = new TTLCache<unknown>(5 * 60 * 1000);
 
@@ -20,7 +21,7 @@ const MARKET_CAP_RANGES: Record<string, { min: number; max: number }> = {
 
 const trendingSchema = paginationSchema.extend({
   minAppearances: z.coerce.number().int().min(2).default(2),
-  stage: z.enum(["EARLY", "FORMING", "CONFIRMED"]).optional(),
+  stage: z.enum([...API_STAGE_VALUES, "EARLY", "FORMING", "CONFIRMED"]).transform((v) => stageToDb(v)!).optional(),
   trend: z.enum(["rising", "falling", "stable"]).optional(),
   sector: z.string().optional(),
   marketCap: z.enum(["micro", "small", "mid", "large"]).optional(),
@@ -118,7 +119,7 @@ async function handleTrending(request: NextRequest) {
     }
     arr.push({
       score: a.aiScore,
-      stage: a.stage,
+      stage: stageLabel(a.stage),
       date: a.createdAt.toISOString().slice(0, 10),
     });
   }
@@ -266,7 +267,7 @@ async function handleTrending(request: NextRequest) {
       report: record.report,
       aiScore: record.aiScore,
       opportunityScore: record.opportunityScore,
-      stage: record.stage,
+      stage: stageLabel(record.stage),
       signalCount: record.signalCount,
       sourceCount: record.sourceCount,
       sources: [...(sourcesBySymbol.get(symbol) ?? [])],

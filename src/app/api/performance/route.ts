@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
+import { stageLabel } from "@/lib/stage-labels";
 
 const VALID_DAYS = new Set([1, 3, 7, 30]);
 const HORIZONS = [1, 3, 7, 30] as const;
@@ -256,7 +257,7 @@ export async function GET(request: NextRequest) {
     }
     for (const s of ["EARLY", "FORMING", "CONFIRMED"] as const) {
       const group = stageGroups.get(s);
-      if (group) byStage[s] = computeStats(group, returnCol);
+      if (group) byStage[stageLabel(s)] = computeStats(group, returnCol);
     }
 
     // By signal type
@@ -328,7 +329,7 @@ export async function GET(request: NextRequest) {
       symbol: r.symbol,
       return: r[returnCol] as number,
       aiScore: r.validatedTicker.aiScore,
-      stage: r.validatedTicker.stage,
+      stage: stageLabel(r.validatedTicker.stage),
       detectionPrice: r.detectionPrice,
       currentPrice: r[priceCol] as number,
       detectedAt: r.validatedTicker.createdAt.toISOString().slice(0, 10),

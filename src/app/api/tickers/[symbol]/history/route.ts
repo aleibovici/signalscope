@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
 import { withX402Logged, x402RouteConfigs, hasAuthCredentials, X402_ENABLED } from "@/lib/x402";
+import { stageLabel } from "@/lib/stage-labels";
 
 async function handleHistory(request: NextRequest, upperSymbol: string) {
   const records = await prisma.validatedTicker.findMany({
@@ -15,7 +16,7 @@ async function handleHistory(request: NextRequest, upperSymbol: string) {
     scanId: r.scanId,
     startedAt: r.scan.startedAt.toISOString(),
     aiScore: r.aiScore,
-    stage: r.stage,
+    stage: stageLabel(r.stage),
     price: r.price,
     signalCount: r.signalCount,
     sourceCount: r.sourceCount,

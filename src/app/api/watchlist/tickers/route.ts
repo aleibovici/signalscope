@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
+import { stageLabel } from "@/lib/stage-labels";
 
 export async function GET() {
   try {
@@ -64,6 +65,7 @@ export async function GET() {
       const key = `${t.scanId}:${t.symbol}`;
       return {
         ...t,
+        stage: stageLabel(t.stage),
         return7d: t.performance?.return7d ?? null,
         performance: undefined,
         sources: [...(sourcesByKey.get(key) ?? [])],

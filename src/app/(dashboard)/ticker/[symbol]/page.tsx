@@ -108,8 +108,8 @@ export default function TickerDetailPage() {
         >
           + Position
         </button>
-        <Badge variant={ticker.stage === "EARLY" ? "success" : ticker.stage === "FORMING" ? "warning" : ticker.stage === "CONFIRMED" ? "info" : "info"}>
-          {stageLabel(ticker.stage)}
+        <Badge variant={ticker.stage === "Emerging" ? "success" : ticker.stage === "Building" ? "warning" : ticker.stage === "Consensus" ? "info" : "info"}>
+          {ticker.stage}
         </Badge>
         {ticker.recommendation && (
           <Badge variant={ticker.recommendation === "Avoid" ? "danger" : "success"}>
@@ -410,16 +410,16 @@ export default function TickerDetailPage() {
                                 <td className="py-1.5 pr-4">
                                   <Badge
                                     variant={
-                                      group.best.stage === "EARLY"
+                                      group.best.stage === "Emerging"
                                         ? "success"
-                                        : group.best.stage === "FORMING"
+                                        : group.best.stage === "Building"
                                           ? "warning"
-                                          : group.best.stage === "CONFIRMED"
+                                          : group.best.stage === "Consensus"
                                             ? "info"
                                             : "info"
                                     }
                                   >
-                                    {stageLabel(group.best.stage)}
+                                    {group.best.stage}
                                   </Badge>
                                 </td>
                                 <td className="py-1.5 pr-4 text-gray-600">
@@ -462,16 +462,16 @@ export default function TickerDetailPage() {
                                     <td className="py-1 pr-4">
                                       <Badge
                                         variant={
-                                          h.stage === "EARLY"
+                                          h.stage === "Emerging"
                                             ? "success"
-                                            : h.stage === "FORMING"
+                                            : h.stage === "Building"
                                               ? "warning"
-                                              : h.stage === "CONFIRMED"
+                                              : h.stage === "Consensus"
                                                 ? "info"
                                                 : "info"
                                         }
                                       >
-                                        {stageLabel(h.stage)}
+                                        {h.stage}
                                       </Badge>
                                     </td>
                                     <td className="py-1 pr-4 text-xs text-gray-500">

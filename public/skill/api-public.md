@@ -41,7 +41,7 @@ Cross-scan trending tickers (last 30 days).
 | page | number | 1 | Page number |
 | limit | number | 20 | Results per page (max 100) |
 | minAppearances | number | 2 | Minimum scan appearances (min 2) |
-| stage | string | — | Filter by latest stage: `EARLY`, `FORMING`, `CONFIRMED` |
+| stage | string | — | Filter by latest stage: `Emerging`, `Building`, `Consensus` |
 | trend | string | — | Filter: `rising`, `falling`, `stable` |
 | sector | string | — | Filter by sector (e.g., `Technology`, `Healthcare`) |
 | marketCap | string | — | Filter by market cap bucket: `micro` (<300M), `small` (300M-2B), `mid` (2B-10B), `large` (10B+) |
@@ -63,7 +63,7 @@ Network graph of ticker co-occurrences.
 |-------|------|---------|-------------|
 | symbol | string | — | Center node symbol (omit for top trending tickers) |
 | minWeight | number | 2 | Minimum co-occurrence count for edges |
-| stage | string | — | Filter by stage: `EARLY`, `FORMING`, `CONFIRMED` |
+| stage | string | — | Filter by stage: `Emerging`, `Building`, `Consensus` |
 | days | number | 30 | Lookback window in days (max 90) |
 | maxNodes | number | 30 | Maximum nodes to return (max 50) |
 
@@ -91,7 +91,7 @@ Co-occurring tickers (tickers that appear in the same scans).
 | limit | number | 20 | Results per page (max 100) |
 | minCoOccurrences | number | 2 | Minimum shared scan appearances |
 | days | number | 30 | Lookback window in days (max 90) |
-| stage | string | — | Filter by latest stage: `EARLY`, `FORMING`, `CONFIRMED` |
+| stage | string | — | Filter by latest stage: `Emerging`, `Building`, `Consensus` |
 
 **Response:** `{ relatedTickers: [{ symbol, name, coOccurrenceCount, correlationScore, latestAiScore, latestStage, sector, sources, price, marketCap, recommendation }], targetSymbol, targetScanCount, total }`
 
@@ -162,7 +162,7 @@ Get raw signals for a scan. Requires API key or session.
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
 | scanId | string | required | Scan ID |
-| stage | string | — | Filter: `EARLY`, `FORMING`, `CONFIRMED`, `FILTERED` |
+| stage | string | — | Filter: `Emerging`, `Building`, `Consensus`, `Filtered` |
 
 **Response:** `{ signals: [{ id, scanId, symbol, source, title, url, velocityScore, createdAt }] }`
 

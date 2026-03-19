@@ -444,7 +444,7 @@ export default function PerformancePage() {
           <SummaryCards summary={data.summary} windowAvgReturn={computeWindowAvg(data.cumulativeReturns)} />
 
           {/* Stage performance insight */}
-          {data.byStage.EARLY && data.byStage.CONFIRMED && data.byStage.EARLY.avgReturn > data.byStage.CONFIRMED.avgReturn && (
+          {data.byStage.Emerging && data.byStage.Consensus && data.byStage.Emerging.avgReturn > data.byStage.Consensus.avgReturn && (
             <Card>
               <CardContent className="py-4">
                 <p className="text-sm text-gray-600">

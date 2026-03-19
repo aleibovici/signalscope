@@ -10,7 +10,7 @@ import { StageTabs } from "@/components/dashboard/stage-tabs";
 import { SignalCard } from "@/components/dashboard/signal-card";
 import { Spinner } from "@/components/ui/spinner";
 
-const VALID_STAGES = new Set(["ALL", "EARLY", "FORMING", "CONFIRMED"]);
+const VALID_STAGES = new Set(["ALL", "Emerging", "Building", "Consensus"]);
 
 function setCookieStage(stage: string) {
   document.cookie = `dashboard_stage=${encodeURIComponent(stage)}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
@@ -71,9 +71,9 @@ function DashboardContent() {
 
   const counts: Record<string, number> = {
     ALL: tickers.length,
-    EARLY: tickers.filter((t) => t.stage === "EARLY").length,
-    FORMING: tickers.filter((t) => t.stage === "FORMING").length,
-    CONFIRMED: tickers.filter((t) => t.stage === "CONFIRMED").length,
+    Emerging: tickers.filter((t) => t.stage === "Emerging").length,
+    Building: tickers.filter((t) => t.stage === "Building").length,
+    Consensus: tickers.filter((t) => t.stage === "Consensus").length,
   };
 
   return (
