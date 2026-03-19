@@ -198,7 +198,7 @@ export async function GET(request: NextRequest) {
         };
       });
 
-    // --- Cumulative equal-weight returns — emerging signals only ---
+    // --- Per-date average returns — emerging signals only ---
     const withReturn = records
       .filter((r) => r[returnCol] !== null && r.validatedTicker.stage === "EARLY")
       .sort(
@@ -207,22 +207,32 @@ export async function GET(request: NextRequest) {
           b.validatedTicker.createdAt.getTime(),
       );
 
-    const cumulativeReturns: Array<{
-      date: string;
-      cumReturn: number;
-      tradeCount: number;
-    }> = [];
-    let runningSum = 0;
-    for (let i = 0; i < withReturn.length; i++) {
-      const r = withReturn[i];
-      runningSum += r[returnCol] as number;
-      const avgCum = runningSum / (i + 1);
-      cumulativeReturns.push({
-        date: r.validatedTicker.createdAt.toISOString().slice(0, 10),
-        cumReturn: avgCum,
-        tradeCount: i + 1,
-      });
+    const byDateMap = new Map<string, { sum: number; count: number; wins: number }>();
+    for (const r of withReturn) {
+      const date = r.validatedTicker.createdAt.toISOString().slice(0, 10);
+      if (!byDateMap.has(date)) byDateMap.set(date, { sum: 0, count: 0, wins: 0 });
+      const entry = byDateMap.get(date)!;
+      entry.sum += r[returnCol] as number;
+      entry.count += 1;
+      if ((r[returnCol] as number) > 0) entry.wins += 1;
     }
+    const sortedDates = [...byDateMap.keys()].sort();
+    const cumulativeReturns = sortedDates.map((date) => {
+      const dateMs = new Date(date + "T00:00:00Z").getTime();
+      const sevenDaysAgoMs = dateMs - 6 * 24 * 60 * 60 * 1000;
+      let sum = 0;
+      let count = 0;
+      let wins = 0;
+      for (const d of sortedDates) {
+        const dMs = new Date(d + "T00:00:00Z").getTime();
+        if (dMs >= sevenDaysAgoMs && dMs <= dateMs) {
+          sum += byDateMap.get(d)!.sum;
+          count += byDateMap.get(d)!.count;
+          wins += byDateMap.get(d)!.wins;
+        }
+      }
+      return { date, cumReturn: count > 0 ? sum / count : 0, tradeCount: count, winCount: wins };
+    });
 
     // --- Breakdowns (same as before, for selected horizon) ---
     const recordsWithReturn = records.filter((r) => r[returnCol] !== null);
@@ -232,7 +242,7 @@ export async function GET(request: NextRequest) {
     );
     const confirmed = computeStats(confirmedRecords, returnCol);
     const emergingRecords = recordsWithReturn.filter(
-      (r) => r.validatedTicker.stage === "EARLY",
+      (r) => r.validatedTicker.stage === "EARLY" && r.validatedTicker.createdAt >= thirtyDaysAgo,
     );
     const emerging = computeStats(emergingRecords, returnCol);
 

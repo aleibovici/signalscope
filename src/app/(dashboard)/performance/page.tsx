@@ -6,8 +6,9 @@ import type {
   PerformanceStats,
   PerformerEntry,
   CohortEntry,
-  CumulativeReturnEntry,
 } from "@/hooks/use-performance";
+import { EmergingReturnsChart } from "@/components/emerging-returns-chart";
+import type { ReturnEntry } from "@/components/emerging-returns-chart";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { STAGE_LABELS } from "@/lib/stage-labels";
@@ -27,13 +28,27 @@ function formatPctShort(value: number): string {
   return `${value > 0 ? "+" : ""}${(value * 100).toFixed(0)}%`;
 }
 
+/* ---------- Shared helper: weighted avg + win rate of last 7 rolling points ---------- */
+function computeWindowAvg(cumulativeReturns: ReturnEntry[]): { avg: number; winRate: number; count: number } | null {
+  const byDate = new Map<string, ReturnEntry>();
+  for (const d of cumulativeReturns) byDate.set(d.date, d);
+  const recent = [...byDate.values()].slice(-7);
+  const totalCount = recent.reduce((s, p) => s + p.tradeCount, 0);
+  if (totalCount === 0) return null;
+  const avg = recent.reduce((s, p) => s + p.cumReturn * p.tradeCount, 0) / totalCount;
+  const totalWins = recent.reduce((s, p) => s + p.winCount, 0);
+  return { avg, winRate: totalWins / totalCount, count: totalCount };
+}
+
 /* ---------- Summary Cards with Delta ---------- */
 function SummaryCards({
   summary,
   emerging,
+  windowAvgReturn,
 }: {
   summary: { totalTracked: number; current: PerformanceStats; prior: PerformanceStats };
   emerging: PerformanceStats;
+  windowAvgReturn: { avg: number; count: number } | null;
 }) {
   const wrDelta =
     summary.current.count > 0 && summary.prior.count > 0
@@ -60,12 +75,12 @@ function SummaryCards({
         <CardContent className="pt-6 text-center">
           <p className="text-sm text-gray-500">Win Rate (emerging)</p>
           <p className="text-3xl font-bold text-green-600">
-            {emerging.count > 0
-              ? `${(emerging.winRate * 100).toFixed(0)}%`
+            {windowAvgReturn
+              ? `${(windowAvgReturn.winRate * 100).toFixed(0)}%`
               : "--"}
           </p>
           <p className="mt-1 text-xs text-gray-400">
-            {emerging.count} signals
+            {windowAvgReturn ? `${windowAvgReturn.count} signals, last 7d` : "no data"}
           </p>
         </CardContent>
       </Card>
@@ -75,16 +90,16 @@ function SummaryCards({
           <p className="text-sm text-gray-500">Avg Return (emerging)</p>
           <p
             className={`text-3xl font-bold ${
-              emerging.avgReturn > 0
+              windowAvgReturn && windowAvgReturn.avg > 0
                 ? "text-green-600"
-                : emerging.avgReturn < 0
+                : windowAvgReturn && windowAvgReturn.avg < 0
                   ? "text-red-600"
                   : "text-gray-900"
             }`}
           >
-            {emerging.count > 0 ? formatPct(emerging.avgReturn) : "--"}
+            {windowAvgReturn ? formatPct(windowAvgReturn.avg) : "--"}
           </p>
-          <p className="mt-1 text-xs text-gray-400">{emerging.count} signals, selected horizon</p>
+          <p className="mt-1 text-xs text-gray-400">{windowAvgReturn ? `${windowAvgReturn.count} signals, last 7d` : "no data"}</p>
         </CardContent>
       </Card>
 
@@ -241,103 +256,6 @@ function CohortTable({ cohorts }: { cohorts: CohortEntry[] }) {
   );
 }
 
-/* ---------- Cumulative Returns (simple bar-style visualization) ---------- */
-function CumulativeReturns({
-  data,
-  horizon,
-}: {
-  data: CumulativeReturnEntry[];
-  horizon: number;
-}) {
-  if (data.length === 0) return null;
-
-  // Group by date to avoid duplicate entries — take the last entry per date
-  const byDate = new Map<string, CumulativeReturnEntry>();
-  for (const d of data) {
-    byDate.set(d.date, d);
-  }
-  const points = [...byDate.values()];
-
-  // Show last 7 points (dates) to keep it readable
-  const recent = points.slice(-7);
-
-  const maxAbs = Math.max(
-    ...recent.map((p) => Math.abs(p.cumReturn)),
-    0.001,
-  );
-  const finalReturn = recent[recent.length - 1];
-
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold">Emerging — Avg {horizon}d Return</h3>
-            <p className="text-xs text-gray-400">
-              Rolling average {horizon}-day return for emerging signals, by detection date
-            </p>
-          </div>
-          {finalReturn && (
-            <p
-              className={`text-xl font-bold ${
-                finalReturn.cumReturn > 0
-                  ? "text-green-600"
-                  : finalReturn.cumReturn < 0
-                    ? "text-red-600"
-                    : "text-gray-600"
-              }`}
-            >
-              {formatPct(finalReturn.cumReturn)}
-            </p>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-1">
-          {recent.map((p) => {
-            const width = Math.abs(p.cumReturn) / maxAbs;
-            const isPositive = p.cumReturn >= 0;
-            return (
-              <div key={p.date} className="flex items-center gap-2 text-xs">
-                <span className="w-16 shrink-0 text-gray-500">
-                  {new Date(p.date + "T00:00:00Z").toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    timeZone: "UTC",
-                  })}
-                </span>
-                <div className="flex-1">
-                  <div className="relative h-4 rounded bg-gray-50">
-                    <div
-                      className={`absolute top-0 h-4 rounded ${
-                        isPositive ? "bg-green-200" : "bg-red-200"
-                      }`}
-                      style={{
-                        width: `${Math.max(width * 100, 2)}%`,
-                        left: isPositive ? "0" : undefined,
-                        right: isPositive ? undefined : "0",
-                      }}
-                    />
-                  </div>
-                </div>
-                <span
-                  className={`w-14 shrink-0 text-right font-medium ${
-                    isPositive ? "text-green-600" : "text-red-600"
-                  }`}
-                >
-                  {formatPct(p.cumReturn)}
-                </span>
-                <span className="w-8 shrink-0 text-right text-gray-400">
-                  n={p.tradeCount}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 /* ---------- Breakdown Tables ---------- */
 function StatsTable({
@@ -525,7 +443,7 @@ export default function PerformancePage() {
       {data && (
         <>
           {/* Summary cards with period comparison */}
-          <SummaryCards summary={data.summary} emerging={data.emerging} />
+          <SummaryCards summary={data.summary} emerging={data.emerging} windowAvgReturn={computeWindowAvg(data.cumulativeReturns)} />
 
           {/* Stage performance insight */}
           {data.byStage.EARLY && data.byStage.CONFIRMED && data.byStage.EARLY.avgReturn > data.byStage.CONFIRMED.avgReturn && (
@@ -545,7 +463,7 @@ export default function PerformancePage() {
           <CohortTable cohorts={data.cohorts} />
 
           {/* Cumulative return visualization */}
-          <CumulativeReturns data={data.cumulativeReturns} horizon={days} />
+          <EmergingReturnsChart data={data.cumulativeReturns} horizon={days} />
 
           {/* Breakdown tables */}
           <div className="grid gap-4 lg:grid-cols-2">

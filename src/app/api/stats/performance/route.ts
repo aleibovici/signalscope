@@ -70,27 +70,34 @@ export async function GET() {
       ? emergingReturns.reduce((a, b) => a + b, 0) / emergingReturns.length
       : 0;
 
-    // Cumulative avg return by detection date — emerging signals only
+    // 7-day rolling avg return by detection date — emerging signals only
     const earlyWithReturn = withReturn.filter((r) => r.validatedTicker.stage === "EARLY");
-    const sorted = [...earlyWithReturn].sort(
-      (a, b) =>
-        a.validatedTicker.createdAt.getTime() -
-        b.validatedTicker.createdAt.getTime(),
-    );
-    const byDate = new Map<string, { sum: number; count: number }>();
-    let runningSum = 0;
-    let runningCount = 0;
-    for (const r of sorted) {
+    const byDateMap = new Map<string, { sum: number; count: number; wins: number }>();
+    for (const r of earlyWithReturn) {
       const date = r.validatedTicker.createdAt.toISOString().slice(0, 10);
-      runningSum += r[col] as number;
-      runningCount++;
-      byDate.set(date, { sum: runningSum, count: runningCount });
+      if (!byDateMap.has(date)) byDateMap.set(date, { sum: 0, count: 0, wins: 0 });
+      const entry = byDateMap.get(date)!;
+      entry.sum += r[col] as number;
+      entry.count += 1;
+      if ((r[col] as number) > 0) entry.wins += 1;
     }
-    const cumulativeReturns = [...byDate.entries()].map(([date, { sum, count }]) => ({
-      date,
-      cumReturn: sum / count,
-      tradeCount: count,
-    }));
+    const sortedDates = [...byDateMap.keys()].sort();
+    const cumulativeReturns = sortedDates.map((date) => {
+      const dateMs = new Date(date + "T00:00:00Z").getTime();
+      const sevenDaysAgoMs = dateMs - 6 * 24 * 60 * 60 * 1000;
+      let sum = 0;
+      let count = 0;
+      let wins = 0;
+      for (const d of sortedDates) {
+        const dMs = new Date(d + "T00:00:00Z").getTime();
+        if (dMs >= sevenDaysAgoMs && dMs <= dateMs) {
+          sum += byDateMap.get(d)!.sum;
+          count += byDateMap.get(d)!.count;
+          wins += byDateMap.get(d)!.wins;
+        }
+      }
+      return { date, cumReturn: count > 0 ? sum / count : 0, tradeCount: count, winCount: wins };
+    });
 
     return NextResponse.json(
       {

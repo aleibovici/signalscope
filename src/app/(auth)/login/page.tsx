@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
+import { EmergingReturnsChart } from "@/components/emerging-returns-chart";
 
 /* ------------------------------------------------------------------ */
 /*  Login Page / Landing Page                                          */
@@ -20,6 +21,7 @@ interface CumulativeReturnEntry {
   date: string;
   cumReturn: number;
   tradeCount: number;
+  winCount: number;
 }
 
 interface PerfStats {
@@ -322,87 +324,12 @@ export default function LoginPage() {
               Live stats from our signal pipeline — measured automatically 7 days after each detection.
             </p>
 
-            <div className="grid gap-3 grid-cols-3 sm:gap-4">
-              <div className="rounded-xl border border-gray-100 bg-white p-4 text-center shadow-sm sm:p-6">
-                <p className="text-xs font-medium text-gray-500 sm:text-sm">Win Rate</p>
-                <p className="mt-1 text-2xl font-bold text-green-600 sm:text-4xl">
-                  {(perfStats.emergingWinRate * 100).toFixed(0)}%
-                </p>
-                <p className="mt-1 hidden text-xs text-gray-400 sm:block">
-                  emerging, {perfStats.emergingCount} measured
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-gray-100 bg-white p-4 text-center shadow-sm sm:p-6">
-                <p className="text-xs font-medium text-gray-500 sm:text-sm">Avg 7d Return</p>
-                <p className={`mt-1 text-2xl font-bold sm:text-4xl ${perfStats.emergingAvgReturn > 0 ? "text-green-600" : "text-red-600"}`}>
-                  {perfStats.emergingAvgReturn > 0 ? "+" : ""}{(perfStats.emergingAvgReturn * 100).toFixed(1)}%
-                </p>
-                <p className="mt-1 hidden text-xs text-gray-400 sm:block">emerging</p>
-              </div>
-
-              <div className="rounded-xl border border-gray-100 bg-white p-4 text-center shadow-sm sm:p-6">
-                <p className="text-xs font-medium text-gray-500 sm:text-sm">Tracked</p>
-                <p className="mt-1 text-2xl font-bold text-gray-900 sm:text-4xl">
-                  {perfStats.totalTracked}
-                </p>
-                <p className="mt-1 hidden text-xs text-gray-400 sm:block">unique symbols</p>
-              </div>
-            </div>
-
             {/* Cumulative 7d avg return chart */}
-            {perfStats.cumulativeReturns.length > 0 && (() => {
-              const points = perfStats.cumulativeReturns.slice(-7);
-              const maxAbs = Math.max(...points.map((p) => Math.abs(p.cumReturn)), 0.001);
-              const latest = points[points.length - 1];
-              return (
-                <div className="mt-4 rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:mt-6 sm:p-6">
-                  <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <h3 className="text-sm font-semibold text-gray-900">Emerging — Avg 7d Return</h3>
-                      <p className="text-xs text-gray-400">Rolling average 7-day return, by detection date</p>
-                    </div>
-                    {latest && (
-                      <p className={`text-xl font-bold ${latest.cumReturn > 0 ? "text-green-600" : "text-red-600"}`}>
-                        {latest.cumReturn > 0 ? "+" : ""}{(latest.cumReturn * 100).toFixed(1)}%
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-1">
-                    {points.map((p) => {
-                      const width = Math.abs(p.cumReturn) / maxAbs;
-                      const isPositive = p.cumReturn >= 0;
-                      return (
-                        <div key={p.date} className="flex items-center gap-1.5 text-xs sm:gap-2">
-                          <span className="w-12 shrink-0 text-gray-500 sm:w-16">
-                            {new Date(p.date + "T00:00:00Z").toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              timeZone: "UTC",
-                            })}
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <div className="relative h-4 rounded bg-gray-50">
-                              <div
-                                className={`absolute top-0 h-4 rounded ${isPositive ? "bg-green-200" : "bg-red-200"}`}
-                                style={{
-                                  width: `${Math.max(width * 100, 2)}%`,
-                                  left: isPositive ? "0" : undefined,
-                                  right: isPositive ? undefined : "0",
-                                }}
-                              />
-                            </div>
-                          </div>
-                          <span className={`w-12 shrink-0 text-right font-medium sm:w-14 ${isPositive ? "text-green-600" : "text-red-600"}`}>
-                            {p.cumReturn > 0 ? "+" : ""}{(p.cumReturn * 100).toFixed(1)}%
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })()}
+            {perfStats.cumulativeReturns.length > 0 && (
+              <div className="mt-4 sm:mt-6">
+                <EmergingReturnsChart data={perfStats.cumulativeReturns} />
+              </div>
+            )}
 
             <p className="mx-auto mt-4 max-w-2xl text-center text-xs leading-relaxed text-gray-400 sm:mt-6">
               Real, automatically measured results from our live signal pipeline.
