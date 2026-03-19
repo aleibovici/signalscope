@@ -68,7 +68,7 @@ export const changelog: ChangelogEntry[] = [
           "Dashboard and trending pages now sort by Opportunity Score instead of AI confidence, surfacing highest-alpha signals first.",
           "Performance page shows returns broken down by both Signal Confidence (AI Score) and Early-Mover Score (Opportunity).",
           "New 'Opportunity Score' sort option on the Trending page.",
-          "AI reports for top 10 emerging tickers are now pre-generated automatically after each harvest — no more waiting on first view.",
+          "AI reports for top 10 emerging tickers are now pre-generated automatically after each monitoring run — no more waiting on first view.",
           "High SI badge for stocks with 7.5–15% short interest.",
           "High Velocity badge for signals with avgVelocity >= 2.5.",
           "Recovery badge for stocks near 52-week lows with 3x+ upside to prior highs.",
@@ -133,7 +133,7 @@ export const changelog: ChangelogEntry[] = [
       {
         category: "improved",
         items: [
-          "Reports and trade setups now generate on-demand when you view a ticker, reducing harvest processing time and AI costs.",
+          "Reports and trade setups now generate on-demand when you view a ticker, reducing monitoring processing time and AI costs.",
         ],
       },
     ],
@@ -194,7 +194,7 @@ export const changelog: ChangelogEntry[] = [
       {
         category: "new",
         items: [
-          "Congressional trading source: stock trades reported by US Congress members via CapitolTrades.com are now harvested and scored as signals.",
+          "Congressional trading source: stock trades reported by US Congress members via CapitolTrades.com are now monitored and scored as signals.",
           "Portfolio leaderboard: compare your gains against other users over 3d, 7d, and 30d windows.",
           "API key authentication: generate a personal API key from your Profile page to access all endpoints programmatically.",
           "AI Agent Skill: connect any LLM (Claude, ChatGPT, etc.) to your SignalScope account via the downloadable skill file.",
