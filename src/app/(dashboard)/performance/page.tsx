@@ -43,11 +43,9 @@ function computeWindowAvg(cumulativeReturns: ReturnEntry[]): { avg: number; winR
 /* ---------- Summary Cards with Delta ---------- */
 function SummaryCards({
   summary,
-  emerging,
   windowAvgReturn,
 }: {
   summary: { totalTracked: number; current: PerformanceStats; prior: PerformanceStats };
-  emerging: PerformanceStats;
   windowAvgReturn: { avg: number; count: number } | null;
 }) {
   const wrDelta =
@@ -443,7 +441,7 @@ export default function PerformancePage() {
       {data && (
         <>
           {/* Summary cards with period comparison */}
-          <SummaryCards summary={data.summary} emerging={data.emerging} windowAvgReturn={computeWindowAvg(data.cumulativeReturns)} />
+          <SummaryCards summary={data.summary} windowAvgReturn={computeWindowAvg(data.cumulativeReturns)} />
 
           {/* Stage performance insight */}
           {data.byStage.EARLY && data.byStage.CONFIRMED && data.byStage.EARLY.avgReturn > data.byStage.CONFIRMED.avgReturn && (
