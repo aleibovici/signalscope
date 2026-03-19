@@ -12,7 +12,9 @@ x-api-key: sk_sig_your_key_here
 ```
 Generate your API key at signalscopes.com/profile.
 
-**Free** endpoints (no auth, no payment): `/api/search`, `/api/methodology`, `/api/health`.
+**Free** endpoints (no auth, no payment): `/api/search`, `/api/health`.
+
+`/api/methodology` requires an API key or session (not x402).
 
 ---
 
@@ -117,6 +119,8 @@ Returns improve over time as snapshots accumulate.
 
 Generate an AI report and trade setup for a ticker. Cached after first generation — subsequent calls for the same ticker return immediately.
 
+**Note:** This endpoint is **not available via API key** — use x402 payment or a browser session. Returns `403` for API key requests.
+
 **Response:** `{ report: string, tradeSetup: { entryLo, entryHi, stopLoss, target1, target2, timeframe, riskReward, confidence } | null }`
 
 Returns 404 if the ticker has never been validated. Trade setup is only generated for `Buy` or `Strong Buy` recommendations.
@@ -166,9 +170,9 @@ Max 200 results, sorted by sourceCount then velocityScore descending.
 
 ---
 
-## GET /api/methodology — free
+## GET /api/methodology
 
-Platform methodology (scoring, stages, P&D detection, signal sources).
+Platform methodology (scoring, stages, P&D detection, signal sources). Requires API key or session.
 
 **Response:** `{ description, pipelineSteps, signalSources, scoring: { bands }, pumpAndDumpDetection: { flags, threshold }, signalStages, backtesting, disclaimer }`
 

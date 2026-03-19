@@ -111,7 +111,7 @@ Platform-wide ticker performance breakdown.
 
 Platform-wide statistics.
 
-**Response:** `{ scans: number, signals: number, tickers: number, users: number }`
+**Response:** `{ scans: number, signals: number, tickers: number }`
 
 ---
 
