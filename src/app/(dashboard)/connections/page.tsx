@@ -6,6 +6,7 @@ import { NetworkGraph, type ColorMode } from "@/components/dashboard/network-gra
 import { Card, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { STAGE_LABELS } from "@/lib/stage-labels";
+import { scoreExplainerConnectionsCallout } from "@/lib/score-explainer";
 
 const selectClass =
   "h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
@@ -46,6 +47,9 @@ export default function ConnectionsPage() {
           <h1 className="text-xl font-bold text-gray-900 md:text-2xl">Connections</h1>
           <p className="mt-0.5 text-sm text-gray-500">
             Explore how tickers are connected through co-occurrence in scans
+          </p>
+          <p className="mt-2 max-w-3xl text-xs text-slate-600">
+            {scoreExplainerConnectionsCallout}
           </p>
         </div>
         {filters.symbol && (

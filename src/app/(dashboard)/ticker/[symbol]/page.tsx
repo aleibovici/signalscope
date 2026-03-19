@@ -120,7 +120,10 @@ export default function TickerDetailPage() {
       <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
         <Card>
           <CardHeader>
-            <h3 className="font-semibold">Price & Score</h3>
+            <h3 className="font-semibold">Price &amp; scores</h3>
+            <p className="text-xs font-normal text-gray-500">
+              Opportunity = early-mover potential. AI score = evidence strength — high values can mean the crowd already agrees.
+            </p>
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex items-center justify-between">
@@ -169,7 +172,7 @@ export default function TickerDetailPage() {
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">AI Score</span>
+              <span className="text-gray-500">Confidence (AI)</span>
               <span className="text-gray-600">
                 {ticker.aiScore}/100
               </span>

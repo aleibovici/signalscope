@@ -15,7 +15,7 @@ SignalScope is a stock breakout signal detection platform. It ingests multi-sour
 - `src/app/api/` - API routes used by web UI, mobile clients, and scheduler jobs
 - `src/app/(dashboard)/` - authenticated product UI (signals, ticker detail, portfolio, watchlist)
 - `src/hooks/` - frontend data-access hooks (React Query)
-- `public/skill/` - API docs used by agent clients
+- `public/skill/` - API docs used by agent clients ([Opportunity vs AI confidence](public/skill/api-public.md#opportunity-score-vs-signal-confidence-ai); `GET /api/methodology` returns `scoreComparison` JSON for the same)
 
 ## Local Development Setup
 

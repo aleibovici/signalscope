@@ -12,6 +12,7 @@ import type { ReturnEntry } from "@/components/emerging-returns-chart";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { STAGE_LABELS } from "@/lib/stage-labels";
+import { scoreExplainerPerformanceInsight } from "@/lib/score-explainer";
 
 const INTERVALS = [
   { label: "1d", days: 1 },
@@ -468,15 +469,21 @@ export default function PerformancePage() {
             <StatsTable title="By Stage" data={data.byStage} />
             <StatsTable title="By Signal Type" data={data.byType} />
           </div>
+          <Card>
+            <CardContent className="py-4">
+              <p className="text-sm text-gray-600">{scoreExplainerPerformanceInsight}</p>
+            </CardContent>
+          </Card>
+
           <div className="grid gap-4 lg:grid-cols-2">
             <StatsTable
               title="By Signal Confidence (AI Score)"
-              description="AI-assigned score (0–100) reflecting conviction in the signal — based on source quality, sentiment strength, and corroborating evidence."
+              description="AI-assigned score (0–100) for how strong the evidence is — source quality, sentiment, and corroboration. High confidence means conviction, not necessarily more remaining upside (consensus can mean priced in)."
               data={data.byScoreRange}
             />
             <StatsTable
               title="By Early-Mover Score (Opportunity)"
-              description="Opportunity score (0–100) measuring how early this signal was detected — higher scores mean fewer prior appearances and greater novelty."
+              description="Opportunity score (0–100) for early-mover potential (timing, setup, validation window, novelty, and related factors — see Methodology). Higher scores surface setups the model associates with better near-term return potential."
               data={data.byOpportunityScoreRange}
             />
           </div>

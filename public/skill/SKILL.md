@@ -11,7 +11,7 @@ description: >
 
 ## Overview
 
-SignalScope is a stock breakout signal detection platform. It monitors Reddit, X/Twitter, StockTwits, SEC insider filings, congressional trades, options flow, and volume spikes for signals, then scores them with AI, filters pump-and-dump candidates, and presents validated tickers ranked by confidence.
+SignalScope is a stock breakout signal detection platform. It monitors Reddit, X/Twitter, StockTwits, SEC insider filings, congressional trades, options flow, and volume spikes for signals, then scores them with AI, filters pump-and-dump candidates, and presents validated tickers with two scores: **Opportunity** (early-mover potential; used to sort the main signal list) and **signal confidence / AI score** (how strong the evidence is). High AI confidence does not always mean higher forward returns — it can indicate broad agreement and a move that is already priced in.
 
 **Base URL:** `https://signalscopes.com`
 
@@ -52,7 +52,7 @@ Pay-per-call in USDC on Base (L2). No account or API key needed. Each request to
 - `GET /api/health` — health check
 
 **Requires API key or session (not x402):**
-- `GET /api/methodology` — platform methodology, scoring, and P&D detection details
+- `GET /api/methodology` — methodology, scoring, P&D detection, and `scoreComparison` (Opportunity vs AI confidence text for UI/agents)
 
 ```bash
 # Example: x402 flow (most x402 clients handle this automatically)
@@ -87,10 +87,13 @@ API keys provide access to all endpoints including account management (portfolio
 
 - **Scan**: A monitoring run that collects signals from all sources, scores them, and produces validated tickers
 - **Signal stages**: `Emerging` (1 source), `Building` (2 sources), `Consensus` (3+ sources), `Filtered` (P&D flagged)
-- **AI Score**: 0-100 confidence score. 70+ is strong, 50-70 moderate, below 50 weak
+- **Opportunity score** (0–100): Early-mover / setup quality — higher means the model favors timing alpha (dashboard sorts by this)
+- **AI score / signal confidence** (0–100): Strength of evidence (sources, sentiment, corroboration). 70+ is strong, 50–70 moderate, below 50 weak — not the same as expected upside; very high scores often overlap with consensus
 - **Trending**: Tickers appearing in 2+ scans within 30 days, with trend direction (rising/falling/stable)
 - **Pagination**: Most list endpoints accept `page` (default 1) and `limit` (default 20, max 100)
 - **Symbols**: Always uppercase (e.g., `AAPL`, `TSLA`)
+
+**Full field-by-field definitions:** [api-public.md — Opportunity score vs signal confidence](api-public.md#opportunity-score-vs-signal-confidence-ai). **Machine-readable copy** (for agents): `GET /api/methodology` → `scoreComparison`.
 
 ## API Reference
 
@@ -269,6 +272,6 @@ Example 401 error response:
 - Use `GET /api/search?q=APP` for free symbol discovery — no auth or payment required
 - Use `includeFiltered=true` on scan detail to see pump-and-dump flagged tickers
 - Performance data improves over time as more price snapshots accumulate
-- Trending tickers with `trend=rising` and high AI scores are the strongest signals
+- Rising trend plus high **Opportunity** is a better default screen than AI score alone — confidence measures evidence, not remaining upside
 - x402 payments are atomic — you are only charged if the server returns a successful response
 - For high-volume agent use cases, x402 micropayments are more cost-efficient than a subscription

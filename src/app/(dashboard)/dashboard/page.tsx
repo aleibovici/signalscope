@@ -9,6 +9,7 @@ import { ScanSelector } from "@/components/dashboard/scan-selector";
 import { StageTabs } from "@/components/dashboard/stage-tabs";
 import { SignalCard } from "@/components/dashboard/signal-card";
 import { Spinner } from "@/components/ui/spinner";
+import { scoreExplainerDashboardCallout } from "@/lib/score-explainer";
 
 const VALID_STAGES = new Set(["ALL", "Emerging", "Building", "Consensus"]);
 
@@ -56,7 +57,7 @@ function DashboardContent() {
       ? tickers
       : tickers.filter((t) => t.stage === selectedStage);
 
-  // Bookmarked tickers float to top; within each group, original order (aiScore DESC) is preserved
+  // Bookmarked tickers float to top; within each group, API order (opportunityScore DESC) is preserved
   const filtered = [...filteredRaw].sort((a, b) => {
     const aB = bookmarkedSymbols.has(a.symbol) ? 0 : 1;
     const bB = bookmarkedSymbols.has(b.symbol) ? 0 : 1;
@@ -91,6 +92,10 @@ function DashboardContent() {
         onSelect={(stage) => { setSelectedStage(stage); setCookieStage(stage); }}
         counts={counts}
       />
+
+      <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-700">
+        {scoreExplainerDashboardCallout}
+      </div>
 
       {missingWatchlisted.length > 0 && !isLoading && (
         <div className="space-y-3">

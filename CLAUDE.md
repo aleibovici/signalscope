@@ -388,8 +388,10 @@ Key gotchas:
 Claude Agent Skill files are served from `public/skill/` (accessible at `https://signalscopes.com/skill/`):
 
 - `SKILL.md` — Main skill file with overview, auth, key concepts, workflow examples, error handling
-- `api-public.md` — Signal & scan API reference (9 endpoints)
-- `api-authenticated.md` — Account API reference (12 endpoints: portfolio, watchlist, performance, profile)
+- `api-public.md` — Signal & scan API reference (9 endpoints); includes **Opportunity score vs signal confidence (AI)** — `opportunityScore` = early-mover rank, `aiScore` = evidence strength (not expected upside)
+- `api-authenticated.md` — Account API reference (12 endpoints: portfolio, watchlist, performance, profile); performance aggregates include `byScoreRange` (AI) and `byOpportunityScoreRange` (Opportunity)
+
+`GET /api/methodology` returns `scoreComparison` with the same explanations for programmatic use.
 
 API key auth uses SHA-256 hashed keys stored in the `ApiKey` model. Key format: `sk_sig_<48 hex chars>`. Single key per user with revoke-and-replace flow. Profile page UI at `/profile` allows generating, viewing metadata, and revoking keys.
 

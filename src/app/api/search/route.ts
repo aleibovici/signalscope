@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
       distinct: ["symbol"],
       orderBy: { createdAt: "desc" },
       take: 8,
-      select: { symbol: true, aiScore: true, stage: true, price: true },
+      select: { symbol: true, aiScore: true, opportunityScore: true, stage: true, price: true },
     });
 
     const tickerSymbols = tickers.map((t) => t.symbol);
@@ -38,12 +38,14 @@ export async function GET(request: NextRequest) {
       ...tickers.map((t) => ({
         symbol: t.symbol,
         aiScore: t.aiScore,
+        opportunityScore: t.opportunityScore,
         stage: t.stage,
         price: t.price,
       })),
       ...signals.map((s) => ({
         symbol: s.symbol,
         aiScore: null,
+        opportunityScore: null,
         stage: null,
         price: null,
       })),

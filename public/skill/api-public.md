@@ -18,6 +18,21 @@ Generate your API key at signalscopes.com/profile.
 
 ---
 
+## Opportunity score vs signal confidence (AI)
+
+Validated tickers carry **two independent 0–100 scores**:
+
+| Field | Meaning |
+|-------|---------|
+| `opportunityScore` | Early-mover / setup quality — ranks timing alpha; **scan lists are sorted by this** (highest first). |
+| `aiScore` | Signal **confidence** — strength of evidence (sources, sentiment, corroboration). High values often overlap with consensus; the move may already be priced in, so **this is not a proxy for expected forward returns**. |
+
+**When to read which:** Prefer `opportunityScore` for “how early / how favorable is the setup?” Prefer `aiScore` for “how strong is the case?” Platform performance stats include separate breakdowns `byScoreRange` (AI) and `byOpportunityScoreRange` (Opportunity).
+
+**Canonical copy for agents:** `GET /api/methodology` includes a `scoreComparison` object (`title`, `detail`, `dashboardCallout`, `trendingCallout`, `performanceInsight`) with the same explanations.
+
+---
+
 ## GET /api/search — free
 
 Search tickers by symbol or name. No authentication or payment required.
@@ -26,7 +41,7 @@ Search tickers by symbol or name. No authentication or payment required.
 |-------|------|---------|-------------|
 | q | string | required | Search query (1-20 chars) |
 
-**Response:** `{ results: [{ symbol, aiScore, stage, price }] }`
+**Response:** `{ results: [{ symbol, aiScore, opportunityScore, stage, price }] }` — `opportunityScore` and `aiScore` are `null` when the row comes from a raw signal only (no validated ticker yet).
 
 Returns up to 8 results. Use this for free symbol discovery before calling paid endpoints.
 
@@ -45,13 +60,13 @@ Cross-scan trending tickers (last 30 days).
 | trend | string | — | Filter: `rising`, `falling`, `stable` |
 | sector | string | — | Filter by sector (e.g., `Technology`, `Healthcare`) |
 | marketCap | string | — | Filter by market cap bucket: `micro` (<300M), `small` (300M-2B), `mid` (2B-10B), `large` (10B+) |
-| sortBy | string | appearances | Sort: `appearances`, `aiScore`, `price`, `return`, `marketCap` |
+| sortBy | string | appearances | Sort: `appearances`, `opportunityScore`, `aiScore`, `price`, `return`, `marketCap` |
 | source | string | — | Filter by signal source: `REDDIT`, `TWITTER`, `STOCKTWITS`, `SEC_INSIDER`, `CONGRESS`, `VOLUME_SPIKE`, `OPTIONS_FLOW` |
 | hidePnd | boolean | false | Hide pump-and-dump flagged tickers |
 | returnPeriod | string | 7d | Return period for sort/display: `1d`, `3d`, `7d`, `30d` |
 | near52wLow | boolean | false | Only show tickers within 20% of 52-week low |
 
-**Response:** `{ tickers: [{ symbol, name, aiScore, stage, price, marketCap, sector, catalyst, risks, recommendation, report, appearanceCount, trend, scoreTrajectory: [{ score, stage, date }], return1d, return3d, return7d, return30d, sources, exchange, wk52Lo, wk52Hi, pndFlagged, pndScore, pndFlags, firstSeenDaysAgo, priorAppearances, ... }], total, summary: { totalTrending, risingCount, fallingCount, stableCount, avgScore } }`
+**Response:** `{ tickers: [...], total, summary: { totalTrending, risingCount, fallingCount, stableCount, avgScore } }` — each ticker includes `opportunityScore` and `aiScore` ([definitions](#opportunity-score-vs-signal-confidence-ai)). `summary.avgScore` is the mean **AI** (`aiScore`) over the filtered trending set, not Opportunity.
 
 ---
 
@@ -67,7 +82,7 @@ Network graph of ticker co-occurrences.
 | days | number | 30 | Lookback window in days (max 90) |
 | maxNodes | number | 30 | Maximum nodes to return (max 50) |
 
-**Response:** `{ nodes: [{ symbol, name, aiScore, stage, price, marketCap, sector, recommendation, appearances }], edges: [{ source, target, weight, correlation }], centerSymbol, effectiveMinWeight }`
+**Response:** `{ nodes: [{ symbol, name, aiScore, opportunityScore, stage, price, marketCap, sector, recommendation, appearances }], edges: [{ source, target, weight, correlation }], centerSymbol, effectiveMinWeight }` — node **size** in the web UI is driven by `aiScore` (confidence); both scores are shown in the node tooltip/panel.
 
 ---
 
@@ -75,7 +90,7 @@ Network graph of ticker co-occurrences.
 
 Latest validated ticker data plus raw signals.
 
-**Response:** `{ ticker: { id, symbol, aiScore, stage, price, marketCap, catalyst, risks, recommendation, report, signalCount, sourceCount, sources, shortFloat, avgSentiment, firstSeenDaysAgo, priorAppearances, return7d, createdAt }, signals: [{ id, symbol, source, title, url, velocityScore, createdAt }] }`
+**Response:** `{ ticker: { id, symbol, aiScore, opportunityScore, stage, price, marketCap, catalyst, risks, recommendation, report, signalCount, sourceCount, sources, shortFloat, avgSentiment, firstSeenDaysAgo, priorAppearances, return7d, createdAt, ... }, signals: [...] }` — includes both scores on `ticker` (see [Opportunity score vs signal confidence](#opportunity-score-vs-signal-confidence-ai)).
 
 Returns 404 if the symbol has never been validated.
 
@@ -93,7 +108,7 @@ Co-occurring tickers (tickers that appear in the same scans).
 | days | number | 30 | Lookback window in days (max 90) |
 | stage | string | — | Filter by latest stage: `Emerging`, `Building`, `Consensus` |
 
-**Response:** `{ relatedTickers: [{ symbol, name, coOccurrenceCount, correlationScore, latestAiScore, latestStage, sector, sources, price, marketCap, recommendation }], targetSymbol, targetScanCount, total }`
+**Response:** `{ relatedTickers: [{ symbol, name, coOccurrenceCount, correlationScore, latestAiScore, latestStage, sector, sources, price, marketCap, recommendation }], targetSymbol, targetScanCount, total }` — `latestAiScore` is signal confidence only; use `GET /api/tickers/:symbol` for `opportunityScore` on the target.
 
 ---
 
@@ -151,7 +166,7 @@ Get scan detail with validated tickers. Requires API key or session.
 |-------|------|---------|-------------|
 | includeFiltered | boolean | false | Include FILTERED (P&D flagged) tickers |
 
-**Response:** `{ scan: { id, status, startedAt, completedAt, signalCount, validatedCount, filteredCount }, tickers: [{ id, symbol, aiScore, stage, price, marketCap, catalyst, risks, recommendation, report, signalCount, sourceCount, shortFloat, avgSentiment, firstSeenDaysAgo, priorAppearances, return7d, sources, createdAt }] }`
+**Response:** `{ scan: { ... }, tickers: [{ id, symbol, aiScore, opportunityScore, stage, price, ... }] }` — tickers are ordered by `opportunityScore` descending (see [Two scores](#opportunity-score-vs-signal-confidence-ai)).
 
 ---
 
@@ -174,7 +189,7 @@ Max 200 results, sorted by sourceCount then velocityScore descending.
 
 Platform methodology (scoring, stages, P&D detection, signal sources). Requires API key or session.
 
-**Response:** `{ description, pipelineSteps, signalSources, scoring: { bands }, pumpAndDumpDetection: { flags, threshold }, signalStages, backtesting, disclaimer }`
+**Response:** `{ description, pipelineSteps, signalSources, scoring: { bands }, pumpAndDumpDetection: { flags, threshold }, signalStages, backtesting, scoreComparison: { title, detail, dashboardCallout, trendingCallout, performanceInsight }, disclaimer }` — `scoreComparison` explains Opportunity vs AI confidence (high confidence ≠ highest forward returns).
 
 ---
 

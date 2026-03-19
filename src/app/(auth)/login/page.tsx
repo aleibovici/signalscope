@@ -12,7 +12,7 @@ import { EmergingReturnsChart } from "@/components/emerging-returns-chart";
 const howItWorksSteps = [
   { step: "1", label: "Discover", desc: "Monitor Reddit, X/Twitter, StockTwits, SEC insider filings, congressional trades, options flow, and volume data for ticker mentions." },
   { step: "2", label: "Aggregate", desc: "Group signals by symbol, count sources, and calculate mention velocity." },
-  { step: "3", label: "Score", desc: "AI models evaluate breakout potential with confidence scores and reasoning." },
+  { step: "3", label: "Score", desc: "AI assigns signal confidence (evidence strength) and an Opportunity score (early-mover potential) — high confidence can mean the crowd already agrees." },
   { step: "4", label: "Filter", desc: "13 statistical flags plus AI assessment catch pump-and-dump schemes." },
   { step: "5", label: "Validate", desc: "Surviving tickers get fundamentals, a report, and enter the dashboard." },
 ];
@@ -262,7 +262,7 @@ export default function LoginPage() {
               },
               {
                 title: "AI scoring & ML backtesting",
-                desc: "AI models score every signal for breakout potential. XGBoost gradient boosting with SHAP analysis continuously refines thresholds as data grows.",
+                desc: "Dual scores: Opportunity (timing / early alpha) and AI confidence (how strong the evidence is). XGBoost + SHAP continuously refine thresholds as data grows.",
                 icon: (
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456Z" />
                 ),

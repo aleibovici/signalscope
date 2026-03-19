@@ -7,6 +7,7 @@ import { TrendingCard } from "@/components/dashboard/trending-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { STAGE_LABELS } from "@/lib/stage-labels";
+import { scoreExplainerTrendingCallout } from "@/lib/score-explainer";
 
 const PAGE_SIZE = 12;
 const selectClass =
@@ -40,7 +41,7 @@ const SOURCES = [
 const SORT_OPTIONS = [
   { value: "", label: "Appearances" },
   { value: "opportunityScore", label: "Opportunity Score" },
-  { value: "aiScore", label: "AI Score" },
+  { value: "aiScore", label: "Confidence (AI)" },
   { value: "price", label: "Price" },
   { value: "return", label: "Return" },
   { value: "marketCap", label: "Market Cap" },
@@ -284,6 +285,10 @@ export default function TrendingPage() {
             </label>
           </div>
         </div>
+      </div>
+
+      <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-700">
+        {scoreExplainerTrendingCallout}
       </div>
 
       {/* Summary stats */}

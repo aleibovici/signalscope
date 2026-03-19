@@ -6,6 +6,7 @@ export interface NetworkNode {
   symbol: string;
   name: string | null;
   aiScore: number;
+  opportunityScore: number;
   stage: string;
   price: number | null;
   marketCap: number | null;

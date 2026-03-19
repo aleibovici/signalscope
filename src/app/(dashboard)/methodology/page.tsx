@@ -16,6 +16,10 @@ import {
   backtestPipeline,
   disclaimer,
 } from "@/lib/methodology-data";
+import {
+  scoreExplainerMethodologyTitle,
+  scoreExplainerMethodologyBody,
+} from "@/lib/score-explainer";
 
 function PipelineStrip({ steps, pillClass }: { steps: readonly string[]; pillClass: string }) {
   return (
@@ -43,6 +47,15 @@ export default function MethodologyPage() {
       <Card>
         <CardContent>
           <PipelineStrip steps={pipelineSteps} pillClass="bg-blue-100 text-blue-800" />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <h2 className="text-base font-semibold text-gray-900">{scoreExplainerMethodologyTitle}</h2>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-600">{scoreExplainerMethodologyBody}</p>
         </CardContent>
       </Card>
 
