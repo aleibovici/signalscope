@@ -5,7 +5,7 @@ import { handleApiError } from "@/lib/api-error";
 import { generateTickerReportReACT } from "@/lib/harvester/report";
 import { reconstructAggregatedSymbol } from "@/lib/reconstruct-aggregated";
 import type { SignalType, TradeSetup } from "@/lib/harvester/types";
-import { withX402, x402Server, x402RouteConfigs, hasAuthCredentials, X402_ENABLED } from "@/lib/x402";
+import { withX402Logged, x402RouteConfigs, hasAuthCredentials, X402_ENABLED } from "@/lib/x402";
 
 async function handleReport(request: NextRequest, upperSymbol: string) {
   const ticker = await prisma.validatedTicker.findFirst({
@@ -85,7 +85,7 @@ async function handleReport(request: NextRequest, upperSymbol: string) {
 
 // x402 payment-wrapped handler — extracts symbol from URL path
 const x402ReportHandler = X402_ENABLED
-  ? withX402(
+  ? withX402Logged(
       (async (request: NextRequest) => {
         const url = new URL(request.url);
         const pathParts = url.pathname.split("/");
@@ -97,7 +97,7 @@ const x402ReportHandler = X402_ENABLED
         return handleReport(request, symbol);
       }) as (request: NextRequest) => Promise<NextResponse<unknown>>,
       x402RouteConfigs.report,
-      x402Server,
+      "report",
     )
   : null;
 

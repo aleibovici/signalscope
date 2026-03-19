@@ -5,7 +5,7 @@ import { getCurrentUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
 import { TTLCache } from "@/lib/cache";
 import { getCoOccurringSymbols, getPairwiseEdges, jaccardScore } from "@/lib/co-occurrence";
-import { withX402, x402Server, x402RouteConfigs, hasAuthCredentials, X402_ENABLED } from "@/lib/x402";
+import { withX402Logged, x402RouteConfigs, hasAuthCredentials, X402_ENABLED } from "@/lib/x402";
 
 export const networkCache = new TTLCache<unknown>(5 * 60 * 1000);
 
@@ -137,7 +137,7 @@ async function handleNetwork(request: NextRequest) {
 }
 
 const x402Handler = X402_ENABLED
-  ? withX402(handleNetwork, x402RouteConfigs.network, x402Server)
+  ? withX402Logged(handleNetwork, x402RouteConfigs.network, "network")
   : null;
 
 export async function GET(request: NextRequest) {

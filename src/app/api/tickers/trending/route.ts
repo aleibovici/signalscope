@@ -5,7 +5,7 @@ import { getCurrentUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
 import { paginationSchema } from "@/lib/validators";
 import { TTLCache } from "@/lib/cache";
-import { withX402, x402Server, x402RouteConfigs, hasAuthCredentials, X402_ENABLED } from "@/lib/x402";
+import { withX402Logged, x402RouteConfigs, hasAuthCredentials, X402_ENABLED } from "@/lib/x402";
 
 export const trendingCache = new TTLCache<unknown>(5 * 60 * 1000);
 
@@ -311,7 +311,7 @@ async function handleTrending(request: NextRequest) {
 
 // x402 payment-wrapped handler (created once at module level)
 const x402Handler = X402_ENABLED
-  ? withX402(handleTrending, x402RouteConfigs.trending, x402Server)
+  ? withX402Logged(handleTrending, x402RouteConfigs.trending, "trending")
   : null;
 
 export async function GET(request: NextRequest) {

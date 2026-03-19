@@ -6,7 +6,7 @@ import { handleApiError } from "@/lib/api-error";
 import { paginationSchema } from "@/lib/validators";
 import { TTLCache } from "@/lib/cache";
 import { getCoOccurringSymbols, jaccardScore } from "@/lib/co-occurrence";
-import { withX402, x402Server, x402RouteConfigs, hasAuthCredentials, X402_ENABLED } from "@/lib/x402";
+import { withX402Logged, x402RouteConfigs, hasAuthCredentials, X402_ENABLED } from "@/lib/x402";
 
 export const relatedCache = new TTLCache<unknown>(5 * 60 * 1000);
 
@@ -127,7 +127,7 @@ async function handleRelated(request: NextRequest, upperSymbol: string) {
 }
 
 const x402Handler = X402_ENABLED
-  ? withX402(
+  ? withX402Logged(
       (async (request: NextRequest) => {
         const url = new URL(request.url);
         const symbol = url.pathname.split("/")[3]?.toUpperCase();
@@ -135,7 +135,7 @@ const x402Handler = X402_ENABLED
         return handleRelated(request, symbol);
       }) as (request: NextRequest) => Promise<NextResponse<unknown>>,
       x402RouteConfigs.related,
-      x402Server,
+      "related",
     )
   : null;
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
-import { withX402, x402Server, x402RouteConfigs, hasAuthCredentials, X402_ENABLED } from "@/lib/x402";
+import { withX402Logged, x402RouteConfigs, hasAuthCredentials, X402_ENABLED } from "@/lib/x402";
 
 async function handlePerformance(request: NextRequest, upper: string) {
   const performances = await prisma.tickerPerformance.findMany({
@@ -31,7 +31,7 @@ async function handlePerformance(request: NextRequest, upper: string) {
 }
 
 const x402Handler = X402_ENABLED
-  ? withX402(
+  ? withX402Logged(
       (async (request: NextRequest) => {
         const url = new URL(request.url);
         const symbol = url.pathname.split("/")[3]?.toUpperCase();
@@ -39,7 +39,7 @@ const x402Handler = X402_ENABLED
         return handlePerformance(request, symbol);
       }) as (request: NextRequest) => Promise<NextResponse<unknown>>,
       x402RouteConfigs.performance,
-      x402Server,
+      "performance",
     )
   : null;
 
