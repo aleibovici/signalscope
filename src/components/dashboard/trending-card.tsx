@@ -35,14 +35,14 @@ export function TrendingCard({
           <Badge variant={trendVariants[ticker.trend]}>
             {trendLabels[ticker.trend]}
           </Badge>
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-gray-500 dark:text-zinc-400">
             {ticker.appearanceCount} appearances
           </span>
         </div>
       </div>
 
       {ticker.scoreTrajectory.length > 1 && (
-        <div className="mb-2">
+        <div className="mb-2 rounded-lg border border-gray-100 bg-gray-50/60 px-1 py-0.5 dark:border-zinc-800/80 dark:bg-zinc-900/35">
           <Sparkline points={ticker.scoreTrajectory} height={48} />
         </div>
       )}
