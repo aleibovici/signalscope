@@ -97,8 +97,14 @@ Signal novelty (check isNovel, daysSinceFirstSeen, priorAppearances fields):
 
 Price quality (check price field):
 - price < $0.12: heavy penalty (-10 to -15). Sub-dime stocks almost never generate positive returns at any horizon. Score should rarely exceed 20 without an exceptional catalyst.
-- price $0.12-$0.50: mild penalty (-3 to -5). Low-priced stocks need stronger evidence.
+- price $0.12-$0.20: moderate penalty (-5 to -8). ML shows sub-$0.20 has poor 3d returns. Social-only tickers in this range need exceptional evidence.
+- price $0.20-$0.52: mild penalty (-2 to -3). Low-priced stocks need stronger evidence.
 - price > $0.52: no price penalty. ML shows this is the threshold for reliable 7d follow-through.
+
+Momentum / 52-week high proximity (check price and wk52Hi fields):
+- price / wk52Hi >= 0.95 (within 5% of 52W high): momentum signal, apply +3 to +5 boost. ML consistently shows stocks near their 52-week high outperform beaten-down stocks on 1d and 7d horizons.
+- price / wk52Hi >= 0.85 (within 15%): mild momentum signal, +1 to +2 boost.
+- Do NOT penalize stocks near their high — momentum is a positive predictor across all horizons.
 
 Reddit comment engagement (check totalComments field):
 - totalComments 30-100: moderate positive signal (+3 to +5) — genuine discussion indicates organic interest, especially for 3d returns.

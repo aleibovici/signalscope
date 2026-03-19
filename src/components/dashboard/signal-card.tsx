@@ -74,6 +74,10 @@ export function SignalCard({
               {ticker.firstSeenDaysAgo === null && (
                 <Badge variant="success">NEW</Badge>
               )}
+              {ticker.price != null && ticker.wk52Hi != null && ticker.wk52Hi > 0 &&
+               ticker.price / ticker.wk52Hi >= 0.95 && (
+                <Badge variant="success">Momentum</Badge>
+              )}
               {ticker.price != null && ticker.wk52Lo != null && ticker.wk52Lo > 0 &&
                ((ticker.price - ticker.wk52Lo) / ticker.wk52Lo) >= 0.007 &&
                ((ticker.price - ticker.wk52Lo) / ticker.wk52Lo) < 0.50 && (
