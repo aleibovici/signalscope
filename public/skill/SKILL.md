@@ -11,7 +11,7 @@ description: >
 
 ## Overview
 
-SignalScope is a stock breakout signal detection platform. It harvests signals from Reddit, X/Twitter, StockTwits, SEC insider filings, options flow, and volume spikes, then scores them with AI, filters pump-and-dump candidates, and presents validated tickers ranked by confidence.
+SignalScope is a stock breakout signal detection platform. It monitors Reddit, X/Twitter, StockTwits, SEC insider filings, options flow, and volume spikes for signals, then scores them with AI, filters pump-and-dump candidates, and presents validated tickers ranked by confidence.
 
 **Base URL:** `https://signalscopes.com`
 
@@ -83,7 +83,7 @@ API keys provide access to all endpoints including account management (portfolio
 
 ## Key Concepts
 
-- **Scan**: A harvest run that collects signals from all sources, scores them, and produces validated tickers
+- **Scan**: A monitoring run that collects signals from all sources, scores them, and produces validated tickers
 - **Signal stages**: `EARLY` (1 source), `FORMING` (2 sources), `CONFIRMED` (3+ sources), `FILTERED` (P&D flagged)
 - **AI Score**: 0-100 confidence score. 70+ is strong, 50-70 moderate, below 50 weak
 - **Trending**: Tickers appearing in 2+ scans within 30 days, with trend direction (rising/falling/stable)

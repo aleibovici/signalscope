@@ -125,7 +125,7 @@ Returns 404 if the ticker has never been validated. Trade setup is only generate
 
 ## GET /api/scans
 
-List harvest scans (paginated). Requires API key or session.
+List monitoring scans (paginated). Requires API key or session.
 
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
