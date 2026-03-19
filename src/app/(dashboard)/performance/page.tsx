@@ -80,7 +80,7 @@ function SummaryCards({
               : "--"}
           </p>
           <p className="mt-1 text-xs text-gray-400">
-            {windowAvgReturn ? `${windowAvgReturn.count} signals, last 7d` : "no data"}
+            {windowAvgReturn ? `${windowAvgReturn.count} signals` : "no data"}
           </p>
         </CardContent>
       </Card>
@@ -99,7 +99,7 @@ function SummaryCards({
           >
             {windowAvgReturn ? formatPct(windowAvgReturn.avg) : "--"}
           </p>
-          <p className="mt-1 text-xs text-gray-400">{windowAvgReturn ? `${windowAvgReturn.count} signals, last 7d` : "no data"}</p>
+          <p className="mt-1 text-xs text-gray-400">{windowAvgReturn ? `${windowAvgReturn.count} signals` : "no data"}</p>
         </CardContent>
       </Card>
 
