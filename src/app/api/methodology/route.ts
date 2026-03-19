@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { getCurrentUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
 import {
   pipelineSteps,
@@ -20,7 +19,6 @@ import {
 
 export async function GET() {
   try {
-    await getCurrentUserId();
     const activeSignalSources = signalSources.map((source) => ({
       ...source,
       status: "active" as const,
