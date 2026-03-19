@@ -179,7 +179,8 @@ export const scoringDescription =
   "returns. Only tickers with a verifiable catalyst source (SEC Insider or Congress) " +
   "can score above 50. First-appearance tickers receive a +5–10 novelty boost; tickers " +
   "seen 3+ times or older than 7 days receive a staleness penalty. Signal freshness is " +
-  "also tracked — stale consensus (median signal age ≥6 h) is excluded from the highest stage.";
+  "also tracked — stale consensus (median signal age ≥6 h) is excluded from the highest stage. " +
+  "This AI score reflects how strong the evidence is, not how much upside is left; Opportunity Score (see above) captures early-mover potential separately.";
 
 export const pndDescription =
   "Every candidate is checked against 13 statistical flags before scoring. A ticker that " +

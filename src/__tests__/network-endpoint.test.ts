@@ -54,6 +54,7 @@ function makeTicker(
     risks: "Test",
     recommendation: "Buy",
     aiScore,
+    opportunityScore: 55,
     stage,
     createdAt,
   };
@@ -104,6 +105,7 @@ describe("GET /api/tickers/network", () => {
     const node = body.nodes.find((n: { symbol: string }) => n.symbol === "AAPL");
     expect(node).toBeDefined();
     expect(node.aiScore).toBe(70);
+    expect(node.opportunityScore).toBe(55);
     expect(node.stage).toBe("Consensus");
     expect(node.appearances).toBe(5);
 

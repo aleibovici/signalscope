@@ -8,6 +8,10 @@ x-api-key: sk_sig_your_key_here
 
 Generate your API key at localhost:3000/profile.
 
+### Opportunity score vs signal confidence (AI)
+
+Same definitions as [public API docs](api-public.md#opportunity-score-vs-signal-confidence-ai): `opportunityScore` = early-mover / setup rank; `aiScore` = evidence strength (not expected upside). Authenticated ticker payloads include both where the underlying row is a `ValidatedTicker`.
+
 ---
 
 ## Portfolio
@@ -87,7 +91,7 @@ Remove from watchlist.
 
 Watchlist symbols enriched with latest ticker data, performance, and signal sources.
 
-**Response:** `{ tickers: [{ symbol, name, aiScore, stage, price, marketCap, catalyst, recommendation, report, signalCount, sourceCount, return7d, sources, ... }] }`
+**Response:** `{ tickers: [{ symbol, name, aiScore, opportunityScore, stage, price, marketCap, catalyst, recommendation, report, signalCount, sourceCount, return7d, sources, ... }] }` — full latest validated row per symbol ([two scores](api-public.md#opportunity-score-vs-signal-confidence-ai)).
 
 ---
 
@@ -101,7 +105,7 @@ Platform-wide ticker performance breakdown.
 |-------|------|---------|-------------|
 | days | number | 7 | Return period: 1, 3, 7, or 30 |
 
-**Response:** `{ overall: { count, winRate, avgReturn }, confirmed: { count, winRate, avgReturn }, byStage, byType, byScoreRange, bestPerformers: [{ symbol, return, aiScore, stage, detectionPrice, currentPrice }], worstPerformers: [...] }`
+**Response:** `{ summary, cohorts, cumulativeReturns, overall, confirmed, emerging, byStage, byType, byScoreRange, byOpportunityScoreRange, bestPerformers, worstPerformers }` — `byScoreRange` buckets returns by **AI confidence** (`aiScore`); `byOpportunityScoreRange` buckets by **Opportunity** (`opportunityScore`). Same horizon as `days`. Performer rows include `aiScore` (confidence at detection). See [two scores](api-public.md#opportunity-score-vs-signal-confidence-ai).
 
 ---
 

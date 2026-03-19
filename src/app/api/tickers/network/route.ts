@@ -100,6 +100,7 @@ async function handleNetwork(request: NextRequest) {
         symbol: record.symbol,
         name: record.name,
         aiScore: record.aiScore,
+        opportunityScore: record.opportunityScore,
         stage: stageLabel(record.stage),
         price: record.price,
         marketCap: record.marketCap,

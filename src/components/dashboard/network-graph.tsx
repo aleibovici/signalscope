@@ -403,8 +403,9 @@ export function NetworkGraph({ nodes, edges, centerSymbol, colorMode = "stage", 
               </Badge>
             </div>
             {node.name && <p className="text-xs text-gray-500">{node.name}</p>}
-            <div className="mt-1 flex gap-3 text-xs text-gray-600">
-              <span>Score: {node.aiScore}</span>
+            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-600">
+              <span>Opp: {node.opportunityScore}</span>
+              <span>Conf: {node.aiScore}</span>
               {node.price != null && <span>${node.price.toFixed(2)}</span>}
               {node.sector && <span>{node.sector}</span>}
             </div>
@@ -455,8 +456,12 @@ export function NetworkGraph({ nodes, edges, centerSymbol, colorMode = "stage", 
           </div>
           <div className="space-y-1.5 px-4 py-3 text-xs">
             <div className="flex justify-between">
-              <span className="text-gray-500">AI Score</span>
-              <span className="font-semibold text-blue-600">{selectedData.aiScore}/100</span>
+              <span className="text-gray-500">Opportunity</span>
+              <span className="font-semibold text-blue-600">{selectedData.opportunityScore}/100</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Confidence</span>
+              <span className="font-medium text-gray-800">{selectedData.aiScore}/100</span>
             </div>
             {selectedData.price != null && (
               <div className="flex justify-between">

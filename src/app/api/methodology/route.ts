@@ -16,6 +16,13 @@ import {
   backtestPipeline,
   disclaimer,
 } from "@/lib/methodology-data";
+import {
+  scoreExplainerMethodologyTitle,
+  scoreExplainerMethodologyBody,
+  scoreExplainerDashboardCallout,
+  scoreExplainerTrendingCallout,
+  scoreExplainerPerformanceInsight,
+} from "@/lib/score-explainer";
 
 export async function GET() {
   try {
@@ -46,6 +53,13 @@ export async function GET() {
       backtesting: {
         description: backtestDescription,
         pipeline: [...backtestPipeline],
+      },
+      scoreComparison: {
+        title: scoreExplainerMethodologyTitle,
+        detail: scoreExplainerMethodologyBody,
+        dashboardCallout: scoreExplainerDashboardCallout,
+        trendingCallout: scoreExplainerTrendingCallout,
+        performanceInsight: scoreExplainerPerformanceInsight,
       },
       disclaimer,
     }, {

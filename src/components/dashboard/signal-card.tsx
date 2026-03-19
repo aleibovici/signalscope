@@ -151,9 +151,21 @@ export function SignalCard({
                 })()}
               </div>
             )}
-            <p className="text-sm text-gray-500">
-              Score: {ticker.opportunityScore}/100
-            </p>
+            <div className="space-y-0.5 text-right text-xs leading-tight">
+              <p title="Early-mover / opportunity rank — list order uses this (higher = earlier or more favorable setup).">
+                <span className="text-gray-500">Opportunity</span>{" "}
+                <span className="font-semibold text-gray-800">
+                  {ticker.opportunityScore}/100
+                </span>
+              </p>
+              <p
+                className="text-gray-500"
+                title="How strong the evidence is (sources, sentiment, corroboration). Not the same as expected upside — high confidence often means the crowd already agrees."
+              >
+                <span>Confidence</span>{" "}
+                <span className="font-medium text-gray-700">{ticker.aiScore}/100</span>
+              </p>
+            </div>
           </div>
         </div>
 
