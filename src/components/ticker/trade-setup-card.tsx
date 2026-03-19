@@ -34,7 +34,7 @@ export function TradeSetupCard({ ticker }: { ticker: ValidatedTickerData }) {
     <Card>
       <CardHeader>
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="font-semibold">Trade Setup</h3>
+          <h3 className="font-semibold text-gray-900 dark:text-zinc-100">Trade setup</h3>
           {confidence && <Badge variant={confidenceVariant}>{confidence} Confidence</Badge>}
           {riskReward && <Badge variant="purple">{riskReward} R:R</Badge>}
         </div>
@@ -42,14 +42,14 @@ export function TradeSetupCard({ ticker }: { ticker: ValidatedTickerData }) {
       <CardContent>
         <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm md:grid-cols-3">
           <div>
-            <p className="text-xs text-gray-500">Entry Range</p>
-            <p className="font-semibold">
+            <p className="text-xs text-gray-500 dark:text-zinc-500">Entry Range</p>
+            <p className="font-semibold text-gray-900 dark:text-zinc-100">
               ${entryLo.toFixed(2)} &ndash; ${entryHi.toFixed(2)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Stop Loss</p>
-            <p className="font-semibold text-red-600">
+            <p className="text-xs text-gray-500 dark:text-zinc-500">Stop Loss</p>
+            <p className="font-semibold text-red-600 dark:text-red-400">
               ${stopLoss.toFixed(2)}{" "}
               <span className="text-xs font-normal">
                 ({pctChange(entryMid, stopLoss)})
@@ -57,8 +57,8 @@ export function TradeSetupCard({ ticker }: { ticker: ValidatedTickerData }) {
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Target 1</p>
-            <p className="font-semibold text-green-600">
+            <p className="text-xs text-gray-500 dark:text-zinc-500">Target 1</p>
+            <p className="font-semibold text-green-600 dark:text-green-400">
               ${target1.toFixed(2)}{" "}
               <span className="text-xs font-normal">
                 ({pctChange(entryMid, target1)})
@@ -66,8 +66,8 @@ export function TradeSetupCard({ ticker }: { ticker: ValidatedTickerData }) {
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Target 2</p>
-            <p className="font-semibold text-green-600">
+            <p className="text-xs text-gray-500 dark:text-zinc-500">Target 2</p>
+            <p className="font-semibold text-green-600 dark:text-green-400">
               ${target2.toFixed(2)}{" "}
               <span className="text-xs font-normal">
                 ({pctChange(entryMid, target2)})
@@ -76,18 +76,18 @@ export function TradeSetupCard({ ticker }: { ticker: ValidatedTickerData }) {
           </div>
           {timeframe && (
             <div>
-              <p className="text-xs text-gray-500">Timeframe</p>
-              <p className="font-semibold">{timeframe}</p>
+              <p className="text-xs text-gray-500 dark:text-zinc-500">Timeframe</p>
+              <p className="font-semibold text-gray-900 dark:text-zinc-100">{timeframe}</p>
             </div>
           )}
           {price != null && (
             <div>
-              <p className="text-xs text-gray-500">Current Price</p>
-              <p className="font-semibold">${price.toFixed(2)}</p>
+              <p className="text-xs text-gray-500 dark:text-zinc-500">Current Price</p>
+              <p className="font-semibold text-gray-900 dark:text-zinc-100">${price.toFixed(2)}</p>
             </div>
           )}
         </div>
-        <p className="mt-3 text-xs text-gray-400">
+        <p className="mt-3 text-xs text-gray-400 dark:text-zinc-500">
           AI-generated setup based on signal data and fundamentals. Not financial advice. Verify levels against a live chart.
         </p>
       </CardContent>
