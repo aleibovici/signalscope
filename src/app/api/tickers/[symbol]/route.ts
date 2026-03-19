@@ -10,7 +10,14 @@ async function handleTicker(request: NextRequest, upperSymbol: string) {
     where: { symbol: upperSymbol },
     orderBy: { createdAt: "desc" },
     include: {
-      performance: { select: { return7d: true } },
+      performance: {
+        select: {
+          return1d: true,
+          return3d: true,
+          return7d: true,
+          return30d: true,
+        },
+      },
     },
   });
 
@@ -25,11 +32,15 @@ async function handleTicker(request: NextRequest, upperSymbol: string) {
 
   const sources = [...new Set(signals.map((s) => s.source))];
 
+  const perf = ticker.performance;
   return NextResponse.json({
     ticker: {
       ...ticker,
       stage: stageLabel(ticker.stage),
-      return7d: ticker.performance?.return7d ?? null,
+      return1d: perf?.return1d ?? null,
+      return3d: perf?.return3d ?? null,
+      return7d: perf?.return7d ?? null,
+      return30d: perf?.return30d ?? null,
       performance: undefined,
       sources,
     },
