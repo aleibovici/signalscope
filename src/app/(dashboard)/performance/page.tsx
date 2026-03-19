@@ -30,10 +30,10 @@ function formatPctShort(value: number): string {
 /* ---------- Summary Cards with Delta ---------- */
 function SummaryCards({
   summary,
-  early,
+  emerging,
 }: {
   summary: { totalTracked: number; current: PerformanceStats; prior: PerformanceStats };
-  early: PerformanceStats;
+  emerging: PerformanceStats;
 }) {
   const wrDelta =
     summary.current.count > 0 && summary.prior.count > 0
@@ -60,12 +60,12 @@ function SummaryCards({
         <CardContent className="pt-6 text-center">
           <p className="text-sm text-gray-500">Win Rate (emerging)</p>
           <p className="text-3xl font-bold text-green-600">
-            {early.count > 0
-              ? `${(early.winRate * 100).toFixed(0)}%`
+            {emerging.count > 0
+              ? `${(emerging.winRate * 100).toFixed(0)}%`
               : "--"}
           </p>
           <p className="mt-1 text-xs text-gray-400">
-            {early.count} signals
+            {emerging.count} signals
           </p>
         </CardContent>
       </Card>
@@ -75,16 +75,16 @@ function SummaryCards({
           <p className="text-sm text-gray-500">Avg Return (emerging)</p>
           <p
             className={`text-3xl font-bold ${
-              early.avgReturn > 0
+              emerging.avgReturn > 0
                 ? "text-green-600"
-                : early.avgReturn < 0
+                : emerging.avgReturn < 0
                   ? "text-red-600"
                   : "text-gray-900"
             }`}
           >
-            {early.count > 0 ? formatPct(early.avgReturn) : "--"}
+            {emerging.count > 0 ? formatPct(emerging.avgReturn) : "--"}
           </p>
-          <p className="mt-1 text-xs text-gray-400">{early.count} signals, selected horizon</p>
+          <p className="mt-1 text-xs text-gray-400">{emerging.count} signals, selected horizon</p>
         </CardContent>
       </Card>
 
@@ -525,7 +525,7 @@ export default function PerformancePage() {
       {data && (
         <>
           {/* Summary cards with period comparison */}
-          <SummaryCards summary={data.summary} early={data.early} />
+          <SummaryCards summary={data.summary} emerging={data.emerging} />
 
           {/* Stage performance insight */}
           {data.byStage.EARLY && data.byStage.CONFIRMED && data.byStage.EARLY.avgReturn > data.byStage.CONFIRMED.avgReturn && (

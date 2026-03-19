@@ -50,7 +50,7 @@ export async function GET() {
 
     if (withReturn.length === 0) {
       return NextResponse.json(
-        { totalTracked: 0, winRate: 0, avgReturn: 0, earlyWinRate: 0, earlyAvgReturn: 0, cumulativeReturns: [] },
+        { totalTracked: 0, winRate: 0, avgReturn: 0, emergingWinRate: 0, emergingAvgReturn: 0, cumulativeReturns: [] },
         { headers: { "Cache-Control": "public, max-age=600, s-maxage=600" } },
       );
     }
@@ -61,13 +61,13 @@ export async function GET() {
     const winRate = wins / returns.length;
     const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
 
-    // Early-stage stats (emerging only)
-    const earlyRecords = withReturn.filter((r) => r.validatedTicker.stage === "EARLY");
-    const earlyReturns = earlyRecords.map((r) => r[col] as number);
-    const earlyWins = earlyReturns.filter((r) => r > 0).length;
-    const earlyWinRate = earlyReturns.length > 0 ? earlyWins / earlyReturns.length : 0;
-    const earlyAvgReturn = earlyReturns.length > 0
-      ? earlyReturns.reduce((a, b) => a + b, 0) / earlyReturns.length
+    // Emerging-stage stats (EARLY only)
+    const emergingRecords = withReturn.filter((r) => r.validatedTicker.stage === "EARLY");
+    const emergingReturns = emergingRecords.map((r) => r[col] as number);
+    const emergingWins = emergingReturns.filter((r) => r > 0).length;
+    const emergingWinRate = emergingReturns.length > 0 ? emergingWins / emergingReturns.length : 0;
+    const emergingAvgReturn = emergingReturns.length > 0
+      ? emergingReturns.reduce((a, b) => a + b, 0) / emergingReturns.length
       : 0;
 
     // Cumulative avg return by detection date — emerging signals only
@@ -98,9 +98,9 @@ export async function GET() {
         signalsWithReturns: withReturn.length,
         winRate,
         avgReturn,
-        earlyWinRate,
-        earlyAvgReturn,
-        earlyCount: earlyRecords.length,
+        emergingWinRate,
+        emergingAvgReturn,
+        emergingCount: emergingRecords.length,
         cumulativeReturns,
       },
       { headers: { "Cache-Control": "public, max-age=600, s-maxage=600" } },

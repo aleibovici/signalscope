@@ -87,7 +87,7 @@ export interface AggregatePerformance {
   cumulativeReturns: CumulativeReturnEntry[];
   overall: PerformanceStats;
   confirmed: PerformanceStats;
-  early: PerformanceStats;
+  emerging: PerformanceStats;
   byStage: Record<string, PerformanceStats>;
   byType: Record<string, PerformanceStats>;
   byScoreRange: Record<string, PerformanceStats>;

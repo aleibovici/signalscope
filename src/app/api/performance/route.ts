@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
         cumulativeReturns: [],
         overall: { count: 0, winRate: 0, avgReturn: 0 },
         confirmed: { count: 0, winRate: 0, avgReturn: 0 },
-        early: { count: 0, winRate: 0, avgReturn: 0 },
+        emerging: { count: 0, winRate: 0, avgReturn: 0 },
         byStage: {},
         byType: {},
         byScoreRange: {},
@@ -231,10 +231,10 @@ export async function GET(request: NextRequest) {
       (r) => r.validatedTicker.stage === "CONFIRMED",
     );
     const confirmed = computeStats(confirmedRecords, returnCol);
-    const earlyRecords = recordsWithReturn.filter(
+    const emergingRecords = recordsWithReturn.filter(
       (r) => r.validatedTicker.stage === "EARLY",
     );
-    const early = computeStats(earlyRecords, returnCol);
+    const emerging = computeStats(emergingRecords, returnCol);
 
     // By stage
     const byStage: Record<string, ReturnType<typeof computeStats>> = {};
@@ -333,7 +333,7 @@ export async function GET(request: NextRequest) {
       cumulativeReturns,
       overall,
       confirmed,
-      early,
+      emerging,
       byStage,
       byType,
       byScoreRange,

@@ -27,9 +27,9 @@ interface PerfStats {
   signalsWithReturns: number;
   winRate: number;
   avgReturn: number;
-  earlyWinRate: number;
-  earlyAvgReturn: number;
-  earlyCount: number;
+  emergingWinRate: number;
+  emergingAvgReturn: number;
+  emergingCount: number;
   cumulativeReturns: CumulativeReturnEntry[];
 }
 
@@ -110,11 +110,11 @@ export default function LoginPage() {
               <div className="mb-5 flex flex-wrap justify-center gap-2 sm:gap-3 md:mb-8 lg:justify-start">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-green-500/20 px-3 py-1 text-xs font-semibold text-green-200 sm:text-sm">
                   <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" /></svg>
-                  {(perfStats.earlyWinRate * 100).toFixed(0)}% win rate
+                  {(perfStats.emergingWinRate * 100).toFixed(0)}% win rate
                 </span>
-                <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold sm:text-sm ${perfStats.earlyAvgReturn > 0 ? "bg-green-500/20 text-green-200" : "bg-red-500/20 text-red-200"}`}>
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold sm:text-sm ${perfStats.emergingAvgReturn > 0 ? "bg-green-500/20 text-green-200" : "bg-red-500/20 text-red-200"}`}>
                   <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M12.577 4.878a.75.75 0 01.919-.53l4.78 1.281a.75.75 0 01.531.919l-1.281 4.78a.75.75 0 01-1.449-.387l.81-3.022a19.407 19.407 0 00-5.594 5.203.75.75 0 01-1.139.093L7 10.06l-4.72 4.72a.75.75 0 01-1.06-1.061l5.25-5.25a.75.75 0 011.06 0l3.074 3.073a20.923 20.923 0 015.545-4.931l-3.042.815a.75.75 0 01-.53-.919z" clipRule="evenodd" /></svg>
-                  {perfStats.earlyAvgReturn > 0 ? "+" : ""}{(perfStats.earlyAvgReturn * 100).toFixed(1)}% avg 7d return
+                  {perfStats.emergingAvgReturn > 0 ? "+" : ""}{(perfStats.emergingAvgReturn * 100).toFixed(1)}% avg 7d return
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/20 px-3 py-1 text-xs font-semibold text-blue-200 sm:text-sm">
                   {perfStats.totalTracked} tickers tracked
@@ -326,17 +326,17 @@ export default function LoginPage() {
               <div className="rounded-xl border border-gray-100 bg-white p-4 text-center shadow-sm sm:p-6">
                 <p className="text-xs font-medium text-gray-500 sm:text-sm">Win Rate</p>
                 <p className="mt-1 text-2xl font-bold text-green-600 sm:text-4xl">
-                  {(perfStats.earlyWinRate * 100).toFixed(0)}%
+                  {(perfStats.emergingWinRate * 100).toFixed(0)}%
                 </p>
                 <p className="mt-1 hidden text-xs text-gray-400 sm:block">
-                  emerging, {perfStats.earlyCount} measured
+                  emerging, {perfStats.emergingCount} measured
                 </p>
               </div>
 
               <div className="rounded-xl border border-gray-100 bg-white p-4 text-center shadow-sm sm:p-6">
                 <p className="text-xs font-medium text-gray-500 sm:text-sm">Avg 7d Return</p>
-                <p className={`mt-1 text-2xl font-bold sm:text-4xl ${perfStats.earlyAvgReturn > 0 ? "text-green-600" : "text-red-600"}`}>
-                  {perfStats.earlyAvgReturn > 0 ? "+" : ""}{(perfStats.earlyAvgReturn * 100).toFixed(1)}%
+                <p className={`mt-1 text-2xl font-bold sm:text-4xl ${perfStats.emergingAvgReturn > 0 ? "text-green-600" : "text-red-600"}`}>
+                  {perfStats.emergingAvgReturn > 0 ? "+" : ""}{(perfStats.emergingAvgReturn * 100).toFixed(1)}%
                 </p>
                 <p className="mt-1 hidden text-xs text-gray-400 sm:block">emerging</p>
               </div>
