@@ -13,10 +13,10 @@ interface SearchResult {
 }
 
 const STAGE_COLORS: Record<string, string> = {
-  EARLY: "text-green-600",
-  FORMING: "text-yellow-600",
-  CONFIRMED: "text-blue-600",
-  FILTERED: "text-red-500",
+  EARLY: "text-green-600 dark:text-green-400",
+  FORMING: "text-yellow-600 dark:text-amber-400",
+  CONFIRMED: "text-blue-600 dark:text-blue-400",
+  FILTERED: "text-red-500 dark:text-red-400",
 };
 
 function useDebounce<T>(value: T, delay: number): T {
@@ -90,7 +90,7 @@ export function TickerSearch() {
     <div ref={containerRef} className="relative px-3 pb-3 pt-1">
       <div className="relative">
         <svg
-          className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
+          className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 dark:text-zinc-500"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -113,12 +113,12 @@ export function TickerSearch() {
           }}
           onFocus={() => query.length >= 1 && setOpen(true)}
           onKeyDown={handleKeyDown}
-          className="w-full rounded-md border border-gray-200 bg-white py-1.5 pl-8 pr-3 text-sm placeholder-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+          className="w-full rounded-md border border-gray-200 bg-white py-1.5 pl-8 pr-3 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder-zinc-500"
         />
       </div>
 
       {open && results.length > 0 && (
-        <div className="absolute left-3 right-3 top-full z-50 mt-0.5 overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg">
+        <div className="absolute left-3 right-3 top-full z-50 mt-0.5 overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
           {results.map((r, i) => (
             <button
               key={r.symbol}
@@ -126,18 +126,20 @@ export function TickerSearch() {
               onMouseDown={() => navigate(r.symbol)}
               onMouseEnter={() => setHighlighted(i)}
               className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors ${
-                i === highlighted ? "bg-blue-50" : "hover:bg-gray-50"
+                i === highlighted
+                  ? "bg-blue-50 dark:bg-blue-950/40"
+                  : "hover:bg-gray-50 dark:hover:bg-zinc-800"
               }`}
             >
-              <span className="font-semibold tracking-wide">{r.symbol}</span>
+              <span className="font-semibold tracking-wide text-gray-900 dark:text-zinc-100">{r.symbol}</span>
               <div className="flex items-center gap-2 text-xs">
                 {r.stage && (
-                  <span className={`font-medium ${STAGE_COLORS[r.stage] ?? "text-gray-500"}`}>
+                  <span className={`font-medium ${STAGE_COLORS[r.stage] ?? "text-gray-500 dark:text-zinc-400"}`}>
                     {stageLabel(r.stage)}
                   </span>
                 )}
                 {r.aiScore != null && (
-                  <span className="text-gray-400">{r.aiScore}</span>
+                  <span className="text-gray-400 dark:text-zinc-500">{r.aiScore}</span>
                 )}
               </div>
             </button>
@@ -146,7 +148,7 @@ export function TickerSearch() {
       )}
 
       {open && debouncedQuery.length >= 1 && results.length === 0 && (
-        <div className="absolute left-3 right-3 top-full z-50 mt-0.5 rounded-md border border-gray-200 bg-white px-3 py-2 text-xs text-gray-400 shadow-lg">
+        <div className="absolute left-3 right-3 top-full z-50 mt-0.5 rounded-md border border-gray-200 bg-white px-3 py-2 text-xs text-gray-400 shadow-lg dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-500">
           No tickers found
         </div>
       )}
