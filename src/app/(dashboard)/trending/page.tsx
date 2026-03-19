@@ -295,7 +295,7 @@ export default function TrendingPage() {
       {data?.summary && (
         <div className="grid grid-cols-3 gap-2 md:gap-4">
           <Card>
-            <CardContent className="!px-3 !py-2 md:!px-6 md:!py-4">
+            <CardContent className="px-3! py-2! md:px-6! md:py-4!">
               <p className="text-xs text-gray-500 dark:text-zinc-400 md:text-sm">Trending</p>
               <p className="text-lg font-bold text-gray-900 dark:text-zinc-100 md:text-2xl">
                 {data.summary.totalTrending}
@@ -303,7 +303,7 @@ export default function TrendingPage() {
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="!px-3 !py-2 md:!px-6 md:!py-4">
+            <CardContent className="px-3! py-2! md:px-6! md:py-4!">
               <p className="text-xs text-gray-500 dark:text-zinc-400 md:text-sm">Rising</p>
               <p className="text-lg font-bold text-green-600 dark:text-green-400 md:text-2xl">
                 {data.summary.risingCount}
@@ -311,7 +311,7 @@ export default function TrendingPage() {
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="!px-3 !py-2 md:!px-6 md:!py-4">
+            <CardContent className="px-3! py-2! md:px-6! md:py-4!">
               <p className="text-xs text-gray-500 dark:text-zinc-400 md:text-sm">Avg Score</p>
               <p className="text-lg font-bold text-gray-900 dark:text-zinc-100 md:text-2xl">
                 {data.summary.avgScore}
@@ -356,7 +356,7 @@ export default function TrendingPage() {
               >
                 Previous
               </button>
-              <span className="min-w-[4rem] text-center text-sm text-gray-500 dark:text-zinc-400">
+              <span className="min-w-16 text-center text-sm text-gray-500 dark:text-zinc-400">
                 {page} / {totalPages}
               </span>
               <button
