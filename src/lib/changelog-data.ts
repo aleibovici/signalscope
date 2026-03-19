@@ -9,6 +9,22 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-03-20",
+    title: "Dark Mode & UI Polish",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "Full dark mode support across all dashboard pages — signals, trending, connections, ticker detail, portfolio, performance, and profile.",
+          "Ticker detail page redesigned with cleaner layout, improved trade setup display, and better signal source breakdown.",
+          "Related tickers and co-occurrence panels updated for consistent dark/light theming.",
+          "Signal tiles on the main dashboard redesigned with improved typography and spacing.",
+          "Trending page and sparklines now adapt to the active theme.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-03-19",
     title: "Stage Rename, x402 Payment Tracking & Admin Improvements",
     changes: [
