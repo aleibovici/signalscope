@@ -46,7 +46,7 @@ function SummaryCards({
   windowAvgReturn,
 }: {
   summary: { totalTracked: number; current: PerformanceStats; prior: PerformanceStats };
-  windowAvgReturn: { avg: number; count: number } | null;
+  windowAvgReturn: { avg: number; winRate: number; count: number } | null;
 }) {
   const wrDelta =
     summary.current.count > 0 && summary.prior.count > 0
