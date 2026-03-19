@@ -23,23 +23,23 @@ export default function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-lg">
-      <h1 className="mb-6 text-2xl font-bold text-gray-900">Profile</h1>
+      <h1 className="mb-6 text-2xl font-bold text-gray-900 dark:text-zinc-100">Profile</h1>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-6">
-        <h2 className="mb-4 text-base font-semibold text-gray-800">Username</h2>
+      <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-[#12181f]">
+        <h2 className="mb-4 text-base font-semibold text-gray-800 dark:text-zinc-100">Username</h2>
 
         {isLoading ? (
-          <p className="text-sm text-gray-400">Loading…</p>
+          <p className="text-sm text-gray-400 dark:text-zinc-500">Loading…</p>
         ) : (
           <>
-            <p className="mb-4 text-sm text-gray-500">
+            <p className="mb-4 text-sm text-gray-500 dark:text-zinc-400">
               Your username is shown on social features. It must be 3–20
               characters and can only contain lowercase letters, numbers, and underscores.
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="username" className="mb-1 block text-sm font-medium text-gray-700">
+                <label htmlFor="username" className="mb-1 block text-sm font-medium text-gray-700 dark:text-zinc-300">
                   Username
                 </label>
                 <input
@@ -53,12 +53,12 @@ export default function ProfilePage() {
                   }}
                   placeholder="e.g. swift_falcon_427"
                   maxLength={20}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-blue-400 dark:focus:ring-blue-400"
                 />
               </div>
 
               {updateUsername.isError && (
-                <p className="text-sm text-red-600">
+                <p className="text-sm text-red-600 dark:text-red-400">
                   {updateUsername.error instanceof Error
                     ? updateUsername.error.message
                     : "Something went wrong"}
@@ -66,13 +66,13 @@ export default function ProfilePage() {
               )}
 
               {success && (
-                <p className="text-sm text-green-600">Username updated successfully.</p>
+                <p className="text-sm text-green-600 dark:text-green-400">Username updated successfully.</p>
               )}
 
               <button
                 type="submit"
                 disabled={updateUsername.isPending || !value.trim()}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-600"
               >
                 {updateUsername.isPending ? "Saving…" : "Save username"}
               </button>
@@ -81,14 +81,14 @@ export default function ProfilePage() {
         )}
       </div>
 
-      <div className="mt-6 rounded-xl border border-gray-200 bg-white p-6">
-        <h2 className="mb-4 text-base font-semibold text-gray-800">Email Alerts</h2>
+      <div className="mt-6 rounded-xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-[#12181f]">
+        <h2 className="mb-4 text-base font-semibold text-gray-800 dark:text-zinc-100">Email Alerts</h2>
 
         {isLoading ? (
-          <p className="text-sm text-gray-400">Loading…</p>
+          <p className="text-sm text-gray-400 dark:text-zinc-500">Loading…</p>
         ) : (
           <>
-            <p className="mb-4 text-sm text-gray-500">
+            <p className="mb-4 text-sm text-gray-500 dark:text-zinc-400">
               Receive a daily digest email with all confirmed tickers after each scan.
             </p>
 
@@ -99,8 +99,8 @@ export default function ProfilePage() {
                 aria-checked={profile?.emailAlerts ?? true}
                 onClick={() => updateEmailAlerts.mutate(!profile?.emailAlerts)}
                 disabled={updateEmailAlerts.isPending}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
-                  profile?.emailAlerts ? "bg-blue-600" : "bg-gray-200"
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 dark:focus:ring-offset-[#0a0d12] ${
+                  profile?.emailAlerts ? "bg-blue-600 dark:bg-blue-500" : "bg-gray-200 dark:bg-zinc-600"
                 }`}
               >
                 <span
@@ -109,13 +109,13 @@ export default function ProfilePage() {
                   }`}
                 />
               </button>
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-gray-700 dark:text-zinc-300">
                 {profile?.emailAlerts ? "Enabled" : "Disabled"}
               </span>
             </div>
 
             {updateEmailAlerts.isError && (
-              <p className="mt-2 text-sm text-red-600">
+              <p className="mt-2 text-sm text-red-600 dark:text-red-400">
                 {updateEmailAlerts.error instanceof Error
                   ? updateEmailAlerts.error.message
                   : "Something went wrong"}
@@ -146,50 +146,50 @@ function ApiKeySection() {
   }
 
   return (
-    <div className="mt-6 rounded-xl border border-gray-200 bg-white p-6">
-      <h2 className="mb-4 text-base font-semibold text-gray-800">API Key</h2>
+    <div className="mt-6 rounded-xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-[#12181f]">
+      <h2 className="mb-4 text-base font-semibold text-gray-800 dark:text-zinc-100">API Key</h2>
 
       {isLoading ? (
-        <p className="text-sm text-gray-400">Loading...</p>
+        <p className="text-sm text-gray-400 dark:text-zinc-500">Loading...</p>
       ) : newKey ? (
         <>
-          <p className="mb-3 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+          <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-700 dark:border-amber-800/80 dark:bg-amber-950/40 dark:text-amber-300">
             Save this key now — you won&apos;t see it again.
           </p>
-          <div className="flex items-center gap-2 mb-4">
-            <code className="flex-1 rounded-lg bg-gray-100 px-3 py-2 text-sm font-mono text-gray-800 break-all">
+          <div className="mb-4 flex items-center gap-2">
+            <code className="flex-1 break-all rounded-lg bg-gray-100 px-3 py-2 font-mono text-sm text-gray-800 dark:bg-zinc-900 dark:text-zinc-200">
               {newKey}
             </code>
             <button
               type="button"
               onClick={copyKey}
-              className="shrink-0 rounded-lg bg-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
+              className="shrink-0 rounded-lg bg-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600"
             >
               {copied ? "Copied!" : "Copy"}
             </button>
           </div>
-          <p className="text-xs text-gray-500">
-            Use this key in the <code className="text-gray-600">x-api-key</code> header to authenticate API requests.
+          <p className="text-xs text-gray-500 dark:text-zinc-400">
+            Use this key in the <code className="text-gray-600 dark:text-zinc-500">x-api-key</code> header to authenticate API requests.
             To use with Claude, install the{" "}
-            <a href="/skill/SKILL.md" target="_blank" className="text-blue-600 underline hover:text-blue-700">
+            <a href="/skill/SKILL.md" target="_blank" className="text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
               SignalScope Agent Skill
             </a>.
           </p>
         </>
       ) : data?.apiKey ? (
         <>
-          <p className="mb-4 text-sm text-gray-500">
-            Your API key for programmatic access. Use the <code className="text-gray-600">x-api-key</code> header, or install the{" "}
-            <a href="/skill/SKILL.md" target="_blank" className="text-blue-600 underline hover:text-blue-700">
+          <p className="mb-4 text-sm text-gray-500 dark:text-zinc-400">
+            Your API key for programmatic access. Use the <code className="text-gray-600 dark:text-zinc-500">x-api-key</code> header, or install the{" "}
+            <a href="/skill/SKILL.md" target="_blank" className="text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
               Agent Skill
             </a>{" "}
             to use with Claude.
           </p>
-          <div className="mb-4 rounded-lg bg-gray-50 p-3 text-sm">
+          <div className="mb-4 rounded-lg bg-gray-50 p-3 text-sm dark:bg-zinc-900/60">
             <div className="flex items-center justify-between">
-              <code className="font-mono text-gray-700">{data.apiKey.prefix}</code>
+              <code className="font-mono text-gray-700 dark:text-zinc-300">{data.apiKey.prefix}</code>
             </div>
-            <div className="mt-2 text-xs text-gray-400">
+            <div className="mt-2 text-xs text-gray-400 dark:text-zinc-500">
               Created {new Date(data.apiKey.createdAt).toLocaleDateString()}
               {data.apiKey.lastUsedAt && (
                 <> &middot; Last used {new Date(data.apiKey.lastUsedAt).toLocaleDateString()}</>
@@ -201,7 +201,7 @@ function ApiKeySection() {
               type="button"
               onClick={() => generate.mutate()}
               disabled={generate.isPending}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-600"
             >
               {generate.isPending ? "Regenerating..." : "Regenerate Key"}
             </button>
@@ -209,7 +209,7 @@ function ApiKeySection() {
               type="button"
               onClick={() => revoke.mutate()}
               disabled={revoke.isPending}
-              className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+              className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40"
             >
               {revoke.isPending ? "Revoking..." : "Revoke"}
             </button>
@@ -217,10 +217,10 @@ function ApiKeySection() {
         </>
       ) : (
         <>
-          <p className="mb-4 text-sm text-gray-500">
+          <p className="mb-4 text-sm text-gray-500 dark:text-zinc-400">
             Generate an API key for programmatic access to your SignalScope data.
             Use it with Claude or any HTTP client. See the{" "}
-            <a href="/skill/SKILL.md" target="_blank" className="text-blue-600 underline hover:text-blue-700">
+            <a href="/skill/SKILL.md" target="_blank" className="text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
               Agent Skill
             </a>{" "}
             for setup instructions.
@@ -229,7 +229,7 @@ function ApiKeySection() {
             type="button"
             onClick={() => generate.mutate()}
             disabled={generate.isPending}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-600"
           >
             {generate.isPending ? "Generating..." : "Generate API Key"}
           </button>
@@ -237,7 +237,7 @@ function ApiKeySection() {
       )}
 
       {(generate.isError || revoke.isError) && (
-        <p className="mt-2 text-sm text-red-600">
+        <p className="mt-2 text-sm text-red-600 dark:text-red-400">
           {generate.error instanceof Error ? generate.error.message :
            revoke.error instanceof Error ? revoke.error.message :
            "Something went wrong"}

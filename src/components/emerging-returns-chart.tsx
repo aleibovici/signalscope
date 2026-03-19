@@ -31,14 +31,14 @@ export function EmergingReturnsChart({ data, horizon = 7 }: { data: ReturnEntry[
   const windowAvg = computeWindowAvg(data);
 
   return (
-    <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
+    <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6 dark:border-zinc-800/90 dark:bg-[#12181f] dark:shadow-[0_1px_3px_rgba(0,0,0,0.35)]">
       <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-gray-900">Emerging — Avg {horizon}d Return by Detection Date</h3>
-          <p className="text-xs text-gray-400">7-day rolling average {horizon}-day return for emerging signals, by detection date</p>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">Emerging — Avg {horizon}d Return by Detection Date</h3>
+          <p className="text-xs text-gray-400 dark:text-zinc-500">7-day rolling average {horizon}-day return for emerging signals, by detection date</p>
         </div>
         {windowAvg !== null && (
-          <p className={`text-xl font-bold ${windowAvg > 0 ? "text-green-600" : "text-red-600"}`}>
+          <p className={`text-xl font-bold ${windowAvg > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
             {fmt(windowAvg)}
           </p>
         )}
@@ -49,7 +49,7 @@ export function EmergingReturnsChart({ data, horizon = 7 }: { data: ReturnEntry[
           const isPositive = p.cumReturn >= 0;
           return (
             <div key={p.date} className="flex items-center gap-2 text-xs">
-              <span className="w-16 shrink-0 text-gray-500">
+              <span className="w-16 shrink-0 text-gray-500 dark:text-zinc-400">
                 {new Date(p.date + "T00:00:00Z").toLocaleDateString("en-US", {
                   month: "short",
                   day: "numeric",
@@ -57,9 +57,9 @@ export function EmergingReturnsChart({ data, horizon = 7 }: { data: ReturnEntry[
                 })}
               </span>
               <div className="flex-1">
-                <div className="relative h-4 rounded bg-gray-50">
+                <div className="relative h-4 rounded bg-gray-50 dark:bg-zinc-800/90">
                   <div
-                    className={`absolute top-0 h-4 rounded ${isPositive ? "bg-green-200" : "bg-red-200"}`}
+                    className={`absolute top-0 h-4 rounded ${isPositive ? "bg-green-200 dark:bg-green-700/70" : "bg-red-200 dark:bg-red-800/70"}`}
                     style={{
                       width: `${Math.max(width * 100, 2)}%`,
                       left: isPositive ? "0" : undefined,
@@ -68,10 +68,10 @@ export function EmergingReturnsChart({ data, horizon = 7 }: { data: ReturnEntry[
                   />
                 </div>
               </div>
-              <span className={`w-14 shrink-0 text-right font-medium ${isPositive ? "text-green-600" : "text-red-600"}`}>
+              <span className={`w-14 shrink-0 text-right font-medium ${isPositive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                 {fmt(p.cumReturn)}
               </span>
-              <span className="w-8 shrink-0 text-right text-gray-400">n={p.tradeCount}</span>
+              <span className="w-8 shrink-0 text-right text-gray-400 dark:text-zinc-500">n={p.tradeCount}</span>
             </div>
           );
         })}

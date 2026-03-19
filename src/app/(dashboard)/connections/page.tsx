@@ -9,7 +9,7 @@ import { STAGE_LABELS } from "@/lib/stage-labels";
 import { scoreExplainerConnectionsCallout } from "@/lib/score-explainer";
 
 const selectClass =
-  "h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
+  "h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-blue-400 dark:focus:ring-blue-400";
 
 const SECTOR_LEGEND = [
   { label: "Technology", color: "#3b82f6" },
@@ -44,18 +44,18 @@ export default function ConnectionsPage() {
     <div className="space-y-3 md:space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 md:text-2xl">Connections</h1>
-          <p className="mt-0.5 text-sm text-gray-500">
+          <h1 className="text-xl font-bold text-gray-900 md:text-2xl dark:text-zinc-100">Connections</h1>
+          <p className="mt-0.5 text-sm text-gray-500 dark:text-zinc-400">
             Explore how tickers are connected through co-occurrence in scans
           </p>
-          <p className="mt-2 max-w-3xl text-xs text-slate-600">
+          <p className="mt-2 max-w-3xl text-xs text-slate-600 dark:text-zinc-400">
             {scoreExplainerConnectionsCallout}
           </p>
         </div>
         {filters.symbol && (
           <button
             onClick={() => updateFilter({ symbol: undefined })}
-            className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+            className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
           >
             Show all
           </button>
@@ -63,10 +63,10 @@ export default function ConnectionsPage() {
       </div>
 
       {/* Filters */}
-      <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-3 md:p-4">
+      <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-3 md:p-4 dark:border-zinc-800 dark:bg-zinc-900/40">
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-5">
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">Center Symbol</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">Center Symbol</label>
             <input
               type="text"
               value={filters.symbol || ""}
@@ -77,7 +77,7 @@ export default function ConnectionsPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">Min Co-occurrence</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">Min Co-occurrence</label>
             <select
               value={filters.minWeight || ""}
               onChange={(e) => updateFilter({ minWeight: e.target.value ? Number(e.target.value) : undefined })}
@@ -92,7 +92,7 @@ export default function ConnectionsPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">Stage</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">Stage</label>
             <select
               value={filters.stage || ""}
               onChange={(e) => updateFilter({ stage: e.target.value || undefined })}
@@ -106,7 +106,7 @@ export default function ConnectionsPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">Time Range</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">Time Range</label>
             <select
               value={filters.days || ""}
               onChange={(e) => updateFilter({ days: e.target.value ? Number(e.target.value) : undefined })}
@@ -121,7 +121,7 @@ export default function ConnectionsPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">Max Nodes</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">Max Nodes</label>
             <select
               value={filters.maxNodes || ""}
               onChange={(e) => updateFilter({ maxNodes: e.target.value ? Number(e.target.value) : undefined })}
@@ -139,7 +139,7 @@ export default function ConnectionsPage() {
 
       {/* Auto-threshold notice */}
       {data && data.effectiveMinWeight != null && data.effectiveMinWeight > (filters.minWeight || 2) && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700">
+        <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700 dark:border-blue-800/80 dark:bg-blue-950/40 dark:text-blue-300">
           Auto-raised min co-occurrence to <span className="font-semibold">{data.effectiveMinWeight}</span> for readability.
           {" "}Override with the Min Co-occurrence filter.
         </div>
@@ -149,21 +149,21 @@ export default function ConnectionsPage() {
       {data && (
         <div className="grid grid-cols-3 gap-2 md:gap-4">
           <Card>
-            <CardContent className="!px-3 !py-2 md:!px-6 md:!py-4">
-              <p className="text-xs text-gray-500 md:text-sm">Nodes</p>
-              <p className="text-lg font-bold text-gray-900 md:text-2xl">{data.nodes.length}</p>
+            <CardContent className="px-3! py-2! md:px-6! md:py-4!">
+              <p className="text-xs text-gray-500 md:text-sm dark:text-zinc-400">Nodes</p>
+              <p className="text-lg font-bold text-gray-900 md:text-2xl dark:text-zinc-100">{data.nodes.length}</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="!px-3 !py-2 md:!px-6 md:!py-4">
-              <p className="text-xs text-gray-500 md:text-sm">Edges</p>
-              <p className="text-lg font-bold text-blue-600 md:text-2xl">{data.edges.length}</p>
+            <CardContent className="px-3! py-2! md:px-6! md:py-4!">
+              <p className="text-xs text-gray-500 md:text-sm dark:text-zinc-400">Edges</p>
+              <p className="text-lg font-bold text-blue-600 md:text-2xl dark:text-blue-400">{data.edges.length}</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="!px-3 !py-2 md:!px-6 md:!py-4">
-              <p className="text-xs text-gray-500 md:text-sm">Avg Connections</p>
-              <p className="text-lg font-bold text-gray-900 md:text-2xl">
+            <CardContent className="px-3! py-2! md:px-6! md:py-4!">
+              <p className="text-xs text-gray-500 md:text-sm dark:text-zinc-400">Avg Connections</p>
+              <p className="text-lg font-bold text-gray-900 md:text-2xl dark:text-zinc-100">
                 {data.nodes.length > 0
                   ? ((data.edges.length * 2) / data.nodes.length).toFixed(1)
                   : "0"}
@@ -176,38 +176,38 @@ export default function ConnectionsPage() {
       {/* Graph area */}
       {isLoading ? (
         <div className="flex justify-center py-12">
-          <Spinner className="h-8 w-8 text-blue-600" />
+          <Spinner className="h-8 w-8 text-blue-600 dark:text-blue-400" />
         </div>
       ) : isError ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 py-12 text-center">
-          <p className="text-red-600">Failed to load network data. Please refresh and try again.</p>
+        <div className="rounded-lg border border-red-200 bg-red-50 py-12 text-center dark:border-red-900/60 dark:bg-red-950/30">
+          <p className="text-red-600 dark:text-red-400">Failed to load network data. Please refresh and try again.</p>
         </div>
       ) : !data || data.nodes.length === 0 ? (
-        <p className="py-12 text-center text-sm text-gray-500">
+        <p className="py-12 text-center text-sm text-gray-500 dark:text-zinc-400">
           No connections found{filters.symbol ? ` for ${filters.symbol}` : ""}. Tickers need at least 2 co-occurrences across completed scans.
         </p>
       ) : (
         <Card>
-          <CardContent className="!p-0">
-            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
-              <p className="text-sm text-gray-500">
+          <CardContent className="p-0!">
+            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2 dark:border-zinc-800">
+              <p className="text-sm text-gray-500 dark:text-zinc-400">
                 {filters.symbol ? (
-                  <>Centered on <span className="font-semibold text-gray-700">{filters.symbol}</span></>
+                  <>Centered on <span className="font-semibold text-gray-700 dark:text-zinc-200">{filters.symbol}</span></>
                 ) : (
                   "Top trending tickers"
                 )}
                 {" — "}
-                <span className="text-gray-400">click to select, double-click to re-center, scroll to zoom, drag to pan</span>
+                <span className="text-gray-400 dark:text-zinc-500">click to select, double-click to re-center, scroll to zoom, drag to pan</span>
               </p>
               {/* Color mode toggle */}
-              <div className="flex items-center gap-0.5 rounded-lg border border-gray-200 bg-white p-0.5">
+              <div className="flex items-center gap-0.5 rounded-lg border border-gray-200 bg-white p-0.5 dark:border-zinc-600 dark:bg-zinc-900">
                 <button
                   type="button"
                   onClick={() => setColorMode("stage")}
                   className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                     colorMode === "stage"
-                      ? "bg-blue-600 text-white shadow-sm"
-                      : "text-gray-600 hover:bg-gray-100"
+                      ? "bg-blue-600 text-white shadow-sm dark:bg-blue-500"
+                      : "text-gray-600 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
                   }`}
                 >Stage</button>
                 <button
@@ -215,8 +215,8 @@ export default function ConnectionsPage() {
                   onClick={() => setColorMode("sector")}
                   className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                     colorMode === "sector"
-                      ? "bg-blue-600 text-white shadow-sm"
-                      : "text-gray-600 hover:bg-gray-100"
+                      ? "bg-blue-600 text-white shadow-sm dark:bg-blue-500"
+                      : "text-gray-600 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
                   }`}
                 >Sector</button>
               </div>
@@ -234,10 +234,10 @@ export default function ConnectionsPage() {
 
       {/* Legend */}
       {data && data.nodes.length > 0 && (
-        <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
+        <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 dark:text-zinc-400">
           {colorMode === "stage" ? (
             <>
-              <span className="font-medium text-gray-700">Stages:</span>
+              <span className="font-medium text-gray-700 dark:text-zinc-200">Stages:</span>
               <span className="flex items-center gap-1">
                 <span className="inline-block h-3 w-3 rounded-full bg-green-500" /> {STAGE_LABELS.EARLY}
               </span>
@@ -250,7 +250,7 @@ export default function ConnectionsPage() {
             </>
           ) : (
             <>
-              <span className="font-medium text-gray-700">Sectors:</span>
+              <span className="font-medium text-gray-700 dark:text-zinc-200">Sectors:</span>
               {SECTOR_LEGEND.map((s) => (
                 <span key={s.label} className="flex items-center gap-1">
                   <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: s.color }} /> {s.label}
@@ -258,8 +258,8 @@ export default function ConnectionsPage() {
               ))}
             </>
           )}
-          <span className="ml-2 text-gray-400">Node size = AI score</span>
-          <span className="text-gray-400">Edge thickness = co-occurrence count</span>
+          <span className="ml-2 text-gray-400 dark:text-zinc-500">Node size = AI score</span>
+          <span className="text-gray-400 dark:text-zinc-500">Edge thickness = co-occurrence count</span>
         </div>
       )}
     </div>
