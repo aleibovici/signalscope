@@ -11,7 +11,7 @@ description: >
 
 ## Overview
 
-SignalScope is a stock breakout signal detection platform. It monitors Reddit, X/Twitter, StockTwits, SEC insider filings, options flow, and volume spikes for signals, then scores them with AI, filters pump-and-dump candidates, and presents validated tickers ranked by confidence.
+SignalScope is a stock breakout signal detection platform. It monitors Reddit, X/Twitter, StockTwits, SEC insider filings, congressional trades, options flow, and volume spikes for signals, then scores them with AI, filters pump-and-dump candidates, and presents validated tickers ranked by confidence.
 
 **Base URL:** `http://localhost:3000`
 
@@ -49,8 +49,10 @@ Pay-per-call in USDC on Base (L2). No account or API key needed. Each request to
 
 **Free (no auth, no payment):**
 - `GET /api/search` — symbol discovery endpoint
-- `GET /api/methodology` — platform methodology
 - `GET /api/health` — health check
+
+**Requires API key or session (not x402):**
+- `GET /api/methodology` — platform methodology, scoring, and P&D detection details
 
 ```bash
 # Example: x402 flow (most x402 clients handle this automatically)
@@ -79,7 +81,7 @@ curl -H "X-PAYMENT: <payment-proof>" http://localhost:3000/api/tickers/trending
 x-api-key: sk_sig_your_key_here
 ```
 
-API keys provide access to all endpoints including account management (portfolio, watchlist, profile).
+API keys provide access to all endpoints including account management (portfolio, watchlist, profile). Exception: `POST /api/tickers/:symbol/report` is not available via API key — use x402 or a browser session.
 
 ## Key Concepts
 
@@ -161,8 +163,8 @@ curl -H "x-api-key: $KEY" http://localhost:3000/api/tickers/AAPL/performance
 # Co-occurring tickers (appear in same scans)
 curl -H "x-api-key: $KEY" http://localhost:3000/api/tickers/AAPL/related
 
-# Generate AI report + trade setup ($0.05 via x402, or free with API key)
-curl -X POST -H "x-api-key: $KEY" http://localhost:3000/api/tickers/AAPL/report
+# Generate AI report + trade setup ($0.05 via x402; NOT available via API key)
+# Use x402 payment or a browser session for this endpoint
 ```
 
 ### Manage portfolio
