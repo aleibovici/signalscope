@@ -61,8 +61,8 @@ export async function GET() {
     const winRate = wins / returns.length;
     const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
 
-    // Early-stage stats (emerging + building)
-    const earlyRecords = withReturn.filter((r) => r.validatedTicker.stage === "EARLY" || r.validatedTicker.stage === "FORMING");
+    // Early-stage stats (emerging only)
+    const earlyRecords = withReturn.filter((r) => r.validatedTicker.stage === "EARLY");
     const earlyReturns = earlyRecords.map((r) => r[col] as number);
     const earlyWins = earlyReturns.filter((r) => r > 0).length;
     const earlyWinRate = earlyReturns.length > 0 ? earlyWins / earlyReturns.length : 0;
@@ -70,8 +70,8 @@ export async function GET() {
       ? earlyReturns.reduce((a, b) => a + b, 0) / earlyReturns.length
       : 0;
 
-    // Cumulative avg return by detection date — emerging + building signals
-    const earlyWithReturn = withReturn.filter((r) => r.validatedTicker.stage === "EARLY" || r.validatedTicker.stage === "FORMING");
+    // Cumulative avg return by detection date — emerging signals only
+    const earlyWithReturn = withReturn.filter((r) => r.validatedTicker.stage === "EARLY");
     const sorted = [...earlyWithReturn].sort(
       (a, b) =>
         a.validatedTicker.createdAt.getTime() -
