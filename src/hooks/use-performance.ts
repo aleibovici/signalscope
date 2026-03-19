@@ -73,6 +73,7 @@ export interface CumulativeReturnEntry {
   date: string;
   cumReturn: number;
   tradeCount: number;
+  winCount: number;
 }
 
 export interface PerformanceSummary {
