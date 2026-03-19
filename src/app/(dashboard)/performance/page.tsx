@@ -62,23 +62,23 @@ function SummaryCards({
     <div className="grid gap-4 sm:grid-cols-4">
       <Card>
         <CardContent className="pt-6 text-center">
-          <p className="text-sm text-gray-500">Total Tracked</p>
-          <p className="text-3xl font-bold text-gray-900">
+          <p className="text-sm text-gray-500 dark:text-zinc-400">Total Tracked</p>
+          <p className="text-3xl font-bold text-gray-900 dark:text-zinc-100">
             {summary.totalTracked}
           </p>
-          <p className="mt-1 text-xs text-gray-400">all time, deduplicated</p>
+          <p className="mt-1 text-xs text-gray-400 dark:text-zinc-500">all time, deduplicated</p>
         </CardContent>
       </Card>
 
       <Card>
         <CardContent className="pt-6 text-center">
-          <p className="text-sm text-gray-500">Win Rate (emerging)</p>
-          <p className="text-3xl font-bold text-green-600">
+          <p className="text-sm text-gray-500 dark:text-zinc-400">Win Rate (emerging)</p>
+          <p className="text-3xl font-bold text-green-600 dark:text-green-400">
             {windowAvgReturn
               ? `${(windowAvgReturn.winRate * 100).toFixed(0)}%`
               : "--"}
           </p>
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="mt-1 text-xs text-gray-400 dark:text-zinc-500">
             {windowAvgReturn ? `${windowAvgReturn.count} signals` : "no data"}
           </p>
         </CardContent>
@@ -86,36 +86,36 @@ function SummaryCards({
 
       <Card>
         <CardContent className="pt-6 text-center">
-          <p className="text-sm text-gray-500">Avg Return (emerging)</p>
+          <p className="text-sm text-gray-500 dark:text-zinc-400">Avg Return (emerging)</p>
           <p
             className={`text-3xl font-bold ${
               windowAvgReturn && windowAvgReturn.avg > 0
-                ? "text-green-600"
+                ? "text-green-600 dark:text-green-400"
                 : windowAvgReturn && windowAvgReturn.avg < 0
-                  ? "text-red-600"
-                  : "text-gray-900"
+                  ? "text-red-600 dark:text-red-400"
+                  : "text-gray-900 dark:text-zinc-100"
             }`}
           >
             {windowAvgReturn ? formatPct(windowAvgReturn.avg) : "--"}
           </p>
-          <p className="mt-1 text-xs text-gray-400">{windowAvgReturn ? `${windowAvgReturn.count} signals` : "no data"}</p>
+          <p className="mt-1 text-xs text-gray-400 dark:text-zinc-500">{windowAvgReturn ? `${windowAvgReturn.count} signals` : "no data"}</p>
         </CardContent>
       </Card>
 
       <Card>
         <CardContent className="pt-6 text-center">
-          <p className="text-sm text-gray-500">Last 30d vs Prior 30d</p>
+          <p className="text-sm text-gray-500 dark:text-zinc-400">Last 30d vs Prior 30d</p>
           <div className="mt-1 space-y-1">
             {wrDelta !== null ? (
               <p className="text-sm">
-                <span className="text-gray-500">Win rate </span>
+                <span className="text-gray-500 dark:text-zinc-400">Win rate </span>
                 <span
                   className={`font-semibold ${
                     wrDelta > 0
-                      ? "text-green-600"
+                      ? "text-green-600 dark:text-green-400"
                       : wrDelta < 0
-                        ? "text-red-600"
-                        : "text-gray-600"
+                        ? "text-red-600 dark:text-red-400"
+                        : "text-gray-600 dark:text-zinc-300"
                   }`}
                 >
                   {wrDelta > 0 ? "+" : ""}
@@ -123,28 +123,28 @@ function SummaryCards({
                 </span>
               </p>
             ) : (
-              <p className="text-sm text-gray-400">--</p>
+              <p className="text-sm text-gray-400 dark:text-zinc-500">--</p>
             )}
             {arDelta !== null ? (
               <p className="text-sm">
-                <span className="text-gray-500">Avg return </span>
+                <span className="text-gray-500 dark:text-zinc-400">Avg return </span>
                 <span
                   className={`font-semibold ${
                     arDelta > 0
-                      ? "text-green-600"
+                      ? "text-green-600 dark:text-green-400"
                       : arDelta < 0
-                        ? "text-red-600"
-                        : "text-gray-600"
+                        ? "text-red-600 dark:text-red-400"
+                        : "text-gray-600 dark:text-zinc-300"
                   }`}
                 >
                   {formatPct(arDelta)}
                 </span>
               </p>
             ) : (
-              <p className="text-sm text-gray-400">--</p>
+              <p className="text-sm text-gray-400 dark:text-zinc-500">--</p>
             )}
           </div>
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="mt-1 text-xs text-gray-400 dark:text-zinc-500">
             {summary.current.count} recent / {summary.prior.count} prior
           </p>
         </CardContent>
@@ -162,8 +162,8 @@ function CohortTable({ cohorts }: { cohorts: CohortEntry[] }) {
   return (
     <Card>
       <CardHeader>
-        <h3 className="font-semibold">Weekly Signal Cohorts</h3>
-        <p className="text-xs text-gray-400">
+        <h3 className="font-semibold text-gray-900 dark:text-zinc-100">Weekly Signal Cohorts</h3>
+        <p className="text-xs text-gray-400 dark:text-zinc-500">
           Signals grouped by detection week — how did each week&apos;s picks perform?
         </p>
       </CardHeader>
@@ -171,7 +171,7 @@ function CohortTable({ cohorts }: { cohorts: CohortEntry[] }) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 text-left text-xs text-gray-500">
+              <tr className="border-b border-gray-100 text-left text-xs text-gray-500 dark:border-zinc-800 dark:text-zinc-400">
                 <th className="pb-2 pr-4 font-medium">Week</th>
                 <th className="pb-2 pr-3 font-medium text-right">Signals</th>
                 {horizons.map((h) => (
@@ -189,11 +189,11 @@ function CohortTable({ cohorts }: { cohorts: CohortEntry[] }) {
             </thead>
             <tbody>
               {cohorts.map((c) => (
-                <tr key={c.weekStart} className="border-b border-gray-50">
-                  <td className="py-2 pr-4 font-medium text-gray-700 whitespace-nowrap">
+                <tr key={c.weekStart} className="border-b border-gray-50 dark:border-zinc-800/80">
+                  <td className="py-2 pr-4 font-medium whitespace-nowrap text-gray-700 dark:text-zinc-200">
                     {c.weekLabel}
                   </td>
-                  <td className="py-2 pr-3 text-right text-gray-600">
+                  <td className="py-2 pr-3 text-right text-gray-600 dark:text-zinc-400">
                     {c.count}
                   </td>
                   {horizons.map((h) => {
@@ -201,7 +201,7 @@ function CohortTable({ cohorts }: { cohorts: CohortEntry[] }) {
                     return (
                       <td
                         key={`wr-${h}`}
-                        className="py-2 pr-3 text-right text-gray-600"
+                        className="py-2 pr-3 text-right text-gray-600 dark:text-zinc-400"
                       >
                         {s ? `${(s.winRate * 100).toFixed(0)}%` : "--"}
                       </td>
@@ -214,10 +214,10 @@ function CohortTable({ cohorts }: { cohorts: CohortEntry[] }) {
                         key={`ar-${h}`}
                         className={`py-2 pr-3 text-right font-medium ${
                           s && s.avgReturn > 0
-                            ? "text-green-600"
+                            ? "text-green-600 dark:text-green-400"
                             : s && s.avgReturn < 0
-                              ? "text-red-600"
-                              : "text-gray-400"
+                              ? "text-red-600 dark:text-red-400"
+                              : "text-gray-400 dark:text-zinc-500"
                         }`}
                       >
                         {s ? formatPct(s.avgReturn) : "--"}
@@ -228,21 +228,21 @@ function CohortTable({ cohorts }: { cohorts: CohortEntry[] }) {
                     {c.bestPick ? (
                       <a
                         href={`/ticker/${c.bestPick.symbol}`}
-                        className="text-blue-600 hover:underline"
+                        className="text-blue-600 hover:underline dark:text-blue-400"
                       >
                         {c.bestPick.symbol}{" "}
                         <span
                           className={
                             c.bestPick.returnPct > 0
-                              ? "text-green-600"
-                              : "text-red-600"
+                              ? "text-green-600 dark:text-green-400"
+                              : "text-red-600 dark:text-red-400"
                           }
                         >
                           {formatPctShort(c.bestPick.returnPct)}
                         </span>
                       </a>
                     ) : (
-                      <span className="text-gray-400">--</span>
+                      <span className="text-gray-400 dark:text-zinc-500">--</span>
                     )}
                   </td>
                 </tr>
@@ -272,16 +272,16 @@ function StatsTable({
   return (
     <Card>
       <CardHeader>
-        <h3 className="font-semibold">{title}</h3>
+        <h3 className="font-semibold text-gray-900 dark:text-zinc-100">{title}</h3>
         {description && (
-          <p className="text-xs text-gray-400">{description}</p>
+          <p className="text-xs text-gray-400 dark:text-zinc-500">{description}</p>
         )}
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 text-left text-xs text-gray-500">
+              <tr className="border-b border-gray-100 text-left text-xs text-gray-500 dark:border-zinc-800 dark:text-zinc-400">
                 <th className="pb-2 pr-4 font-medium">Category</th>
                 <th className="pb-2 pr-4 font-medium text-right">Count</th>
                 <th className="pb-2 pr-4 font-medium text-right">Win Rate</th>
@@ -291,23 +291,23 @@ function StatsTable({
             </thead>
             <tbody>
               {entries.map(([key, stats]) => (
-                <tr key={key} className="border-b border-gray-50">
-                  <td className="py-1.5 pr-4 font-medium text-gray-700">
+                <tr key={key} className="border-b border-gray-50 dark:border-zinc-800/80">
+                  <td className="py-1.5 pr-4 font-medium text-gray-700 dark:text-zinc-200">
                     {STAGE_LABELS[key] ?? key.replace(/_/g, " ")}
                   </td>
-                  <td className="py-1.5 pr-4 text-right text-gray-600">
+                  <td className="py-1.5 pr-4 text-right text-gray-600 dark:text-zinc-400">
                     {stats.count}
                   </td>
-                  <td className="py-1.5 pr-4 text-right text-gray-600">
+                  <td className="py-1.5 pr-4 text-right text-gray-600 dark:text-zinc-400">
                     {(stats.winRate * 100).toFixed(0)}%
                   </td>
                   <td
                     className={`py-1.5 pr-4 text-right font-medium ${
                       stats.avgReturn > 0
-                        ? "text-green-600"
+                        ? "text-green-600 dark:text-green-400"
                         : stats.avgReturn < 0
-                          ? "text-red-600"
-                          : "text-gray-600"
+                          ? "text-red-600 dark:text-red-400"
+                          : "text-gray-600 dark:text-zinc-400"
                     }`}
                   >
                     {formatPct(stats.avgReturn)}
@@ -315,10 +315,10 @@ function StatsTable({
                   <td
                     className={`py-1.5 text-right font-medium ${
                       stats.medianReturn > 0
-                        ? "text-green-600"
+                        ? "text-green-600 dark:text-green-400"
                         : stats.medianReturn < 0
-                          ? "text-red-600"
-                          : "text-gray-600"
+                          ? "text-red-600 dark:text-red-400"
+                          : "text-gray-600 dark:text-zinc-400"
                     }`}
                   >
                     {formatPct(stats.medianReturn)}
@@ -346,13 +346,13 @@ function PerformersTable({
   return (
     <Card>
       <CardHeader>
-        <h3 className="font-semibold">{title}</h3>
+        <h3 className="font-semibold text-gray-900 dark:text-zinc-100">{title}</h3>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 text-left text-xs text-gray-500">
+              <tr className="border-b border-gray-100 text-left text-xs text-gray-500 dark:border-zinc-800 dark:text-zinc-400">
                 <th className="pb-2 pr-4 font-medium">Symbol</th>
                 <th className="pb-2 pr-4 font-medium text-right">Return</th>
                 <th className="pb-2 pr-4 font-medium text-right">Score</th>
@@ -362,28 +362,28 @@ function PerformersTable({
             </thead>
             <tbody>
               {performers.map((p, i) => (
-                <tr key={`${p.symbol}-${i}`} className="border-b border-gray-50">
-                  <td className="py-1.5 pr-4 font-medium text-blue-600">
+                <tr key={`${p.symbol}-${i}`} className="border-b border-gray-50 dark:border-zinc-800/80">
+                  <td className="py-1.5 pr-4 font-medium text-blue-600 dark:text-blue-400">
                     <a href={`/ticker/${p.symbol}`}>{p.symbol}</a>
                   </td>
                   <td
                     className={`py-1.5 pr-4 text-right font-medium ${
-                      p.return > 0 ? "text-green-600" : "text-red-600"
+                      p.return > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                     }`}
                   >
                     {formatPct(p.return)}
                   </td>
-                  <td className="py-1.5 pr-4 text-right text-gray-600">
+                  <td className="py-1.5 pr-4 text-right text-gray-600 dark:text-zinc-400">
                     {p.aiScore}
                   </td>
-                  <td className="py-1.5 pr-4 text-gray-500 whitespace-nowrap">
+                  <td className="py-1.5 pr-4 whitespace-nowrap text-gray-500 dark:text-zinc-500">
                     {new Date(p.detectedAt + "T00:00:00Z").toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
                       timeZone: "UTC",
                     })}
                   </td>
-                  <td className="py-1.5 text-right text-gray-600">
+                  <td className="py-1.5 text-right text-gray-600 dark:text-zinc-400">
                     ${p.detectionPrice.toFixed(2)} → ${p.currentPrice.toFixed(2)}
                   </td>
                 </tr>
@@ -405,20 +405,20 @@ export default function PerformancePage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold md:text-2xl">Signal Performance</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-xl font-bold text-gray-900 md:text-2xl dark:text-zinc-100">Signal Performance</h1>
+          <p className="text-sm text-gray-500 dark:text-zinc-400">
             How signals perform after detection — broken down by week, stage, and type
           </p>
         </div>
-        <div className="flex rounded-lg border border-gray-200 bg-white p-1">
+        <div className="flex rounded-lg border border-gray-200 bg-white p-1 dark:border-zinc-600 dark:bg-zinc-900">
           {INTERVALS.map((iv) => (
             <button
               key={iv.days}
               onClick={() => setDays(iv.days)}
               className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 days === iv.days
-                  ? "bg-blue-600 text-white"
-                  : "text-gray-600 hover:bg-gray-100"
+                  ? "bg-blue-600 text-white dark:bg-blue-500"
+                  : "text-gray-600 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
               }`}
             >
               {iv.label}
@@ -429,12 +429,12 @@ export default function PerformancePage() {
 
       {isLoading && (
         <div className="flex justify-center py-12">
-          <Spinner className="h-8 w-8 text-blue-600" />
+          <Spinner className="h-8 w-8 text-blue-600 dark:text-blue-400" />
         </div>
       )}
 
       {error && (
-        <p className="text-center text-gray-500">
+        <p className="text-center text-gray-500 dark:text-zinc-400">
           Failed to load performance data.
         </p>
       )}
@@ -448,8 +448,8 @@ export default function PerformancePage() {
           {data.byStage.Emerging && data.byStage.Consensus && data.byStage.Emerging.avgReturn > data.byStage.Consensus.avgReturn && (
             <Card>
               <CardContent className="py-4">
-                <p className="text-sm text-gray-600">
-                  <span className="font-semibold text-gray-900">Insight:</span>{" "}
+                <p className="text-sm text-gray-600 dark:text-zinc-300">
+                  <span className="font-semibold text-gray-900 dark:text-zinc-100">Insight:</span>{" "}
                   Emerging signals outperform later stages. They catch momentum before consensus forms
                   — by the time a ticker reaches Consensus (broad social agreement), the move has often already happened.
                   Consider Emerging signals as entry points and Consensus as a signal that the opportunity may be priced in.
@@ -471,7 +471,7 @@ export default function PerformancePage() {
           </div>
           <Card>
             <CardContent className="py-4">
-              <p className="text-sm text-gray-600">{scoreExplainerPerformanceInsight}</p>
+              <p className="text-sm text-gray-600 dark:text-zinc-300">{scoreExplainerPerformanceInsight}</p>
             </CardContent>
           </Card>
 

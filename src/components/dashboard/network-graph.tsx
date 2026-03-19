@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
+import { useTheme } from "next-themes";
 import { Badge } from "@/components/ui/badge";
 import { stageLabel } from "@/lib/stage-labels";
 import type { NetworkNode, NetworkEdge } from "@/hooks/use-network";
@@ -112,6 +113,8 @@ function runSimulation(
 }
 
 export function NetworkGraph({ nodes, edges, centerSymbol, colorMode = "stage", onNodeClick }: NetworkGraphProps) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragPos, setDragPos] = useState<{ symbol: string; x: number; y: number } | null>(null);
@@ -277,7 +280,7 @@ export function NetworkGraph({ nodes, edges, centerSymbol, colorMode = "stage", 
             const nw = v.w * 0.8, nh = v.h * 0.8;
             return { x: v.x + (v.w - nw) / 2, y: v.y + (v.h - nh) / 2, w: nw, h: nh };
           })}
-          className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white text-sm font-bold text-gray-600 shadow-sm hover:bg-gray-50"
+          className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white text-sm font-bold text-gray-600 shadow-sm hover:bg-gray-50 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
           aria-label="Zoom in"
         >+</button>
         <button
@@ -286,13 +289,13 @@ export function NetworkGraph({ nodes, edges, centerSymbol, colorMode = "stage", 
             const nw = v.w * 1.25, nh = v.h * 1.25;
             return { x: v.x - (nw - v.w) / 2, y: v.y - (nh - v.h) / 2, w: nw, h: nh };
           })}
-          className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white text-sm font-bold text-gray-600 shadow-sm hover:bg-gray-50"
+          className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white text-sm font-bold text-gray-600 shadow-sm hover:bg-gray-50 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
           aria-label="Zoom out"
         >&minus;</button>
         <button
           type="button"
           onClick={handleResetZoom}
-          className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white text-[10px] font-medium text-gray-500 shadow-sm hover:bg-gray-50"
+          className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white text-[10px] font-medium text-gray-500 shadow-sm hover:bg-gray-50 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800"
           aria-label="Reset zoom"
         >1:1</button>
       </div>
@@ -327,7 +330,9 @@ export function NetworkGraph({ nodes, edges, centerSymbol, colorMode = "stage", 
             <line
               key={`${edge.source}-${edge.target}`}
               x1={a.x} y1={a.y} x2={b.x} y2={b.y}
-              stroke={isEdgeHovered ? "#1d4ed8" : isConnected ? "#3b82f6" : "#e5e7eb"}
+              stroke={
+                isEdgeHovered ? "#1d4ed8" : isConnected ? "#3b82f6" : isDark ? "#52525b" : "#e5e7eb"
+              }
               strokeWidth={1 + (edge.weight / maxWeight) * 3}
               strokeOpacity={dimmed ? 0.08 : isConnected ? 0.7 : 0.3}
               className="cursor-pointer"
@@ -361,7 +366,19 @@ export function NetworkGraph({ nodes, edges, centerSymbol, colorMode = "stage", 
                 cx={node.x} cy={node.y} r={r}
                 fill={getNodeColor(node, colorMode)}
                 fillOpacity={isHovered || isSelected ? 1 : 0.85}
-                stroke={isSelected ? "#1e40af" : isCenter ? "#1e40af" : isHovered ? "#374151" : "white"}
+                stroke={
+                  isSelected
+                    ? "#1e40af"
+                    : isCenter
+                      ? "#1e40af"
+                      : isHovered
+                        ? isDark
+                          ? "#a1a1aa"
+                          : "#374151"
+                        : isDark
+                          ? "#27272a"
+                          : "white"
+                }
                 strokeWidth={isSelected ? 3 : isCenter ? 3 : 2}
                 className="cursor-pointer"
                 onPointerDown={(e) => handleNodePointerDown(node.symbol, e)}
@@ -377,7 +394,7 @@ export function NetworkGraph({ nodes, edges, centerSymbol, colorMode = "stage", 
               <text
                 x={node.x} y={node.y + r + 12}
                 textAnchor="middle"
-                className="pointer-events-none select-none fill-gray-700 text-[10px] font-medium"
+                className="pointer-events-none select-none fill-gray-700 text-[10px] font-medium dark:fill-zinc-300"
                 opacity={dimmed ? 0.3 : 1}
               >
                 {node.symbol}
@@ -393,23 +410,23 @@ export function NetworkGraph({ nodes, edges, centerSymbol, colorMode = "stage", 
         if (!node) return null;
         return (
           <div
-            className="pointer-events-none absolute z-10 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-lg"
+            className="pointer-events-none absolute z-10 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-lg dark:border-zinc-600 dark:bg-zinc-900"
             style={{ left: tooltip.x, top: tooltip.y, transform: "translate(-50%, -100%)" }}
           >
             <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold">{node.symbol}</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-zinc-100">{node.symbol}</span>
               <Badge variant={node.stage === "Emerging" ? "success" : node.stage === "Building" ? "warning" : "info"}>
                 {stageLabel(node.stage)}
               </Badge>
             </div>
-            {node.name && <p className="text-xs text-gray-500">{node.name}</p>}
-            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-600">
+            {node.name && <p className="text-xs text-gray-500 dark:text-zinc-400">{node.name}</p>}
+            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-600 dark:text-zinc-300">
               <span>Opp: {node.opportunityScore}</span>
               <span>Conf: {node.aiScore}</span>
               {node.price != null && <span>${node.price.toFixed(2)}</span>}
               {node.sector && <span>{node.sector}</span>}
             </div>
-            <p className="mt-0.5 text-[10px] text-gray-400">Click to select &middot; Double-click to re-center</p>
+            <p className="mt-0.5 text-[10px] text-gray-400 dark:text-zinc-500">Click to select &middot; Double-click to re-center</p>
           </div>
         );
       })()}
@@ -417,13 +434,13 @@ export function NetworkGraph({ nodes, edges, centerSymbol, colorMode = "stage", 
       {/* Edge hover tooltip */}
       {edgeTooltip && (
         <div
-          className="pointer-events-none absolute z-10 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-lg"
+          className="pointer-events-none absolute z-10 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-lg dark:border-zinc-600 dark:bg-zinc-900"
           style={{ left: edgeTooltip.x, top: edgeTooltip.y, transform: "translate(-50%, -100%)" }}
         >
-          <p className="text-sm font-semibold">
+          <p className="text-sm font-semibold text-gray-900 dark:text-zinc-100">
             {edgeTooltip.edge.source} &harr; {edgeTooltip.edge.target}
           </p>
-          <div className="mt-0.5 flex gap-3 text-xs text-gray-600">
+          <div className="mt-0.5 flex gap-3 text-xs text-gray-600 dark:text-zinc-300">
             <span>{edgeTooltip.edge.weight} shared scans</span>
             <span>{Math.round(edgeTooltip.edge.correlation * 100)}% correlation</span>
           </div>
@@ -432,11 +449,11 @@ export function NetworkGraph({ nodes, edges, centerSymbol, colorMode = "stage", 
 
       {/* Selected node detail panel */}
       {selectedData && (
-        <div className="absolute bottom-3 left-3 z-10 w-64 rounded-xl border border-gray-200 bg-white/95 shadow-lg backdrop-blur-sm">
-          <div className="border-b border-gray-100 px-4 py-3">
+        <div className="absolute bottom-3 left-3 z-10 w-64 rounded-xl border border-gray-200 bg-white/95 shadow-lg backdrop-blur-sm dark:border-zinc-600 dark:bg-zinc-900/95">
+          <div className="border-b border-gray-100 px-4 py-3 dark:border-zinc-800">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-base font-bold">{selectedData.symbol}</span>
+                <span className="text-base font-bold text-gray-900 dark:text-zinc-100">{selectedData.symbol}</span>
                 <Badge variant={selectedData.stage === "Emerging" ? "success" : selectedData.stage === "Building" ? "warning" : "info"}>
                   {stageLabel(selectedData.stage)}
                 </Badge>
@@ -444,7 +461,7 @@ export function NetworkGraph({ nodes, edges, centerSymbol, colorMode = "stage", 
               <button
                 type="button"
                 onClick={() => setSelectedNode(null)}
-                className="flex h-5 w-5 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                className="flex h-5 w-5 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
                 aria-label="Close"
               >
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
@@ -452,50 +469,52 @@ export function NetworkGraph({ nodes, edges, centerSymbol, colorMode = "stage", 
                 </svg>
               </button>
             </div>
-            {selectedData.name && <p className="mt-0.5 text-xs text-gray-500">{selectedData.name}</p>}
+            {selectedData.name && <p className="mt-0.5 text-xs text-gray-500 dark:text-zinc-400">{selectedData.name}</p>}
           </div>
           <div className="space-y-1.5 px-4 py-3 text-xs">
             <div className="flex justify-between">
-              <span className="text-gray-500">Opportunity</span>
-              <span className="font-semibold text-blue-600">{selectedData.opportunityScore}/100</span>
+              <span className="text-gray-500 dark:text-zinc-400">Opportunity</span>
+              <span className="font-semibold text-blue-600 dark:text-blue-400">{selectedData.opportunityScore}/100</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Confidence</span>
-              <span className="font-medium text-gray-800">{selectedData.aiScore}/100</span>
+              <span className="text-gray-500 dark:text-zinc-400">Confidence</span>
+              <span className="font-medium text-gray-800 dark:text-zinc-200">{selectedData.aiScore}/100</span>
             </div>
             {selectedData.price != null && (
               <div className="flex justify-between">
-                <span className="text-gray-500">Price</span>
-                <span className="font-medium">${selectedData.price.toFixed(2)}</span>
+                <span className="text-gray-500 dark:text-zinc-400">Price</span>
+                <span className="font-medium text-gray-900 dark:text-zinc-100">${selectedData.price.toFixed(2)}</span>
               </div>
             )}
             {selectedData.marketCap != null && (
               <div className="flex justify-between">
-                <span className="text-gray-500">Market Cap</span>
-                <span className="font-medium">${(selectedData.marketCap / 1e9).toFixed(2)}B</span>
+                <span className="text-gray-500 dark:text-zinc-400">Market Cap</span>
+                <span className="font-medium text-gray-900 dark:text-zinc-100">${(selectedData.marketCap / 1e9).toFixed(2)}B</span>
               </div>
             )}
             {selectedData.sector && (
               <div className="flex justify-between">
-                <span className="text-gray-500">Sector</span>
-                <span className="font-medium">{selectedData.sector}</span>
+                <span className="text-gray-500 dark:text-zinc-400">Sector</span>
+                <span className="font-medium text-gray-900 dark:text-zinc-100">{selectedData.sector}</span>
               </div>
             )}
             {selectedData.recommendation && (
               <div className="flex justify-between">
-                <span className="text-gray-500">Recommendation</span>
-                <span className={`font-medium ${selectedData.recommendation === "Avoid" ? "text-red-600" : "text-green-600"}`}>
+                <span className="text-gray-500 dark:text-zinc-400">Recommendation</span>
+                <span
+                  className={`font-medium ${selectedData.recommendation === "Avoid" ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}`}
+                >
                   {selectedData.recommendation}
                 </span>
               </div>
             )}
             <div className="flex justify-between">
-              <span className="text-gray-500">Connections</span>
-              <span className="font-medium">{selectedEdges.length}</span>
+              <span className="text-gray-500 dark:text-zinc-400">Connections</span>
+              <span className="font-medium text-gray-900 dark:text-zinc-100">{selectedEdges.length}</span>
             </div>
             {selectedEdges.length > 0 && (
               <div className="mt-1">
-                <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-400">Top connections</p>
+                <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-zinc-500">Top connections</p>
                 <div className="space-y-0.5">
                   {selectedEdges.slice(0, 5).map((e) => {
                     const other = e.source === selectedNode ? e.target : e.source;
@@ -504,9 +523,9 @@ export function NetworkGraph({ nodes, edges, centerSymbol, colorMode = "stage", 
                         <button
                           type="button"
                           onClick={() => { setSelectedNode(other); }}
-                          className="font-medium text-blue-600 hover:underline"
+                          className="font-medium text-blue-600 hover:underline dark:text-blue-400"
                         >{other}</button>
-                        <span className="text-gray-400">{e.weight} scans ({Math.round(e.correlation * 100)}%)</span>
+                        <span className="text-gray-400 dark:text-zinc-500">{e.weight} scans ({Math.round(e.correlation * 100)}%)</span>
                       </div>
                     );
                   })}
@@ -514,10 +533,10 @@ export function NetworkGraph({ nodes, edges, centerSymbol, colorMode = "stage", 
               </div>
             )}
           </div>
-          <div className="border-t border-gray-100 px-4 py-2">
+          <div className="border-t border-gray-100 px-4 py-2 dark:border-zinc-800">
             <Link
               href={`/ticker/${selectedData.symbol}`}
-              className="block text-center text-xs font-medium text-blue-600 hover:underline"
+              className="block text-center text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
             >
               View ticker detail &rarr;
             </Link>

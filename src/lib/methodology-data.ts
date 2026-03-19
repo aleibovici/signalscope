@@ -117,22 +117,22 @@ export const pndFlags: PndFlag[] = [
 export const signalStages: SignalStage[] = [
   {
     stage: "EARLY",
-    color: "bg-green-100 text-green-800",
+    color: "bg-green-100 text-green-800 dark:bg-green-950/50 dark:text-green-300",
     desc: "Score ≥40, multiple sources or novel ticker. Earliest detection point with highest alpha potential.",
   },
   {
     stage: "FORMING",
-    color: "bg-yellow-100 text-yellow-800",
+    color: "bg-yellow-100 text-yellow-800 dark:bg-amber-950/40 dark:text-amber-300",
     desc: "Score ≥45–50 with velocity or multi-source. Momentum is building but the move may have started.",
   },
   {
     stage: "CONFIRMED",
-    color: "bg-blue-100 text-blue-800",
+    color: "bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300",
     desc: "Score ≥65–70 with broad, fresh social agreement or exchange-specific breakout patterns. Stale signals (median age ≥6 h) are excluded — the move may already be priced in.",
   },
   {
     stage: "FILTERED",
-    color: "bg-red-100 text-red-800",
+    color: "bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300",
     desc: "Failed P&D check. Quarantined and visible in the Filtered tab.",
   },
 ];
@@ -140,22 +140,22 @@ export const signalStages: SignalStage[] = [
 export const recommendationLevels: RecommendationLevel[] = [
   {
     level: "Strong Buy",
-    color: "bg-green-600 text-white",
+    color: "bg-green-600 text-white dark:bg-green-700 dark:text-white",
     desc: "Real catalyst + insider/options + multi-source corroboration (rare).",
   },
   {
     level: "Buy",
-    color: "bg-green-100 text-green-800",
+    color: "bg-green-100 text-green-800 dark:bg-green-950/50 dark:text-green-300",
     desc: "Real catalyst with ≥2 corroborating sources.",
   },
   {
     level: "Watch",
-    color: "bg-yellow-100 text-yellow-800",
+    color: "bg-yellow-100 text-yellow-800 dark:bg-amber-950/40 dark:text-amber-300",
     desc: "Interesting signal that needs further confirmation before acting.",
   },
   {
     level: "Avoid",
-    color: "bg-red-100 text-red-800",
+    color: "bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300",
     desc: "No verifiable catalyst, pure hype, or P&D risk indicators.",
   },
 ];

@@ -13,11 +13,11 @@ import { stageLabel } from "@/lib/stage-labels";
 
 const STAGE_ORDER = ["Emerging", "Building", "Consensus", "Filtered", "Unscored"];
 const STAGE_COLORS: Record<string, string> = {
-  Emerging: "text-green-600",
-  Building: "text-yellow-600",
-  Consensus: "text-blue-600",
-  Filtered: "text-red-500",
-  Unscored: "text-gray-400",
+  Emerging: "text-green-600 dark:text-green-400",
+  Building: "text-yellow-600 dark:text-yellow-400",
+  Consensus: "text-blue-600 dark:text-blue-400",
+  Filtered: "text-red-500 dark:text-red-400",
+  Unscored: "text-gray-400 dark:text-zinc-500",
 };
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -34,8 +34,8 @@ const SOURCE_LABELS: Record<string, string> = {
 function StatRow({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="flex items-center justify-between py-0.5 text-xs">
-      <span className="text-gray-500">{label}</span>
-      <span className="font-semibold text-gray-900">{value}</span>
+      <span className="text-gray-500 dark:text-zinc-400">{label}</span>
+      <span className="font-semibold text-gray-900 dark:text-zinc-100">{value}</span>
     </div>
   );
 }
@@ -49,13 +49,13 @@ function SectionCard({
 }) {
   return (
     <Card>
-      <div className="border-b border-gray-100 px-3 py-2">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+      <div className="border-b border-gray-100 px-3 py-2 dark:border-zinc-800">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
           {title}
         </h2>
       </div>
       <div className="px-3 py-2">
-        <div className="divide-y divide-gray-50">{children}</div>
+        <div className="divide-y divide-gray-50 dark:divide-zinc-800/80">{children}</div>
       </div>
     </Card>
   );
@@ -104,8 +104,8 @@ export default function AdminPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Admin</h1>
-          <p className="mt-1 text-sm text-gray-500">Platform overview</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100">Admin</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">Platform overview</p>
         </div>
         <button
           onClick={() => {
@@ -113,7 +113,7 @@ export default function AdminPage() {
             queryClient.invalidateQueries({ queryKey: ["admin-users"] });
             queryClient.invalidateQueries({ queryKey: ["admin-payments"] });
           }}
-          className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100"
+          className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:active:bg-zinc-800"
         >
           Refresh
         </button>
@@ -121,12 +121,12 @@ export default function AdminPage() {
 
       {isLoading && (
         <div className="flex justify-center py-16">
-          <Spinner />
+          <Spinner className="text-blue-600 dark:text-blue-400" />
         </div>
       )}
 
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-400">
           Failed to load admin stats.
         </div>
       )}
@@ -175,9 +175,9 @@ export default function AdminPage() {
                   key={stage}
                   className="flex items-center justify-between py-0.5 text-xs"
                 >
-                  <span className="text-gray-500">{stageLabel(stage)}</span>
+                  <span className="text-gray-500 dark:text-zinc-400">{stageLabel(stage)}</span>
                   <span
-                    className={`font-semibold ${STAGE_COLORS[stage] ?? "text-gray-900"}`}
+                    className={`font-semibold ${STAGE_COLORS[stage] ?? "text-gray-900 dark:text-zinc-100"}`}
                   >
                     {data.tickers.byStage[stage]}
                   </span>
@@ -249,29 +249,29 @@ export default function AdminPage() {
       {/* x402 Payments by Endpoint */}
       {paymentsData && paymentsData.byEndpoint.length > 0 && (
         <Card>
-          <div className="border-b border-gray-100 px-3 py-2">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <div className="border-b border-gray-100 px-3 py-2 dark:border-zinc-800">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
               x402 Revenue by Endpoint
             </h2>
           </div>
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50 text-left font-medium uppercase tracking-wide text-gray-400">
+              <tr className="border-b border-gray-100 bg-gray-50 text-left font-medium uppercase tracking-wide text-gray-400 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-500">
                 <th className="px-3 py-1.5">Endpoint</th>
                 <th className="px-3 py-1.5 text-right">Price</th>
                 <th className="px-3 py-1.5 text-right">Calls</th>
                 <th className="px-3 py-1.5 text-right">Revenue</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-gray-50 dark:divide-zinc-800/80">
               {paymentsData.byEndpoint
                 .sort((a, b) => b.revenue - a.revenue)
                 .map((ep) => (
-                  <tr key={ep.endpoint} className="hover:bg-gray-50">
-                    <td className="px-3 py-1 font-medium text-gray-900">{ep.endpoint}</td>
-                    <td className="px-3 py-1 text-right text-gray-500">${ep.amountUsd}</td>
-                    <td className="px-3 py-1 text-right text-gray-700">{ep.count}</td>
-                    <td className="px-3 py-1 text-right font-semibold text-green-700">${ep.revenue.toFixed(4)}</td>
+                  <tr key={ep.endpoint} className="hover:bg-gray-50 dark:hover:bg-zinc-900/50">
+                    <td className="px-3 py-1 font-medium text-gray-900 dark:text-zinc-100">{ep.endpoint}</td>
+                    <td className="px-3 py-1 text-right text-gray-500 dark:text-zinc-400">${ep.amountUsd}</td>
+                    <td className="px-3 py-1 text-right text-gray-700 dark:text-zinc-300">{ep.count}</td>
+                    <td className="px-3 py-1 text-right font-semibold text-green-700 dark:text-green-400">${ep.revenue.toFixed(4)}</td>
                   </tr>
                 ))}
             </tbody>
@@ -282,31 +282,31 @@ export default function AdminPage() {
       {/* Recent x402 Payments */}
       {paymentsData && (
         <Card>
-          <div className="border-b border-gray-100 px-3 py-2">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <div className="border-b border-gray-100 px-3 py-2 dark:border-zinc-800">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
               Recent x402 Payments
             </h2>
           </div>
           {paymentsData.recentPayments.length === 0 ? (
-            <p className="px-3 py-4 text-xs text-gray-400">No x402 payments yet.</p>
+            <p className="px-3 py-4 text-xs text-gray-400 dark:text-zinc-500">No x402 payments yet.</p>
           ) : (
             <div className="max-h-[280px] overflow-y-auto overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50 text-left font-medium uppercase tracking-wide text-gray-400">
+                  <tr className="border-b border-gray-100 bg-gray-50 text-left font-medium uppercase tracking-wide text-gray-400 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-500">
                     <th className="px-3 py-1.5">Time</th>
                     <th className="px-3 py-1.5">Endpoint</th>
                     <th className="px-3 py-1.5 text-right">Amount</th>
                     <th className="hidden md:table-cell px-3 py-1.5">Payer</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-gray-50 dark:divide-zinc-800/80">
                   {paymentsData.recentPayments.map((p) => (
-                    <tr key={p.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-1 text-gray-500 whitespace-nowrap">{formatRelative(p.createdAt)}</td>
-                      <td className="px-3 py-1 font-medium text-gray-900">{p.endpoint}</td>
-                      <td className="px-3 py-1 text-right font-semibold text-green-700">${p.amountUsd}</td>
-                      <td className="hidden md:table-cell px-3 py-1 text-gray-400 font-mono max-w-[180px] truncate">
+                    <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-zinc-900/50">
+                      <td className="px-3 py-1 whitespace-nowrap text-gray-500 dark:text-zinc-400">{formatRelative(p.createdAt)}</td>
+                      <td className="px-3 py-1 font-medium text-gray-900 dark:text-zinc-100">{p.endpoint}</td>
+                      <td className="px-3 py-1 text-right font-semibold text-green-700 dark:text-green-400">${p.amountUsd}</td>
+                      <td className="hidden max-w-[180px] truncate px-3 py-1 font-mono text-gray-400 dark:text-zinc-500 md:table-cell">
                         {p.payerAddress ?? "—"}
                       </td>
                     </tr>
@@ -320,20 +320,20 @@ export default function AdminPage() {
 
       {/* Users Table */}
       <Card>
-        <div className="border-b border-gray-100 px-3 py-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+        <div className="border-b border-gray-100 px-3 py-2 dark:border-zinc-800">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
             Registered Users
           </h2>
         </div>
         {usersLoading ? (
           <div className="flex justify-center py-6">
-            <Spinner />
+            <Spinner className="text-blue-600 dark:text-blue-400" />
           </div>
         ) : usersData && usersData.users.length > 0 ? (
           <div className="max-h-[260px] overflow-y-auto overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50 text-left font-medium uppercase tracking-wide text-gray-400">
+                <tr className="border-b border-gray-100 bg-gray-50 text-left font-medium uppercase tracking-wide text-gray-400 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-500">
                   <th className="px-3 py-1.5">Email</th>
                   <th className="hidden sm:table-cell px-3 py-1.5">Username</th>
                   <th className="px-3 py-1.5">Joined</th>
@@ -344,25 +344,25 @@ export default function AdminPage() {
                   <th className="px-3 py-1.5 text-right">Last Active</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-gray-50 dark:divide-zinc-800/80">
                 {usersData.users.map((u) => (
-                  <tr key={u.id} className="hover:bg-gray-50">
-                    <td className="px-3 py-1 font-medium text-gray-900 max-w-[160px] truncate">{u.email}</td>
-                    <td className="hidden sm:table-cell px-3 py-1 text-gray-500">{u.username ?? "—"}</td>
-                    <td className="px-3 py-1 text-gray-500 whitespace-nowrap">{formatDate(u.createdAt)}</td>
-                    <td className="hidden md:table-cell px-3 py-1 text-right text-gray-700">{u._count.positions}</td>
-                    <td className="hidden md:table-cell px-3 py-1 text-right text-gray-700">{u._count.watchlist}</td>
-                    <td className="hidden md:table-cell px-3 py-1 text-center">
-                      <span className={u.emailAlerts ? "text-green-600" : "text-gray-300"}>
+                  <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-zinc-900/50">
+                    <td className="max-w-[160px] truncate px-3 py-1 font-medium text-gray-900 dark:text-zinc-100">{u.email}</td>
+                    <td className="hidden px-3 py-1 text-gray-500 dark:text-zinc-400 sm:table-cell">{u.username ?? "—"}</td>
+                    <td className="whitespace-nowrap px-3 py-1 text-gray-500 dark:text-zinc-400">{formatDate(u.createdAt)}</td>
+                    <td className="hidden px-3 py-1 text-right text-gray-700 dark:text-zinc-300 md:table-cell">{u._count.positions}</td>
+                    <td className="hidden px-3 py-1 text-right text-gray-700 dark:text-zinc-300 md:table-cell">{u._count.watchlist}</td>
+                    <td className="hidden px-3 py-1 text-center md:table-cell">
+                      <span className={u.emailAlerts ? "text-green-600 dark:text-green-400" : "text-gray-300 dark:text-zinc-600"}>
                         {u.emailAlerts ? "On" : "Off"}
                       </span>
                     </td>
-                    <td className="hidden md:table-cell px-3 py-1 text-center">
-                      <span className={u._count.apiKeys > 0 ? "text-green-600" : "text-gray-300"}>
+                    <td className="hidden px-3 py-1 text-center md:table-cell">
+                      <span className={u._count.apiKeys > 0 ? "text-green-600 dark:text-green-400" : "text-gray-300 dark:text-zinc-600"}>
                         {u._count.apiKeys > 0 ? "Yes" : "No"}
                       </span>
                     </td>
-                    <td className="px-3 py-1 text-right text-gray-500 whitespace-nowrap">
+                    <td className="whitespace-nowrap px-3 py-1 text-right text-gray-500 dark:text-zinc-400">
                       {u.lastActiveAt ? formatRelative(u.lastActiveAt) : "—"}
                     </td>
                   </tr>
@@ -371,7 +371,7 @@ export default function AdminPage() {
             </table>
           </div>
         ) : (
-          <p className="px-3 py-4 text-xs text-gray-400">No users found.</p>
+          <p className="px-3 py-4 text-xs text-gray-400 dark:text-zinc-500">No users found.</p>
         )}
       </Card>
     </div>
