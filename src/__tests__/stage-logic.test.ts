@@ -301,8 +301,19 @@ describe("determineStage — price floor", () => {
     expect(determineStage(60, 3, 3, 2.0, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 0.05)).toBe("EARLY");
   });
 
-  it("allows promotion when price >= $0.12", () => {
-    expect(determineStage(50, 2, 2, 0.5, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 0.15)).toBe("FORMING");
+  it("returns EARLY when price $0.12-$0.20 for social-only non-penny (ML: 3d threshold $0.20)", () => {
+    // Social-only (no catalyst, no exchange penny) at $0.15 — blocked by $0.20 floor
+    expect(determineStage(50, 2, 2, 0.5, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 0.15)).toBe("EARLY");
+    expect(determineStage(60, 3, 3, 2.0, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 0.19)).toBe("EARLY");
+  });
+
+  it("allows FORMING for exchange penny at $0.15 (exempt from $0.20 floor)", () => {
+    // AMEX penny at $0.15 — exempted from social-only $0.20 floor
+    expect(determineStage(40, 1, 1, 1.5, false, false, undefined, undefined, 0.10, 0.12, true, false, undefined, undefined, undefined, undefined, undefined, undefined, 0.15)).toBe("FORMING");
+  });
+
+  it("allows promotion when price >= $0.20 for social-only", () => {
+    expect(determineStage(50, 2, 2, 0.5, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 0.25)).toBe("FORMING");
   });
 
   it("allows promotion when price < $0.12 but has catalyst source", () => {
@@ -322,23 +333,25 @@ describe("determineStage — price floor", () => {
     expect(determineStage(60, 3, 3, 2.0, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 0.119)).toBe("EARLY");
   });
 
-  it("allows promotion at price exactly $0.12", () => {
-    expect(determineStage(50, 2, 2, 0.5, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 0.12)).toBe("FORMING");
+  it("allows promotion at price exactly $0.20 (social-only FORMING boundary)", () => {
+    expect(determineStage(50, 2, 2, 0.5, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 0.20)).toBe("FORMING");
   });
 });
 
 describe("determineStage — market cap floor", () => {
-  it("returns EARLY when marketCap < $10M and no catalyst source", () => {
-    // score=60 + sourceCount=3 would normally be FORMING, but sub-$10M blocks it (ML: nano <$10M returns -25.1%)
+  it("returns EARLY when marketCap < $12M and no catalyst source", () => {
+    // score=60 + sourceCount=3 would normally be FORMING, but sub-$12M blocks it (ML: log_market_cap > 16.3 ≈ $12M)
     expect(determineStage(60, 3, 3, 2.0, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 3_000_000)).toBe("EARLY");
     expect(determineStage(60, 3, 3, 2.0, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 8_000_000)).toBe("EARLY");
+    expect(determineStage(60, 3, 3, 2.0, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 11_000_000)).toBe("EARLY");
   });
 
-  it("allows FORMING when marketCap >= $10M", () => {
+  it("allows FORMING when marketCap >= $12M", () => {
     expect(determineStage(50, 2, 2, 0.5, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 12_000_000)).toBe("FORMING");
+    expect(determineStage(50, 2, 2, 0.5, false, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 15_000_000)).toBe("FORMING");
   });
 
-  it("allows promotion when marketCap < $10M but has catalyst source", () => {
+  it("allows promotion when marketCap < $12M but has catalyst source", () => {
     // hasNonSocialSource=true bypasses the market cap floor
     expect(determineStage(70, 3, 5, 1.0, false, true, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 3_000_000)).toBe("CONFIRMED");
   });

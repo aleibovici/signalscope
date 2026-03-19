@@ -193,8 +193,12 @@ export function determineStage(
   // Price floor: sub-$0.12 without catalyst is noise (ML: price is #1 feature, 1d threshold $0.12)
   if (price != null && price < 0.12 && !hasNonSocialSource) return "EARLY";
 
-  // Market cap floor: sub-$10M without a catalyst source is noise (ML: nano <$10M returns -25.1%)
-  if (marketCap != null && marketCap < 10_000_000 && !hasNonSocialSource) return "EARLY";
+  // Market cap floor: sub-$12M without a catalyst source is noise (ML: log_market_cap > 16.3 ≈ $12M for 3d returns)
+  if (marketCap != null && marketCap < 12_000_000 && !hasNonSocialSource) return "EARLY";
+
+  // Social-only FORMING price floor: sub-$0.20 without catalyst or exchange penny has poor 3d returns (ML: 3d threshold $0.20)
+  const isExchangePenny = isAmexPenny || isNasdaqSmallPenny;
+  if (!hasNonSocialSource && !isExchangePenny && price != null && price < 0.20) return "EARLY";
 
   const effectiveScore = novelty?.isNovel ? aiScore + 5 : aiScore;
 

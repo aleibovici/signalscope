@@ -82,12 +82,19 @@ export function computeOpportunityScore(input: OpportunityScoreInput): number {
     score += 8;
   }
 
-  // --- Recovery ratio (0-7) --- ML: wk52_high_ratio is top-1 feature for 1d returns
+  // --- Recovery ratio (0-4) --- ML: beaten-down stocks underperform momentum on average
   if (input.price != null && input.wk52Hi != null && input.price > 0) {
     const highRatio = input.wk52Hi / input.price;
-    if (highRatio > 5.0) score += 7;
-    else if (highRatio > 3.0) score += 5;
-    else if (highRatio > 2.0) score += 3;
+    if (highRatio > 5.0) score += 4;
+    else if (highRatio > 3.0) score += 3;
+    else if (highRatio > 2.0) score += 2;
+  }
+
+  // --- Momentum / near 52W high (0-6) --- ML: low wk52_high_ratio (price near 52W high) predicts best 1d+7d returns
+  if (input.price != null && input.wk52Hi != null && input.wk52Hi > 0) {
+    const pctOfHigh = input.price / input.wk52Hi;
+    if (pctOfHigh >= 0.95) score += 6;      // within 5% of 52W high — strong momentum
+    else if (pctOfHigh >= 0.85) score += 3;  // within 15% — moderate momentum
   }
 
   // --- Moderate engagement boost (0-3) --- ML: reddit_comments > 33 predicts positive 3d returns
