@@ -329,7 +329,7 @@ export default function LoginPage() {
                   {(perfStats.earlyWinRate * 100).toFixed(0)}%
                 </p>
                 <p className="mt-1 hidden text-xs text-gray-400 sm:block">
-                  emerging &amp; building, {perfStats.earlyCount} measured
+                  emerging, {perfStats.earlyCount} measured
                 </p>
               </div>
 
@@ -338,7 +338,7 @@ export default function LoginPage() {
                 <p className={`mt-1 text-2xl font-bold sm:text-4xl ${perfStats.earlyAvgReturn > 0 ? "text-green-600" : "text-red-600"}`}>
                   {perfStats.earlyAvgReturn > 0 ? "+" : ""}{(perfStats.earlyAvgReturn * 100).toFixed(1)}%
                 </p>
-                <p className="mt-1 hidden text-xs text-gray-400 sm:block">emerging &amp; building</p>
+                <p className="mt-1 hidden text-xs text-gray-400 sm:block">emerging</p>
               </div>
 
               <div className="rounded-xl border border-gray-100 bg-white p-4 text-center shadow-sm sm:p-6">
@@ -359,7 +359,7 @@ export default function LoginPage() {
                 <div className="mt-4 rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:mt-6 sm:p-6">
                   <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <h3 className="text-sm font-semibold text-gray-900">Emerging &amp; Building — Avg 7d Return</h3>
+                      <h3 className="text-sm font-semibold text-gray-900">Emerging — Avg 7d Return</h3>
                       <p className="text-xs text-gray-400">Rolling average 7-day return, by detection date</p>
                     </div>
                     {latest && (
