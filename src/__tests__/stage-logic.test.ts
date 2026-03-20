@@ -54,6 +54,10 @@ describe("determineStage — CONFIRMED via Reddit subreddit consensus", () => {
     expect(determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, null, undefined, undefined, undefined, undefined, undefined, 1.00)).toBe("CONFIRMED");
   });
 
+  it("returns CONFIRMED when medianSignalAgeHrs is omitted (treated as unknown/fresh)", () => {
+    expect(determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 1.00)).toBe("CONFIRMED");
+  });
+
   it("does NOT return CONFIRMED when price < $0.52 (ML: social-only needs price >= $0.52 for 7d follow-through)", () => {
     const result = determineStage(48, 1, 1, 2.0, false, false, undefined, 3, undefined, undefined, undefined, undefined, 2, undefined, undefined, undefined, undefined, undefined, 0.40);
     expect(result).not.toBe("CONFIRMED");
