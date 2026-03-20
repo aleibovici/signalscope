@@ -26,6 +26,7 @@ export async function GET() {
       prisma.tickerPerformance.findMany({
         where: {
           detectionPrice: { gt: 0.01 },
+          corporateActionDetected: false,
           validatedTicker: {
             stage: { notIn: ["FILTERED", "UNSCORED"] },
           },

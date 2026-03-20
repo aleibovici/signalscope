@@ -46,6 +46,46 @@ export interface ComputedReturns {
   snapped30dAt: Date | null;
 }
 
+/**
+ * Maximum allowed price ratio between consecutive snapshots.
+ * A jump > 5x (or < 0.2x) in a single snapshot interval (~12-24h)
+ * indicates a corporate action (reverse split, forward split, merger)
+ * rather than organic price movement.
+ */
+const CORPORATE_ACTION_RATIO = 5;
+
+/**
+ * Detects suspicious price jumps between consecutive snapshots that
+ * indicate corporate actions (reverse splits, forward splits, mergers).
+ * Also checks the detection price vs the first snapshot.
+ */
+export function detectCorporateAction(
+  snapshots: Snapshot[],
+  detectionPrice: number,
+): boolean {
+  if (snapshots.length === 0 || detectionPrice <= 0) return false;
+
+  const sorted = [...snapshots].sort(
+    (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+  );
+
+  // Check detection price → first snapshot
+  const firstRatio = sorted[0].price / detectionPrice;
+  if (firstRatio >= CORPORATE_ACTION_RATIO || firstRatio <= 1 / CORPORATE_ACTION_RATIO) {
+    return true;
+  }
+
+  // Check consecutive snapshots
+  for (let i = 1; i < sorted.length; i++) {
+    const ratio = sorted[i].price / sorted[i - 1].price;
+    if (ratio >= CORPORATE_ACTION_RATIO || ratio <= 1 / CORPORATE_ACTION_RATIO) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export function computeReturnsFromSnapshots(
   snapshots: Snapshot[],
   detectionPrice: number,

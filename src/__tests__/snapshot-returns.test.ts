@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeReturnsFromSnapshots, INTERVAL_TARGETS } from "@/lib/snapshots/returns";
+import { computeReturnsFromSnapshots, detectCorporateAction, INTERVAL_TARGETS } from "@/lib/snapshots/returns";
 
 function hoursAfter(base: Date, hours: number): Date {
   return new Date(base.getTime() + hours * 60 * 60 * 1000);
@@ -200,5 +200,92 @@ describe("computeReturnsFromSnapshots", () => {
     expect(result.price3d).toBeGreaterThan(0);
     expect(result.price7d).toBeGreaterThan(0);
     expect(result.price30d).toBeGreaterThan(0);
+  });
+});
+
+describe("detectCorporateAction", () => {
+  it("returns false for empty snapshots", () => {
+    expect(detectCorporateAction([], 10)).toBe(false);
+  });
+
+  it("returns false for zero detection price", () => {
+    expect(detectCorporateAction([makeSnapshot(50, hoursAfter(DETECTION_TIME, 24))], 0)).toBe(false);
+  });
+
+  it("returns false for normal price movement", () => {
+    const snapshots = [
+      makeSnapshot(10.5, hoursAfter(DETECTION_TIME, 12)),
+      makeSnapshot(11.0, hoursAfter(DETECTION_TIME, 24)),
+      makeSnapshot(12.0, hoursAfter(DETECTION_TIME, 36)),
+      makeSnapshot(9.5, hoursAfter(DETECTION_TIME, 48)),
+    ];
+    expect(detectCorporateAction(snapshots, 10)).toBe(false);
+  });
+
+  it("returns false for a legitimate 4x move across multiple snapshots", () => {
+    // Price doubles over many snapshots — each step < 5x
+    const snapshots = [
+      makeSnapshot(12, hoursAfter(DETECTION_TIME, 12)),
+      makeSnapshot(16, hoursAfter(DETECTION_TIME, 24)),
+      makeSnapshot(22, hoursAfter(DETECTION_TIME, 36)),
+      makeSnapshot(30, hoursAfter(DETECTION_TIME, 48)),
+      makeSnapshot(38, hoursAfter(DETECTION_TIME, 60)),
+    ];
+    expect(detectCorporateAction(snapshots, 10)).toBe(false);
+  });
+
+  it("detects reverse split — detection price to first snapshot > 5x", () => {
+    // BHAT scenario: $0.04 → $1.42 (35x jump)
+    const snapshots = [
+      makeSnapshot(1.42, hoursAfter(DETECTION_TIME, 24)),
+    ];
+    expect(detectCorporateAction(snapshots, 0.04)).toBe(true);
+  });
+
+  it("detects reverse split — large jump between consecutive snapshots", () => {
+    const snapshots = [
+      makeSnapshot(0.05, hoursAfter(DETECTION_TIME, 12)),
+      makeSnapshot(0.06, hoursAfter(DETECTION_TIME, 24)),
+      // Reverse split happens here
+      makeSnapshot(1.50, hoursAfter(DETECTION_TIME, 36)),
+      makeSnapshot(1.45, hoursAfter(DETECTION_TIME, 48)),
+    ];
+    expect(detectCorporateAction(snapshots, 0.04)).toBe(true);
+  });
+
+  it("detects forward split — large price drop between consecutive snapshots", () => {
+    const snapshots = [
+      makeSnapshot(100, hoursAfter(DETECTION_TIME, 12)),
+      makeSnapshot(105, hoursAfter(DETECTION_TIME, 24)),
+      // 10:1 forward split
+      makeSnapshot(10.5, hoursAfter(DETECTION_TIME, 36)),
+    ];
+    expect(detectCorporateAction(snapshots, 95)).toBe(true);
+  });
+
+  it("handles unsorted snapshots correctly", () => {
+    // Snapshots in reverse order — should still detect the jump
+    const snapshots = [
+      makeSnapshot(1.45, hoursAfter(DETECTION_TIME, 48)),
+      makeSnapshot(1.50, hoursAfter(DETECTION_TIME, 36)),
+      makeSnapshot(0.06, hoursAfter(DETECTION_TIME, 24)),
+      makeSnapshot(0.05, hoursAfter(DETECTION_TIME, 12)),
+    ];
+    expect(detectCorporateAction(snapshots, 0.04)).toBe(true);
+  });
+
+  it("returns false when ratio is exactly at boundary (< 5x)", () => {
+    // 4.9x jump — aggressive but not flagged
+    const snapshots = [
+      makeSnapshot(4.9, hoursAfter(DETECTION_TIME, 24)),
+    ];
+    expect(detectCorporateAction(snapshots, 1.0)).toBe(false);
+  });
+
+  it("returns true when ratio is exactly 5x", () => {
+    const snapshots = [
+      makeSnapshot(5.0, hoursAfter(DETECTION_TIME, 24)),
+    ];
+    expect(detectCorporateAction(snapshots, 1.0)).toBe(true);
   });
 });

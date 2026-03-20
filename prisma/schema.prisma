@@ -178,6 +178,8 @@ model TickerPerformance {
   snapped7dAt       DateTime?
   snapped30dAt      DateTime?
 
+  corporateActionDetected Boolean @default(false)
+
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 

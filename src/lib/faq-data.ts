@@ -62,7 +62,7 @@ export const faqItems: FaqItem[] = [
   {
     question: "How is signal performance tracked?",
     answer:
-      "Automated price snapshots at market open and close track every validated ticker for 30 days after detection. Returns are measured at 1, 3, 7, and 30 days. This data feeds into an XGBoost machine learning model that uses SHAP analysis to identify which signal features predict real-world outcomes, continuously refining scoring thresholds, stage assignments, and filtering logic.",
+      "Automated price snapshots at market open and close track every validated ticker for 30 days after detection. Returns are measured at 1, 3, 7, and 30 days using nominal prices. Tickers that undergo corporate actions (reverse splits, forward splits, mergers) during the tracking window are automatically detected and excluded from performance statistics to prevent misleading returns. This data feeds into an XGBoost machine learning model that uses SHAP analysis to identify which signal features predict real-world outcomes, continuously refining scoring thresholds, stage assignments, and filtering logic.",
   },
   {
     question: "What does Filtered mean?",

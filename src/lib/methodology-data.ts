@@ -189,7 +189,9 @@ export const pndDescription =
 
 export const backtestDescription =
   "SignalScope tracks the real-world performance of every signal it generates. Twice-daily price snapshots " +
-  "measure returns at 1, 3, 7, and 30 days after detection, building a growing dataset that feeds into an " +
+  "measure nominal returns at 1, 3, 7, and 30 days after detection. Tickers that undergo corporate actions " +
+  "(reverse splits, forward splits, mergers) during the tracking window are automatically detected via " +
+  "consecutive-snapshot analysis and excluded from performance statistics. This growing dataset feeds into an " +
   "XGBoost gradient boosted machine learning model. The model analyzes dozens of features per ticker and uses " +
   "SHAP (SHapley Additive exPlanations) to understand which factors drive accuracy. These insights are used " +
   "to continuously refine AI score thresholds, stage assignments, and pump-and-dump detection — so the " +

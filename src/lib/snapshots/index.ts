@@ -1,7 +1,7 @@
 import { prisma, createDevPrismaClient } from "@/lib/prisma";
 import type { PrismaClient } from "@/generated/prisma/client";
 import YahooFinance from "yahoo-finance2";
-import { computeReturnsFromSnapshots } from "./returns";
+import { computeReturnsFromSnapshots, detectCorporateAction } from "./returns";
 
 const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
@@ -96,10 +96,61 @@ export async function collectSnapshots(): Promise<{ filled: number; errors: numb
       const allSnapshots = [...ticker.priceSnapshots, { price: currentPrice, createdAt: now }];
       const detectionPrice = ticker.price!;
       const detectedAt = new Date(ticker.createdAt);
+
+      // Check for corporate actions (reverse splits, mergers, etc.)
+      const isCorporateAction = detectCorporateAction(allSnapshots, detectionPrice);
+      if (isCorporateAction) {
+        console.warn(`[snapshots] Corporate action detected for ${ticker.symbol} — nulling returns`);
+        await prisma.tickerPerformance.upsert({
+          where: { validatedTickerId: ticker.id },
+          create: {
+            validatedTickerId: ticker.id,
+            symbol: ticker.symbol,
+            detectionPrice,
+            corporateActionDetected: true,
+          },
+          update: {
+            corporateActionDetected: true,
+            return1d: null, return3d: null, return7d: null, return30d: null,
+            price1d: null, price3d: null, price7d: null, price30d: null,
+            snapped1dAt: null, snapped3dAt: null, snapped7dAt: null, snapped30dAt: null,
+          },
+        });
+        stats.returnsUpdated++;
+
+        // Mirror to dev DB
+        if (devPrisma) {
+          try {
+            await devPrisma.tickerPerformance.upsert({
+              where: { validatedTickerId: ticker.id },
+              create: {
+                validatedTickerId: ticker.id,
+                symbol: ticker.symbol,
+                detectionPrice,
+                corporateActionDetected: true,
+              },
+              update: {
+                corporateActionDetected: true,
+                return1d: null, return3d: null, return7d: null, return30d: null,
+                price1d: null, price3d: null, price7d: null, price30d: null,
+                snapped1dAt: null, snapped3dAt: null, snapped7dAt: null, snapped30dAt: null,
+              },
+            });
+          } catch (devErr) {
+            console.warn(
+              `[snapshots] Dev DB corporate action write failed for ${ticker.symbol}:`,
+              devErr instanceof Error ? devErr.message : devErr
+            );
+          }
+        }
+
+        continue;
+      }
+
       const returns = computeReturnsFromSnapshots(allSnapshots, detectionPrice, detectedAt, now);
 
       // Update TickerPerformance with computed returns
-      const updateData: Record<string, number | Date> = {};
+      const updateData: Record<string, number | Date | boolean> = {};
       if (returns.return1d != null) {
         updateData.price1d = returns.price1d!;
         updateData.return1d = returns.return1d;
