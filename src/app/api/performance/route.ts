@@ -321,9 +321,9 @@ export async function GET(request: NextRequest) {
       if (group) byOpportunityScoreRange[range.label] = computeStats(group, returnCol);
     }
 
-    // Best/Worst performers — emerging signals only
+    // Best/Worst performers — emerging signals from last 30 days
     const sorted = [...recordsWithReturn]
-      .filter((r) => r.validatedTicker.stage === "EARLY")
+      .filter((r) => r.validatedTicker.stage === "EARLY" && r.validatedTicker.createdAt >= thirtyDaysAgo)
       .sort((a, b) => (b[returnCol] as number) - (a[returnCol] as number));
 
     const mapPerformer = (r: PerformanceRecord) => ({
