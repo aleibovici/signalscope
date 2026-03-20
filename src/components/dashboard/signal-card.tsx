@@ -200,8 +200,9 @@ export function SignalCard({
     <Card className="group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-xl border-gray-200/90 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md dark:border-zinc-800/90 dark:shadow-[0_1px_3px_rgba(0,0,0,0.35)] dark:hover:border-blue-500/35 dark:hover:shadow-lg dark:hover:shadow-black/40">
       <Link
         href={`/ticker/${ticker.symbol}`}
-        className="absolute inset-0 z-0 rounded-xl"
+        className="absolute right-0 bottom-0 z-0 h-full w-full rounded-xl"
         aria-label={`Open ${ticker.symbol} detail`}
+        draggable={false}
       />
       <CardContent className="pointer-events-none relative z-1 flex flex-1 flex-col space-y-3 px-4 py-4 md:px-5 md:py-5">
         {/* Row 1: hero symbol + price / return */}
@@ -279,8 +280,8 @@ export function SignalCard({
           />
         </div>
 
-        {/* Body: thesis + risks */}
-        {(ticker.catalyst || ticker.risks) && (
+        {/* Body: thesis + risks — or hint to open ticker to generate AI analysis */}
+        {ticker.catalyst || ticker.risks ? (
           <div className="space-y-2 border-t border-gray-100 pt-3 dark:border-zinc-800/60">
             {ticker.catalyst && (
               <p className="line-clamp-2 text-xs text-gray-700 dark:text-zinc-300 sm:text-sm sm:line-clamp-3">
@@ -293,6 +294,35 @@ export function SignalCard({
                 <span className="font-semibold">Risks:</span> {ticker.risks}
               </p>
             )}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-blue-200/80 bg-linear-to-br from-blue-50/90 via-slate-50/40 to-transparent px-3 py-2.5 dark:border-blue-500/25 dark:from-blue-950/40 dark:via-zinc-900/30 dark:to-transparent">
+            <div className="flex gap-2.5">
+              <div
+                className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-blue-200/80 bg-white/90 shadow-[0_1px_2px_rgba(37,99,235,0.08)] dark:border-blue-500/30 dark:bg-zinc-900/80 dark:shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                aria-hidden
+              >
+                <svg
+                  className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.847a4.5 4.5 0 003.09 3.09L15.75 12l-2.847.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423L16.5 15.75l.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+                </svg>
+              </div>
+              <div className="min-w-0 space-y-0.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-800/90 dark:text-blue-300/95">
+                  AI analysis
+                </p>
+                <p className="text-xs leading-snug text-gray-600 dark:text-zinc-400">
+                  Thesis and risks aren&apos;t on this card yet.{" "}
+                  <span className="font-medium text-blue-700 dark:text-blue-400/95">
+                    Open the ticker
+                  </span>{" "}
+                  to generate the technical write-up.
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
