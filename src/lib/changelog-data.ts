@@ -9,6 +9,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-03-21",
+    title: "Performance Data Quality",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "Reverse splits and other corporate actions are now automatically detected and excluded from performance statistics — prevents misleading best performer entries caused by nominal price changes unrelated to actual returns.",
+          "Best and worst performers now show only signals from the last 30 days, keeping the view relevant and timely.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-03-20",
     title: "Dark Mode & UI Polish",
     changes: [
