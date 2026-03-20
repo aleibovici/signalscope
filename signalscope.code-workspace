@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "../cursor-plugin"
+		},
+		{
+			"path": "../autoresearch-macos"
 		}
 	],
 	"settings": {}
