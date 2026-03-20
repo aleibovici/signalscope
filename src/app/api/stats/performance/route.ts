@@ -22,35 +22,40 @@ interface PerfRecord {
 
 export async function GET() {
   try {
-    const records: PerfRecord[] = await prisma.tickerPerformance.findMany({
-      where: {
-        detectionPrice: { gt: 0.01 },
-        validatedTicker: {
-          stage: { notIn: ["FILTERED", "UNSCORED"] },
-        },
-      },
-      distinct: ["symbol"],
-      select: {
-        symbol: true,
-        detectionPrice: true,
-        return7d: true,
-        validatedTicker: {
-          select: {
-            aiScore: true,
-            stage: true,
-            createdAt: true,
+    const [records, totalTracked] = await Promise.all([
+      prisma.tickerPerformance.findMany({
+        where: {
+          detectionPrice: { gt: 0.01 },
+          validatedTicker: {
+            stage: { notIn: ["FILTERED", "UNSCORED"] },
           },
         },
-      },
-      orderBy: { createdAt: "asc" },
-    });
+        distinct: ["symbol"],
+        select: {
+          symbol: true,
+          detectionPrice: true,
+          return7d: true,
+          validatedTicker: {
+            select: {
+              aiScore: true,
+              stage: true,
+              createdAt: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "asc" },
+      }),
+      prisma.$queryRaw<[{ count: bigint }]>`SELECT COUNT(DISTINCT symbol) as count FROM "ValidatedTicker"`.then(
+        (rows) => Number(rows[0].count)
+      ),
+    ]);
 
     const col: ReturnCol = "return7d";
     const withReturn = records.filter((r) => r[col] !== null);
 
     if (withReturn.length === 0) {
       return NextResponse.json(
-        { totalTracked: 0, winRate: 0, avgReturn: 0, emergingWinRate: 0, emergingAvgReturn: 0, cumulativeReturns: [] },
+        { totalTracked, winRate: 0, avgReturn: 0, emergingWinRate: 0, emergingAvgReturn: 0, cumulativeReturns: [] },
         { headers: { "Cache-Control": "public, max-age=600, s-maxage=600" } },
       );
     }
@@ -66,9 +71,6 @@ export async function GET() {
     const emergingReturns = emergingRecords.map((r) => r[col] as number);
     const emergingWins = emergingReturns.filter((r) => r > 0).length;
     const emergingWinRate = emergingReturns.length > 0 ? emergingWins / emergingReturns.length : 0;
-    const emergingAvgReturn = emergingReturns.length > 0
-      ? emergingReturns.reduce((a, b) => a + b, 0) / emergingReturns.length
-      : 0;
 
     // 7-day rolling avg return by detection date — emerging signals only
     const earlyWithReturn = withReturn.filter((r) => r.validatedTicker.stage === "EARLY");
@@ -99,9 +101,15 @@ export async function GET() {
       return { date, cumReturn: count > 0 ? sum / count : 0, tradeCount: count, winCount: wins };
     });
 
+    const recentWindow = cumulativeReturns.slice(-7);
+    const recentTotal = recentWindow.reduce((s, p) => s + p.tradeCount, 0);
+    const emergingAvgReturn = recentTotal > 0
+      ? recentWindow.reduce((s, p) => s + p.cumReturn * p.tradeCount, 0) / recentTotal
+      : 0;
+
     return NextResponse.json(
       {
-        totalTracked: records.length,
+        totalTracked,
         signalsWithReturns: withReturn.length,
         winRate,
         avgReturn,
