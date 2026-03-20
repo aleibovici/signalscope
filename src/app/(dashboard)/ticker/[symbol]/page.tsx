@@ -1,7 +1,8 @@
 "use client";
 
-import { Fragment, useState, useEffect, useRef, type ReactNode } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { Fragment, use, useState, useEffect, useRef, useCallback, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import { useTickerDetail, useTickerHistory, useGenerateReport } from "@/hooks/use-scans";
 import { useTickerPerformance } from "@/hooks/use-performance";
 import { useWatchlist, useToggleWatchlist } from "@/hooks/use-watchlist";
@@ -43,14 +44,6 @@ function relativeStrengthFrom52w(price: number | null, lo: number | null, hi: nu
   return Math.round(Math.min(1, Math.max(0, t)) * 100);
 }
 
-function volatilityLabel(r1: number | null | undefined, r7: number | null | undefined): string {
-  const mag = Math.max(r1 != null ? Math.abs(r1) : 0, r7 != null ? Math.abs(r7) : 0);
-  if (mag === 0) return "—";
-  if (mag < 0.03) return "Low";
-  if (mag < 0.08) return "Medium";
-  return "Med–High";
-}
-
 function sentimentDescriptor(avg: number | null): string {
   if (avg == null) return "—";
   if (avg > 0.15) return "Bullish";
@@ -72,13 +65,6 @@ function flowValueClass(label: string): string {
   return "text-slate-600 dark:text-zinc-400";
 }
 
-function volatilityValueClass(v: string): string {
-  if (v === "Med–High") return "text-amber-600 dark:text-amber-400";
-  if (v === "Medium") return "text-amber-600 dark:text-amber-500";
-  if (v === "Low") return "text-emerald-600 dark:text-emerald-400";
-  return "text-slate-600 dark:text-zinc-400";
-}
-
 function formatMarketCapCompact(mc: number | null): string {
   if (mc == null || mc <= 0) return "N/A";
   if (mc >= 1e12) return `${(mc / 1e12).toFixed(2)}T`;
@@ -88,33 +74,115 @@ function formatMarketCapCompact(mc: number | null): string {
 }
 
 function InfoHint({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const anchorRef = useRef<HTMLSpanElement>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => setMounted(true), []);
+
+  const clearCloseTimer = useCallback(() => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleClose = useCallback(() => {
+    clearCloseTimer();
+    closeTimerRef.current = setTimeout(() => {
+      setOpen(false);
+      setPos(null);
+    }, 120);
+  }, [clearCloseTimer]);
+
+  const show = useCallback(() => {
+    clearCloseTimer();
+    const el = anchorRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    setPos({ top: r.top, left: r.left + r.width / 2 });
+    setOpen(true);
+  }, [clearCloseTimer]);
+
+  useEffect(() => () => clearCloseTimer(), [clearCloseTimer]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onScroll = () => {
+      setOpen(false);
+      setPos(null);
+    };
+    window.addEventListener("scroll", onScroll, true);
+    return () => window.removeEventListener("scroll", onScroll, true);
+  }, [open]);
+
+  const tooltip =
+    mounted &&
+    open &&
+    pos &&
+    createPortal(
+      <span
+        role="tooltip"
+        className="fixed z-400 max-w-[min(20rem,calc(100vw-1.5rem))] -translate-x-1/2 -translate-y-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs leading-snug text-slate-700 shadow-lg dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200"
+        style={{ top: pos.top - 8, left: pos.left }}
+        onPointerEnter={clearCloseTimer}
+        onPointerLeave={scheduleClose}
+      >
+        {text}
+      </span>,
+      document.body,
+    );
+
   return (
-    <span
-      title={text}
-      className="inline-flex shrink-0 cursor-help text-slate-400 dark:text-zinc-500"
-      aria-label={text}
-    >
-      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
-        <circle cx="12" cy="12" r="10" />
-        <path d="M12 16v-4M12 8h.01" strokeLinecap="round" />
-      </svg>
-    </span>
+    <>
+      <span
+        ref={anchorRef}
+        role="button"
+        tabIndex={0}
+        className="inline-flex shrink-0 cursor-help text-slate-400 outline-none hover:text-slate-600 focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:hover:text-zinc-300 dark:focus-visible:ring-blue-400/40"
+        aria-label={text}
+        onPointerEnter={show}
+        onPointerLeave={scheduleClose}
+        onFocus={show}
+        onBlur={scheduleClose}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            clearCloseTimer();
+            setOpen(false);
+            setPos(null);
+          }
+        }}
+      >
+        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 16v-4M12 8h.01" strokeLinecap="round" />
+        </svg>
+      </span>
+      {tooltip}
+    </>
   );
 }
 
 function ScoreRow({
   label,
+  hint,
   value,
   valueClassName = "text-gray-900 dark:text-white",
 }: {
   label: string;
+  hint?: string;
   value: ReactNode;
   valueClassName?: string;
 }) {
   return (
-    <div className="flex items-center justify-between py-2">
-      <span className="text-sm text-slate-500 dark:text-zinc-500">{label}</span>
-      <span className={`text-sm font-bold ${valueClassName}`}>{value}</span>
+    <div className="flex items-center justify-between gap-3 py-2">
+      <span className="flex min-w-0 items-center gap-1 text-sm text-slate-500 dark:text-zinc-500">
+        {label}
+        {hint ? <InfoHint text={hint} /> : null}
+      </span>
+      <span className={`shrink-0 text-right text-sm font-bold ${valueClassName}`}>{value}</span>
     </div>
   );
 }
@@ -138,11 +206,10 @@ function IconRocket({ className }: { className?: string }) {
   );
 }
 
-function IconPsychology({ className }: { className?: string }) {
+function IconAiSparkles({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
-      <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Z" />
-      <path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" strokeLinecap="round" />
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.847a4.5 4.5 0 003.09 3.09L15.75 12l-2.847.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423L16.5 15.75l.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
     </svg>
   );
 }
@@ -166,9 +233,13 @@ function IconHistory({ className }: { className?: string }) {
   );
 }
 
-export default function TickerDetailPage() {
+export default function TickerDetailPage({
+  params,
+}: {
+  params: Promise<{ symbol: string }>;
+}) {
   const router = useRouter();
-  const { symbol } = useParams<{ symbol: string }>();
+  const { symbol } = use(params);
   const { data, isLoading, error } = useTickerDetail(symbol);
   const { data: historyData } = useTickerHistory(symbol);
   const { data: perfData } = useTickerPerformance(symbol);
@@ -231,7 +302,6 @@ export default function TickerDetailPage() {
   const subtitleParts = [ticker.name?.trim() || null, exchangeShort].filter(Boolean);
   const return1d = ticker.return1d;
   const rs52 = relativeStrengthFrom52w(ticker.price, ticker.wk52Lo, ticker.wk52Hi);
-  const volLabel = volatilityLabel(ticker.return1d, ticker.return7d);
   const flowLabel = institutionalFlowLabel(ticker.sources);
   const sentimentLabel = sentimentDescriptor(ticker.avgSentiment);
 
@@ -396,14 +466,20 @@ export default function TickerDetailPage() {
           <p className="text-[10px] italic text-slate-500 dark:text-zinc-500">Evidence strength</p>
         </div>
         <div className="flex flex-col gap-1 p-5">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">Sources</p>
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">Sources</p>
+            <InfoHint text="Number of distinct signal feeds (Reddit, X, SEC insider, etc.) represented in this scan." />
+          </div>
           <span className="text-2xl font-black text-gray-900 dark:text-white">{ticker.sourceCount}</span>
-          <p className="text-[10px] text-slate-500 dark:text-zinc-500">Institutional track</p>
+          <p className="text-[10px] text-slate-500 dark:text-zinc-500">Distinct feed types</p>
         </div>
         <div className="flex flex-col gap-1 p-5">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">Signals</p>
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">Signals</p>
+            <InfoHint text="Total raw signals aggregated for this symbol in the scan (posts, filings, tweets, etc.)." />
+          </div>
           <span className="text-2xl font-black text-gray-900 dark:text-white">{ticker.signalCount}</span>
-          <p className="text-[10px] text-slate-500 dark:text-zinc-500">Active breakouts</p>
+          <p className="text-[10px] text-slate-500 dark:text-zinc-500">In this scan</p>
         </div>
       </div>
 
@@ -416,16 +492,22 @@ export default function TickerDetailPage() {
             </h3>
             <div className="divide-y divide-slate-100 dark:divide-[#1e262f]">
               <ScoreRow
-                label="Relative strength"
+                label="52-week position"
+                hint="Where the last scan price sits between 52-week low and high (0–100). Not RSI or strength vs the broad market."
                 value={rs52 != null ? `${rs52}/100` : "—"}
                 valueClassName={
                   rs52 != null && rs52 >= 70 ? "text-emerald-600 dark:text-emerald-400" : "text-gray-900 dark:text-white"
                 }
               />
-              <ScoreRow label="Volatility index" value={volLabel} valueClassName={volatilityValueClass(volLabel)} />
-              <ScoreRow label="Institutional flow" value={flowLabel} valueClassName={flowValueClass(flowLabel)} />
+              <ScoreRow
+                label="Source mix"
+                hint="Heuristic from which feeds contributed (e.g. SEC, Congress, options). Not order flow or institutional dollars."
+                value={flowLabel}
+                valueClassName={flowValueClass(flowLabel)}
+              />
               <ScoreRow
                 label="Social sentiment"
+                hint="Average sentiment from parsed social signals in this scan when text sentiment is available."
                 value={sentimentLabel}
                 valueClassName={
                   sentimentLabel === "Bullish"
@@ -437,6 +519,7 @@ export default function TickerDetailPage() {
               />
               <ScoreRow
                 label="Mention velocity"
+                hint="Velocity score from the harvest pipeline (social signal activity), when computed."
                 value={ticker.avgVelocity != null ? `${ticker.avgVelocity.toFixed(1)}×` : "—"}
               />
             </div>
@@ -540,7 +623,7 @@ export default function TickerDetailPage() {
               className="rounded-xl border border-slate-200 bg-white p-6 dark:border-[#1e262f] dark:bg-[#12181f]"
             >
               <h3 className="mb-4 flex items-center gap-2 font-bold text-gray-900 dark:text-zinc-100">
-                <IconPsychology className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <IconAiSparkles className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 AI technical analysis
               </h3>
               {reportGenerating ? (
