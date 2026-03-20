@@ -50,6 +50,9 @@ Full API documentation and Agent Skill: https://signalscopes.com/skill/SKILL.md
 
 - Homepage / Login: https://signalscopes.com/login
 - Register: https://signalscopes.com/register
+- Blog: https://signalscopes.com/blog
+- FAQ: https://signalscopes.com/faq
+- Methodology: https://signalscopes.com/how-it-works
 - API Docs (Agent Skill): https://signalscopes.com/skill/SKILL.md
 - Sitemap: https://signalscopes.com/sitemap.xml
 - Changelog: https://signalscopes.com/changelog
