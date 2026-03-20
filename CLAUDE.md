@@ -417,17 +417,25 @@ All authenticated API routes use `handleApiError()` from `src/lib/api-error.ts` 
 
 ## DB Extract Script (`scripts/extract.py`)
 
-Python script that pulls `ValidatedTicker` + `TickerPerformance` + raw `Signal` aggregates from production PostgreSQL into a local parquet file. Used by the external ML harness.
+Python script that dumps every `public` base table from production PostgreSQL with `SELECT *` (no row or column filtering): one parquet per table under `scripts/output/`, plus `manifest.json` row counts. Used by the external ML harness.
+
+After parquet export, runs `pg_dump` from production (via the proxy) and `pg_restore` into your **local** dev database. Restore target: **`DATABASE_URL_DEV` if set**, else **`DATABASE_URL`** when it is a safe local URL (localhost / `host.docker.internal`, not Cloud SQL, not port 5434). That matches the DB `npm run dev` uses when `DATABASE_URL` points at local Postgres. Requires PostgreSQL client tools (`pg_dump`, `pg_restore` on `PATH`, e.g. `brew install libpq`). Use `python scripts/extract.py --no-restore` to skip the dev overwrite.
+
+If `.env.production` sets `DATABASE_URL` to Cloud SQL, override with a local `DATABASE_URL` in `.env.local` so restore has a safe target.
 
 ```bash
 # Requires: pip install psycopg2-binary pandas pyarrow python-dotenv
-# Reads DB_PASSWORD from .env.production
+# Reads DB_PASSWORD from .env.production; local DATABASE_URL or DATABASE_URL_DEV for pg_restore
 python scripts/extract.py
-# Output: scripts/output/dataset.parquet
+# Output: scripts/output/<TableName>.parquet (one file per table), scripts/output/manifest.json
+# Dev DB: overwritten via pg_restore to match production
 ```
 
+- **Why one parquet per table:** the database has many related tables; one file would require denormalizing joins or losing structure. Per-table files mirror the schema for ML tooling.
 - Auto-starts/stops Cloud SQL Auth Proxy on port 5434
-- Read-only — only SELECTs, never writes
+- Production access is read-only for parquet + `pg_dump`; local dev database is **written** by `pg_restore`
+- Refuses restore targets on port 5434 (Cloud SQL proxy) and Cloud SQL socket URLs
+- Output may include sensitive columns (password hashes, API keys, refresh tokens); treat `scripts/output/` accordingly
 
 ## Backtesting Experiment Log (`scripts/backtesting-experiments.md`)
 

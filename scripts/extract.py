@@ -1,31 +1,57 @@
 """
-Step 1: Extract validated ticker + performance data from production DB into local parquet.
+Extract the full production database into local parquet files (one file per table).
 
-Automatically starts Cloud SQL Auth Proxy, runs the query, then shuts it down.
+Discovers every `public` base table, runs `SELECT *` with no row or column filtering,
+and writes `scripts/output/<TableName>.parquet` plus `manifest.json` with row counts.
+
+Then replaces your **local** development database with a `pg_dump` / `pg_restore` clone
+of production (schema + data). The restore target is **`DATABASE_URL_DEV` if set**,
+otherwise **`DATABASE_URL`** when it points at localhost / `host.docker.internal`
+(not Cloud SQL). Matches what `npm run dev` uses via `DATABASE_URL` in typical setups.
+Requires PostgreSQL client tools (`pg_dump`, `pg_restore`) on `PATH`.
+
+**Why one parquet per table:** Parquet is tabular; the database has many related tables.
+A single file would require denormalizing joins (duplicated rows, huge files) or dropping
+tables. Per-table files mirror the schema and are easy to load selectively for ML.
+
+Automatically starts Cloud SQL Auth Proxy, runs parquet export + `pg_dump`, restores
+into dev, then stops the proxy.
 
 Usage:
     python extract.py
+    python extract.py --no-restore   # parquet only, skip dev DB overwrite
+
+Dependencies (venv recommended): pip install -r scripts/requirements.txt
+
+Security: exports include sensitive columns (e.g. password hashes, API key material,
+refresh tokens). Treat `scripts/output/` like credentials. Restoring to dev copies
+production credentials into your local DB.
 """
 
+import argparse
+import json
 import os
 import shutil
 import signal
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, unquote, urlparse
 
 import pandas as pd
 import psycopg2
 from dotenv import load_dotenv
+from psycopg2 import sql
 
 PROJECT_ROOT = Path(__file__).parent.parent
 
-# Load from project root .env, fall back to .env.production
+# Load from project root .env, fall back to .env.production, then .env.local
 load_dotenv(PROJECT_ROOT / ".env")
 load_dotenv(PROJECT_ROOT / ".env.production")
+load_dotenv(PROJECT_ROOT / ".env.local")
 
 OUTPUT_DIR = Path(__file__).parent / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
@@ -39,159 +65,162 @@ PROXY_PORT = 5434
 DB_USER = "signalscope"
 DB_NAME = "signalscope"
 
-QUERY = """
-WITH signal_agg AS (
-  SELECT
-    s."scanId",
-    s.symbol,
-    -- Total signal count
-    COUNT(*)                                            AS signal_count,
-    -- Per-source signal counts
-    COUNT(*) FILTER (WHERE s.source = 'REDDIT')        AS reddit_count,
-    COUNT(*) FILTER (WHERE s.source = 'TWITTER')       AS twitter_count,
-    COUNT(*) FILTER (WHERE s.source = 'STOCKTWITS')    AS stocktwits_count,
-    COUNT(*) FILTER (WHERE s.source = 'SEC_INSIDER')   AS sec_insider_count,
-    COUNT(*) FILTER (WHERE s.source = 'OPTIONS_FLOW')  AS options_flow_count,
-    COUNT(*) FILTER (WHERE s.source = 'VOLUME_SPIKE')  AS volume_spike_count,
-    COUNT(*) FILTER (WHERE s.source = 'CONGRESS')      AS congress_count,
-    -- Source diversity
-    COUNT(DISTINCT s.source)                            AS source_count,
-    -- Insider / congress quality
-    MAX(s."purchaseValue") FILTER (WHERE s.source IN ('SEC_INSIDER', 'CONGRESS'))  AS max_insider_value,
-    SUM(s."purchaseValue") FILTER (WHERE s.source IN ('SEC_INSIDER', 'CONGRESS'))  AS total_insider_value,
-    MAX(s."purchaseValue") FILTER (WHERE s.source = 'CONGRESS')                    AS max_congress_value,
-    COALESCE(
-      BOOL_OR(s."insiderTitle" ILIKE '%ceo%' OR s."insiderTitle" ILIKE '%chief executive%')
-      FILTER (WHERE s.source = 'SEC_INSIDER'),
-      false
-    )                                                   AS has_ceo_buy,
-    -- Twitter quality
-    MAX(s."followerCount") FILTER (WHERE s.source = 'TWITTER')      AS max_follower_count,
-    SUM(s."retweetCount")  FILTER (WHERE s.source = 'TWITTER')      AS total_retweets,
-    SUM(s."likeCount")     FILTER (WHERE s.source = 'TWITTER')      AS total_likes,
-    -- Reddit quality
-    MAX(s.upvotes)         FILTER (WHERE s.source = 'REDDIT')       AS max_reddit_upvotes,
-    SUM(s.upvotes)         FILTER (WHERE s.source = 'REDDIT')       AS total_reddit_upvotes,
-    SUM(s."commentCount")  FILTER (WHERE s.source = 'REDDIT')       AS total_reddit_comments,
-    AVG(s."postAge")       FILTER (WHERE s.source = 'REDDIT')       AS avg_reddit_post_age,
-    COUNT(DISTINCT s.subreddit) FILTER (WHERE s.source = 'REDDIT')  AS distinct_subreddits,
-    -- Velocity / momentum (from raw postAge + sortType)
-    AVG(s."velocityScore")                              AS avg_velocity,
-    COUNT(*) FILTER (WHERE s."sortType" = 'rising')     AS rising_count,
-    COUNT(*) FILTER (WHERE s."sortType" = 'comment')    AS comment_derived_count,
-    COUNT(*) FILTER (WHERE s."postAge" IS NOT NULL AND s."postAge" < 3
-                       AND COALESCE(s."sortType", '') NOT IN ('rising', 'comment'))   AS fresh_count,
-    COUNT(*) FILTER (WHERE s."postAge" IS NOT NULL AND s."postAge" >= 3 AND s."postAge" < 12
-                       AND COALESCE(s."sortType", '') NOT IN ('rising', 'comment'))   AS recent_count,
-    COUNT(*) FILTER (WHERE s."postAge" IS NOT NULL AND s."postAge" >= 12
-                       AND COALESCE(s."sortType", '') NOT IN ('rising', 'comment'))   AS stale_count,
-    -- Volume spike quality
-    MAX(s."volumeRatio") FILTER (WHERE s.source = 'VOLUME_SPIKE')   AS max_volume_ratio,
-    AVG(s."volumeRatio") FILTER (WHERE s.source = 'VOLUME_SPIKE')   AS avg_volume_ratio
-  FROM "Signal" s
-  GROUP BY s."scanId", s.symbol
-)
-SELECT
-  -- ValidatedTicker (all columns)
-  vt.id,
-  vt."scanId",
-  vt.symbol,
-  vt.price,
-  vt."marketCap",
-  vt."shortFloat",
-  vt.catalyst,
-  vt.risks,
-  vt.recommendation,
-  vt.report,
-  vt."aiScore",
-  vt.stage,
-  vt."signalCount",
-  vt."sourceCount",
-  vt."avgSentiment",
-  vt."signalType",
-  vt."fiftyTwoWkRange",
-  vt."wk52Lo",
-  vt."wk52Hi",
-  vt.exchange,
-  vt."firstSeenDaysAgo",
-  vt."priorAppearances",
-  vt."weightedSourceScore",
-  vt."avgVelocity",
-  vt."totalUpvotes",
-  vt."totalComments",
-  vt."subredditCount",
-  vt."risingCount",
-  vt."freshCount",
-  vt."recentCount",
-  vt."commentDerivedCount",
-  vt."staleCount",
-  vt."aiReasoning",
-  vt.sector,
-  vt."floatShares",
-  vt.name,
-  vt."pndFlagged",
-  vt."pndFlags",
-  vt."pndScore",
-  vt."rawAiScore",
-  vt."pndAiConfidence",
-  vt."pndAiReasoning",
-  vt."medianSignalAgeHrs",
-  vt."createdAt",
-  -- TickerPerformance (all columns, prefixed to avoid conflicts)
-  tp.id                  AS tp_id,
-  tp."validatedTickerId",
-  tp.symbol              AS tp_symbol,
-  tp."detectionPrice",
-  tp."price1d",
-  tp."price3d",
-  tp."price7d",
-  tp."price30d",
-  tp."return1d",
-  tp."return3d",
-  tp."return7d",
-  tp."return30d",
-  tp."snapped1dAt",
-  tp."snapped3dAt",
-  tp."snapped7dAt",
-  tp."snapped30dAt",
-  tp."createdAt"          AS tp_created_at,
-  tp."updatedAt"          AS tp_updated_at,
-  -- Signal-level aggregates (all computed from raw Signal table)
-  sa.signal_count,
-  sa.source_count,
-  sa.reddit_count,
-  sa.twitter_count,
-  sa.stocktwits_count,
-  sa.sec_insider_count,
-  sa.options_flow_count,
-  sa.volume_spike_count,
-  sa.congress_count,
-  sa.max_insider_value,
-  sa.total_insider_value,
-  sa.max_congress_value,
-  sa.has_ceo_buy,
-  sa.max_follower_count,
-  sa.total_retweets,
-  sa.total_likes,
-  sa.max_reddit_upvotes,
-  sa.total_reddit_upvotes,
-  sa.total_reddit_comments,
-  sa.avg_reddit_post_age,
-  sa.distinct_subreddits,
-  sa.avg_velocity,
-  sa.rising_count,
-  sa.comment_derived_count,
-  sa.fresh_count,
-  sa.recent_count,
-  sa.stale_count,
-  sa.max_volume_ratio,
-  sa.avg_volume_ratio
-FROM "ValidatedTicker" vt
-LEFT JOIN "TickerPerformance" tp ON tp."validatedTickerId" = vt.id
-LEFT JOIN signal_agg sa ON sa."scanId" = vt."scanId" AND sa.symbol = vt.symbol
-WHERE vt.stage IS NOT NULL
-ORDER BY vt."createdAt"
+LIST_PUBLIC_TABLES = """
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public'
+  AND table_type = 'BASE TABLE'
+ORDER BY table_name;
 """
+
+
+def parse_postgres_url(url: str) -> dict[str, str]:
+    """Parse postgresql:// URLs into pg_dump/pg_restore CLI args."""
+    p = urlparse(url)
+    if p.scheme not in ("postgresql", "postgres"):
+        raise ValueError(f"unsupported URL scheme: {p.scheme!r}")
+    host = p.hostname
+    if not host:
+        raise ValueError("connection URL must include a host (TCP), not a unix socket")
+    path = (p.path or "").lstrip("/")
+    dbname = path.split("?")[0] if path else ""
+    if not dbname:
+        raise ValueError("connection URL must include a database name in the path")
+    port = str(p.port or 5432)
+    user = unquote(p.username) if p.username else ""
+    password = unquote(p.password) if p.password else ""
+    return {
+        "host": host,
+        "port": port,
+        "user": user,
+        "password": password,
+        "dbname": dbname,
+    }
+
+
+def is_safe_restore_target(url: str) -> bool:
+    """True if URL looks like a local dev Postgres (not Cloud SQL / not the proxy port)."""
+    u = url.strip()
+    if not u:
+        return False
+    if "/cloudsql/" in u or "host=/cloudsql/" in u:
+        return False
+    try:
+        p = urlparse(u)
+    except Exception:
+        return False
+    if p.scheme not in ("postgresql", "postgres"):
+        return False
+    host = (p.hostname or "").lower()
+    if host not in ("localhost", "127.0.0.1", "::1", "host.docker.internal"):
+        return False
+    if (p.port or 5432) == PROXY_PORT:
+        return False
+    path = (p.path or "").lstrip("/")
+    dbname = path.split("?")[0] if path else ""
+    return bool(dbname)
+
+
+def resolve_restore_target_url() -> tuple[str, str] | None:
+    """
+    URL and label for pg_restore.
+    DATABASE_URL_DEV wins (optional second DB for harvester mirroring).
+    Else DATABASE_URL when it is a safe local URL — same DB the app uses in dev.
+    """
+    dev = os.environ.get("DATABASE_URL_DEV")
+    if dev and dev.strip():
+        u = dev.strip()
+        if not is_safe_restore_target(u):
+            return None
+        return u, "DATABASE_URL_DEV"
+    db = os.environ.get("DATABASE_URL")
+    if db and db.strip() and is_safe_restore_target(db):
+        return db.strip(), "DATABASE_URL"
+    return None
+
+
+def assert_not_proxy_port(dev: dict[str, str]) -> None:
+    """Refuse to pg_restore onto the Cloud SQL proxy port (would overwrite production)."""
+    if dev["port"] == str(PROXY_PORT):
+        print(
+            f"ERROR: restore target must not use port {PROXY_PORT} "
+            "(Cloud SQL proxy / production). Point at your local Postgres (e.g. port 5432)."
+        )
+        sys.exit(1)
+
+
+def require_pg_tools() -> None:
+    for name in ("pg_dump", "pg_restore"):
+        if not shutil.which(name):
+            print(f"ERROR: {name} not found. Install PostgreSQL client tools (e.g. brew install libpq)")
+            sys.exit(1)
+
+
+def dump_production_custom(dump_path: Path, db_password: str) -> None:
+    """Write a custom-format pg_dump of production (via localhost proxy)."""
+    env = {**os.environ, "PGPASSWORD": db_password}
+    cmd = [
+        "pg_dump",
+        "-h",
+        "localhost",
+        "-p",
+        str(PROXY_PORT),
+        "-U",
+        DB_USER,
+        "-d",
+        DB_NAME,
+        "-Fc",
+        "--no-owner",
+        "-f",
+        str(dump_path),
+    ]
+    print("Running pg_dump from production (via proxy)...")
+    r = subprocess.run(cmd, env=env, capture_output=True, text=True)
+    if r.returncode != 0:
+        print(r.stderr or r.stdout or "(no output)")
+        print("ERROR: pg_dump failed")
+        sys.exit(1)
+
+
+def restore_dump_to_dev(dump_path: Path, dev: dict[str, str]) -> None:
+    """Replace dev database contents with the custom-format dump."""
+    env = {**os.environ, "PGPASSWORD": dev["password"]}
+    cmd = [
+        "pg_restore",
+        "-h",
+        dev["host"],
+        "-p",
+        dev["port"],
+        "-U",
+        dev["user"],
+        "-d",
+        dev["dbname"],
+        "--clean",
+        "--if-exists",
+        "--no-owner",
+        "--no-acl",
+        "--verbose",
+        str(dump_path),
+    ]
+    print(
+        f"Restoring to development database "
+        f"{dev['user']}@{dev['host']}:{dev['port']}/{dev['dbname']} ..."
+    )
+    print("(Stop the Next.js dev server or other clients if restore fails on active connections.)")
+    r = subprocess.run(cmd, env=env, capture_output=True, text=True)
+    if r.stdout:
+        print(r.stdout, end="")
+    if r.stderr:
+        # pg_restore often prints notices to stderr even on success
+        print(r.stderr, end="")
+    # PostgreSQL: 0 = success, 1 = completed with warnings, >=2 = fatal
+    if r.returncode >= 2:
+        print("ERROR: pg_restore failed")
+        sys.exit(1)
+    if r.returncode == 1:
+        print("pg_restore completed with warnings (exit code 1).")
+    else:
+        print("pg_restore completed successfully.")
 
 
 def port_is_open(port: int, timeout: float = 1.0) -> bool:
@@ -227,7 +256,7 @@ def start_cloud_sql_proxy() -> subprocess.Popen | None:
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # Wait up to 15s for proxy to be ready
-    for i in range(30):
+    for _i in range(30):
         if proc.poll() is not None:
             stderr = proc.stderr.read().decode() if proc.stderr else ""
             print(f"ERROR: Cloud SQL proxy exited immediately.\n{stderr}")
@@ -254,11 +283,72 @@ def stop_cloud_sql_proxy(proc: subprocess.Popen | None):
         proc.kill()
 
 
+def export_public_schema(conn) -> dict[str, int]:
+    """Export every public base table to `<name>.parquet`; return table -> row counts."""
+    with conn.cursor() as cur:
+        cur.execute(LIST_PUBLIC_TABLES)
+        tables = [row[0] for row in cur.fetchall()]
+
+    if not tables:
+        print("WARNING: no public tables found")
+        return {}
+
+    manifest: dict[str, int] = {}
+    print(f"Exporting {len(tables)} tables (SELECT *, no filters)...")
+    for table_name in tables:
+        query = sql.SQL("SELECT * FROM {}").format(sql.Identifier(table_name))
+        qstring = query.as_string(conn)
+        df = pd.read_sql_query(qstring, conn)
+        out_path = OUTPUT_DIR / f"{table_name}.parquet"
+        df.to_parquet(out_path, index=False)
+        manifest[table_name] = len(df)
+        print(f"  {table_name}: {len(df)} rows × {len(df.columns)} columns → {out_path.name}")
+
+    manifest_path = OUTPUT_DIR / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    print(f"\nManifest: {manifest_path}")
+    return manifest
+
+
 def main():
+    parser = argparse.ArgumentParser(description="Export production DB to parquet and optionally clone into dev.")
+    parser.add_argument(
+        "--no-restore",
+        action="store_true",
+        help="Skip pg_dump/pg_restore; only write parquet + manifest under scripts/output/",
+    )
+    args = parser.parse_args()
+
     db_password = os.environ.get("DB_PASSWORD")
     if not db_password:
         print("ERROR: DB_PASSWORD not found in .env.production")
         sys.exit(1)
+
+    dev_conn: dict[str, str] | None = None
+    if not args.no_restore:
+        resolved = resolve_restore_target_url()
+        if not resolved:
+            dev_raw = (os.environ.get("DATABASE_URL_DEV") or "").strip()
+            if dev_raw and not is_safe_restore_target(dev_raw):
+                print("ERROR: DATABASE_URL_DEV is set but is not a safe local URL (localhost / host.docker.internal, non-proxy port).")
+                print("  Refuses Cloud SQL and port 5434 (production proxy).")
+                sys.exit(1)
+            print("ERROR: No safe local database URL for pg_restore.")
+            print("  Set DATABASE_URL to your local Postgres (e.g. postgresql://postgres:postgres@localhost:5432/signalscope),")
+            print("  or set DATABASE_URL_DEV. URLs with Cloud SQL or port 5434 are refused.")
+            sys.exit(1)
+        restore_url, restore_label = resolved
+        require_pg_tools()
+        try:
+            dev_conn = parse_postgres_url(restore_url)
+        except ValueError as e:
+            print(f"ERROR: invalid restore URL ({restore_label}): {e}")
+            sys.exit(1)
+        assert_not_proxy_port(dev_conn)
+        print(
+            f"Restore target: {restore_label} → "
+            f"{dev_conn['user']}@{dev_conn['host']}:{dev_conn['port']}/{dev_conn['dbname']}"
+        )
 
     proxy_proc = start_cloud_sql_proxy()
 
@@ -267,24 +357,38 @@ def main():
         f"@localhost:{PROXY_PORT}/{DB_NAME}"
     )
 
+    dump_path: Path | None = None
     try:
         print("Connecting to database...")
         conn = psycopg2.connect(database_url)
         try:
-            print("Running extraction query...")
-            df = pd.read_sql(QUERY, conn)
+            manifest = export_public_schema(conn)
         finally:
             conn.close()
 
-        out_path = OUTPUT_DIR / "dataset.parquet"
-        df.to_parquet(out_path, index=False)
+        total_rows = sum(manifest.values())
+        print(f"\nParquet export done. {len(manifest)} tables, {total_rows} total rows → {OUTPUT_DIR}")
 
-        print(f"\nExtracted {len(df)} rows, {len(df.columns)} columns")
-        print(f"Date range: {df['createdAt'].min()} → {df['createdAt'].max()}")
-        print(f"Unique symbols: {df['symbol'].nunique()}")
-        print(f"Rows with return_7d: {df['return7d'].notna().sum()}")
-        print(f"Saved to {out_path}")
+        if not args.no_restore:
+            fd, dump_name = tempfile.mkstemp(prefix="signalscope-prod-", suffix=".dump")
+            os.close(fd)
+            dump_path = Path(dump_name)
+            try:
+                dump_production_custom(dump_path, db_password)
+            finally:
+                stop_cloud_sql_proxy(proxy_proc)
+                proxy_proc = None
+
+            if dev_conn is None:
+                print("ERROR: internal error: dev connection not configured")
+                sys.exit(1)
+            restore_dump_to_dev(dump_path, dev_conn)
     finally:
+        if dump_path is not None and dump_path.exists():
+            try:
+                dump_path.unlink()
+            except OSError:
+                pass
         stop_cloud_sql_proxy(proxy_proc)
 
 

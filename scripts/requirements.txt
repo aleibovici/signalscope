@@ -1,0 +1,6 @@
+# Extract script (scripts/extract.py) — optional tooling, not used by Next.js build.
+# Setup: python3 -m venv .venv && source .venv/bin/activate && pip install -r scripts/requirements.txt
+pandas>=2.0
+psycopg2-binary>=2.9
+pyarrow>=14.0
+python-dotenv>=1.0
