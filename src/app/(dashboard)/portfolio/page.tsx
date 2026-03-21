@@ -157,13 +157,13 @@ export default function PortfolioPage() {
     <div className="space-y-4 md:space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 md:text-2xl">Portfolio</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-zinc-100 md:text-2xl">Portfolio</h1>
           {positions.length > 0 && (
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">
               {positions.length} positions &middot; Overall avg gain:{" "}
               <span
                 className={
-                  avgAllGain >= 0 ? "text-green-600" : "text-red-600"
+                  avgAllGain >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                 }
               >
                 {avgAllGain >= 0 ? "+" : ""}
@@ -183,10 +183,10 @@ export default function PortfolioPage() {
       {showAddForm && (
         <form
           onSubmit={handleAdd}
-          className="flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-white p-4"
+          className="flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900"
         >
           <div className="w-full sm:w-auto">
-            <label className="mb-1 block text-xs font-medium text-gray-600">
+            <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-zinc-300">
               Symbol
             </label>
             <input
@@ -194,12 +194,12 @@ export default function PortfolioPage() {
               value={newSymbol}
               onChange={(e) => setNewSymbol(e.target.value)}
               placeholder="AAPL"
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm sm:w-28"
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder-zinc-500 sm:w-28"
               required
             />
           </div>
           <div className="w-full sm:w-auto">
-            <label className="mb-1 block text-xs font-medium text-gray-600">
+            <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-zinc-300">
               Entry Price
             </label>
             <input
@@ -208,7 +208,7 @@ export default function PortfolioPage() {
               value={newPrice}
               onChange={(e) => setNewPrice(e.target.value)}
               placeholder="150.00"
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm sm:w-32"
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder-zinc-500 sm:w-32"
               required
             />
           </div>
@@ -230,12 +230,12 @@ export default function PortfolioPage() {
           <Spinner className="h-8 w-8 text-blue-600" />
         </div>
       ) : isError ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 py-12 text-center">
-          <p className="text-red-600">Failed to load portfolio. Please refresh and try again.</p>
+        <div className="rounded-lg border border-red-200 bg-red-50 py-12 text-center dark:border-red-900/50 dark:bg-red-950/30">
+          <p className="text-red-600 dark:text-red-400">Failed to load portfolio. Please refresh and try again.</p>
         </div>
       ) : openPositions.length === 0 && closedPositions.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center">
-          <p className="text-gray-500">
+        <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center dark:border-zinc-600">
+          <p className="text-gray-500 dark:text-zinc-400">
             No positions yet. Track a signal from the dashboard or add one
             manually.
           </p>
@@ -246,11 +246,11 @@ export default function PortfolioPage() {
             <div>
               <div className="mb-3 space-y-1">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-base font-semibold text-gray-900">
+                  <h2 className="text-base font-semibold text-gray-900 dark:text-zinc-100">
                     Open Positions
-                    <span className="ml-2 text-sm font-normal text-gray-500">
+                    <span className="ml-2 text-sm font-normal text-gray-500 dark:text-zinc-400">
                       &middot;{" "}
-                      <span className={avgOpenGain >= 0 ? "text-green-600" : "text-red-600"}>
+                      <span className={avgOpenGain >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
                         {avgOpenGain >= 0 ? "+" : ""}{avgOpenGain.toFixed(2)}%
                       </span>
                     </span>
@@ -258,7 +258,7 @@ export default function PortfolioPage() {
                   <button
                     onClick={() => refetch()}
                     disabled={isFetching}
-                    className="rounded-md bg-gray-100 px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+                    className="rounded-md bg-gray-100 px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
                     title="Refresh stock prices"
                   >
                     {isFetching ? (
@@ -278,15 +278,15 @@ export default function PortfolioPage() {
                 </div>
                 <div className="flex flex-wrap gap-x-3 gap-y-0.5">
                   {dayBuckets.map((b) => (
-                    <span key={b.label} className="text-xs text-gray-500">
-                      <span className="font-medium text-gray-600">{b.label}:</span>{" "}
+                    <span key={b.label} className="text-xs text-gray-500 dark:text-zinc-400">
+                      <span className="font-medium text-gray-600 dark:text-zinc-300">{b.label}:</span>{" "}
                       {b.data ? (
-                        <span className={b.data.avg >= 0 ? "text-green-600" : "text-red-600"}>
+                        <span className={b.data.avg >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
                           {b.data.avg >= 0 ? "+" : ""}{b.data.avg.toFixed(1)}%
-                          <span className="text-gray-400"> ({b.data.count})</span>
+                          <span className="text-gray-400 dark:text-zinc-500"> ({b.data.count})</span>
                         </span>
                       ) : (
-                        <span className="text-gray-400">--</span>
+                        <span className="text-gray-400 dark:text-zinc-500">--</span>
                       )}
                     </span>
                   ))}
@@ -308,13 +308,13 @@ export default function PortfolioPage() {
 
           {closedPositions.length > 0 && (
             <div>
-              <h2 className="mb-3 text-lg font-semibold text-gray-500">
+              <h2 className="mb-3 text-lg font-semibold text-gray-500 dark:text-zinc-400">
                 Closed Positions
                 <span className="ml-2 text-sm font-normal">
                   &middot; Avg gain:{" "}
                   <span
                     className={
-                      avgClosedGain >= 0 ? "text-green-600" : "text-red-600"
+                      avgClosedGain >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                     }
                   >
                     {avgClosedGain >= 0 ? "+" : ""}
@@ -342,19 +342,19 @@ export default function PortfolioPage() {
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center">
           <form
             onSubmit={handleConfirmClose}
-            className="w-full max-w-sm rounded-t-lg bg-white p-6 shadow-xl sm:rounded-lg"
+            className="w-full max-w-sm rounded-t-lg bg-white p-6 shadow-xl dark:bg-zinc-900 sm:rounded-lg"
           >
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100">
               Close {closingPos.symbol}
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">
               Entry price: ${closingPos.entryPrice.toFixed(2)}
               {closingPos.currentPrice != null && (
                 <> &middot; Current: ${closingPos.currentPrice.toFixed(2)}</>
               )}
             </p>
             <div className="mt-4">
-              <label className="mb-1 block text-xs font-medium text-gray-600">
+              <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-zinc-300">
                 Exit Price
               </label>
               <input
@@ -363,13 +363,13 @@ export default function PortfolioPage() {
                 value={closePrice}
                 onChange={(e) => setClosePrice(e.target.value)}
                 placeholder="0.00"
-                className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder-zinc-500"
                 autoFocus
                 required
               />
             </div>
             {updatePosition.isError && (
-              <p className="mt-3 text-sm text-red-600">Failed to close position. Please try again.</p>
+              <p className="mt-3 text-sm text-red-600 dark:text-red-400">Failed to close position. Please try again.</p>
             )}
             <div className="mt-5 flex justify-end gap-2">
               <button
@@ -378,7 +378,7 @@ export default function PortfolioPage() {
                   setClosingPosition(null);
                   setClosePrice("");
                 }}
-                className="rounded px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+                className="rounded px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
                 Cancel
               </button>
@@ -396,21 +396,21 @@ export default function PortfolioPage() {
 
       {deletingPosition && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center">
-          <div className="w-full max-w-sm rounded-t-lg bg-white p-6 shadow-xl sm:rounded-lg">
-            <h3 className="text-lg font-semibold text-gray-900">
+          <div className="w-full max-w-sm rounded-t-lg bg-white p-6 shadow-xl dark:bg-zinc-900 sm:rounded-lg">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100">
               Delete Position
             </h3>
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-gray-500 dark:text-zinc-400">
               Are you sure you want to delete this position? This action cannot be undone.
             </p>
             {deletePosition.isError && (
-              <p className="mt-3 text-sm text-red-600">Failed to delete position. Please try again.</p>
+              <p className="mt-3 text-sm text-red-600 dark:text-red-400">Failed to delete position. Please try again.</p>
             )}
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setDeletingPosition(null)}
-                className="rounded px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+                className="rounded px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
                 Cancel
               </button>
@@ -431,14 +431,14 @@ export default function PortfolioPage() {
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center">
           <form
             onSubmit={handleConfirmEdit}
-            className="w-full max-w-sm rounded-t-lg bg-white p-6 shadow-xl sm:rounded-lg"
+            className="w-full max-w-sm rounded-t-lg bg-white p-6 shadow-xl dark:bg-zinc-900 sm:rounded-lg"
           >
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100">
               Edit Position
             </h3>
             <div className="mt-4 space-y-3">
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-600">
+                <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-zinc-300">
                   Entry Price
                 </label>
                 <input
@@ -447,20 +447,20 @@ export default function PortfolioPage() {
                   value={editEntryPrice}
                   onChange={(e) => setEditEntryPrice(e.target.value)}
                   placeholder="0.00"
-                  className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder-zinc-500"
                   autoFocus
                   required
                 />
               </div>
             </div>
             {updatePosition.isError && (
-              <p className="mt-3 text-sm text-red-600">Failed to update position. Please try again.</p>
+              <p className="mt-3 text-sm text-red-600 dark:text-red-400">Failed to update position. Please try again.</p>
             )}
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setEditingPosition(null)}
-                className="rounded px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+                className="rounded px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
                 Cancel
               </button>
