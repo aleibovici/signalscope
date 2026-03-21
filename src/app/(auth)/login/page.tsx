@@ -604,10 +604,10 @@ export default function LoginPage() {
               Signal<span className="text-blue-400">Scope</span>
             </span>
             <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-gray-500">
-              <a href="/blog" className="hover:text-gray-300 transition-colors touch-manipulation">Blog</a>
-              <a href="/faq" className="hover:text-gray-300 transition-colors touch-manipulation">FAQ</a>
-              <a href="/how-it-works" className="hover:text-gray-300 transition-colors touch-manipulation">Methodology</a>
-              <a href="/changelog" className="hover:text-gray-300 transition-colors touch-manipulation">Changelog</a>
+              <Link href="/blog" className="hover:text-gray-300 transition-colors touch-manipulation">Blog</Link>
+              <Link href="/faq" className="hover:text-gray-300 transition-colors touch-manipulation">FAQ</Link>
+              <Link href="/how-it-works" className="hover:text-gray-300 transition-colors touch-manipulation">Methodology</Link>
+              <Link href="/changelog" className="hover:text-gray-300 transition-colors touch-manipulation">Changelog</Link>
               <a href="/skill/SKILL.md" target="_blank" className="hover:text-gray-300 transition-colors touch-manipulation">API Docs</a>
               <a href="https://x402.org" target="_blank" rel="noopener noreferrer" className="hover:text-gray-300 transition-colors touch-manipulation">x402 Protocol</a>
             </div>
