@@ -147,7 +147,7 @@ function InfoHint({ text }: { text: string }) {
         onPointerEnter={show}
         onPointerLeave={(e) => scheduleClose(e.pointerType === "touch" ? 3000 : 120)}
         onFocus={show}
-        onBlur={scheduleClose}
+        onBlur={() => scheduleClose()}
         onKeyDown={(e) => {
           if (e.key === "Escape") {
             clearCloseTimer();
