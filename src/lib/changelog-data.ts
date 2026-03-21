@@ -24,6 +24,7 @@ export const changelog: ChangelogEntry[] = [
       {
         category: "fixed",
         items: [
+          "Portfolio page dark mode: text, labels, inputs, action buttons, and all three modals (Close, Edit, Delete) are now fully readable in dark mode.",
           "Dashboard stage tabs (Emerging / Building / Consensus) now fully fit on 390px mobile screens — no more clipped tab labels.",
           "Connections graph shows touch-friendly instructions on mobile (tap, double-tap, pinch to zoom) instead of mouse-only wording.",
           "Info hint tooltips on ticker detail stay visible for 3 seconds after a tap on mobile, giving enough time to read the hint.",
