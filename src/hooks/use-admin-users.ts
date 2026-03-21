@@ -11,6 +11,11 @@ export interface AdminUser {
   emailAlerts: boolean;
   createdAt: string;
   lastActiveAt: string | null;
+  subscription: {
+    status: string;
+    currentPeriodEnd: string;
+    cancelAtPeriodEnd: boolean;
+  } | null;
   _count: {
     positions: number;
     watchlist: number;

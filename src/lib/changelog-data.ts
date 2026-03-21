@@ -10,8 +10,15 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-03-22",
-    title: "Smarter P&D Detection & Mobile Polish",
+    title: "Pro Subscriptions, Smarter P&D Detection & Mobile Polish",
     changes: [
+      {
+        category: "new",
+        items: [
+          "Pro subscription ($15/mo or $150/yr) — unlocks API key access (1,000 req/day), on-demand AI report generation for any ticker, and daily email alerts. Subscribe from the new API Access page in the sidebar.",
+          "Stripe-powered subscription management — subscribe, cancel, update payment method, and switch between monthly and yearly billing via Stripe's secure checkout and customer portal.",
+        ],
+      },
       {
         category: "improved",
         items: [

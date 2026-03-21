@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/lib/auth.config";
-import { isRateLimited } from "@/lib/rate-limit";
+import { isRateLimited, isApiKeyRateLimited } from "@/lib/rate-limit";
 import { verifyAccessToken } from "@/lib/mobile-jwt";
 import { createHash } from "crypto";
 
@@ -97,6 +97,9 @@ export async function getCurrentUserId(): Promise<string> {
     const hash = createHash("sha256").update(apiKey).digest("hex");
     const record = await prisma.apiKey.findUnique({ where: { key: hash } });
     if (record && !record.revokedAt) {
+      if (isApiKeyRateLimited(record.userId)) {
+        throw new Error("API key rate limit exceeded (1,000 requests/day)");
+      }
       trackApiKeyUsage(record.id);
       trackUserActivity(record.userId);
       return record.userId;

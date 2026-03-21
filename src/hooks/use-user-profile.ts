@@ -2,11 +2,21 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
+export interface SubscriptionInfo {
+  status: string;
+  isActive: boolean;
+  currentPeriodEnd: string;
+  cancelAtPeriodEnd: boolean;
+  canceledAt: string | null;
+  createdAt: string;
+}
+
 export interface UserProfile {
   id: string;
   email: string;
   username: string | null;
   emailAlerts: boolean;
+  subscription: SubscriptionInfo | null;
 }
 
 export function useUserProfile() {

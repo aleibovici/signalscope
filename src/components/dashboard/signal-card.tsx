@@ -315,9 +315,9 @@ export function SignalCard({
                   AI analysis
                 </p>
                 <p className="text-xs leading-snug text-gray-600 dark:text-zinc-400">
-                  Thesis and risks aren&apos;t on this card yet.{" "}
+                  Thesis and risks aren&apos;t on this card yet. Pro subscribers can{" "}
                   <span className="font-medium text-blue-700 dark:text-blue-400/95">
-                    Open the ticker
+                    open the ticker
                   </span>{" "}
                   to generate the technical write-up.
                 </p>

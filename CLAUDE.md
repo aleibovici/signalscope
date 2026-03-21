@@ -76,9 +76,9 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 
 ### Email Alerts (`src/lib/email/`)
 
-- `index.ts` — `sendTickerAlerts()` sends a digest of CONFIRMED tickers via Resend. Requires `RESEND_API_KEY` env var; silently skipped if absent.
+- `index.ts` — `sendTickerAlerts()` sends a digest of CONFIRMED tickers via Resend. Requires `RESEND_API_KEY` env var; silently skipped if absent. Only sends to users with active subscriptions.
 - Triggered by `POST /api/alerts/send` (authenticated via `x-snapshot-key` header, same as snapshots)
-- Users can opt out via `User.emailAlerts = false` (set in profile)
+- Users can opt out via `User.emailAlerts = false` (set in profile); email alerts require Pro subscription
 
 ### Utility Libs
 
@@ -131,10 +131,13 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 | `/api/harvest/ingest` | POST | Receive raw signals for cloud processing (x-harvest-key auth) |
 | `/api/reports/generate` | POST | Batch pre-generate AI reports for top 10 emerging tickers (x-snapshot-key auth) |
 | `/api/snapshots/collect` | POST | Collect price snapshots for validated tickers (x-snapshot-key auth) |
+| `/api/stripe/checkout` | POST | Create Stripe Checkout session for subscription (authenticated) |
+| `/api/stripe/portal` | POST | Create Stripe Customer Portal session (authenticated) |
+| `/api/stripe/webhook` | POST | Stripe webhook handler (public, signature-verified) |
 
 ### Frontend (`src/app/(dashboard)/`)
 
-Dashboard pages: signals (main), trending, connections, portfolio, ticker detail, performance, methodology, profile. Uses route group `(dashboard)` with shared sidebar layout. (`/subscription` directory exists but has no page yet.)
+Dashboard pages: signals (main), trending, connections, portfolio, ticker detail, performance, methodology, subscription, profile. Uses route group `(dashboard)` with shared sidebar layout.
 
 Public pages (no auth): `/changelog` — statically rendered changelog page (`src/app/changelog/page.tsx`). Data in `src/lib/changelog-data.ts` (same pattern as `methodology-data.ts`). Linked from dashboard sidebar (with "NEW" badge for 14 days after latest entry) and landing page footer.
 
@@ -180,9 +183,24 @@ Anonymous pay-per-call access for AI agents via the [x402 protocol](https://www.
 - Payment settles to wallet on Base mainnet (`eip155:8453`), scheme: `exact` (EIP-3009 USDC `transferWithAuthorization`)
 - Packages: `@x402/next`, `@x402/core`, `@x402/evm`, `viem`
 
+### Stripe Subscriptions (`src/lib/stripe.ts`, `src/lib/subscription.ts`)
+
+Paid subscription ($15/mo or $150/yr) gates three features: API key access, on-demand AI report generation, and email alerts. The dashboard is free for all authenticated users.
+
+- `src/lib/stripe.ts` — Lazy Stripe client singleton, price ID constants
+- `src/lib/subscription.ts` — `hasActiveSubscription(userId)`, `getSubscriptionForApi(userId)`, `API_KEY_DAILY_LIMIT`
+- `src/app/api/stripe/checkout/route.ts` — Creates Stripe Checkout session (accepts `{ period: "monthly" | "yearly" }`)
+- `src/app/api/stripe/portal/route.ts` — Creates Stripe Customer Portal session
+- `src/app/api/stripe/webhook/route.ts` — Handles subscription lifecycle events (checkout completed, updated, deleted, payment failed/succeeded)
+- Subscription page at `/subscription` — plan cards with monthly/yearly toggle, manage button for subscribers
+- Enforcement points: API key generation (403 if no subscription), on-demand report generation (403 if no existing report and no subscription), email alerts (filtered to subscribers only), API key rate limiting (1,000 req/day)
+- `PAST_DUE` status still allows access (gives users time to fix payment); `CANCELED`/`UNPAID` blocks access
+- Stripe Customer created lazily on first checkout attempt, stored as `User.stripeCustomerId`
+- Coexists with x402: x402 is for anonymous agent access, subscriptions are for authenticated users
+
 ### Database Models
 
-Key models in `prisma/schema.prisma`: **User** (with `emailAlerts: Boolean`), **Scan** (harvest run), **Signal** (raw from sources), **ValidatedTicker** (scored candidates with fundamentals/report), **TickerPerformance** (post-scan price performance tracking), **PriceSnapshot** (continuous price time-series for return computation), **UserPosition** (portfolio), **UserWatchlist** (bookmarked tickers), **RefreshToken** (mobile auth token rotation, indexed on token/userId/expiresAt), **ApiKey** (SHA-256 hashed API keys for programmatic access, single key per user, `sk_sig_` prefix).
+Key models in `prisma/schema.prisma`: **User** (with `emailAlerts: Boolean`, `stripeCustomerId`), **Subscription** (Stripe subscription state: status, period dates, cancelAtPeriodEnd), **Scan** (harvest run), **Signal** (raw from sources), **ValidatedTicker** (scored candidates with fundamentals/report), **TickerPerformance** (post-scan price performance tracking), **PriceSnapshot** (continuous price time-series for return computation), **UserPosition** (portfolio), **UserWatchlist** (bookmarked tickers), **RefreshToken** (mobile auth token rotation, indexed on token/userId/expiresAt), **ApiKey** (SHA-256 hashed API keys for programmatic access, single key per user, `sk_sig_` prefix).
 
 `ValidatedTicker` notable fields: `wk52Lo/wk52Hi` (52-week range), `firstSeenDaysAgo` (null = truly novel, 0 = first seen today, N = days ago), `priorAppearances` (count of prior appearances in 30d window), `exchange`, `aiReasoning`, `pndFlagged/pndFlags/pndScore/pndAiConfidence/pndAiReasoning`, `tradeSetupEntryLo/EntryHi/StopLoss/Target1/Target2/Timeframe/RiskReward/Confidence` (AI trade setup, generated on-demand for Buy/Strong Buy recommendations).
 
@@ -222,6 +240,13 @@ SNAPSHOT_API_KEY=<openssl rand -base64 32>
 
 # Optional: Email alerts via Resend (no emails sent if absent)
 RESEND_API_KEY=re_...
+
+# Optional: Stripe subscriptions (subscription features disabled if absent)
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_MONTHLY=price_...
+STRIPE_PRICE_YEARLY=price_...
 
 # Optional: x402 payment protocol (USDC on Base, disabled if absent)
 X402_WALLET_ADDRESS=0x...

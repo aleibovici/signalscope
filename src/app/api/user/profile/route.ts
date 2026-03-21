@@ -4,6 +4,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth";
 import { generateUsername } from "@/lib/username-generator";
+import { getSubscriptionForApi } from "@/lib/subscription";
 
 export async function GET() {
   try {
@@ -35,7 +36,8 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json(user);
+    const subscription = await getSubscriptionForApi(userId);
+    return NextResponse.json({ ...user, subscription });
   } catch (error) {
     if (error instanceof Error && error.message === "Not authenticated") {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });

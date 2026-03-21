@@ -26,6 +26,13 @@ export async function GET() {
         emailAlerts: true,
         createdAt: true,
         lastActiveAt: true,
+        subscription: {
+          select: {
+            status: true,
+            currentPeriodEnd: true,
+            cancelAtPeriodEnd: true,
+          },
+        },
         _count: {
           select: {
             positions: true,

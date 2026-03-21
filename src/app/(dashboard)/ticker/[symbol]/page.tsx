@@ -255,7 +255,7 @@ export default function TickerDetailPage({
   const [priceRefreshing, setPriceRefreshing] = useState(false);
   const [lastLiveAt, setLastLiveAt] = useState<Date | null>(null);
   const reportGenerated = useRef(false);
-  const { mutate: generateReport, isPending: reportGenerating, isError: reportError } = useGenerateReport(symbol);
+  const { mutate: generateReport, isPending: reportGenerating, isError: reportError, error: reportErrorObj } = useGenerateReport(symbol);
 
   async function refreshPrice() {
     if (priceRefreshing) return;
@@ -611,6 +611,14 @@ export default function TickerDetailPage({
                   <Spinner className="h-4 w-4" />
                   Generating…
                 </div>
+              ) : reportError && reportErrorObj?.message?.includes("subscription") ? (
+                <p className="text-sm leading-relaxed text-slate-600 dark:text-zinc-400">
+                  AI analysis requires a Pro subscription.{" "}
+                  <a href="/subscription" className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                    Upgrade to Pro
+                  </a>{" "}
+                  to generate reports for any ticker.
+                </p>
               ) : (
                 <p className="text-sm leading-relaxed text-slate-700 dark:text-zinc-300">
                   {ticker.catalyst || (reportError ? "AI analysis unavailable." : "No catalyst data available.")}
@@ -633,6 +641,13 @@ export default function TickerDetailPage({
               </h4>
               {ticker.risks ? (
                 <p className="text-sm leading-relaxed text-slate-700 dark:text-zinc-300">{ticker.risks}</p>
+              ) : reportError && reportErrorObj?.message?.includes("subscription") ? (
+                <p className="text-sm text-slate-600 dark:text-zinc-400">
+                  Risk analysis requires a Pro subscription.{" "}
+                  <a href="/subscription" className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                    Upgrade to Pro
+                  </a>
+                </p>
               ) : (
                 <p className="text-sm text-slate-500 dark:text-zinc-500">No risk summary yet.</p>
               )}

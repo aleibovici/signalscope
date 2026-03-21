@@ -15,6 +15,7 @@ const publicApiPrefixes = [
   "/api/harvest",
   "/api/snapshots",
   "/api/reports",
+  "/api/stripe/webhook",
 ];
 
 // Public page prefixes (pages with sub-routes like /blog/[slug])

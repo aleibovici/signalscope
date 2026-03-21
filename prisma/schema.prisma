@@ -18,10 +18,12 @@ model User {
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
   lastActiveAt DateTime?
+  stripeCustomerId String?        @unique
   positions      UserPosition[]
   watchlist      UserWatchlist[]
   refreshTokens  RefreshToken[]
   apiKeys        ApiKey[]
+  subscription   Subscription?
 }
 
 model Scan {
@@ -270,6 +272,30 @@ model ApiKey {
 
   @@index([key])
   @@index([userId])
+}
+
+model Subscription {
+  id                     String             @id @default(cuid())
+  userId                 String             @unique
+  user                   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripeSubscriptionId   String             @unique
+  stripePriceId          String
+  status                 SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart     DateTime
+  currentPeriodEnd       DateTime
+  cancelAtPeriodEnd      Boolean            @default(false)
+  canceledAt             DateTime?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  @@index([status])
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
 }
 
 model X402Payment {

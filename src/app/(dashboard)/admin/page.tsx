@@ -140,6 +140,8 @@ export default function AdminPage() {
             <StatRow label="New (30d)" value={data.users.new30d} />
             <StatRow label="Email alerts on" value={data.users.emailAlerts} />
             <StatRow label="With API key" value={data.users.withApiKey} />
+            <StatRow label="Pro subscribers" value={data.users.proSubscribers} />
+            <StatRow label="Churned" value={data.users.churned} />
           </SectionCard>
 
           {/* Scans */}
@@ -337,6 +339,7 @@ export default function AdminPage() {
                   <th className="px-3 py-1.5">Email</th>
                   <th className="hidden sm:table-cell px-3 py-1.5">Username</th>
                   <th className="px-3 py-1.5">Joined</th>
+                  <th className="px-3 py-1.5 text-center">Plan</th>
                   <th className="hidden md:table-cell px-3 py-1.5 text-right">Pos</th>
                   <th className="hidden md:table-cell px-3 py-1.5 text-right">Watch</th>
                   <th className="hidden md:table-cell px-3 py-1.5 text-center">Alerts</th>
@@ -350,6 +353,21 @@ export default function AdminPage() {
                     <td className="max-w-[160px] truncate px-3 py-1 font-medium text-gray-900 dark:text-zinc-100">{u.email}</td>
                     <td className="hidden px-3 py-1 text-gray-500 dark:text-zinc-400 sm:table-cell">{u.username ?? "—"}</td>
                     <td className="whitespace-nowrap px-3 py-1 text-gray-500 dark:text-zinc-400">{formatDate(u.createdAt)}</td>
+                    <td className="px-3 py-1 text-center">
+                      {u.subscription && (u.subscription.status === "ACTIVE" || u.subscription.status === "PAST_DUE") ? (
+                        <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                          u.subscription.cancelAtPeriodEnd
+                            ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
+                            : u.subscription.status === "PAST_DUE"
+                              ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400"
+                              : "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
+                        }`}>
+                          {u.subscription.cancelAtPeriodEnd ? "Canceling" : u.subscription.status === "PAST_DUE" ? "Past Due" : "Pro"}
+                        </span>
+                      ) : (
+                        <span className="text-gray-300 dark:text-zinc-600">Free</span>
+                      )}
+                    </td>
                     <td className="hidden px-3 py-1 text-right text-gray-700 dark:text-zinc-300 md:table-cell">{u._count.positions}</td>
                     <td className="hidden px-3 py-1 text-right text-gray-700 dark:text-zinc-300 md:table-cell">{u._count.watchlist}</td>
                     <td className="hidden px-3 py-1 text-center md:table-cell">
