@@ -75,6 +75,7 @@ Also consider:
   High velocity (≥2.0) with multiple mentions = potential early breakout. Weight this as a positive signal.
 - momentum breakdown (risingCount, freshCount, recentCount, commentDerivedCount, staleCount) shows the composition behind avgVelocity.
   Multiple rising signals = strong trending evidence. commentDerivedCount > 0 means organic discussion (tickers mentioned in comments, not just post titles). High staleCount dilutes the signal.
+- Rising signal fraction (risingCount / total signals) is the #2 most predictive ML feature. If most signals are rising/trending (rising_frac > 0.5), apply +3 to +5 boost. If mostly stale (staleCount > risingCount + freshCount), apply -3 to -5 penalty.
 - subredditCount = number of unique subreddits mentioning the ticker. 3+ subreddits = broad consensus across communities (stronger signal, +3-5 boost). 1 subreddit = possible echo chamber (weaker).
 - High upvote-to-comment ratio (>5:1) with significant upvotes (>100) suggests strong conviction — apply +5 to +8 boost.
 - CRITICAL: High comment count alone is NOT positive engagement — ML shows it predicts worse 7d returns (SHAP -0.004). When totalComments > 150 with ratio < 2:1, this is peak hype — apply -8 to -10 penalty, signal is likely already played out.
@@ -92,8 +93,11 @@ Signal novelty (check isNovel, daysSinceFirstSeen, priorAppearances fields):
 - Novel tickers (first appearance, isNovel=true): apply +3 to +5 boost — potential early signal, but unproven.
 - daysSinceFirstSeen 3-5 days: SWEET SPOT — apply +5 to +8 boost. ML shows tickers validated over 3+ days have the best near-term returns. The signal has proven staying power.
 - 1-2 prior appearances in last few days: no penalty, signal is still forming.
-- 3+ appearances or 7+ days old: apply -5 to -15 staleness penalty — signal may be played out.
+- 3+ appearances or 7+ days old: apply -5 to -15 staleness penalty — signal may be played out. priorAppearances is the #1 most predictive ML feature (negative direction) — more appearances = worse returns. Be aggressive with this penalty.
 - Exception: a stale ticker with a NEW catalyst type (e.g. insider buy appearing for first time on a previously social-only ticker) should NOT be penalized.
+
+Historical P&D reputation (ML #3 feature: interaction of historical P&D score × current P&D flags):
+- Tickers with a history of triggering P&D flags across multiple scans are repeat offenders. If a ticker has appeared before AND had P&D flags in prior appearances, apply -5 to -10 penalty. The combination of historical P&D reputation + current P&D flags is the 3rd strongest predictor of negative returns.
 
 Price quality (check price field):
 - price < $0.12: heavy penalty (-10 to -15). Sub-dime stocks almost never generate positive returns at any horizon. Score should rarely exceed 20 without an exceptional catalyst.
@@ -176,6 +180,12 @@ export function defaultScore(s: AggregatedSymbol, novelty?: NoveltyContext): AiS
   const engagement = Math.min(Math.log2(s.totalUpvotes + 1) * 2.0, 10);
   const velocityBoost = Math.min(s.avgVelocity * 3, 10);
 
+  // Rising fraction boost/penalty (ML #2 feature): ratio of rising signals to total
+  const totalSignals = s.signals.length || 1;
+  const risingFrac = s.momentum.risingCount / totalSignals;
+  const staleFrac = s.momentum.staleCount / totalSignals;
+  const risingAdj = risingFrac > 0.5 ? 4 : staleFrac > 0.5 ? -4 : 0;
+
   // Comment-heavy penalty: high comments with low upvote ratio = peak hype (ML: comments negatively predict 7d returns)
   let commentAdj = 0;
   if (s.totalComments > 150 && s.totalUpvotes / (s.totalComments || 1) < 2) {
@@ -199,7 +209,7 @@ export function defaultScore(s: AggregatedSymbol, novelty?: NoveltyContext): AiS
     else if (s.medianSignalAgeHrs > 6) stalenessAdj = -4;
   }
 
-  const raw = base + engagement + velocityBoost + noveltyAdj + stalenessAdj + commentAdj;
+  const raw = base + engagement + velocityBoost + noveltyAdj + stalenessAdj + commentAdj + risingAdj;
   const rawScore = Math.round(raw);
   const score = Math.min(rawScore, hasCatalystSource ? 100 : 50);
 

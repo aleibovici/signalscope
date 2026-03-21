@@ -14,7 +14,17 @@ const REPUTABLE_SUBREDDITS = new Set([
   "wallstreetbets",
 ]);
 
-const PND_THRESHOLD = 4;
+const PND_THRESHOLD = 3;
+
+// Flags that predict positive returns per ML backtesting — detected for data purposes
+// but excluded from the PnD threshold count
+const INFORMATIONAL_FLAGS = new Set([
+  "penny_price",        // +3.8% avg 7d return — bullish, not bearish
+  "otc_listing",        // +1.3% avg 7d return — bullish, not bearish
+  "twitter_coordinated_pump", // +1.5% avg 7d return — bullish, not bearish
+  "coordinated_posts",  // -0.4% avg 7d — negligible impact, fires too broadly (n=1275)
+  "single_source",      // -0.4% avg 7d — negligible impact, fires too broadly (n=2632)
+]);
 
 const HYPE_PHRASES = [
   "guaranteed", "can't lose", "cant lose", "load up now", "load up",
@@ -172,8 +182,10 @@ export function checkPndFlags(
     }
   }
 
+  const effectiveFlags = flags.filter((f) => !INFORMATIONAL_FLAGS.has(f));
+
   return {
-    flagged: flags.length >= PND_THRESHOLD,
+    flagged: effectiveFlags.length >= PND_THRESHOLD,
     flags,
     score: flags.length,
   };
@@ -184,8 +196,9 @@ export async function aiPndAssessment(
   agg: AggregatedSymbol,
   flags: string[]
 ): Promise<PndAiResult> {
-  // Only call AI for borderline cases (exactly 2 flags)
-  if (flags.length !== 2) return { flagged: flags.length >= PND_THRESHOLD };
+  // Only call AI for borderline cases (exactly at threshold - 1 effective flags)
+  const effectiveFlags = flags.filter((f) => !INFORMATIONAL_FLAGS.has(f));
+  if (effectiveFlags.length !== PND_THRESHOLD - 1) return { flagged: effectiveFlags.length >= PND_THRESHOLD };
 
   try {
     const response = await chatJSON({
