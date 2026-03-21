@@ -9,6 +9,8 @@ export interface AdminStats {
     new30d: number;
     emailAlerts: number;
     withApiKey: number;
+    proSubscribers: number;
+    churned: number;
   };
   scans: {
     completed: number;
