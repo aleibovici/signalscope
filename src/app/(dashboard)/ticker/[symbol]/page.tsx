@@ -89,12 +89,12 @@ function InfoHint({ text }: { text: string }) {
     }
   }, []);
 
-  const scheduleClose = useCallback(() => {
+  const scheduleClose = useCallback((delay = 120) => {
     clearCloseTimer();
     closeTimerRef.current = setTimeout(() => {
       setOpen(false);
       setPos(null);
-    }, 120);
+    }, delay);
   }, [clearCloseTimer]);
 
   const show = useCallback(() => {
@@ -128,7 +128,7 @@ function InfoHint({ text }: { text: string }) {
         className="fixed z-400 max-w-[min(20rem,calc(100vw-1.5rem))] -translate-x-1/2 -translate-y-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs leading-snug text-slate-700 shadow-lg dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200"
         style={{ top: pos.top - 8, left: pos.left }}
         onPointerEnter={clearCloseTimer}
-        onPointerLeave={scheduleClose}
+        onPointerLeave={(e) => scheduleClose(e.pointerType === "touch" ? 3000 : 120)}
       >
         {text}
       </span>,
@@ -144,7 +144,7 @@ function InfoHint({ text }: { text: string }) {
         className="inline-flex shrink-0 cursor-help text-slate-400 outline-none hover:text-slate-600 focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:hover:text-zinc-300 dark:focus-visible:ring-blue-400/40"
         aria-label={text}
         onPointerEnter={show}
-        onPointerLeave={scheduleClose}
+        onPointerLeave={(e) => scheduleClose(e.pointerType === "touch" ? 3000 : 120)}
         onFocus={show}
         onBlur={scheduleClose}
         onKeyDown={(e) => {

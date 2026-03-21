@@ -197,7 +197,8 @@ export default function ConnectionsPage() {
                   "Top trending tickers"
                 )}
                 {" — "}
-                <span className="text-gray-400 dark:text-zinc-500">click to select, double-click to re-center, scroll to zoom, drag to pan</span>
+                <span className="hidden text-gray-400 dark:text-zinc-500 md:inline">click to select, double-click to re-center, scroll to zoom, drag to pan</span>
+                <span className="text-gray-400 dark:text-zinc-500 md:hidden">tap to select, double-tap to re-center, pinch to zoom, drag to pan</span>
               </p>
               {/* Color mode toggle */}
               <div className="flex items-center gap-0.5 rounded-lg border border-gray-200 bg-white p-0.5 dark:border-zinc-600 dark:bg-zinc-900">
