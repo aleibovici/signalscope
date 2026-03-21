@@ -237,7 +237,7 @@ BING_SITE_VERIFICATION=...
 
 - **Cloud Run** — web app (`signalscope-web`) serving Next.js standalone on port 3000
 - **Cloud SQL** — PostgreSQL 16 (`signalscope-db`, db-f1-micro), connected via Unix socket
-- **Cloud Scheduler** — 4 jobs: email alerts (9:15 AM ET), snapshots open (9:30 AM ET), snapshots close (4:05 PM ET), reports (3:30 AM NZDT Tue-Sat), all weekdays
+- **Cloud Scheduler** — 5 jobs (all ET, Mon–Fri): email alerts (9:10 AM), portfolio alerts (9:12 AM), reports (9:15 AM), snapshots open (9:45 AM), snapshots close (4:05 PM)
 - **Secret Manager** — stores `DATABASE_URL`, `AUTH_SECRET`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `SNAPSHOT_API_KEY`, `RESEND_API_KEY`
 - **Artifact Registry** — Docker images (`signalscope` repo)
 - **GitHub Actions** — CI/CD on push to `main` (`.github/workflows/deploy.yml`)
@@ -249,7 +249,7 @@ Reddit blocks cloud IPs, so signal **fetching** runs locally. Processing (AI sco
 
 - **Dockerfile**: `Dockerfile.harvester` (lightweight, no Cloud SQL proxy)
 - **Compose file**: `docker-compose.harvest.yml`
-- **Cron schedule**: `0 3 * * 2-6` (once daily, 30 min before market open — 9:00 AM ET = 3:00 AM NZDT next day, Tue-Sat local)
+- **Cron schedule**: DST-safe wrapper script (`scripts/harvest-cron.sh`) — cron runs at `30 0,1,2 * * *` local time, script checks `TZ=America/New_York` and only executes at 8:30 AM ET Mon–Fri (1 hour before market open)
 - **Auth**: `x-harvest-key` header checked against `HARVEST_API_KEY` env var (stored in Secret Manager on Cloud Run)
 - **Retry**: one automatic retry on failure; on total failure, saves signals to `/tmp/signalscope-harvest-{timestamp}.json` for manual replay
 
@@ -265,23 +265,25 @@ Continuous price tracking for all validated tickers, runs on Cloud Run triggered
 - **Return computation**: `returns.ts` — pure function `computeReturnsFromSnapshots()` with tolerance windows (1d: 18–48h, 3d: 54–120h, 7d: 120–264h, 30d: 600–888h) to handle weekends/holidays. Always picks the snapshot closest to target time. Returns improve as more snapshots accumulate.
 - **Collector**: `index.ts` — `collectSnapshots()` fetches prices via Yahoo Finance in batches of 50, creates `PriceSnapshot` rows, recomputes returns, and upserts `TickerPerformance`.
 - **Endpoint**: `POST /api/snapshots/collect` (auth via `x-snapshot-key` header)
-- **Cloud Scheduler jobs** (all weekdays):
-  - `signalscope-snapshots` — `30 9 * * 1-5` America/New_York (9:30 AM ET, 30 min after market open)
-  - `signalscope-snapshots-close` — `5 16 * * 1-5` America/New_York (4:05 PM ET, 5 min after market close)
-  - `signalscope-reports` — `30 3 * * 2-6` Pacific/Auckland (3:30 AM NZDT, 30 min after harvest)
+- **Cloud Scheduler jobs** (all ET, Mon–Fri):
+  - `signalscope-email-alerts` — `10 9 * * 1-5` (9:10 AM ET, 40 min after harvest)
+  - `signalscope-portfolio-alerts` — `12 9 * * 1-5` (9:12 AM ET, 42 min after harvest)
+  - `signalscope-reports` — `15 9 * * 1-5` (9:15 AM ET, 45 min after harvest)
+  - `signalscope-snapshots` — `45 9 * * 1-5` (9:45 AM ET, 15 min after open — avoids auction volatility)
+  - `signalscope-snapshots-close` — `5 16 * * 1-5` (4:05 PM ET, 5 min after close)
 - **Auth**: `x-snapshot-key` header checked against `SNAPSHOT_API_KEY` env var (stored in Secret Manager)
 
 ```bash
-# Create Cloud Scheduler jobs:
+# Create Cloud Scheduler jobs (all America/New_York, Mon-Fri):
 gcloud scheduler jobs create http signalscope-snapshots \
   --location=us-central1 \
-  --schedule="30 9 * * 1-5" \
+  --schedule="45 9 * * 1-5" \
   --time-zone="America/New_York" \
   --uri="https://signalscopes.com/api/snapshots/collect" \
   --http-method=POST \
   --headers="x-snapshot-key=<SNAPSHOT_API_KEY_VALUE>" \
   --attempt-deadline=300s \
-  --description="Collect opening price snapshots for validated tickers"
+  --description="Collect opening price snapshots (15 min after open, avoids auction volatility)"
 
 gcloud scheduler jobs create http signalscope-snapshots-close \
   --location=us-central1 \
@@ -295,13 +297,13 @@ gcloud scheduler jobs create http signalscope-snapshots-close \
 
 gcloud scheduler jobs create http signalscope-reports \
   --location=us-central1 \
-  --schedule="30 3 * * 2-6" \
-  --time-zone="Pacific/Auckland" \
+  --schedule="15 9 * * 1-5" \
+  --time-zone="America/New_York" \
   --uri="https://signalscopes.com/api/reports/generate" \
   --http-method=POST \
   --headers="x-snapshot-key=<SNAPSHOT_API_KEY_VALUE>" \
   --attempt-deadline=600s \
-  --description="Pre-generate AI reports for top 10 emerging tickers after harvest"
+  --description="Pre-generate AI reports for top 10 emerging tickers (45 min after harvest)"
 ```
 
 ### Source Status
