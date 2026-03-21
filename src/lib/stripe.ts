@@ -6,6 +6,9 @@ export function getStripe(): Stripe {
   if (!_stripe) {
     _stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
       typescript: true,
+      // Pin to basil API version for coupon/promotion code compatibility
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      apiVersion: "2025-03-31.basil" as any,
     });
   }
   return _stripe;
