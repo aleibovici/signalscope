@@ -9,6 +9,29 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-03-22",
+    title: "Smarter P&D Detection & Mobile Polish",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "P&D filter now distinguishes informational flags (penny price, OTC listing, single source, coordinated posts) from actionable ones — ML backtesting showed these alone don't predict harmful pump patterns. The effective flag threshold is now 3 (down from 4), making detection more accurate without over-flagging legitimate small caps.",
+          "VOLUME_SPIKE source weight increased from 2× to 2.5×, reflecting ML finding that volume-backed signals have better near-term follow-through.",
+          "Ticker detail page now shows individual P&D flags with colour-coded badges: red for high-risk flags, amber for caution, grey for informational — so you can see exactly why a ticker was flagged.",
+          "AI scoring prompt updated with rising mention fraction and historical P&D reputation guidance from latest backtesting run.",
+        ],
+      },
+      {
+        category: "fixed",
+        items: [
+          "Dashboard stage tabs (Emerging / Building / Consensus) now fully fit on 390px mobile screens — no more clipped tab labels.",
+          "Connections graph shows touch-friendly instructions on mobile (tap, double-tap, pinch to zoom) instead of mouse-only wording.",
+          "Info hint tooltips on ticker detail stay visible for 3 seconds after a tap on mobile, giving enough time to read the hint.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-03-21",
     title: "Performance Data Quality",
     changes: [
