@@ -19,12 +19,13 @@ export function StageTabs({
   counts?: Record<string, number>;
 }) {
   return (
-    <div className="flex gap-1 overflow-x-auto rounded-lg bg-gray-100 p-1 dark:bg-zinc-900/80">
+    <div className="relative">
+      <div className="flex gap-1 overflow-x-auto rounded-lg bg-gray-100 p-1 dark:bg-zinc-900/80 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {stages.map((stage) => (
         <button
           key={stage.key}
           onClick={() => onSelect(stage.key)}
-          className={`shrink-0 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+          className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:py-2 sm:text-sm ${
             selected === stage.key
               ? "bg-white text-gray-900 shadow-sm dark:bg-zinc-800 dark:text-zinc-100 dark:shadow-none"
               : "text-gray-600 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-zinc-200"
@@ -38,6 +39,9 @@ export function StageTabs({
           )}
         </button>
       ))}
+      </div>
+      {/* Scroll affordance — fade gradient visible only when content overflows (mobile) */}
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-8 rounded-r-lg bg-linear-to-l from-gray-100 dark:from-zinc-900/80 sm:hidden" />
     </div>
   );
 }
