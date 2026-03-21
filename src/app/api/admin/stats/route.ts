@@ -41,6 +41,8 @@ export async function GET() {
       watchlistEntries,
       activeSessions,
       activeApiKeys,
+      activeSubscriptions,
+      churned,
     ] = await Promise.all([
       prisma.user.count(),
       prisma.user.count({ where: { createdAt: { gte: ago7d } } }),
@@ -80,6 +82,9 @@ export async function GET() {
         where: { revokedAt: null, expiresAt: { gt: now } },
       }),
       prisma.apiKey.count({ where: { revokedAt: null } }),
+
+      prisma.subscription.count({ where: { status: "ACTIVE" } }),
+      prisma.subscription.count({ where: { status: { in: ["CANCELED", "UNPAID"] } } }),
     ]);
 
     const stageMap = Object.fromEntries(
@@ -96,6 +101,8 @@ export async function GET() {
         new30d: newUsers30d,
         emailAlerts: emailAlertsUsers,
         withApiKey: usersWithApiKey,
+        proSubscribers: activeSubscriptions,
+        churned,
       },
       scans: {
         completed: completedScans,

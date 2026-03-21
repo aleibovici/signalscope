@@ -169,7 +169,10 @@ export function useGenerateReport(symbol: string | null) {
   return useMutation<TickerReportData>({
     mutationFn: async () => {
       const res = await fetch(`/api/tickers/${symbol}/report`, { method: "POST" });
-      if (!res.ok) throw new Error("Failed to generate report");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Failed to generate report");
+      }
       return res.json();
     },
     onSuccess: (reportData) => {

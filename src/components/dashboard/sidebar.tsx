@@ -16,6 +16,7 @@ const navItems = [
   { href: "/performance", label: "Performance", icon: "🎯" },
   { href: "/methodology", label: "How It Works", icon: "ℹ️" },
   { href: "/changelog", label: "Changelog", icon: "📋" },
+  { href: "/subscription", label: "API Access", icon: "🔑" },
   { href: "/profile", label: "Profile", icon: "⚙️" },
 ];
 

@@ -6,6 +6,7 @@ import { generateTickerReportReACT } from "@/lib/harvester/report";
 import { reconstructAggregatedSymbol } from "@/lib/reconstruct-aggregated";
 import type { SignalType, TradeSetup } from "@/lib/harvester/types";
 import { withX402Logged, x402RouteConfigs, hasAuthCredentials, X402_ENABLED } from "@/lib/x402";
+import { hasActiveSubscription } from "@/lib/subscription";
 
 async function handleReport(request: NextRequest, upperSymbol: string) {
   const ticker = await prisma.validatedTicker.findFirst({
@@ -114,7 +115,24 @@ export async function POST(
       if (request.headers.get("x-api-key")) {
         return NextResponse.json({ error: "Not available via API key" }, { status: 403 });
       }
-      await getCurrentUserId();
+      const userId = await getCurrentUserId();
+
+      // Check if report already exists — free users can view existing reports
+      const existing = await prisma.validatedTicker.findFirst({
+        where: { symbol: upperSymbol },
+        orderBy: { createdAt: "desc" },
+        select: { catalyst: true, report: true },
+      });
+      const hasReport = existing?.catalyst && existing?.report;
+
+      // On-demand generation requires Pro subscription
+      if (!hasReport && !(await hasActiveSubscription(userId))) {
+        return NextResponse.json(
+          { error: "Generating AI reports requires a Pro subscription. Visit /subscription to upgrade." },
+          { status: 403 }
+        );
+      }
+
       return await handleReport(request, upperSymbol);
     }
 

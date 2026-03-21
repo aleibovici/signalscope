@@ -52,3 +52,15 @@ export function isRateLimited(
   entry.count++;
   return entry.count > maxAttempts;
 }
+
+/** 24-hour window for API key rate limiting */
+const API_KEY_WINDOW_MS = 24 * 60 * 60 * 1000;
+const API_KEY_DAILY_LIMIT = 1000;
+
+/**
+ * Check if an API key user has exceeded their daily rate limit.
+ * @returns true if rate-limited
+ */
+export function isApiKeyRateLimited(userId: string): boolean {
+  return isRateLimited(`apikey:${userId}`, API_KEY_WINDOW_MS, API_KEY_DAILY_LIMIT);
+}

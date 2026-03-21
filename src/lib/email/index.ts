@@ -102,7 +102,10 @@ export async function sendTickerAlerts(
   }
 
   const users = await prisma.user.findMany({
-    where: { emailAlerts: true },
+    where: {
+      emailAlerts: true,
+      subscription: { status: { in: ["ACTIVE", "PAST_DUE"] } },
+    },
     select: { id: true, email: true },
   });
 
@@ -261,10 +264,11 @@ export async function sendPortfolioAlerts(): Promise<{ usersNotified: number; ti
 
   const tickersBySymbol = new Map(scanTickers.map((t) => [t.symbol, t]));
 
-  // 3. Get users with emailAlerts=true who have OPEN positions
+  // 3. Get subscribers with emailAlerts=true who have OPEN positions
   const users = await prisma.user.findMany({
     where: {
       emailAlerts: true,
+      subscription: { status: { in: ["ACTIVE", "PAST_DUE"] } },
       positions: { some: { status: "OPEN" } },
     },
     select: {

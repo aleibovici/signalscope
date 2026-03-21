@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useUserProfile, useUpdateUsername, useUpdateEmailAlerts } from "@/hooks/use-user-profile";
 import { useApiKey, useGenerateApiKey, useRevokeApiKey } from "@/hooks/use-api-key";
 
@@ -86,6 +87,18 @@ export default function ProfilePage() {
 
         {isLoading ? (
           <p className="text-sm text-gray-400 dark:text-zinc-500">Loading…</p>
+        ) : !profile?.subscription?.isActive ? (
+          <>
+            <p className="mb-4 text-sm text-gray-500 dark:text-zinc-400">
+              Receive a daily digest email with all confirmed tickers after each scan.
+            </p>
+            <p className="text-sm text-gray-500 dark:text-zinc-400">
+              Email alerts require a Pro subscription.{" "}
+              <Link href="/subscription" className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                Upgrade to Pro
+              </Link>
+            </p>
+          </>
         ) : (
           <>
             <p className="mb-4 text-sm text-gray-500 dark:text-zinc-400">
@@ -124,12 +137,12 @@ export default function ProfilePage() {
           </>
         )}
       </div>
-      <ApiKeySection />
+      <ApiKeySection hasSubscription={profile?.subscription?.isActive ?? false} />
     </div>
   );
 }
 
-function ApiKeySection() {
+function ApiKeySection({ hasSubscription }: { hasSubscription: boolean }) {
   const { data, isLoading } = useApiKey();
   const generate = useGenerateApiKey();
   const revoke = useRevokeApiKey();
@@ -149,7 +162,19 @@ function ApiKeySection() {
     <div className="mt-6 rounded-xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-[#12181f]">
       <h2 className="mb-4 text-base font-semibold text-gray-800 dark:text-zinc-100">API Key</h2>
 
-      {isLoading ? (
+      {!hasSubscription ? (
+        <>
+          <p className="mb-4 text-sm text-gray-500 dark:text-zinc-400">
+            Generate an API key for programmatic access to your SignalScope data.
+          </p>
+          <p className="text-sm text-gray-500 dark:text-zinc-400">
+            API keys require a Pro subscription.{" "}
+            <Link href="/subscription" className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+              Upgrade to Pro
+            </Link>
+          </p>
+        </>
+      ) : isLoading ? (
         <p className="text-sm text-gray-400 dark:text-zinc-500">Loading...</p>
       ) : newKey ? (
         <>
