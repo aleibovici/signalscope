@@ -2,22 +2,155 @@
 
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
+/* ─── Semantic design tokens ──────────────────────────────────────────────────
+ *
+ * Define each token once here (light value as default, dark value overridden
+ * in [data-theme=dark]). Tailwind generates utility classes automatically:
+ *
+ *   text-primary        →  was: text-gray-900 dark:text-zinc-100
+ *   bg-surface-card     →  was: bg-white dark:bg-[#12181f]
+ *   border-default      →  was: border-gray-200 dark:border-zinc-800
+ *   etc.
+ *
+ * ── Text ──────────────────────────────────────────────────────────────────────
+ *   text-primary        page headings, bold labels
+ *   text-strong         price values, strong secondary labels
+ *   text-label          field labels, caption keys
+ *   text-secondary      supporting body copy, metadata
+ *   text-muted          placeholder / de-emphasised text
+ *
+ *   text-success / text-danger / text-warning / text-info
+ *
+ * ── Surfaces ──────────────────────────────────────────────────────────────────
+ *   bg-surface-card     primary card surface
+ *   bg-surface-overlay  modals, popovers, dropdowns
+ *   bg-surface-subtle   inset / tinted sections
+ *   bg-surface-muted    chip / pill / secondary button fill
+ *   bg-surface-input    form inputs
+ *
+ * ── Borders ───────────────────────────────────────────────────────────────────
+ *   border-default      card / section borders
+ *   border-input        input / interactive element border
+ *   border-strong       form fields, modal dividers
+ *
+ * ── Signal stage text colors ──────────────────────────────────────────────────
+ *   text-stage-early / text-stage-forming / text-stage-confirmed
+ *   text-stage-filtered / text-stage-unscored
+ * ─────────────────────────────────────────────────────────────────────────── */
+
 :root,
 :root[data-theme="light"] {
+  /* base (used by body) */
   --background: #ffffff;
   --foreground: #171717;
+
+  /* text */
+  --color-primary:   #111827; /* gray-900 */
+  --color-strong:    #374151; /* gray-700 */
+  --color-label:     #4b5563; /* gray-600 */
+  --color-secondary: #6b7280; /* gray-500 */
+  --color-muted:     #9ca3af; /* gray-400 */
+
+  /* semantic text */
+  --color-success: #16a34a; /* green-600 */
+  --color-danger:  #dc2626; /* red-600   */
+  --color-warning: #ca8a04; /* yellow-600 */
+  --color-info:    #2563eb; /* blue-600  */
+
+  /* surfaces */
+  --color-surface-card:    #ffffff;
+  --color-surface-overlay: #ffffff;
+  --color-surface-subtle:  #f9fafb; /* gray-50  */
+  --color-surface-muted:   #f3f4f6; /* gray-100 */
+  --color-surface-input:   #ffffff;
+
+  /* borders */
+  --color-border-default: #e5e7eb; /* gray-200 */
+  --color-border-input:   #e5e7eb; /* gray-200 */
+  --color-border-strong:  #d1d5db; /* gray-300 */
+
+  /* signal stages */
+  --color-stage-early:     #16a34a; /* green-600  */
+  --color-stage-forming:   #ca8a04; /* yellow-600 */
+  --color-stage-confirmed: #2563eb; /* blue-600   */
+  --color-stage-filtered:  #ef4444; /* red-500    */
+  --color-stage-unscored:  #9ca3af; /* gray-400   */
 }
 
 :root[data-theme="dark"] {
   --background: #0a0a0a;
   --foreground: #ededed;
+
+  /* text */
+  --color-primary:   #f4f4f5; /* zinc-100 */
+  --color-strong:    #e4e4e7; /* zinc-200 */
+  --color-label:     #d4d4d8; /* zinc-300 */
+  --color-secondary: #a1a1aa; /* zinc-400 */
+  --color-muted:     #71717a; /* zinc-500 */
+
+  /* semantic text */
+  --color-success: #4ade80; /* green-400 */
+  --color-danger:  #f87171; /* red-400   */
+  --color-warning: #fbbf24; /* amber-400 */
+  --color-info:    #60a5fa; /* blue-400  */
+
+  /* surfaces */
+  --color-surface-card:    #12181f; /* custom dark blue-gray */
+  --color-surface-overlay: #18181b; /* zinc-900 */
+  --color-surface-subtle:  #18181b; /* zinc-900 */
+  --color-surface-muted:   #27272a; /* zinc-800 */
+  --color-surface-input:   #27272a; /* zinc-800 */
+
+  /* borders */
+  --color-border-default: #27272a; /* zinc-800 */
+  --color-border-input:   #3f3f46; /* zinc-700 */
+  --color-border-strong:  #52525b; /* zinc-600 */
+
+  /* signal stages */
+  --color-stage-early:     #4ade80; /* green-400 */
+  --color-stage-forming:   #fbbf24; /* amber-400 */
+  --color-stage-confirmed: #60a5fa; /* blue-400  */
+  --color-stage-filtered:  #f87171; /* red-400   */
+  --color-stage-unscored:  #71717a; /* zinc-500  */
 }
 
+/* Register tokens with Tailwind so it generates utility classes */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* text */
+  --color-primary:   var(--color-primary);
+  --color-strong:    var(--color-strong);
+  --color-label:     var(--color-label);
+  --color-secondary: var(--color-secondary);
+  --color-muted:     var(--color-muted);
+
+  --color-success: var(--color-success);
+  --color-danger:  var(--color-danger);
+  --color-warning: var(--color-warning);
+  --color-info:    var(--color-info);
+
+  /* surfaces */
+  --color-surface-card:    var(--color-surface-card);
+  --color-surface-overlay: var(--color-surface-overlay);
+  --color-surface-subtle:  var(--color-surface-subtle);
+  --color-surface-muted:   var(--color-surface-muted);
+  --color-surface-input:   var(--color-surface-input);
+
+  /* borders */
+  --color-border-default: var(--color-border-default);
+  --color-border-input:   var(--color-border-input);
+  --color-border-strong:  var(--color-border-strong);
+
+  /* signal stages */
+  --color-stage-early:     var(--color-stage-early);
+  --color-stage-forming:   var(--color-stage-forming);
+  --color-stage-confirmed: var(--color-stage-confirmed);
+  --color-stage-filtered:  var(--color-stage-filtered);
+  --color-stage-unscored:  var(--color-stage-unscored);
 }
 
 body {
