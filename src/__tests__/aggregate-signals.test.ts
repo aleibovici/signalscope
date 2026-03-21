@@ -65,7 +65,7 @@ describe("aggregateSignals — sourceCount & weightedSourceScore", () => {
     expect(agg.sourceCount).toBe(2);
   });
 
-  it("weights sources correctly (SEC_INSIDER=3, OPTIONS_FLOW=2.5, VOLUME_SPIKE=2, REDDIT=1)", () => {
+  it("weights sources correctly (SEC_INSIDER=3, OPTIONS_FLOW=2.5, VOLUME_SPIKE=2.5, REDDIT=1)", () => {
     const signals = [
       sig("PTON", { source: "SEC_INSIDER" }),
       sig("PTON", { source: "OPTIONS_FLOW" }),
@@ -80,10 +80,10 @@ describe("aggregateSignals — sourceCount & weightedSourceScore", () => {
     expect(agg.weightedSourceScore).toBe(1);
   });
 
-  it("weights VOLUME_SPIKE at 2", () => {
+  it("weights VOLUME_SPIKE at 2.5", () => {
     const signals = [sig("PTON", { source: "VOLUME_SPIKE" })];
     const [agg] = aggregateSignals(signals);
-    expect(agg.weightedSourceScore).toBe(2);
+    expect(agg.weightedSourceScore).toBe(2.5);
   });
 });
 

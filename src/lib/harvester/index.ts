@@ -18,7 +18,7 @@ import { resetCostTracker, getTotalCost } from "@/lib/ai";
 const SOURCE_WEIGHTS: Record<string, number> = {
   SEC_INSIDER: 3,
   OPTIONS_FLOW: 2.5,
-  VOLUME_SPIKE: 2,
+  VOLUME_SPIKE: 2.5,
   CONGRESS: 2.5,
   TWITTER: 1.2,
   SEC_FILING: 1,

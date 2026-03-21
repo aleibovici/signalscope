@@ -83,7 +83,7 @@ export const sourceWeights: SourceWeight[] = [
   { source: "SEC Insider", weight: "3.0" },
   { source: "Options Flow", weight: "2.5" },
   { source: "Congress", weight: "2.5" },
-  { source: "Volume Spike", weight: "2.0" },
+  { source: "Volume Spike", weight: "2.5" },
   { source: "X / Twitter", weight: "1.2" },
   { source: "SEC Filing", weight: "1.0" },
   { source: "Reddit", weight: "1.0" },
@@ -99,19 +99,21 @@ export const scoringBands: ScoringBand[] = [
 ];
 
 export const pndFlags: PndFlag[] = [
-  { flag: "penny_price", desc: "Price below $1 with no verifiable catalyst" },
+  // Effective flags — count toward PnD threshold (ML-validated bearish predictors)
+  { flag: "micro_cap_no_catalyst", desc: "Market cap < $50 M with no news — strongest bearish flag (−4.3% avg 7d)" },
+  { flag: "sudden_spike", desc: "≥3 Reddit signals all <3 h old AND avg upvotes <10 (−3.9% avg 7d)" },
+  { flag: "no_news_catalyst", desc: "Multiple signals with no verifiable news (−0.9% avg 7d)" },
+  { flag: "only_penny_subs", desc: "Only in r/pennystocks or r/smallstreetbets (−1.1% avg 7d)" },
   { flag: "sub_dime_52wk_floor", desc: "52-week low below $0.09 — shell/zombie stock risk" },
   { flag: "upvote_pump", desc: ">1000 upvotes with ≤3 posts and <50 comments — coordinated vote boosting" },
-  { flag: "otc_listing", desc: "Listed on OTC / Pink Sheets" },
-  { flag: "micro_cap_no_catalyst", desc: "Market cap < $50 M with no news" },
-  { flag: "only_penny_subs", desc: "Only in r/pennystocks or r/smallstreetbets" },
-  { flag: "single_source", desc: "Only one signal source" },
   { flag: "hyperbolic_language", desc: '≥3 hype phrases ("moon", "100×", "can\'t lose"…)' },
-  { flag: "coordinated_posts", desc: "≥50% near-identical post titles" },
-  { flag: "no_news_catalyst", desc: "Multiple signals with no verifiable news" },
-  { flag: "sudden_spike", desc: "≥3 Reddit signals all <3 h old AND avg upvotes <10" },
   { flag: "twitter_bot_promoters", desc: "Coordinated low-credibility accounts on X" },
-  { flag: "twitter_coordinated_pump", desc: "≥3 tweets with ≥40% near-identical text" },
+  // Informational flags — detected but NOT counted toward threshold (ML shows neutral/positive returns)
+  { flag: "penny_price", desc: "Price below $0.50 — informational only (ML: +3.8% avg 7d)" },
+  { flag: "otc_listing", desc: "Listed on OTC / Pink Sheets — informational only (ML: +1.3% avg 7d)" },
+  { flag: "single_source", desc: "Only one signal source — informational only (negligible impact)" },
+  { flag: "coordinated_posts", desc: "≥50% near-identical post titles — informational only (negligible impact)" },
+  { flag: "twitter_coordinated_pump", desc: "≥3 tweets with ≥40% near-identical text — informational only (ML: +1.5% avg 7d)" },
 ];
 
 export const signalStages: SignalStage[] = [
@@ -183,8 +185,10 @@ export const scoringDescription =
   "This AI score reflects how strong the evidence is, not how much upside is left; Opportunity Score (see above) captures early-mover potential separately.";
 
 export const pndDescription =
-  "Every candidate is checked against 13 statistical flags before scoring. A ticker that " +
-  "triggers ≥3 flags is moved to Filtered status and quarantined. Exactly " +
+  "Every candidate is checked against 13 statistical flags before scoring. Flags are split into " +
+  "effective flags (backed by ML as bearish predictors) and informational flags (detected but not " +
+  "counted toward the threshold). A ticker that triggers ≥3 effective flags is moved to Filtered " +
+  "status and quarantined. Exactly " +
   "2 flags triggers an additional AI edge-case assessment.";
 
 export const backtestDescription =

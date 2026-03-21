@@ -501,34 +501,35 @@ describe("checkPndFlags — twitter_coordinated_pump", () => {
   });
 });
 
-describe("checkPndFlags — flagged threshold", () => {
-  it("is flagged when 4 or more flags are set", () => {
-    // Trigger: penny_price + otc_listing + only_penny_subs + no_news_catalyst (5+ signals)
+describe("checkPndFlags — flagged threshold (effective flags only)", () => {
+  it("is flagged when 3 or more effective flags are set", () => {
+    // Trigger effective flags: only_penny_subs + no_news_catalyst + sudden_spike
+    // (penny_price, otc_listing, single_source are informational — don't count)
     const signals = [
-      makeRedditSignal({ subreddit: "pennystocks", title: "Buy TEST now" }),
-      makeRedditSignal({ subreddit: "pennystocks", title: "TEST is going up" }),
-      makeRedditSignal({ subreddit: "smallstreetbets", title: "Check out TEST" }),
-      makeRedditSignal({ subreddit: "pennystocks", title: "TEST looking good" }),
-      makeRedditSignal({ subreddit: "pennystocks", title: "TEST to the moon" }),
+      makeRedditSignal({ subreddit: "pennystocks", postAge: 1, upvotes: 2, title: "Buy TEST now" }),
+      makeRedditSignal({ subreddit: "pennystocks", postAge: 2, upvotes: 3, title: "TEST is going up" }),
+      makeRedditSignal({ subreddit: "smallstreetbets", postAge: 1, upvotes: 1, title: "Check out TEST" }),
+      makeRedditSignal({ subreddit: "pennystocks", postAge: 2, upvotes: 2, title: "TEST looking good" }),
+      makeRedditSignal({ subreddit: "pennystocks", postAge: 1, upvotes: 1, title: "TEST to the moon" }),
     ];
     const agg = makeAgg({ sourceCount: 1, signals, totalUpvotes: 10 });
-    const result = checkPndFlags(
-      agg,
-      makeFundamentals({ price: 0.30, exchange: "OTC" })
-    );
-    expect(result.flags.length).toBeGreaterThanOrEqual(4);
+    const result = checkPndFlags(agg, makeFundamentals({ price: 0.30, marketCap: 30_000_000 }));
+    // Should have effective flags: only_penny_subs, no_news_catalyst, sudden_spike (+ micro_cap_no_catalyst)
     expect(result.flagged).toBe(true);
   });
 
-  it("is not flagged with fewer than 4 flags", () => {
-    // Only trigger: penny_price + otc_listing (2 flags — below threshold of 4)
-    const agg = makeAgg({ sourceCount: 2, signals: [] });
+  it("is not flagged when only informational flags are set", () => {
+    // Only trigger informational flags: penny_price + otc_listing + single_source
+    const agg = makeAgg({ sourceCount: 1, signals: [], totalUpvotes: 5 });
     const result = checkPndFlags(agg, makeFundamentals({ price: 0.30, exchange: "OTC" }));
-    expect(result.flags.length).toBeLessThan(4);
+    expect(result.flags).toContain("penny_price");
+    expect(result.flags).toContain("otc_listing");
+    expect(result.flags).toContain("single_source");
     expect(result.flagged).toBe(false);
   });
 
-  it("returns correct score equal to flag count", () => {
+  it("is not flagged with only 2 effective flags", () => {
+    // Trigger: only_penny_subs + no_news_catalyst (2 effective) + penny_price (informational)
     const signals = [
       makeRedditSignal({ subreddit: "pennystocks", title: "Buy TEST now" }),
       makeRedditSignal({ subreddit: "pennystocks", title: "TEST is going up" }),
@@ -536,11 +537,24 @@ describe("checkPndFlags — flagged threshold", () => {
       makeRedditSignal({ subreddit: "pennystocks", title: "TEST looking good" }),
       makeRedditSignal({ subreddit: "pennystocks", title: "TEST to the moon" }),
     ];
+    const agg = makeAgg({ sourceCount: 2, signals, totalUpvotes: 100 });
+    const result = checkPndFlags(agg, makeFundamentals({ price: 0.30 }));
+    expect(result.flags).toContain("only_penny_subs");
+    expect(result.flags).toContain("no_news_catalyst");
+    expect(result.flags).toContain("penny_price");
+    expect(result.flagged).toBe(false);
+  });
+
+  it("returns score equal to total flag count (including informational)", () => {
+    const signals = [
+      makeRedditSignal({ subreddit: "pennystocks", postAge: 1, upvotes: 2, title: "Buy TEST now" }),
+      makeRedditSignal({ subreddit: "pennystocks", postAge: 2, upvotes: 3, title: "TEST is going up" }),
+      makeRedditSignal({ subreddit: "smallstreetbets", postAge: 1, upvotes: 1, title: "Check out TEST" }),
+      makeRedditSignal({ subreddit: "pennystocks", postAge: 2, upvotes: 2, title: "TEST looking good" }),
+      makeRedditSignal({ subreddit: "pennystocks", postAge: 1, upvotes: 1, title: "TEST to the moon" }),
+    ];
     const agg = makeAgg({ sourceCount: 1, signals, totalUpvotes: 10 });
-    const result = checkPndFlags(
-      agg,
-      makeFundamentals({ price: 0.30, exchange: "OTC" })
-    );
+    const result = checkPndFlags(agg, makeFundamentals({ price: 0.30, exchange: "OTC" }));
     expect(result.score).toBe(result.flags.length);
   });
 });
