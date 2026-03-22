@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
         scanId: latestScan.id,
         stage: { in: ["EARLY", "FORMING"] },
         catalyst: { not: null },
-        recommendation: { notIn: [null, "Avoid"] },
+        recommendation: { not: null, notIn: ["Avoid"] },
       },
       orderBy: { opportunityScore: "desc" },
       take: 30, // fetch more so diversified selection has enough per tier
