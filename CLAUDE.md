@@ -74,6 +74,14 @@ Sources (7 in parallel) → Aggregate by symbol → Fetch fundamentals for ALL s
 
 Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs to Cloud Run (`/api/harvest/ingest`) for processing
 
+### Twitter/X Auto-Posting (`src/lib/twitter/`)
+
+- `post.ts` — OAuth 1.0a tweet posting via X API v2 free tier (1,500 tweets/month). `composeTweet()` formats top emerging tickers into a 280-char tweet. `tweetEmergingTickers()` composes and posts.
+- Integrated into `POST /api/reports/generate` — after AI reports are generated, automatically tweets the top 5 Buy/Strong Buy/Watch tickers (best-effort, non-fatal on failure)
+- Standalone endpoint: `POST /api/tweets/post` — tweets top 5 emerging tickers with reports (x-snapshot-key auth)
+- Requires `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_TOKEN_SECRET` env vars; silently skipped if absent
+- Uses Node.js built-in `crypto` for OAuth 1.0a HMAC-SHA1 signing (no extra dependencies)
+
 ### Email Alerts (`src/lib/email/`)
 
 - `index.ts` — `sendTickerAlerts()` sends a digest of CONFIRMED tickers via Resend. Requires `RESEND_API_KEY` env var; silently skipped if absent. Only sends to users with active subscriptions.
@@ -131,6 +139,7 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 | `/api/harvest/ingest` | POST | Receive raw signals for cloud processing (x-harvest-key auth) |
 | `/api/reports/generate` | POST | Batch pre-generate AI reports for top 10 emerging tickers (x-snapshot-key auth) |
 | `/api/snapshots/collect` | POST | Collect price snapshots for validated tickers (x-snapshot-key auth) |
+| `/api/tweets/post` | POST | Tweet top emerging tickers with reports (x-snapshot-key auth) |
 | `/api/stripe/checkout` | POST | Create Stripe Checkout session for subscription (authenticated) |
 | `/api/stripe/portal` | POST | Create Stripe Customer Portal session (authenticated) |
 | `/api/stripe/webhook` | POST | Stripe webhook handler (public, signature-verified) |
@@ -247,6 +256,12 @@ STRIPE_PUBLISHABLE_KEY=pk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 STRIPE_PRICE_MONTHLY=price_...
 STRIPE_PRICE_YEARLY=price_...
+
+# Optional: X/Twitter auto-posting (free tier, disabled if absent)
+X_API_KEY=...
+X_API_SECRET=...
+X_ACCESS_TOKEN=...
+X_ACCESS_TOKEN_SECRET=...
 
 # Optional: x402 payment protocol (USDC on Base, disabled if absent)
 X402_WALLET_ADDRESS=0x...
@@ -403,6 +418,7 @@ gh workflow run "Deploy to Cloud Run" --ref main
 | `co-occurrence.test.ts` | `jaccardScore` pure function — identical sets, disjoint sets, partial overlap, symmetry |
 | `related-endpoint.test.ts` | `GET /api/tickers/[symbol]/related` — empty results, co-occurrence counts, Jaccard computation, stage filtering, pagination, auth (401), validation (400) |
 | `network-endpoint.test.ts` | `GET /api/tickers/network` — node/edge structure, symbol-centered vs trending-based, minWeight filtering, maxNodes cap, auth (401) |
+| `tweet-compose.test.ts` | `composeTweet` — empty input, header/footer, ticker formatting, emoji per recommendation, 280-char limit, truncation, ordering |
 
 Key gotchas:
 - `BUY` is NOT in BLACKLIST (but `SELL`, `HOLD` are)
