@@ -86,6 +86,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
+    site: "@signalscopes",
+    creator: "@signalscopes",
     title: "SignalScope — Stock Breakout Signal Detection",
     description: "Find breakout stock candidates before market consensus. AI-scored signals from Reddit, X/Twitter, SEC filings, and volume spikes — with cross-scan trending, ML backtesting, and an AI Agent Skill. x402 pay-per-call API access, no account required.",
     images: ["/opengraph-image"],
