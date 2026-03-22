@@ -15,6 +15,7 @@ const publicApiPrefixes = [
   "/api/harvest",
   "/api/snapshots",
   "/api/reports",
+  "/api/tweets",
   "/api/stripe/webhook",
 ];
 
