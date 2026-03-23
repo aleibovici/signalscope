@@ -10,7 +10,8 @@ function createPrismaClient() {
   // Cap at 5 connections per Cloud Run instance; db-f1-micro supports ~25 total.
   // With up to 4 instances this leaves headroom for migrations and the harvester.
   const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 5 });
-  const adapter = new PrismaPg(pool);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adapter = new PrismaPg(pool as any);
   return new PrismaClient({ adapter });
 }
 
@@ -28,6 +29,7 @@ export function createDevPrismaClient(): PrismaClient | null {
   if (!devUrl) return null;
 
   const pool = new pg.Pool({ connectionString: devUrl });
-  const adapter = new PrismaPg(pool);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adapter = new PrismaPg(pool as any);
   return new PrismaClient({ adapter });
 }
