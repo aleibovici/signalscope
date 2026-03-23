@@ -4,6 +4,9 @@
       "enabled": true,
       "gitUrl": "https://github.com/signalscope/cursor-plugin",
       "gitRef": "cd9c11e80fb99860272ac948358809f47d6aeb30"
+    },
+    "stripe": {
+      "enabled": true
     }
   }
 }
