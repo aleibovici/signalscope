@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 
 const mockScanFindFirst = vi.fn();
 const mockValidatedTickerFindMany = vi.fn();
+const mockValidatedTickerCount = vi.fn();
 const mockSendTickerAlerts = vi.fn();
 
 vi.mock("@/lib/prisma", () => ({
@@ -12,6 +13,7 @@ vi.mock("@/lib/prisma", () => ({
     },
     validatedTicker: {
       findMany: (...args: unknown[]) => mockValidatedTickerFindMany(...args),
+      count: (...args: unknown[]) => mockValidatedTickerCount(...args),
     },
   },
 }));
@@ -77,26 +79,27 @@ describe("POST /api/alerts/send", () => {
     expect(mockSendTickerAlerts).not.toHaveBeenCalled();
   });
 
-  it("sends alerts for authorized requests", async () => {
+  it("sends high-conviction EARLY alerts for authorized requests", async () => {
     mockScanFindFirst.mockResolvedValue({ id: "scan_1" });
     mockValidatedTickerFindMany.mockResolvedValue([
       {
         symbol: "AAPL",
         price: 180,
-        aiScore: 70,
-        catalyst: "Earnings beat",
-        signalType: "multi_source",
+        aiScore: 75,
+        catalyst: "Insider buy $2M",
+        signalType: "insider_buy",
         stage: "EARLY",
       },
       {
-        symbol: "TSLA",
-        price: 200,
-        aiScore: 65,
-        catalyst: "Options flow",
+        symbol: "NVDA",
+        price: 500,
+        aiScore: 60,
+        catalyst: "Unusual options flow",
         signalType: "options_flow",
-        stage: "FORMING",
+        stage: "EARLY",
       },
     ]);
+    mockValidatedTickerCount.mockResolvedValue(12);
     mockSendTickerAlerts.mockResolvedValue(undefined);
 
     const res = await POST(makeRequest({ "x-snapshot-key": "test-snapshot-key" }));
@@ -106,7 +109,33 @@ describe("POST /api/alerts/send", () => {
     expect(json.status).toBe("sent");
     expect(json.scanId).toBe("scan_1");
     expect(json.tickerCount).toBe(2);
-    expect(json.totalAvailable).toBe(2);
+    expect(json.totalAvailable).toBe(12);
     expect(mockSendTickerAlerts).toHaveBeenCalledTimes(1);
+
+    // Verify the query applied the high-conviction filters
+    const findManyCall = mockValidatedTickerFindMany.mock.calls[0][0];
+    expect(findManyCall.where.stage).toBe("EARLY");
+    expect(findManyCall.where.aiScore).toEqual({ gte: 50 });
+    expect(findManyCall.where.pndFlagged).toBe(false);
+    expect(findManyCall.where.pndScore).toEqual({ lte: 1 });
+    expect(findManyCall.where.priorAppearances).toEqual({ lte: 5 });
+    expect(findManyCall.where.catalyst).toEqual({ not: null });
+    expect(findManyCall.take).toBe(6);
+  });
+
+  it("sends empty alert when no tickers pass the high-conviction filter", async () => {
+    mockScanFindFirst.mockResolvedValue({ id: "scan_1" });
+    mockValidatedTickerFindMany.mockResolvedValue([]);
+    mockValidatedTickerCount.mockResolvedValue(5);
+    mockSendTickerAlerts.mockResolvedValue(undefined);
+
+    const res = await POST(makeRequest({ "x-snapshot-key": "test-snapshot-key" }));
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(json.status).toBe("sent");
+    expect(json.tickerCount).toBe(0);
+    expect(json.totalAvailable).toBe(5);
+    expect(mockSendTickerAlerts).toHaveBeenCalledWith([], 5);
   });
 });
