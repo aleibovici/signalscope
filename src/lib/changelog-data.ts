@@ -15,7 +15,7 @@ export const changelog: ChangelogEntry[] = [
       {
         category: "new",
         items: [
-          "Pro subscription ($15/mo or $150/yr) — unlocks API key access (1,000 req/day), on-demand AI report generation for any ticker, and daily email alerts. Subscribe from the new API Access page in the sidebar.",
+          "Pro subscription ($10/mo or $100/yr) — unlocks API key access (1,000 req/day), on-demand AI report generation for any ticker, and daily email alerts. Subscribe from the new API Access page in the sidebar.",
           "Stripe-powered subscription management — subscribe, cancel, update payment method, and switch between monthly and yearly billing via Stripe's secure checkout and customer portal.",
         ],
       },

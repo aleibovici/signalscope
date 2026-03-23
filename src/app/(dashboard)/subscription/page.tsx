@@ -5,8 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { useCheckout, usePortal } from "@/hooks/use-subscription";
 
-const MONTHLY_PRICE = 15;
-const YEARLY_PRICE = 150;
+const MONTHLY_PRICE = 10;
+const YEARLY_PRICE = 100;
 
 const features = [
   "API key with 1,000 requests/day",
@@ -128,7 +128,7 @@ export default function SubscriptionPage() {
               }`}
             >
               Yearly
-              <span className="ml-1 text-xs opacity-75">Save $30</span>
+              <span className="ml-1 text-xs opacity-75">Save $20</span>
             </button>
           </div>
 

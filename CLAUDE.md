@@ -194,7 +194,7 @@ Anonymous pay-per-call access for AI agents via the [x402 protocol](https://www.
 
 ### Stripe Subscriptions (`src/lib/stripe.ts`, `src/lib/subscription.ts`)
 
-Paid subscription ($15/mo or $150/yr) gates three features: API key access, on-demand AI report generation, and email alerts. The dashboard is free for all authenticated users.
+Paid subscription ($10/mo or $100/yr) gates three features: API key access, on-demand AI report generation, and email alerts. The dashboard is free for all authenticated users.
 
 - `src/lib/stripe.ts` — Lazy Stripe client singleton, price ID constants
 - `src/lib/subscription.ts` — `hasActiveSubscription(userId)`, `getSubscriptionForApi(userId)`, `API_KEY_DAILY_LIMIT`
