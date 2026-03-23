@@ -110,10 +110,6 @@ export default function LoginPage() {
             {/* Perf stats inline badges (social proof above fold on desktop) */}
             {perfStats && (
               <div className="mb-5 flex flex-wrap justify-center gap-2 sm:gap-3 md:mb-8 lg:justify-start">
-                <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold sm:text-sm ${perfStats.emergingAvgReturn > 0 ? "bg-green-500/20 text-green-200" : "bg-red-500/20 text-red-200"}`}>
-                  <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M12.577 4.878a.75.75 0 01.919-.53l4.78 1.281a.75.75 0 01.531.919l-1.281 4.78a.75.75 0 01-1.449-.387l.81-3.022a19.407 19.407 0 00-5.594 5.203.75.75 0 01-1.139.093L7 10.06l-4.72 4.72a.75.75 0 01-1.06-1.061l5.25-5.25a.75.75 0 011.06 0l3.074 3.073a20.923 20.923 0 015.545-4.931l-3.042.815a.75.75 0 01-.53-.919z" clipRule="evenodd" /></svg>
-                  {perfStats.emergingAvgReturn > 0 ? "+" : ""}{(perfStats.emergingAvgReturn * 100).toFixed(1)}% avg 7d return
-                </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/20 px-3 py-1 text-xs font-semibold text-blue-200 sm:text-sm">
                   {perfStats.totalTracked} tickers tracked
                 </span>
@@ -308,32 +304,6 @@ export default function LoginPage() {
           </div>
         </div>
       </section>
-
-      {/* -- Live Performance --------------------------------------- */}
-      {perfStats && (
-        <section className="bg-gray-50 py-10 md:py-20">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <h2 className="mb-3 text-center text-2xl font-bold text-gray-900 md:text-3xl">
-              Real signal performance
-            </h2>
-            <p className="mx-auto mb-6 max-w-2xl text-center text-sm text-gray-500 md:mb-12 md:text-base">
-              Live stats from our signal pipeline — measured automatically 7 days after each detection.
-            </p>
-
-            {/* Cumulative 7d avg return chart */}
-            {perfStats.cumulativeReturns.length > 0 && (
-              <div className="mt-4 sm:mt-6">
-                <EmergingReturnsChart data={perfStats.cumulativeReturns} />
-              </div>
-            )}
-
-            <p className="mx-auto mt-4 max-w-2xl text-center text-xs leading-relaxed text-gray-400 sm:mt-6">
-              Real, automatically measured results from our live signal pipeline.
-              Past performance does not guarantee future results. All investments carry risk.
-            </p>
-          </div>
-        </section>
-      )}
 
       {/* -- How It Works -- Pipeline ------------------------------ */}
       <section id="how-it-works" className="scroll-mt-16 bg-gray-50 py-10 md:py-20">
