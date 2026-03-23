@@ -462,13 +462,11 @@ All authenticated API routes use `handleApiError()` from `src/lib/api-error.ts` 
 
 Python script that dumps every `public` base table from production PostgreSQL with `SELECT *` (no row or column filtering): one parquet per table under `scripts/output/`, plus `manifest.json` row counts. Used by the external ML harness.
 
-After parquet export, runs `pg_dump` from production (via the proxy) and `pg_restore` into your **local** dev database. Restore target: **`DATABASE_URL_DEV` if set**, else **`DATABASE_URL`** when it is a safe local URL (localhost / `host.docker.internal`, not Cloud SQL, not port 5434). That matches the DB `npm run dev` uses when `DATABASE_URL` points at local Postgres. Requires PostgreSQL client tools (`pg_dump`, `pg_restore` on `PATH`, e.g. `brew install libpq`). Use `python scripts/extract.py --no-restore` to skip the dev overwrite.
-
-If `.env.production` sets `DATABASE_URL` to Cloud SQL, override with a local `DATABASE_URL` in `.env.local` so restore has a safe target.
+After parquet export, runs `pg_dump` from production (via the proxy) and `pg_restore` into your **local** dev database. Restore target: **`DATABASE_URL_DEV`** by default, or explicit `--restore-url` for one-off runs. It no longer falls back to `DATABASE_URL` to avoid accidentally restoring through local production tunnels. Requires PostgreSQL client tools (`pg_dump`, `pg_restore` on `PATH`, e.g. `brew install libpq`). Use `python scripts/extract.py --no-restore` to skip the dev overwrite.
 
 ```bash
 # Requires: pip install psycopg2-binary pandas pyarrow python-dotenv
-# Reads DB_PASSWORD from .env.production; local DATABASE_URL or DATABASE_URL_DEV for pg_restore
+# Reads DB_PASSWORD from .env.production; local DATABASE_URL_DEV for pg_restore
 python scripts/extract.py
 # Output: scripts/output/<TableName>.parquet (one file per table), scripts/output/manifest.json
 # Dev DB: overwritten via pg_restore to match production

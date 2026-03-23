@@ -5,9 +5,8 @@ Discovers every `public` base table, runs `SELECT *` with no row or column filte
 and writes `scripts/output/<TableName>.parquet` plus `manifest.json` with row counts.
 
 Then replaces your **local** development database with a `pg_dump` / `pg_restore` clone
-of production (schema + data). The restore target is **`DATABASE_URL_DEV` if set**,
-otherwise **`DATABASE_URL`** when it points at localhost / `host.docker.internal`
-(not Cloud SQL). Matches what `npm run dev` uses via `DATABASE_URL` in typical setups.
+of production (schema + data). The restore target is **`DATABASE_URL_DEV`** (or
+`--restore-url`), and must point to localhost / `host.docker.internal` (not Cloud SQL).
 Requires PostgreSQL client tools (`pg_dump`, `pg_restore`) on `PATH`.
 
 **Why one parquet per table:** Parquet is tabular; the database has many related tables.
@@ -121,21 +120,24 @@ def is_safe_restore_target(url: str) -> bool:
     return bool(dbname)
 
 
-def resolve_restore_target_url() -> tuple[str, str] | None:
+def resolve_restore_target_url(explicit_restore_url: str | None = None) -> tuple[str, str] | None:
     """
     URL and label for pg_restore.
-    DATABASE_URL_DEV wins (optional second DB for harvester mirroring).
-    Else DATABASE_URL when it is a safe local URL — same DB the app uses in dev.
+    Explicit --restore-url wins.
+    Else DATABASE_URL_DEV (optional second DB for harvester mirroring).
     """
+    if explicit_restore_url and explicit_restore_url.strip():
+        u = explicit_restore_url.strip()
+        if not is_safe_restore_target(u):
+            return None
+        return u, "--restore-url"
+
     dev = os.environ.get("DATABASE_URL_DEV")
     if dev and dev.strip():
         u = dev.strip()
         if not is_safe_restore_target(u):
             return None
         return u, "DATABASE_URL_DEV"
-    db = os.environ.get("DATABASE_URL")
-    if db and db.strip() and is_safe_restore_target(db):
-        return db.strip(), "DATABASE_URL"
     return None
 
 
@@ -317,6 +319,13 @@ def main():
         action="store_true",
         help="Skip pg_dump/pg_restore; only write parquet + manifest under scripts/output/",
     )
+    parser.add_argument(
+        "--restore-url",
+        help=(
+            "Explicit local restore target URL (postgresql://...). "
+            "Overrides DATABASE_URL_DEV for this run."
+        ),
+    )
     args = parser.parse_args()
 
     db_password = os.environ.get("DB_PASSWORD")
@@ -326,16 +335,21 @@ def main():
 
     dev_conn: dict[str, str] | None = None
     if not args.no_restore:
-        resolved = resolve_restore_target_url()
+        resolved = resolve_restore_target_url(args.restore_url)
         if not resolved:
+            restore_raw = (args.restore_url or "").strip()
+            if restore_raw and not is_safe_restore_target(restore_raw):
+                print("ERROR: --restore-url is not a safe local URL (localhost / host.docker.internal, non-proxy port).")
+                print("  Refuses Cloud SQL and port 5434 (production proxy).")
+                sys.exit(1)
             dev_raw = (os.environ.get("DATABASE_URL_DEV") or "").strip()
             if dev_raw and not is_safe_restore_target(dev_raw):
                 print("ERROR: DATABASE_URL_DEV is set but is not a safe local URL (localhost / host.docker.internal, non-proxy port).")
                 print("  Refuses Cloud SQL and port 5434 (production proxy).")
                 sys.exit(1)
             print("ERROR: No safe local database URL for pg_restore.")
-            print("  Set DATABASE_URL to your local Postgres (e.g. postgresql://postgres:postgres@localhost:5432/signalscope),")
-            print("  or set DATABASE_URL_DEV. URLs with Cloud SQL or port 5434 are refused.")
+            print("  Set DATABASE_URL_DEV to your local Postgres (e.g. postgresql://postgres:postgres@localhost:5432/signalscope),")
+            print("  or pass --restore-url. URLs with Cloud SQL or port 5434 are refused.")
             sys.exit(1)
         restore_url, restore_label = resolved
         require_pg_tools()
