@@ -9,6 +9,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-03-24",
+    title: "Smarter Daily Email Alerts",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "Daily signal alert emails now send only high-conviction picks (max 6) instead of a broad 15-ticker digest. Tickers must be EARLY stage, AI score ≥ 50, clean P&D record (pndScore ≤ 1), novel (first seen within 3 days), and have an identified catalyst — matching the criteria used by our manual analyst workflow.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-03-22",
     title: "Pro Subscriptions, Smarter P&D Detection & Mobile Polish",
     changes: [
