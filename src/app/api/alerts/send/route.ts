@@ -25,13 +25,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ status: "skip", reason: "no completed scan" });
   }
 
-  const MAX_TICKERS = 15;
-
-  // Get all validated tickers (EARLY, FORMING, CONFIRMED) sorted by score
-  const allTickers = await prisma.validatedTicker.findMany({
+  // High-conviction EARLY signals only — mirrors the manual analyst filter:
+  // AI score >= 50, not P&D flagged, novel (firstSeenDaysAgo <= 3 or truly new),
+  // low prior appearances, has an identified catalyst. Quality over quantity (max 6).
+  const tickers = await prisma.validatedTicker.findMany({
     where: {
       scanId: scan.id,
-      stage: { in: ["CONFIRMED", "FORMING", "EARLY"] },
+      stage: "EARLY",
+      aiScore: { gte: 50 },
+      pndFlagged: false,
+      pndScore: { lte: 1 },
+      priorAppearances: { lte: 5 },
+      catalyst: { not: null },
+      OR: [
+        { firstSeenDaysAgo: null },
+        { firstSeenDaysAgo: { lte: 3 } },
+      ],
     },
     select: {
       symbol: true,
@@ -41,14 +50,17 @@ export async function POST(req: NextRequest) {
       signalType: true,
       stage: true,
     },
-    orderBy: { opportunityScore: "desc" },
+    orderBy: [{ aiScore: "desc" }, { opportunityScore: "desc" }],
+    take: 6,
   });
 
-  // Prioritize Emerging (EARLY) signals — highest alpha potential — then Building, then Consensus
-  const early = allTickers.filter((t) => t.stage === "EARLY");
-  const forming = allTickers.filter((t) => t.stage === "FORMING");
-  const confirmed = allTickers.filter((t) => t.stage === "CONFIRMED");
-  const tickers = [...early, ...forming, ...confirmed].slice(0, MAX_TICKERS);
+  // Total available (for email footer context) — all non-filtered validated tickers in this scan
+  const totalAvailable = await prisma.validatedTicker.count({
+    where: {
+      scanId: scan.id,
+      stage: { in: ["EARLY", "FORMING", "CONFIRMED"] },
+    },
+  });
 
   await sendTickerAlerts(
     tickers.map((t) => ({
@@ -59,13 +71,13 @@ export async function POST(req: NextRequest) {
       signalType: t.signalType,
       stage: t.stage,
     })),
-    allTickers.length
+    totalAvailable
   );
 
   return NextResponse.json({
     status: "sent",
     scanId: scan.id,
     tickerCount: tickers.length,
-    totalAvailable: allTickers.length,
+    totalAvailable,
   });
 }
