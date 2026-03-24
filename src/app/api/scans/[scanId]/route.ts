@@ -20,7 +20,7 @@ export async function GET(
           scanId,
           ...(includeFiltered ? {} : { stage: { notIn: ["FILTERED", "UNSCORED"] } }),
         },
-        orderBy: { opportunityScore: "desc" },
+        orderBy: [{ aiScore: "desc" }, { opportunityScore: "desc" }],
         include: {
           performance: { select: { return7d: true } },
         },
