@@ -4,7 +4,7 @@ import { authConfig } from "@/lib/auth.config";
 const { auth } = NextAuth(authConfig);
 
 // Exact page paths (no sub-routes)
-const publicPages = new Set(["/login", "/register", "/changelog", "/faq", "/how-it-works", "/api/stats/performance", "/api/search", "/api/methodology", "/opengraph-image"]);
+const publicPages = new Set(["/login", "/register", "/changelog", "/faq", "/how-it-works", "/api/stats/performance", "/api/search", "/api/methodology", "/opengraph-image", "/dashboard", "/trending", "/connections", "/performance", "/methodology"]);
 
 // API prefixes — matched with a boundary check so /api/scans matches
 // /api/scans and /api/scans/abc but NOT /api/scans-admin
@@ -17,10 +17,15 @@ const publicApiPrefixes = [
   "/api/reports",
   "/api/tweets",
   "/api/stripe/webhook",
+  "/api/scans",
+  "/api/signals",
+  "/api/stats",
+  "/api/prices",
+  "/api/performance",
 ];
 
 // Public page prefixes (pages with sub-routes like /blog/[slug])
-const publicPagePrefixes = ["/blog"];
+const publicPagePrefixes = ["/blog", "/ticker"];
 
 // x402-monetized paths — bypass middleware auth so the route handler
 // can return 402 payment details or validate x-payment proofs.

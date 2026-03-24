@@ -115,3 +115,16 @@ export async function getCurrentUserId(): Promise<string> {
   trackUserActivity(session.user.id);
   return session.user.id;
 }
+
+/**
+ * Like getCurrentUserId(), but returns null instead of throwing
+ * when no authentication is present. Use for routes that serve
+ * public data but still want to track logged-in user activity.
+ */
+export async function getOptionalUserId(): Promise<string | null> {
+  try {
+    return await getCurrentUserId();
+  } catch {
+    return null;
+  }
+}

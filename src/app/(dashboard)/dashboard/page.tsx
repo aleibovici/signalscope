@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useScans, useScanDetail, type ValidatedTickerData } from "@/hooks/use-scans";
 import { useScrollRestore } from "@/hooks/use-scroll-restore";
 import { useWatchlist, useToggleWatchlist, useWatchlistTickers } from "@/hooks/use-watchlist";
@@ -18,6 +19,7 @@ function setCookieStage(stage: string) {
 }
 
 function DashboardContent() {
+  const { data: session } = useSession();
   const searchParams = useSearchParams();
   const [selectedScanId, setSelectedScanId] = useState<string | null>(
     searchParams.get("scanId")
@@ -97,7 +99,7 @@ function DashboardContent() {
         {scoreExplainerDashboardCallout}
       </div>
 
-      {missingWatchlisted.length > 0 && !isLoading && (
+      {session?.user && missingWatchlisted.length > 0 && !isLoading && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
@@ -142,7 +144,7 @@ function DashboardContent() {
               key={ticker.id}
               ticker={ticker}
               isBookmarked={bookmarkedSymbols.has(ticker.symbol)}
-              onToggle={(symbol, isCurrent) => toggleWatchlist({ symbol, isBookmarked: isCurrent })}
+              onToggle={session?.user ? (symbol, isCurrent) => toggleWatchlist({ symbol, isBookmarked: isCurrent }) : undefined}
             />
           ))}
         </div>

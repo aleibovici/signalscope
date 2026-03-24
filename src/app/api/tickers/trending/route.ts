@@ -323,13 +323,12 @@ export async function GET(request: NextRequest) {
       return await handleTrending(request);
     }
 
-    // No auth credentials — use x402 payment (returns 402 if unpaid)
-    if (x402Handler) {
+    // x402 payment present — validate payment (AI agent flow)
+    if (request.headers.has("x-payment") && x402Handler) {
       return x402Handler(request);
     }
 
-    // x402 not configured — require normal auth
-    await getCurrentUserId();
+    // Free anonymous access (browser users)
     return await handleTrending(request);
   } catch (err) {
     return handleApiError(err, "GET /api/tickers/trending");

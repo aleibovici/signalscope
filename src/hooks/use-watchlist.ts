@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
 import type { ValidatedTickerData } from "@/hooks/use-scans";
 
 interface WatchlistEntry {
@@ -9,6 +10,7 @@ interface WatchlistEntry {
 }
 
 export function useWatchlist() {
+  const { data: session } = useSession();
   return useQuery<{ watchlist: WatchlistEntry[] }, Error, Set<string>>({
     queryKey: ["watchlist"],
     queryFn: async () => {
@@ -18,6 +20,7 @@ export function useWatchlist() {
     },
     select: (data) => new Set(data.watchlist.map((e) => e.symbol)),
     staleTime: 60_000,
+    enabled: !!session?.user,
   });
 }
 
@@ -69,6 +72,7 @@ export function useToggleWatchlist() {
 }
 
 export function useWatchlistTickers() {
+  const { data: session } = useSession();
   return useQuery<{ tickers: ValidatedTickerData[] }>({
     queryKey: ["watchlist-tickers"],
     queryFn: async () => {
@@ -77,5 +81,6 @@ export function useWatchlistTickers() {
       return res.json();
     },
     staleTime: 60_000,
+    enabled: !!session?.user,
   });
 }

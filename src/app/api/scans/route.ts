@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUserId } from "@/lib/auth";
+import { getOptionalUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
 import { paginationSchema } from "@/lib/validators";
 import { z } from "zod/v4";
@@ -13,7 +13,7 @@ const scansFilterSchema = paginationSchema.extend({
 
 export async function GET(request: NextRequest) {
   try {
-    await getCurrentUserId();
+    await getOptionalUserId();
     const params = Object.fromEntries(request.nextUrl.searchParams);
     const { page, limit, status, from, to } = scansFilterSchema.parse(params);
     const skip = (page - 1) * limit;

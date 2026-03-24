@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUserId } from "@/lib/auth";
+import { getOptionalUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
 import type { Prisma } from "@/generated/prisma/client";
 import { stageToDb } from "@/lib/stage-labels";
@@ -9,7 +9,7 @@ const VALID_STAGES = new Set(["EARLY", "FORMING", "CONFIRMED", "FILTERED", "Emer
 
 export async function GET(request: NextRequest) {
   try {
-    await getCurrentUserId();
+    await getOptionalUserId();
     const scanId = request.nextUrl.searchParams.get("scanId");
     const stage = request.nextUrl.searchParams.get("stage");
 

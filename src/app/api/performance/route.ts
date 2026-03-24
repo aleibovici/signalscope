@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUserId } from "@/lib/auth";
+import { getOptionalUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
 import { stageLabel } from "@/lib/stage-labels";
 
@@ -67,7 +67,7 @@ function formatWeekLabel(mondayStr: string): string {
 
 export async function GET(request: NextRequest) {
   try {
-    await getCurrentUserId();
+    await getOptionalUserId();
     const daysParam = request.nextUrl.searchParams.get("days");
     const days = daysParam ? Number(daysParam) : 7;
 

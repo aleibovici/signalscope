@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUserId } from "@/lib/auth";
+import { getOptionalUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
 
 export async function GET() {
   try {
-    await getCurrentUserId();
+    await getOptionalUserId();
     const [scans, signals, tickerCount] =
       await Promise.all([
         prisma.scan.count({ where: { status: "COMPLETED" } }),

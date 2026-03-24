@@ -149,11 +149,10 @@ export async function GET(request: NextRequest) {
       return await handleNetwork(request);
     }
 
-    if (x402Handler) {
+    if (request.headers.has("x-payment") && x402Handler) {
       return x402Handler(request);
     }
 
-    await getCurrentUserId();
     return await handleNetwork(request);
   } catch (err) {
     return handleApiError(err, "GET /api/tickers/network");

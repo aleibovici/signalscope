@@ -8,14 +8,16 @@ import { NextScanCountdown } from "@/components/dashboard/next-scan-countdown";
 import { StatsWidget } from "@/components/dashboard/stats-widget";
 import { ThemeToggle } from "@/components/dashboard/theme-toggle";
 import { TickerSearch } from "@/components/dashboard/ticker-search";
-const navItems = [
+const publicNavItems = [
   { href: "/dashboard", label: "Signals", icon: "📡" },
   { href: "/trending", label: "Trending", icon: "📈" },
   { href: "/connections", label: "Connections", icon: "🔗" },
-  { href: "/portfolio", label: "Portfolio", icon: "💼" },
   { href: "/performance", label: "Performance", icon: "🎯" },
   { href: "/methodology", label: "How It Works", icon: "ℹ️" },
   { href: "/changelog", label: "Changelog", icon: "📋" },
+];
+const authNavItems = [
+  { href: "/portfolio", label: "Portfolio", icon: "💼" },
   { href: "/subscription", label: "API Access", icon: "🔑" },
   { href: "/profile", label: "Profile", icon: "⚙️" },
 ];
@@ -116,7 +118,24 @@ export function Sidebar({ revision }: { revision: string }) {
 
         <div className="flex-1 overflow-y-auto">
           <nav className="space-y-1 px-3 py-4">
-            {navItems.map((item) => {
+            {publicNavItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                    isActive
+                      ? "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
+                      : "text-gray-700 hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800/80"
+                  }`}
+                >
+                  <span>{item.icon}</span>
+                  <span className="flex-1">{item.label}</span>
+                </Link>
+              );
+            })}
+            {session?.user && authNavItems.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link
@@ -158,32 +177,49 @@ export function Sidebar({ revision }: { revision: string }) {
         </div>
 
         <div className="shrink-0 border-t border-gray-200 px-4 py-4 dark:border-zinc-800">
-          {session?.user && (
-            <div className="mb-2 truncate text-xs text-gray-500 dark:text-zinc-400">
-              {session.user.email}
+          {session?.user ? (
+            <>
+              <div className="mb-2 truncate text-xs text-gray-500 dark:text-zinc-400">
+                {session.user.email}
+              </div>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  fetch("/api/auth/csrf")
+                    .then((res) => res.json())
+                    .then(({ csrfToken }) =>
+                      fetch("/api/auth/signout", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                        body: new URLSearchParams({ csrfToken }),
+                      })
+                    )
+                    .finally(() => {
+                      window.location.href = "/login";
+                    });
+                }}
+                className="w-full cursor-pointer touch-manipulation rounded-md px-3 py-2.5 text-left text-sm text-gray-600 hover:bg-gray-100 active:bg-gray-200 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:active:bg-zinc-700"
+              >
+                Sign out
+              </button>
+            </>
+          ) : (
+            <div className="space-y-2">
+              <Link
+                href="/login"
+                className="block w-full rounded-md bg-blue-600 px-3 py-2.5 text-center text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/register"
+                className="block w-full rounded-md border border-gray-300 px-3 py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              >
+                Register
+              </Link>
             </div>
           )}
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              fetch("/api/auth/csrf")
-                .then((res) => res.json())
-                .then(({ csrfToken }) =>
-                  fetch("/api/auth/signout", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                    body: new URLSearchParams({ csrfToken }),
-                  })
-                )
-                .finally(() => {
-                  window.location.href = "/login";
-                });
-            }}
-            className="w-full cursor-pointer touch-manipulation rounded-md px-3 py-2.5 text-left text-sm text-gray-600 hover:bg-gray-100 active:bg-gray-200 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:active:bg-zinc-700"
-          >
-            Sign out
-          </button>
         </div>
       </aside>
     </>

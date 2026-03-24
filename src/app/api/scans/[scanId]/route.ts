@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUserId } from "@/lib/auth";
+import { getOptionalUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
 import { stageLabel } from "@/lib/stage-labels";
 
@@ -9,7 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ scanId: string }> }
 ) {
   try {
-    await getCurrentUserId();
+    await getOptionalUserId();
     const { scanId } = await params;
     const includeFiltered = request.nextUrl.searchParams.get("includeFiltered") === "true";
 
