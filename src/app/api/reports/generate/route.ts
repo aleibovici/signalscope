@@ -133,9 +133,12 @@ export async function POST(req: NextRequest) {
         const diversified = selectDiversifiedTickers(tweetCandidates, 10);
         console.log(`[reports/generate] Tweeting ${diversified.length} tickers: ${diversified.map((t) => t.symbol).join(", ")}`);
         const result = await tweetTickerBatch(diversified);
-        tweetResult = { posted: result.posted, failed: result.failed };
+        tweetResult = { posted: result.posted, failed: result.failed, replies: result.replies, replyFailed: result.replyFailed };
         if (result.failed.length > 0) {
           console.warn(`[reports/generate] Tweet failures: ${result.failed.map((f) => `${f.symbol}: ${f.error}`).join(", ")}`);
+        }
+        if (result.replyFailed.length > 0) {
+          console.warn(`[reports/generate] Reply failures: ${result.replyFailed.map((f) => `${f.symbol}: ${f.error}`).join(", ")}`);
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
