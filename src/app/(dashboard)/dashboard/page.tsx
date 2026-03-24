@@ -59,7 +59,7 @@ function DashboardContent() {
       ? tickers
       : tickers.filter((t) => t.stage === selectedStage);
 
-  // Bookmarked tickers float to top; within each group, API order (opportunityScore DESC) is preserved
+  // Bookmarked tickers float to top; within each group, API order (aiScore DESC, opportunityScore DESC) is preserved
   const filtered = [...filteredRaw].sort((a, b) => {
     const aB = bookmarkedSymbols.has(a.symbol) ? 0 : 1;
     const bB = bookmarkedSymbols.has(b.symbol) ? 0 : 1;
@@ -95,8 +95,14 @@ function DashboardContent() {
         counts={counts}
       />
 
-      <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-700 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-300">
-        {scoreExplainerDashboardCallout}
+      <div className="flex items-start gap-3 border-l-[3px] border-gray-300 bg-gray-50/80 px-4 py-3 dark:border-zinc-600 dark:bg-zinc-900/40">
+        <svg className="mt-0.5 h-4 w-4 shrink-0 text-gray-400 dark:text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+        </svg>
+        <p className="text-sm leading-relaxed text-gray-500 dark:text-zinc-400">
+          <span className="font-semibold text-gray-700 dark:text-zinc-200">Reading the cards:</span>{" "}
+          {scoreExplainerDashboardCallout.replace(/^Reading the cards:\s*/i, "")}
+        </p>
       </div>
 
       {session?.user && missingWatchlisted.length > 0 && !isLoading && (
