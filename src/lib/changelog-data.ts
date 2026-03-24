@@ -10,8 +10,14 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-03-25",
-    title: "Dashboard & Methodology Redesign",
+    title: "Dashboard & Methodology Redesign, Twitter Reply Engagement",
     changes: [
+      {
+        category: "new",
+        items: [
+          "After posting each ticker tweet, SignalScope now finds the top-engaged tweet mentioning that cashtag in the last 24h and replies to it — increasing reach and engagement in active stock conversations.",
+        ],
+      },
       {
         category: "improved",
         items: [
