@@ -27,9 +27,9 @@ export function ScanSelector({
   const selectedScan = scans.find((s) => s.id === selectedScanId) ?? scans[0];
 
   return (
-    <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-3">
+    <div className="flex flex-col items-stretch gap-1.5 sm:flex-row sm:items-center sm:gap-3">
       {selectedScan && (
-        <p className="shrink-0 text-xs tabular-nums text-gray-400 dark:text-zinc-500 sm:text-sm">
+        <p className="shrink-0 text-xs tabular-nums text-gray-400 dark:text-zinc-500 sm:text-right sm:text-sm">
           {selectedScan.signalCount} signals
           <span className="mx-1.5 text-gray-300 dark:text-zinc-600">|</span>
           {selectedScan.validatedCount} validated

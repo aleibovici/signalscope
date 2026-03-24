@@ -45,7 +45,7 @@ export function StageTabs({
         ))}
       </div>
       {/* Scroll affordance — mobile only */}
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-linear-to-l from-white dark:from-zinc-950 sm:hidden" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-linear-to-l from-gray-50 dark:from-[#0a0d12] sm:hidden" />
     </div>
   );
 }
