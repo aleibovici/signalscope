@@ -136,14 +136,40 @@ export async function POST(
       return await handleReport(request, upperSymbol);
     }
 
-    // No auth credentials — use x402 payment (returns 402 if unpaid)
-    if (x402ReportHandler) {
+    // x402 payment present — validate payment (AI agent flow)
+    if (request.headers.has("x-payment") && x402ReportHandler) {
       return x402ReportHandler(request);
     }
 
-    // x402 not configured — require normal auth
-    await getCurrentUserId();
-    return await handleReport(request, upperSymbol);
+    // Anonymous access — serve cached report only, don't generate
+    const existing = await prisma.validatedTicker.findFirst({
+      where: { symbol: upperSymbol },
+      orderBy: { createdAt: "desc" },
+      select: { catalyst: true, risks: true, recommendation: true, report: true, tradeSetupEntryLo: true, tradeSetupEntryHi: true, tradeSetupStopLoss: true, tradeSetupTarget1: true, tradeSetupTarget2: true, tradeSetupTimeframe: true, tradeSetupRiskReward: true, tradeSetupConfidence: true },
+    });
+    if (existing?.catalyst && existing?.report) {
+      const tradeSetup = existing.tradeSetupEntryLo != null ? {
+        entryLo: existing.tradeSetupEntryLo,
+        entryHi: existing.tradeSetupEntryHi!,
+        stopLoss: existing.tradeSetupStopLoss!,
+        target1: existing.tradeSetupTarget1!,
+        target2: existing.tradeSetupTarget2!,
+        timeframe: existing.tradeSetupTimeframe!,
+        riskReward: existing.tradeSetupRiskReward!,
+        confidence: existing.tradeSetupConfidence as "low" | "medium" | "high",
+      } : undefined;
+      return NextResponse.json({
+        catalyst: existing.catalyst,
+        risks: existing.risks,
+        recommendation: existing.recommendation,
+        report: existing.report,
+        ...(tradeSetup ? { tradeSetup } : {}),
+      });
+    }
+    return NextResponse.json(
+      { error: "Sign in to generate AI reports for this ticker" },
+      { status: 403 },
+    );
   } catch (err) {
     return handleApiError(err, "POST /api/tickers/[symbol]/report");
   }

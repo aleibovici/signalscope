@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { useTrendingTickers, type TrendingFilters } from "@/hooks/use-trending";
 import { useWatchlist, useToggleWatchlist } from "@/hooks/use-watchlist";
 import { TrendingCard } from "@/components/dashboard/trending-card";
@@ -74,6 +75,7 @@ const countActiveFilters = (f: TrendingFilters) => {
 };
 
 export default function TrendingPage() {
+  const { data: session } = useSession();
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<TrendingFilters>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -341,7 +343,7 @@ export default function TrendingPage() {
                 key={ticker.id}
                 ticker={ticker}
                 isBookmarked={bookmarkedSymbols.has(ticker.symbol)}
-                onToggle={handleToggle}
+                onToggle={session?.user ? handleToggle : undefined}
                 returnPeriod={filters.returnPeriod || "7d"}
               />
             ))}

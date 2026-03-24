@@ -118,17 +118,17 @@ export default function LoginPage() {
 
             <div className="flex flex-col items-center gap-3 sm:flex-row lg:justify-start">
               <Link
-                href="/register"
+                href="/dashboard"
                 className="w-full rounded-lg bg-white px-6 py-2.5 text-center text-sm font-semibold text-blue-700 shadow-md hover:bg-blue-50 transition-colors touch-manipulation sm:w-auto"
               >
-                Get started free
+                Browse signals
               </Link>
-              <a
-                href="#how-it-works"
+              <Link
+                href="/register"
                 className="w-full rounded-lg border border-blue-400/40 px-5 py-2.5 text-center text-sm font-semibold text-blue-100 hover:bg-white/10 transition-colors touch-manipulation sm:w-auto"
               >
-                How It Works
-              </a>
+                Create account
+              </Link>
             </div>
 
             {/* Quick stats */}
@@ -558,10 +558,10 @@ export default function LoginPage() {
             Free to use. No credit card required.
           </p>
           <Link
-            href="/register"
+            href="/dashboard"
             className="inline-block rounded-lg bg-white px-8 py-3 text-sm font-semibold text-blue-700 shadow-md hover:bg-blue-50 transition-colors touch-manipulation sm:text-base"
           >
-            Get started free
+            Browse signals
           </Link>
         </div>
       </section>

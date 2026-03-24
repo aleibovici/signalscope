@@ -64,11 +64,10 @@ export async function GET(
       return await handlePerformance(request, upper);
     }
 
-    if (x402Handler) {
+    if (request.headers.has("x-payment") && x402Handler) {
       return x402Handler(request);
     }
 
-    await getCurrentUserId();
     return await handlePerformance(request, upper);
   } catch (err) {
     return handleApiError(err, "GET /api/tickers/[symbol]/performance");
