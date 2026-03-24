@@ -126,25 +126,12 @@ function collectSecondaryTags(ticker: ValidatedTickerData): { label: string; var
 function SignalCountChip({ count }: { count: number }) {
   return (
     <div
-      className="inline-flex items-center gap-2 rounded-lg border border-gray-200/90 bg-gray-50/95 px-2.5 py-1.5 dark:border-zinc-700/70 dark:bg-zinc-900/65"
+      className="inline-flex items-center gap-1.5 rounded-full border border-gray-200/90 bg-gray-50/95 px-2.5 py-1 dark:border-zinc-700/70 dark:bg-zinc-900/65"
       aria-label={`${count} raw signals in scan`}
     >
-      <svg
-        className="h-4 w-4 shrink-0 text-blue-500 dark:text-blue-400"
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        aria-hidden
-      >
-        <rect x="5" y="14" width="3" height="6" rx="1" opacity={0.35} />
-        <rect x="10.5" y="10" width="3" height="10" rx="1" opacity={0.55} />
-        <rect x="16" y="6" width="3" height="14" rx="1" />
-      </svg>
-      <div className="flex min-w-0 items-baseline gap-1.5 leading-none">
-        <span className="text-sm font-semibold tabular-nums text-gray-900 dark:text-zinc-100">
-          {count}
-        </span>
-        <span className="text-[11px] font-medium text-gray-500 dark:text-zinc-400">signals</span>
-      </div>
+      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500 dark:bg-blue-400" aria-hidden="true" />
+      <span className="text-xs font-semibold tabular-nums text-gray-900 dark:text-zinc-100">{count}</span>
+      <span className="text-[11px] text-gray-500 dark:text-zinc-400">signals</span>
     </div>
   );
 }
@@ -313,15 +300,30 @@ export function SignalCard({
         {ticker.catalyst || ticker.risks ? (
           <div className="space-y-2 border-t border-gray-100 pt-3 dark:border-zinc-800/60">
             {ticker.catalyst && (
-              <p className="line-clamp-2 text-xs text-gray-700 dark:text-zinc-300 sm:text-sm sm:line-clamp-3">
-                <span className="font-semibold text-gray-800 dark:text-zinc-200">Thesis:</span>{" "}
-                {ticker.catalyst}
-              </p>
+              <div>
+                <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-blue-500/70 dark:text-[#afc6ff]/60">
+                  Thesis
+                </p>
+                <p className="line-clamp-2 text-xs leading-relaxed text-gray-700 dark:text-zinc-300 sm:text-sm sm:line-clamp-3">
+                  {ticker.catalyst}
+                </p>
+              </div>
             )}
             {ticker.risks && (
-              <p className="line-clamp-2 text-xs text-amber-800 dark:text-amber-200/90 sm:text-sm sm:line-clamp-3">
-                <span className="font-semibold">Risks:</span> {ticker.risks}
-              </p>
+              <div className="flex items-start gap-2 rounded-md bg-amber-50 px-2.5 py-2 dark:bg-amber-950/30 dark:ring-1 dark:ring-amber-500/20">
+                <svg
+                  className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500 dark:text-amber-400"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  aria-hidden
+                >
+                  <path fillRule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
+                </svg>
+                <p className="line-clamp-2 text-xs leading-relaxed text-amber-800 dark:text-amber-200/80 sm:line-clamp-2">
+                  <span className="font-semibold">Risks:</span>{" "}
+                  {ticker.risks}
+                </p>
+              </div>
             )}
           </div>
         ) : (
@@ -355,21 +357,20 @@ export function SignalCard({
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-1.5">
-          {ticker.sources?.map((s) => (
-            <span
-              key={s}
-              className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:bg-zinc-800/80 dark:text-zinc-400"
-            >
-              {s.replace(/_/g, " ")}
-            </span>
-          ))}
-          {ticker.shortFloat != null && (
-            <span className="ml-auto shrink-0 text-[11px] text-gray-400 dark:text-zinc-500">
-              {(ticker.shortFloat * 100).toFixed(1)}% SI
-            </span>
-          )}
-        </div>
+        {(ticker.sources?.length > 0 || ticker.shortFloat != null) && (
+          <div className="flex items-center justify-between gap-2 text-[11px] text-gray-400 dark:text-zinc-500">
+            {ticker.sources?.length > 0 && (
+              <span className="min-w-0 truncate uppercase tracking-wide">
+                {ticker.sources.map((s) => s.replace(/_/g, " ")).join(" · ")}
+              </span>
+            )}
+            {ticker.shortFloat != null && (
+              <span className="shrink-0">
+                Short float: {(ticker.shortFloat * 100).toFixed(1)}%
+              </span>
+            )}
+          </div>
+        )}
 
         <div className="mt-auto flex items-center justify-between gap-2 border-t border-gray-100 pt-3 pointer-events-none dark:border-zinc-800/60">
           <SignalCountChip count={ticker.signalCount} />
