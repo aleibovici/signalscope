@@ -27,13 +27,17 @@ export function StageTabs({
           onClick={() => onSelect(stage.key)}
           className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:py-2 sm:text-sm ${
             selected === stage.key
-              ? "bg-white text-gray-900 shadow-sm dark:bg-zinc-800 dark:text-zinc-100 dark:shadow-none"
+              ? "bg-white text-gray-900 shadow-sm dark:bg-zinc-800 dark:text-zinc-100 dark:shadow-none dark:ring-1 dark:ring-blue-500/30"
               : "text-gray-600 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-zinc-200"
           }`}
         >
           {stage.label}
           {counts && counts[stage.key] !== undefined && (
-            <span className="ml-1.5 text-xs text-gray-400 dark:text-zinc-500">
+            <span className={`ml-1.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums ${
+              selected === stage.key
+                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                : "bg-gray-200 text-gray-500 dark:bg-zinc-700 dark:text-zinc-400"
+            }`}>
               {counts[stage.key]}
             </span>
           )}

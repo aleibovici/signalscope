@@ -2,15 +2,15 @@ import { type ReactNode } from "react";
 
 const variants: Record<string, string> = {
   default:
-    "bg-gray-100 text-gray-800 dark:bg-zinc-800/90 dark:text-zinc-200",
+    "bg-gray-100 text-gray-800 dark:bg-zinc-800/90 dark:text-zinc-200 dark:ring-1 dark:ring-zinc-700/50",
   success:
-    "bg-green-100 text-green-800 dark:bg-emerald-950/60 dark:text-emerald-300",
+    "bg-green-100 text-green-800 dark:bg-emerald-950/60 dark:text-emerald-300 dark:ring-1 dark:ring-emerald-500/30",
   warning:
-    "bg-yellow-100 text-yellow-800 dark:bg-amber-950/50 dark:text-amber-200",
-  danger: "bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300",
-  info: "bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300",
+    "bg-yellow-100 text-yellow-800 dark:bg-amber-950/50 dark:text-amber-200 dark:ring-1 dark:ring-amber-500/30",
+  danger: "bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300 dark:ring-1 dark:ring-red-500/30",
+  info: "bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300 dark:ring-1 dark:ring-blue-500/30",
   purple:
-    "bg-purple-100 text-purple-800 dark:bg-purple-950/50 dark:text-purple-300",
+    "bg-purple-100 text-purple-800 dark:bg-purple-950/50 dark:text-purple-300 dark:ring-1 dark:ring-purple-500/30",
 };
 
 export function Badge({

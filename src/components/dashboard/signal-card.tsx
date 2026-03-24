@@ -153,23 +153,33 @@ function ScoreMeter({
   label,
   value,
   title,
+  type = "default",
 }: {
   label: string;
   value: number;
   title?: string;
+  type?: "opportunity" | "confidence" | "default";
 }) {
   const clamped = Math.min(100, Math.max(0, value));
+  const labelClass =
+    type === "opportunity"
+      ? "text-amber-600 dark:text-amber-400"
+      : type === "confidence"
+        ? "text-blue-600 dark:text-blue-400"
+        : "text-gray-500 dark:text-zinc-400";
+  const barClass =
+    type === "opportunity" ? "bg-amber-500" : "bg-blue-500";
   return (
     <div className="min-w-0" title={title}>
       <div className="mb-1 flex items-center justify-between gap-1.5 text-[11px] leading-tight">
-        <span className="truncate text-gray-500 dark:text-zinc-400">{label}</span>
+        <span className={`truncate font-medium ${labelClass}`}>{label}</span>
         <span className="shrink-0 font-semibold tabular-nums text-gray-800 dark:text-zinc-100">
           {value}/100
         </span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-gray-200/90 dark:bg-zinc-800">
+      <div className="h-2 overflow-hidden rounded-full bg-gray-200/90 dark:bg-zinc-800">
         <div
-          className="h-full rounded-full bg-blue-500 dark:bg-blue-500"
+          className={`h-full rounded-full ${barClass}`}
           style={{ width: `${clamped}%` }}
         />
       </div>
@@ -271,11 +281,13 @@ export function SignalCard({
           <ScoreMeter
             label="Opportunity"
             value={ticker.opportunityScore}
+            type="opportunity"
             title="Early-mover / opportunity rank — list order uses this (higher = earlier or more favorable setup)."
           />
           <ScoreMeter
             label="Confidence"
             value={ticker.aiScore}
+            type="confidence"
             title="How strong the evidence is (sources, sentiment, corroboration). Not the same as expected upside — high confidence often means the crowd already agrees."
           />
         </div>
@@ -326,17 +338,18 @@ export function SignalCard({
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-zinc-400">
-          {ticker.sources?.length > 0 && (
-            <span>
-              <span className="font-medium text-gray-600 dark:text-zinc-300">Sources:</span>{" "}
-              {ticker.sources.map((s) => s.replace("_", " ")).join(", ")}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {ticker.sources?.map((s) => (
+            <span
+              key={s}
+              className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:bg-zinc-800/80 dark:text-zinc-400"
+            >
+              {s.replace(/_/g, " ")}
             </span>
-          )}
+          ))}
           {ticker.shortFloat != null && (
-            <span>
-              <span className="font-medium text-gray-600 dark:text-zinc-300">Short float:</span>{" "}
-              {(ticker.shortFloat * 100).toFixed(1)}%
+            <span className="ml-auto shrink-0 text-[11px] text-gray-400 dark:text-zinc-500">
+              {(ticker.shortFloat * 100).toFixed(1)}% SI
             </span>
           )}
         </div>
