@@ -46,8 +46,10 @@ function formatPctShort(value: number): string {
 /* ---------- Summary Cards with Delta ---------- */
 function SummaryCards({
   summary,
+  days,
 }: {
   summary: { totalTracked: number; current: PerformanceStats; prior: PerformanceStats };
+  days: number;
 }) {
   const { current } = summary;
   const hasData = current.count > 0;
@@ -64,7 +66,7 @@ function SummaryCards({
     <div className="grid gap-4 sm:grid-cols-4">
       <Card>
         <CardContent className="pt-6 text-center">
-          <p className="text-sm text-gray-500 dark:text-zinc-400">Emerging Tracked<InfoTip text="Unique tickers detected at the Emerging stage across all scans." /></p>
+          <p className="text-sm text-gray-500 dark:text-zinc-400">High-Score Picks<InfoTip text="Unique tickers that scored 70+ on AI signal confidence across all scans." /></p>
           <p className="text-3xl font-bold text-gray-900 dark:text-zinc-100">
             {summary.totalTracked}
           </p>
@@ -74,7 +76,7 @@ function SummaryCards({
 
       <Card>
         <CardContent className="pt-6 text-center">
-          <p className="text-sm text-gray-500 dark:text-zinc-400">Win Rate (last 30d)<InfoTip text="Percentage of emerging signals detected in the last 30 days that had a positive return over the selected period." /></p>
+          <p className="text-sm text-gray-500 dark:text-zinc-400">Win Rate ({days}d)<InfoTip text="Percentage of high-score picks (AI ≥70) detected in the last 30 days that had a positive return over the selected period." /></p>
           <p className="text-3xl font-bold text-gray-900 dark:text-zinc-100">
             {hasData
               ? `${(current.winRate * 100).toFixed(0)}%`
@@ -88,7 +90,7 @@ function SummaryCards({
 
       <Card>
         <CardContent className="pt-6 text-center">
-          <p className="text-sm text-gray-500 dark:text-zinc-400">Avg Return (last 30d)<InfoTip text="Mean return of all emerging signals detected in the last 30 days, measured at the selected period (1d/3d/7d/30d) after detection." /></p>
+          <p className="text-sm text-gray-500 dark:text-zinc-400">Avg Return ({days}d)<InfoTip text="Mean return of all high-score picks (AI ≥70) detected in the last 30 days, measured at the selected period after detection." /></p>
           <p
             className={`text-3xl font-bold ${
               hasData && current.avgReturn > 0
@@ -106,7 +108,7 @@ function SummaryCards({
 
       <Card>
         <CardContent className="pt-6 text-center">
-          <p className="text-sm text-gray-500 dark:text-zinc-400">Last 30d vs Prior 30d<InfoTip text="Compares win rate and average return of emerging signals from the last 30 days against the prior 30-day window." /></p>
+          <p className="text-sm text-gray-500 dark:text-zinc-400">Last 30d vs Prior 30d<InfoTip text="Compares win rate and average return of high-score picks (AI ≥70) from the last 30 days against the prior 30-day window." /></p>
           <div className="mt-1 space-y-1">
             {summary.prior.count === 0 ? (
               <p className="mt-2 text-xs text-gray-400 dark:text-zinc-500">
@@ -172,9 +174,9 @@ function CohortTable({ cohorts, days }: { cohorts: CohortEntry[]; days: number }
   return (
     <Card>
       <CardHeader>
-        <h3 className="font-semibold text-gray-900 dark:text-zinc-100">Weekly Signal Cohorts</h3>
+        <h3 className="font-semibold text-gray-900 dark:text-zinc-100">Weekly High-Score Cohorts</h3>
         <p className="text-xs text-gray-400 dark:text-zinc-500">
-          Signals grouped by detection week — how did each week&apos;s picks perform?
+          High-confidence picks (AI ≥70) grouped by detection week — how did each week&apos;s picks perform?
         </p>
       </CardHeader>
       <CardContent>
@@ -410,7 +412,7 @@ export default function PerformancePage() {
         <div>
           <h1 className="text-xl font-bold text-gray-900 md:text-2xl dark:text-zinc-100">Signal Performance</h1>
           <p className="text-sm text-gray-500 dark:text-zinc-400">
-            How signals perform after detection — broken down by week, stage, and type
+            How high-confidence signals (AI score ≥70) perform after detection — broken down by week and type
           </p>
         </div>
         <div className="flex rounded-lg border border-gray-200 bg-white p-1 dark:border-zinc-600 dark:bg-zinc-900">
@@ -445,7 +447,7 @@ export default function PerformancePage() {
       {data && (
         <>
           {/* Summary cards with period comparison */}
-          <SummaryCards summary={data.summary} />
+          <SummaryCards summary={data.summary} days={days} />
 
           {/* Weekly cohort table */}
           <CohortTable cohorts={data.cohorts} days={days} />
@@ -455,12 +457,6 @@ export default function PerformancePage() {
 
           {/* By signal type breakdown */}
           <StatsTable title="By Signal Type" data={data.byType} />
-
-          {/* Best performers */}
-          <PerformersTable
-            title="Best Performers"
-            performers={data.bestPerformers}
-          />
         </>
       )}
     </div>

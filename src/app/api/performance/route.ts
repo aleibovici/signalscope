@@ -26,6 +26,7 @@ interface PerformanceRecord {
     opportunityScore: number;
     stage: string;
     signalType: string | null;
+    recommendation: string | null;
     createdAt: Date;
   };
 }
@@ -81,14 +82,19 @@ export async function GET(request: NextRequest) {
     const returnCol = `return${days}d` as ReturnCol;
     const priceCol = `price${days}d` as PriceCol;
 
-    // Fetch all performance records (deduped by symbol, earliest detection)
+    const AI_SCORE_THRESHOLD = 70;
+    const SCORING_CUTOFF = new Date("2026-03-16T00:00:00Z");
+
+    // Fetch performance records for high-confidence tickers (aiScore >= threshold, post scoring overhaul), deduped by symbol
     const records: PerformanceRecord[] = await prisma.tickerPerformance.findMany(
       {
         where: {
           detectionPrice: { gt: 0.01 },
           corporateActionDetected: false,
           validatedTicker: {
+            aiScore: { gte: AI_SCORE_THRESHOLD },
             stage: { notIn: ["FILTERED", "UNSCORED"] },
+            createdAt: { gte: SCORING_CUTOFF },
           },
         },
         distinct: ["symbol"],
@@ -99,6 +105,7 @@ export async function GET(request: NextRequest) {
               opportunityScore: true,
               stage: true,
               signalType: true,
+              recommendation: true,
               createdAt: true,
             },
           },
@@ -132,29 +139,28 @@ export async function GET(request: NextRequest) {
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
-    const earlyRecords = records.filter((r) => r.validatedTicker.stage === "EARLY");
 
-    const currentRecords = earlyRecords.filter(
+    const currentRecords = records.filter(
       (r) => r.validatedTicker.createdAt >= thirtyDaysAgo,
     );
-    const priorRecords = earlyRecords.filter(
+    const priorRecords = records.filter(
       (r) =>
         r.validatedTicker.createdAt >= sixtyDaysAgo &&
         r.validatedTicker.createdAt < thirtyDaysAgo,
     );
 
     const summary = {
-      totalTracked: earlyRecords.length,
+      totalTracked: records.length,
       current: computeStats(currentRecords, returnCol),
       prior: computeStats(priorRecords, returnCol),
     };
 
-    // --- Weekly cohorts (emerging only) ---
+    // --- Weekly cohorts (Buy/Strong Buy only) ---
     const cohortMap = new Map<
       string,
       PerformanceRecord[]
     >();
-    for (const r of earlyRecords) {
+    for (const r of records) {
       const week = getMonday(r.validatedTicker.createdAt);
       if (!cohortMap.has(week)) cohortMap.set(week, []);
       cohortMap.get(week)!.push(r);
@@ -200,8 +206,8 @@ export async function GET(request: NextRequest) {
         };
       });
 
-    // --- Per-date average returns — emerging signals only (simple, no rolling) ---
-    const withReturn = earlyRecords
+    // --- Per-date average returns — Buy/Strong Buy signals only (simple, no rolling) ---
+    const withReturn = records
       .filter((r) => r[returnCol] !== null)
       .sort(
         (a, b) =>
@@ -209,33 +215,20 @@ export async function GET(request: NextRequest) {
           b.validatedTicker.createdAt.getTime(),
       );
 
-    const byDateMap = new Map<string, { sum: number; count: number; wins: number }>();
-    for (const r of withReturn) {
-      const date = r.validatedTicker.createdAt.toISOString().slice(0, 10);
-      if (!byDateMap.has(date)) byDateMap.set(date, { sum: 0, count: 0, wins: 0 });
-      const entry = byDateMap.get(date)!;
-      entry.sum += r[returnCol] as number;
-      entry.count += 1;
-      if ((r[returnCol] as number) > 0) entry.wins += 1;
-    }
-    const sortedDates = [...byDateMap.keys()].sort();
-    const dailyReturns = sortedDates.map((date) => {
-      const d = byDateMap.get(date)!;
-      return { date, avgReturn: d.count > 0 ? d.sum / d.count : 0, tradeCount: d.count, winCount: d.wins };
-    });
+    // Per-ticker returns (one entry per ticker, newest first)
+    const dailyReturns = withReturn.map((r) => ({
+      date: r.validatedTicker.createdAt.toISOString().slice(0, 10),
+      symbol: r.symbol,
+      avgReturn: r[returnCol] as number,
+      tradeCount: 1,
+      winCount: (r[returnCol] as number) > 0 ? 1 : 0,
+    })).reverse();
 
     // --- Breakdowns (for selected horizon) ---
     const recordsWithReturn = records.filter((r) => r[returnCol] !== null);
-    const earlyWithReturn = recordsWithReturn.filter((r) => r.validatedTicker.stage === "EARLY");
     const overall = computeStats(recordsWithReturn, returnCol);
-    const confirmedRecords = recordsWithReturn.filter(
-      (r) => r.validatedTicker.stage === "CONFIRMED",
-    );
-    const confirmed = computeStats(confirmedRecords, returnCol);
-    const emergingRecords = earlyWithReturn.filter(
-      (r) => r.validatedTicker.createdAt >= thirtyDaysAgo,
-    );
-    const emerging = computeStats(emergingRecords, returnCol);
+    const confirmed = computeStats(recordsWithReturn.filter((r) => r.validatedTicker.stage === "CONFIRMED"), returnCol);
+    const emerging = computeStats(recordsWithReturn.filter((r) => r.validatedTicker.createdAt >= thirtyDaysAgo), returnCol);
 
     // By stage (all stages — useful as a comparison tool)
     const byStage: Record<string, ReturnType<typeof computeStats>> = {};
@@ -250,10 +243,10 @@ export async function GET(request: NextRequest) {
       if (group) byStage[stageLabel(s)] = computeStats(group, returnCol);
     }
 
-    // By signal type (emerging only)
+    // By signal type
     const byType: Record<string, ReturnType<typeof computeStats>> = {};
     const typeGroups = new Map<string, PerformanceRecord[]>();
-    for (const r of earlyWithReturn) {
+    for (const r of recordsWithReturn) {
       const type = r.validatedTicker.signalType ?? "unknown";
       if (!typeGroups.has(type)) typeGroups.set(type, []);
       typeGroups.get(type)!.push(r);
@@ -262,7 +255,7 @@ export async function GET(request: NextRequest) {
       byType[type] = computeStats(group, returnCol);
     }
 
-    // By score range (emerging only)
+    // By score range
     const byScoreRange: Record<string, ReturnType<typeof computeStats>> = {};
     const ranges = [
       { label: "0-30", min: 0, max: 30 },
@@ -271,7 +264,7 @@ export async function GET(request: NextRequest) {
       { label: "70-100", min: 70, max: 101 },
     ];
     const rangeGroups = new Map<string, PerformanceRecord[]>();
-    for (const r of earlyWithReturn) {
+    for (const r of recordsWithReturn) {
       const score = r.validatedTicker.aiScore;
       for (const range of ranges) {
         if (score >= range.min && score < range.max) {
@@ -286,7 +279,7 @@ export async function GET(request: NextRequest) {
       if (group) byScoreRange[range.label] = computeStats(group, returnCol);
     }
 
-    // By opportunity score range (emerging only)
+    // By opportunity score range
     const byOpportunityScoreRange: Record<string, ReturnType<typeof computeStats>> = {};
     const oppRanges = [
       { label: "0-25", min: 0, max: 25 },
@@ -295,7 +288,7 @@ export async function GET(request: NextRequest) {
       { label: "75-100", min: 75, max: 101 },
     ];
     const oppRangeGroups = new Map<string, PerformanceRecord[]>();
-    for (const r of earlyWithReturn) {
+    for (const r of recordsWithReturn) {
       const oppScore = r.validatedTicker.opportunityScore;
       for (const range of oppRanges) {
         if (oppScore >= range.min && oppScore < range.max) {
@@ -310,9 +303,9 @@ export async function GET(request: NextRequest) {
       if (group) byOpportunityScoreRange[range.label] = computeStats(group, returnCol);
     }
 
-    // Best/Worst performers — emerging signals from last 30 days
+    // Best/Worst performers — Buy/Strong Buy signals from last 30 days
     const sorted = [...recordsWithReturn]
-      .filter((r) => r.validatedTicker.stage === "EARLY" && r.validatedTicker.createdAt >= thirtyDaysAgo)
+      .filter((r) => r.validatedTicker.createdAt >= thirtyDaysAgo)
       .sort((a, b) => (b[returnCol] as number) - (a[returnCol] as number));
 
     const mapPerformer = (r: PerformanceRecord) => ({
