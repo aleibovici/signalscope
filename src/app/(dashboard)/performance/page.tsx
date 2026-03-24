@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useAggregatePerformance } from "@/hooks/use-performance";
 import type {
   PerformanceStats,
-  PerformerEntry,
   CohortEntry,
 } from "@/hooks/use-performance";
 import { EmergingReturnsChart } from "@/components/emerging-returns-chart";
@@ -338,68 +337,6 @@ function StatsTable({
   );
 }
 
-/* ---------- Performers Table ---------- */
-function PerformersTable({
-  title,
-  performers,
-}: {
-  title: string;
-  performers: PerformerEntry[];
-}) {
-  if (performers.length === 0) return null;
-
-  return (
-    <Card>
-      <CardHeader>
-        <h3 className="font-semibold text-gray-900 dark:text-zinc-100">{title}</h3>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 text-left text-xs text-gray-500 dark:border-zinc-800 dark:text-zinc-400">
-                <th className="pb-2 pr-4 font-medium">Symbol</th>
-                <th className="pb-2 pr-4 font-medium text-right">Return</th>
-                <th className="pb-2 pr-4 font-medium text-right">Score</th>
-                <th className="pb-2 pr-4 font-medium">Detected</th>
-                <th className="pb-2 font-medium text-right">Price</th>
-              </tr>
-            </thead>
-            <tbody>
-              {performers.map((p, i) => (
-                <tr key={`${p.symbol}-${i}`} className="border-b border-gray-50 dark:border-zinc-800/80">
-                  <td className="py-1.5 pr-4 font-medium text-blue-600 dark:text-blue-400">
-                    <a href={`/ticker/${p.symbol}`}>{p.symbol}</a>
-                  </td>
-                  <td
-                    className={`py-1.5 pr-4 text-right font-medium ${
-                      p.return > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-                    }`}
-                  >
-                    {formatPct(p.return)}
-                  </td>
-                  <td className="py-1.5 pr-4 text-right text-gray-600 dark:text-zinc-400">
-                    {p.aiScore}
-                  </td>
-                  <td className="py-1.5 pr-4 whitespace-nowrap text-gray-500 dark:text-zinc-500">
-                    {new Date(p.detectedAt + "T00:00:00Z").toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      timeZone: "UTC",
-                    })}
-                  </td>
-                  <td className="py-1.5 text-right text-gray-600 dark:text-zinc-400">
-                    ${p.detectionPrice.toFixed(2)} → ${p.currentPrice.toFixed(2)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 /* ---------- Main Page ---------- */
 export default function PerformancePage() {

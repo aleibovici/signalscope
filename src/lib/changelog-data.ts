@@ -21,7 +21,7 @@ export const changelog: ChangelogEntry[] = [
       {
         category: "improved",
         items: [
-          "Performance page rebuilt to focus on emerging signal quality — now shows EARLY-stage signals only, with per-date return averages, a period-aware cohort table (median column added), and the newest dates at the top. Noise removed: stage breakdown, score explainer, and worst-performers table are gone.",
+          "Performance page rebuilt to track high-confidence signals (AI score ≥70, from March 16 scoring overhaul onwards) — shows per-ticker return bars newest-first, period-aware summary cards (Win Rate and Avg Return update to match the selected 1d/3d/7d/30d horizon), and a weekly cohort table. Pre-overhaul data excluded to avoid comparing against the old scoring semantics.",
           "Dashboard ticker list now sorted by AI score first (then opportunity score), matching the priority order used in email alerts — highest-conviction picks surface at the top.",
           "Daily signal alert emails now send only high-conviction picks (max 6) instead of a broad 15-ticker digest. Tickers must be EARLY stage, AI score ≥ 50, clean P&D record (pndScore ≤ 1), novel (first seen within 3 days), and have an identified catalyst — matching the criteria used by our manual analyst workflow.",
         ],
