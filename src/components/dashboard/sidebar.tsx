@@ -8,18 +8,75 @@ import { NextScanCountdown } from "@/components/dashboard/next-scan-countdown";
 import { StatsWidget } from "@/components/dashboard/stats-widget";
 import { ThemeToggle } from "@/components/dashboard/theme-toggle";
 import { TickerSearch } from "@/components/dashboard/ticker-search";
+const NavIcons = {
+  Signals: (
+    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5.636 18.364a9 9 0 010-12.728M18.364 5.636a9 9 0 010 12.728M8.464 15.536a5 5 0 010-7.072M15.536 8.464a5 5 0 010 7.072M12 13a1 1 0 100-2 1 1 0 000 2z" />
+    </svg>
+  ),
+  Trending: (
+    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+      <polyline points="16 7 22 7 22 13" />
+    </svg>
+  ),
+  Connections: (
+    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="18" cy="5" r="2" /><circle cx="6" cy="12" r="2" /><circle cx="18" cy="19" r="2" />
+      <line x1="8" y1="11" x2="16" y2="6" /><line x1="8" y1="13" x2="16" y2="18" />
+    </svg>
+  ),
+  Performance: (
+    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
+    </svg>
+  ),
+  HowItWorks: (
+    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+  ),
+  Changelog: (
+    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
+      <rect x="9" y="3" width="6" height="4" rx="1" /><line x1="9" y1="12" x2="15" y2="12" /><line x1="9" y1="16" x2="13" y2="16" />
+    </svg>
+  ),
+  Portfolio: (
+    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="7" width="20" height="14" rx="2" />
+      <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
+    </svg>
+  ),
+  ApiAccess: (
+    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
+    </svg>
+  ),
+  Profile: (
+    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+    </svg>
+  ),
+  Admin: (
+    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  ),
+};
+
 const publicNavItems = [
-  { href: "/dashboard", label: "Signals", icon: "📡" },
-  { href: "/trending", label: "Trending", icon: "📈" },
-  { href: "/connections", label: "Connections", icon: "🔗" },
-  { href: "/performance", label: "Performance", icon: "🎯" },
-  { href: "/methodology", label: "How It Works", icon: "ℹ️" },
-  { href: "/changelog", label: "Changelog", icon: "📋" },
+  { href: "/dashboard", label: "Signals", icon: NavIcons.Signals },
+  { href: "/trending", label: "Trending", icon: NavIcons.Trending },
+  { href: "/connections", label: "Connections", icon: NavIcons.Connections },
+  { href: "/performance", label: "Performance", icon: NavIcons.Performance },
+  { href: "/methodology", label: "How It Works", icon: NavIcons.HowItWorks },
+  { href: "/changelog", label: "Changelog", icon: NavIcons.Changelog },
 ];
 const authNavItems = [
-  { href: "/portfolio", label: "Portfolio", icon: "💼" },
-  { href: "/subscription", label: "API Access", icon: "🔑" },
-  { href: "/profile", label: "Profile", icon: "⚙️" },
+  { href: "/portfolio", label: "Portfolio", icon: NavIcons.Portfolio },
+  { href: "/subscription", label: "API Access", icon: NavIcons.ApiAccess },
+  { href: "/profile", label: "Profile", icon: NavIcons.Profile },
 ];
 
 export function Sidebar({ revision }: { revision: string }) {
@@ -126,8 +183,8 @@ export function Sidebar({ revision }: { revision: string }) {
                   href={item.href}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                     isActive
-                      ? "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
-                      : "text-gray-700 hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800/80"
+                      ? "bg-blue-50 text-blue-700 border-l-2 border-blue-500 pl-[10px] dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-400"
+                      : "text-gray-700 hover:bg-gray-100 border-l-2 border-transparent pl-[10px] dark:text-zinc-300 dark:hover:bg-zinc-800/80"
                   }`}
                 >
                   <span>{item.icon}</span>
@@ -143,8 +200,8 @@ export function Sidebar({ revision }: { revision: string }) {
                   href={item.href}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                     isActive
-                      ? "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
-                      : "text-gray-700 hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800/80"
+                      ? "bg-blue-50 text-blue-700 border-l-2 border-blue-500 pl-[10px] dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-400"
+                      : "text-gray-700 hover:bg-gray-100 border-l-2 border-transparent pl-[10px] dark:text-zinc-300 dark:hover:bg-zinc-800/80"
                   }`}
                 >
                   <span>{item.icon}</span>
@@ -157,11 +214,11 @@ export function Sidebar({ revision }: { revision: string }) {
                 href="/admin"
                 className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                   pathname === "/admin"
-                    ? "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
-                    : "text-gray-700 hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800/80"
+                    ? "bg-blue-50 text-blue-700 border-l-2 border-blue-500 pl-[10px] dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-400"
+                    : "text-gray-700 hover:bg-gray-100 border-l-2 border-transparent pl-[10px] dark:text-zinc-300 dark:hover:bg-zinc-800/80"
                 }`}
               >
-                <span>🛡️</span>
+                {NavIcons.Admin}
                 Admin
               </Link>
             )}

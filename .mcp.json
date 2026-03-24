@@ -7,6 +7,13 @@
     "chrome-devtools": {
       "command": "npx",
       "args": ["chrome-devtools-mcp@latest"]
+    },
+    "stitch": {
+      "type": "http",
+      "url": "https://stitch.googleapis.com/mcp",
+      "headers": {
+        "X-Goog-Api-Key": "AQ.Ab8RN6KtuRcYJnW_ecnHMpnf5DvgDRowe100Q85kaztu_kAXiA"
+      }
     }
   }
 }
