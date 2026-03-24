@@ -149,40 +149,53 @@ function SignalCountChip({ count }: { count: number }) {
   );
 }
 
-function ScoreMeter({
-  label,
+// Arc gauge: semicircle M 8 36 A 32 32 0 0 1 72 36 (cx=40, cy=36, r=32)
+const ARC_LENGTH = Math.PI * 32; // ≈100.5
+
+function ArcGauge({
   value,
+  type,
   title,
-  type = "default",
 }: {
-  label: string;
   value: number;
+  type: "opportunity" | "confidence";
   title?: string;
-  type?: "opportunity" | "confidence" | "default";
 }) {
-  const clamped = Math.min(100, Math.max(0, value));
+  const fill = (Math.min(Math.max(value, 0), 100) / 100) * ARC_LENGTH;
+  const fillColor = type === "opportunity" ? "#f59e0b" : "#3b82f6";
   const labelClass =
     type === "opportunity"
       ? "text-amber-600 dark:text-amber-400"
-      : type === "confidence"
-        ? "text-blue-600 dark:text-blue-400"
-        : "text-gray-500 dark:text-zinc-400";
-  const barClass =
-    type === "opportunity" ? "bg-amber-500" : "bg-blue-500";
+      : "text-blue-600 dark:text-blue-400";
+
   return (
-    <div className="min-w-0" title={title}>
-      <div className="mb-1 flex items-center justify-between gap-1.5 text-[11px] leading-tight">
-        <span className={`truncate font-medium ${labelClass}`}>{label}</span>
-        <span className="shrink-0 font-semibold tabular-nums text-gray-800 dark:text-zinc-100">
-          {value}/100
-        </span>
-      </div>
-      <div className="h-2 overflow-hidden rounded-full bg-gray-200/90 dark:bg-zinc-800">
-        <div
-          className={`h-full rounded-full ${barClass}`}
-          style={{ width: `${clamped}%` }}
+    <div className="flex min-w-0 flex-col items-center gap-0" title={title}>
+      <svg width="80" height="38" viewBox="0 1 80 38" aria-hidden="true">
+        {/* Track */}
+        <path
+          d="M 8 36 A 32 32 0 0 1 72 36"
+          fill="none"
+          stroke="currentColor"
+          className="text-gray-200 dark:text-zinc-700"
+          strokeWidth={5}
+          strokeLinecap="round"
         />
-      </div>
+        {/* Fill */}
+        <path
+          d="M 8 36 A 32 32 0 0 1 72 36"
+          fill="none"
+          stroke={fillColor}
+          strokeWidth={5}
+          strokeLinecap="round"
+          strokeDasharray={`${fill} ${ARC_LENGTH}`}
+        />
+      </svg>
+      <span className="-mt-1 text-sm font-bold tabular-nums leading-none text-gray-900 dark:text-zinc-100">
+        {value}
+      </span>
+      <span className={`mt-0.5 text-[10px] font-semibold uppercase tracking-wider ${labelClass}`}>
+        {type === "opportunity" ? "Opp" : "Conf"}
+      </span>
     </div>
   );
 }
@@ -208,6 +221,12 @@ export function SignalCard({
 
   return (
     <Card className="group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-xl border-gray-200/90 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md dark:border-zinc-800/90 dark:shadow-[0_1px_3px_rgba(0,0,0,0.35)] dark:hover:border-blue-500/35 dark:hover:shadow-lg dark:hover:shadow-black/40">
+      {/* Gradient accent bar — dark mode */}
+      <div
+        className="pointer-events-none absolute inset-y-0 left-0 z-10 hidden w-[3px] rounded-l-xl dark:block"
+        style={{ background: "linear-gradient(to bottom, #afc6ff, #4edea3)" }}
+        aria-hidden="true"
+      />
       <Link
         href={`/ticker/${ticker.symbol}`}
         className="absolute right-0 bottom-0 z-0 h-full w-full rounded-xl"
@@ -276,16 +295,14 @@ export function SignalCard({
           </div>
         )}
 
-        {/* Full-width scores strip (Stitch: side by side) */}
-        <div className="grid grid-cols-2 gap-3 rounded-lg border border-gray-100 bg-gray-50/90 px-3 py-2.5 dark:border-zinc-800/80 dark:bg-zinc-900/45">
-          <ScoreMeter
-            label="Opportunity"
+        {/* Score gauges */}
+        <div className="flex items-start justify-center gap-4 rounded-lg border border-gray-100 bg-gray-50/90 px-3 py-2 dark:border-zinc-800/80 dark:bg-zinc-900/45">
+          <ArcGauge
             value={ticker.opportunityScore}
             type="opportunity"
             title="Early-mover / opportunity rank — list order uses this (higher = earlier or more favorable setup)."
           />
-          <ScoreMeter
-            label="Confidence"
+          <ArcGauge
             value={ticker.aiScore}
             type="confidence"
             title="How strong the evidence is (sources, sentiment, corroboration). Not the same as expected upside — high confidence often means the crowd already agrees."
