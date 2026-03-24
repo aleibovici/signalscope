@@ -9,6 +9,22 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-03-25",
+    title: "Dashboard & Methodology Redesign",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "Signal cards redesigned — outlined recommendation badge, arc gauge labels above the arc, two-column thesis/risks layout, outlined tag pills, and outlined source chips in the footer.",
+          "Stage tabs redesigned as individual pill buttons with inline counts — matches the new design language across the dashboard.",
+          "Scan selector now shows date-only in the dropdown with signal/validated counts displayed separately to the left.",
+          "'Reading the cards' callout restyled with a left accent border and info icon. Text updated to correctly reflect sort order: AI Confidence first, then Opportunity.",
+          "How It Works (methodology) page fully redesigned — pipeline strip with outlined pills, side-by-side arc gauge score explainer, signal source cards with gradient accent bars, horizontal AI scoring color band, P&D flags split into effective vs. informational, and ML backtesting section. Fully mobile-ready.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-03-24",
     title: "Browse Without an Account, Performance Overhaul & Smarter Alerts",
     changes: [
