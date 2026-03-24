@@ -24,18 +24,28 @@ export function ScanSelector({
     );
   }
 
+  const selectedScan = scans.find((s) => s.id === selectedScanId) ?? scans[0];
+
   return (
-    <select
-      value={selectedScanId || ""}
-      onChange={(e) => onSelect(e.target.value)}
-      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 sm:w-auto"
-    >
-      {scans.map((scan: ScanSummary) => (
-        <option key={scan.id} value={scan.id}>
-          {new Date(scan.startedAt).toLocaleString()} — {scan.signalCount}{" "}
-          signals, {scan.validatedCount} validated
-        </option>
-      ))}
-    </select>
+    <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-3">
+      {selectedScan && (
+        <p className="shrink-0 text-xs tabular-nums text-gray-400 dark:text-zinc-500 sm:text-sm">
+          {selectedScan.signalCount} signals
+          <span className="mx-1.5 text-gray-300 dark:text-zinc-600">|</span>
+          {selectedScan.validatedCount} validated
+        </p>
+      )}
+      <select
+        value={selectedScanId || ""}
+        onChange={(e) => onSelect(e.target.value)}
+        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 sm:w-auto"
+      >
+        {scans.map((scan: ScanSummary) => (
+          <option key={scan.id} value={scan.id}>
+            {new Date(scan.startedAt).toLocaleString()}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }
