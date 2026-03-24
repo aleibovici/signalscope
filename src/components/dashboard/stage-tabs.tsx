@@ -20,32 +20,45 @@ export function StageTabs({
 }) {
   return (
     <div className="relative">
-      <div className="flex gap-1 overflow-x-auto rounded-lg bg-gray-100 p-1 dark:bg-zinc-900/80 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      {stages.map((stage) => (
-        <button
-          key={stage.key}
-          onClick={() => onSelect(stage.key)}
-          className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:py-2 sm:text-sm ${
-            selected === stage.key
-              ? "bg-white text-gray-900 shadow-sm dark:bg-zinc-800 dark:text-zinc-100 dark:shadow-none dark:ring-1 dark:ring-blue-500/30"
-              : "text-gray-600 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-zinc-200"
-          }`}
-        >
-          {stage.label}
-          {counts && counts[stage.key] !== undefined && (
-            <span className={`ml-1.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums ${
-              selected === stage.key
-                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
-                : "bg-gray-200 text-gray-500 dark:bg-zinc-700 dark:text-zinc-400"
-            }`}>
-              {counts[stage.key]}
-            </span>
-          )}
-        </button>
-      ))}
+      <div className="flex overflow-x-auto border-b border-gray-200 dark:border-zinc-800 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {stages.map((stage) => {
+          const isActive = selected === stage.key;
+          return (
+            <button
+              key={stage.key}
+              onClick={() => onSelect(stage.key)}
+              className={`relative shrink-0 px-4 py-2.5 text-sm font-medium transition-colors focus:outline-none ${
+                isActive
+                  ? "text-[#afc6ff] dark:text-[#afc6ff]"
+                  : "text-gray-500 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-[#c2c6d7]"
+              }`}
+            >
+              {stage.label}
+              {counts && counts[stage.key] !== undefined && (
+                <span
+                  className={`ml-1.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums ${
+                    isActive
+                      ? "bg-blue-100 text-blue-700 dark:bg-[#afc6ff]/15 dark:text-[#afc6ff]"
+                      : "bg-gray-100 text-gray-500 dark:bg-zinc-800 dark:text-zinc-500"
+                  }`}
+                >
+                  {counts[stage.key]}
+                </span>
+              )}
+              {/* Active underline */}
+              {isActive && (
+                <span
+                  className="absolute bottom-0 left-0 h-[2px] w-full rounded-t-sm"
+                  style={{ background: "#afc6ff" }}
+                  aria-hidden="true"
+                />
+              )}
+            </button>
+          );
+        })}
       </div>
-      {/* Scroll affordance — fade gradient visible only when content overflows (mobile) */}
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-8 rounded-r-lg bg-linear-to-l from-gray-100 dark:from-zinc-900/80 sm:hidden" />
+      {/* Scroll affordance — mobile only */}
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-linear-to-l from-white dark:from-zinc-950 sm:hidden" />
     </div>
   );
 }
