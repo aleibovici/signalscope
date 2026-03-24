@@ -72,6 +72,7 @@ export interface CohortEntry {
 
 export interface DailyReturnEntry {
   date: string;
+  symbol: string;
   avgReturn: number;
   tradeCount: number;
   winCount: number;
