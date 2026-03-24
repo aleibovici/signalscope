@@ -4,7 +4,7 @@
  */
 
 export const scoreExplainerDashboardCallout =
-  "Reading the cards: Signals are ordered by Opportunity (early-mover potential). Confidence is how strong the evidence is — when it is very high, the move may already be priced in, which is why it does not always line up with forward returns.";
+  "Reading the cards: Sorted by AI Confidence (evidence strength) first, then Opportunity (early-mover rank). High confidence can mean the move is already priced in.";
 
 /** Trending default sort is appearances, not opportunity — clarify sort vs on-card scores */
 export const scoreExplainerTrendingCallout =
