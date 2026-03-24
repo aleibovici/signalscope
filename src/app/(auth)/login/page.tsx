@@ -17,13 +17,6 @@ const howItWorksSteps = [
   { step: "5", label: "Validate", desc: "Surviving tickers get fundamentals, a report, and enter the dashboard." },
 ];
 
-interface CumulativeReturnEntry {
-  date: string;
-  cumReturn: number;
-  tradeCount: number;
-  winCount: number;
-}
-
 interface PerfStats {
   totalTracked: number;
   signalsWithReturns: number;
@@ -32,7 +25,6 @@ interface PerfStats {
   emergingWinRate: number;
   emergingAvgReturn: number;
   emergingCount: number;
-  cumulativeReturns: CumulativeReturnEntry[];
 }
 
 export default function LoginPage() {

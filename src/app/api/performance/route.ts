@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
           prior: { count: 0, winRate: 0, avgReturn: 0 },
         },
         cohorts: [],
-        cumulativeReturns: [],
+        dailyReturns: [],
         overall: { count: 0, winRate: 0, avgReturn: 0 },
         confirmed: { count: 0, winRate: 0, avgReturn: 0 },
         emerging: { count: 0, winRate: 0, avgReturn: 0 },
@@ -132,29 +132,29 @@ export async function GET(request: NextRequest) {
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+    const earlyRecords = records.filter((r) => r.validatedTicker.stage === "EARLY");
 
-    const currentRecords = records.filter(
-      (r) => r.validatedTicker.createdAt >= thirtyDaysAgo && r.validatedTicker.stage === "EARLY",
+    const currentRecords = earlyRecords.filter(
+      (r) => r.validatedTicker.createdAt >= thirtyDaysAgo,
     );
-    const priorRecords = records.filter(
+    const priorRecords = earlyRecords.filter(
       (r) =>
         r.validatedTicker.createdAt >= sixtyDaysAgo &&
-        r.validatedTicker.createdAt < thirtyDaysAgo &&
-        r.validatedTicker.stage === "EARLY",
+        r.validatedTicker.createdAt < thirtyDaysAgo,
     );
 
     const summary = {
-      totalTracked: records.length,
+      totalTracked: earlyRecords.length,
       current: computeStats(currentRecords, returnCol),
       prior: computeStats(priorRecords, returnCol),
     };
 
-    // --- Weekly cohorts ---
+    // --- Weekly cohorts (emerging only) ---
     const cohortMap = new Map<
       string,
       PerformanceRecord[]
     >();
-    for (const r of records) {
+    for (const r of earlyRecords) {
       const week = getMonday(r.validatedTicker.createdAt);
       if (!cohortMap.has(week)) cohortMap.set(week, []);
       cohortMap.get(week)!.push(r);
@@ -164,7 +164,7 @@ export async function GET(request: NextRequest) {
       .sort(([a], [b]) => b.localeCompare(a)) // newest first
       .slice(0, 12)
       .map(([weekStart, group]) => {
-        const stats: Record<string, { count: number; winRate: number; avgReturn: number }> = {};
+        const stats: Record<string, { count: number; winRate: number; avgReturn: number; medianReturn: number }> = {};
         for (const h of HORIZONS) {
           const col: ReturnCol = `return${h}d`;
           const s = computeStats(group, col);
@@ -200,9 +200,9 @@ export async function GET(request: NextRequest) {
         };
       });
 
-    // --- Per-date average returns — emerging signals only ---
-    const withReturn = records
-      .filter((r) => r[returnCol] !== null && r.validatedTicker.stage === "EARLY")
+    // --- Per-date average returns — emerging signals only (simple, no rolling) ---
+    const withReturn = earlyRecords
+      .filter((r) => r[returnCol] !== null)
       .sort(
         (a, b) =>
           a.validatedTicker.createdAt.getTime() -
@@ -219,36 +219,25 @@ export async function GET(request: NextRequest) {
       if ((r[returnCol] as number) > 0) entry.wins += 1;
     }
     const sortedDates = [...byDateMap.keys()].sort();
-    const cumulativeReturns = sortedDates.map((date) => {
-      const dateMs = new Date(date + "T00:00:00Z").getTime();
-      const sevenDaysAgoMs = dateMs - 6 * 24 * 60 * 60 * 1000;
-      let sum = 0;
-      let count = 0;
-      let wins = 0;
-      for (const d of sortedDates) {
-        const dMs = new Date(d + "T00:00:00Z").getTime();
-        if (dMs >= sevenDaysAgoMs && dMs <= dateMs) {
-          sum += byDateMap.get(d)!.sum;
-          count += byDateMap.get(d)!.count;
-          wins += byDateMap.get(d)!.wins;
-        }
-      }
-      return { date, cumReturn: count > 0 ? sum / count : 0, tradeCount: count, winCount: wins };
+    const dailyReturns = sortedDates.map((date) => {
+      const d = byDateMap.get(date)!;
+      return { date, avgReturn: d.count > 0 ? d.sum / d.count : 0, tradeCount: d.count, winCount: d.wins };
     });
 
-    // --- Breakdowns (same as before, for selected horizon) ---
+    // --- Breakdowns (for selected horizon) ---
     const recordsWithReturn = records.filter((r) => r[returnCol] !== null);
+    const earlyWithReturn = recordsWithReturn.filter((r) => r.validatedTicker.stage === "EARLY");
     const overall = computeStats(recordsWithReturn, returnCol);
     const confirmedRecords = recordsWithReturn.filter(
       (r) => r.validatedTicker.stage === "CONFIRMED",
     );
     const confirmed = computeStats(confirmedRecords, returnCol);
-    const emergingRecords = recordsWithReturn.filter(
-      (r) => r.validatedTicker.stage === "EARLY" && r.validatedTicker.createdAt >= thirtyDaysAgo,
+    const emergingRecords = earlyWithReturn.filter(
+      (r) => r.validatedTicker.createdAt >= thirtyDaysAgo,
     );
     const emerging = computeStats(emergingRecords, returnCol);
 
-    // By stage
+    // By stage (all stages — useful as a comparison tool)
     const byStage: Record<string, ReturnType<typeof computeStats>> = {};
     const stageGroups = new Map<string, PerformanceRecord[]>();
     for (const r of recordsWithReturn) {
@@ -261,10 +250,10 @@ export async function GET(request: NextRequest) {
       if (group) byStage[stageLabel(s)] = computeStats(group, returnCol);
     }
 
-    // By signal type
+    // By signal type (emerging only)
     const byType: Record<string, ReturnType<typeof computeStats>> = {};
     const typeGroups = new Map<string, PerformanceRecord[]>();
-    for (const r of recordsWithReturn) {
+    for (const r of earlyWithReturn) {
       const type = r.validatedTicker.signalType ?? "unknown";
       if (!typeGroups.has(type)) typeGroups.set(type, []);
       typeGroups.get(type)!.push(r);
@@ -273,7 +262,7 @@ export async function GET(request: NextRequest) {
       byType[type] = computeStats(group, returnCol);
     }
 
-    // By score range
+    // By score range (emerging only)
     const byScoreRange: Record<string, ReturnType<typeof computeStats>> = {};
     const ranges = [
       { label: "0-30", min: 0, max: 30 },
@@ -282,7 +271,7 @@ export async function GET(request: NextRequest) {
       { label: "70-100", min: 70, max: 101 },
     ];
     const rangeGroups = new Map<string, PerformanceRecord[]>();
-    for (const r of recordsWithReturn) {
+    for (const r of earlyWithReturn) {
       const score = r.validatedTicker.aiScore;
       for (const range of ranges) {
         if (score >= range.min && score < range.max) {
@@ -297,7 +286,7 @@ export async function GET(request: NextRequest) {
       if (group) byScoreRange[range.label] = computeStats(group, returnCol);
     }
 
-    // By opportunity score range
+    // By opportunity score range (emerging only)
     const byOpportunityScoreRange: Record<string, ReturnType<typeof computeStats>> = {};
     const oppRanges = [
       { label: "0-25", min: 0, max: 25 },
@@ -306,7 +295,7 @@ export async function GET(request: NextRequest) {
       { label: "75-100", min: 75, max: 101 },
     ];
     const oppRangeGroups = new Map<string, PerformanceRecord[]>();
-    for (const r of recordsWithReturn) {
+    for (const r of earlyWithReturn) {
       const oppScore = r.validatedTicker.opportunityScore;
       for (const range of oppRanges) {
         if (oppScore >= range.min && oppScore < range.max) {
@@ -342,7 +331,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       summary,
       cohorts,
-      cumulativeReturns,
+      dailyReturns,
       overall,
       confirmed,
       emerging,

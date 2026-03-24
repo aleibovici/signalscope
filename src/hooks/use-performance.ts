@@ -59,6 +59,7 @@ export interface CohortStats {
   count: number;
   winRate: number;
   avgReturn: number;
+  medianReturn: number;
 }
 
 export interface CohortEntry {
@@ -69,9 +70,9 @@ export interface CohortEntry {
   bestPick: { symbol: string; returnPct: number; horizon: string } | null;
 }
 
-export interface CumulativeReturnEntry {
+export interface DailyReturnEntry {
   date: string;
-  cumReturn: number;
+  avgReturn: number;
   tradeCount: number;
   winCount: number;
 }
@@ -85,7 +86,7 @@ export interface PerformanceSummary {
 export interface AggregatePerformance {
   summary: PerformanceSummary;
   cohorts: CohortEntry[];
-  cumulativeReturns: CumulativeReturnEntry[];
+  dailyReturns: DailyReturnEntry[];
   overall: PerformanceStats;
   confirmed: PerformanceStats;
   emerging: PerformanceStats;
