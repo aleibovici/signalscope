@@ -72,7 +72,57 @@ export interface TweetResult {
   error?: string;
 }
 
-export async function postTweet(text: string): Promise<TweetResult> {
+/* ------------------------------------------------------------------ */
+/*  Find the top tweet for a cashtag symbol (by engagement)           */
+/* ------------------------------------------------------------------ */
+
+export async function findTopTweetForSymbol(symbol: string): Promise<string | null> {
+  const bearerToken = process.env.X_BEARER_TOKEN;
+  if (!bearerToken) return null;
+
+  const query = `$${symbol} -is:retweet`;
+  const startTime = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+  const params = new URLSearchParams({
+    query,
+    max_results: "10",
+    "tweet.fields": "public_metrics",
+    start_time: startTime,
+  });
+
+  try {
+    const res = await fetch(`https://api.x.com/2/tweets/search/recent?${params}`, {
+      headers: { Authorization: `Bearer ${bearerToken}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+
+    if (!res.ok) {
+      console.warn(`[twitter/post] findTopTweet $${symbol}: ${res.status}`);
+      return null;
+    }
+
+    const data = (await res.json()) as { data?: { id: string; public_metrics: { retweet_count: number; like_count: number } }[] };
+    if (!data.data || data.data.length === 0) return null;
+
+    const top = [...data.data].sort(
+      (a, b) =>
+        b.public_metrics.retweet_count + b.public_metrics.like_count -
+        (a.public_metrics.retweet_count + a.public_metrics.like_count)
+    )[0];
+
+    console.log(`[twitter/post] Top tweet for $${symbol}: ${top.id} (RT:${top.public_metrics.retweet_count} ❤:${top.public_metrics.like_count})`);
+    return top.id;
+  } catch (err) {
+    console.warn(`[twitter/post] findTopTweet $${symbol} error:`, err);
+    return null;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Post a tweet via X API v2                                          */
+/* ------------------------------------------------------------------ */
+
+export async function postTweet(text: string, replyToTweetId?: string): Promise<TweetResult> {
   const creds = getCredentials();
   if (!creds) {
     return { success: false, error: "Twitter credentials not configured (X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_TOKEN_SECRET)" };
@@ -83,7 +133,10 @@ export async function postTweet(text: string): Promise<TweetResult> {
   }
 
   try {
-    const body = JSON.stringify({ text });
+    const bodyObj: Record<string, unknown> = { text };
+    if (replyToTweetId) bodyObj.reply = { in_reply_to_tweet_id: replyToTweetId };
+    const body = JSON.stringify(bodyObj);
+    // OAuth body signing only applies to form-encoded bodies; JSON body uses empty params
     const authHeader = buildOAuthHeader("POST", TWEET_URL, {}, creds);
 
     const res = await fetch(TWEET_URL, {
@@ -264,11 +317,15 @@ export function selectDiversifiedTickers(candidates: TickerDetail[], maxTotal = 
 export interface TweetBatchResult {
   posted: { symbol: string; tweetId?: string }[];
   failed: { symbol: string; error: string }[];
+  replies: { symbol: string; tweetId?: string; topTweetId: string }[];
+  replyFailed: { symbol: string; error: string }[];
 }
 
 export async function tweetTickerBatch(tickers: TickerDetail[]): Promise<TweetBatchResult> {
   const posted: { symbol: string; tweetId?: string }[] = [];
   const failed: { symbol: string; error: string }[] = [];
+  const replies: { symbol: string; tweetId?: string; topTweetId: string }[] = [];
+  const replyFailed: { symbol: string; error: string }[] = [];
 
   for (const ticker of tickers) {
     const text = composeTickerTweet(ticker);
@@ -281,11 +338,26 @@ export async function tweetTickerBatch(tickers: TickerDetail[]): Promise<TweetBa
       failed.push({ symbol: ticker.symbol, error: result.error ?? "Unknown error" });
     }
 
-    // Small delay between tweets to avoid rate limiting
+    // Find the top tweet for this symbol and reply to it (best-effort)
+    await new Promise((r) => setTimeout(r, 1000));
+    const topTweetId = await findTopTweetForSymbol(ticker.symbol);
+    if (topTweetId) {
+      console.log(`[twitter/post] Replying to top tweet ${topTweetId} for $${ticker.symbol}`);
+      const replyResult = await postTweet(text, topTweetId);
+      if (replyResult.success) {
+        replies.push({ symbol: ticker.symbol, tweetId: replyResult.tweetId, topTweetId });
+      } else {
+        replyFailed.push({ symbol: ticker.symbol, error: replyResult.error ?? "Unknown error" });
+      }
+    } else {
+      console.log(`[twitter/post] No top tweet found for $${ticker.symbol}, skipping reply`);
+    }
+
+    // Delay between tickers to avoid rate limiting
     if (tickers.indexOf(ticker) < tickers.length - 1) {
       await new Promise((r) => setTimeout(r, 2000));
     }
   }
 
-  return { posted, failed };
+  return { posted, failed, replies, replyFailed };
 }

@@ -71,6 +71,8 @@ export async function POST(req: NextRequest) {
       status: result.posted.length > 0 ? "tweeted" : "failed",
       posted: result.posted,
       failed: result.failed,
+      replies: result.replies,
+      replyFailed: result.replyFailed,
     });
   } catch (err) {
     return handleApiError(err, "tweets/post");
