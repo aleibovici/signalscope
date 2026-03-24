@@ -232,7 +232,7 @@ export function SignalCard({
 
         {/* Thesis + Risks — two columns, or AI analysis hint */}
         {ticker.catalyst || ticker.risks ? (
-          <div className="grid grid-cols-2 gap-3 border-t border-gray-100 pt-3 dark:border-zinc-800/60">
+          <div className="grid grid-cols-1 gap-3 border-t border-gray-100 pt-3 dark:border-zinc-800/60 sm:grid-cols-2">
             {/* Thesis */}
             <div className="min-w-0">
               <p className="mb-1 text-[9px] font-bold uppercase tracking-widest text-teal-500 dark:text-[#4edea3]">
