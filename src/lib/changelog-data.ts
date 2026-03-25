@@ -27,6 +27,8 @@ export const changelog: ChangelogEntry[] = [
           "Scan selector now shows date-only in the dropdown with signal/validated counts displayed separately to the left.",
           "'Reading the cards' callout restyled with a left accent border and info icon. Text updated to correctly reflect sort order: AI Confidence first, then Opportunity.",
           "How It Works (methodology) page fully redesigned — pipeline strip with outlined pills, side-by-side arc gauge score explainer, signal source cards with gradient accent bars, horizontal AI scoring color band, P&D flags split into effective vs. informational, and ML backtesting section. Fully mobile-ready.",
+          "Connections page redesigned — gradient left-border accent bars on stat cards, FILTERS section label, improved graph toolbar with dot separators, and legend wrapped in a styled panel. Removed noisy score explainer and auto-threshold callout.",
+          "Trending page redesigned — gradient accent stat cards, FILTERS label, subtitle, and consistent zinc-800 borders. Removed score explainer paragraph for a cleaner above-the-fold experience.",
         ],
       },
     ],
