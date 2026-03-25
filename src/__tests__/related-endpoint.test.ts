@@ -18,6 +18,12 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
+// Mock price-correlation
+const mockGetPairwiseCorrelations = vi.fn();
+vi.mock("@/lib/price-correlation", () => ({
+  getPairwiseCorrelations: (...args: unknown[]) => mockGetPairwiseCorrelations(...args),
+}));
+
 // Mock x402 (avoids @x402/next ESM resolution issues in vitest)
 vi.mock("@/lib/x402", () => ({
   X402_ENABLED: false,
@@ -73,6 +79,7 @@ beforeEach(() => {
   mockQueryRaw.mockResolvedValue([]);
   mockFindManyTicker.mockResolvedValue([]);
   mockFindManySignal.mockResolvedValue([]);
+  mockGetPairwiseCorrelations.mockResolvedValue([]);
 });
 
 describe("GET /api/tickers/[symbol]/related", () => {
@@ -90,10 +97,13 @@ describe("GET /api/tickers/[symbol]/related", () => {
   });
 
   it("returns related tickers with correct shape", async () => {
-    // 1st call: getCoOccurringSymbols, 2nd call: appearance counts
+    // 1st call: getCoOccurringSymbols
     mockQueryRaw
-      .mockResolvedValueOnce([{ symbol: "TSLA", coCount: 3, targetTotal: 5 }])
-      .mockResolvedValueOnce([{ symbol: "TSLA", cnt: 4 }]);
+      .mockResolvedValueOnce([{ symbol: "TSLA", coCount: 3, targetTotal: 5 }]);
+
+    mockGetPairwiseCorrelations.mockResolvedValue([
+      { source: "AAPL", target: "TSLA", correlation: 0.65, dataPoints: 12 },
+    ]);
 
     mockFindManyTicker.mockResolvedValue([
       makeTicker("TSLA", 70, "CONFIRMED", daysAgo(1)),
@@ -111,9 +121,8 @@ describe("GET /api/tickers/[symbol]/related", () => {
 
     const related = body.relatedTickers[0];
     expect(related.symbol).toBe("TSLA");
-    expect(related.coOccurrenceCount).toBe(3);
-    expect(related.correlationScore).toBeGreaterThan(0);
-    expect(related.correlationScore).toBeLessThanOrEqual(1);
+    expect(related.correlationScore).toBe(0.65);
+    expect(related.correlationDataPoints).toBe(12);
     expect(related.latestAiScore).toBe(70);
     expect(related.latestStage).toBe("Consensus");
     expect(related.sources).toEqual(expect.arrayContaining(["REDDIT", "TWITTER"]));
@@ -122,11 +131,11 @@ describe("GET /api/tickers/[symbol]/related", () => {
     expect(body.total).toBe(1);
   });
 
-  it("computes Jaccard correlation correctly", async () => {
-    // AAPL in 10 scans, TSLA in 8 scans, 4 shared
+  it("returns null correlationScore when no price data", async () => {
     mockQueryRaw
-      .mockResolvedValueOnce([{ symbol: "TSLA", coCount: 4, targetTotal: 10 }])
-      .mockResolvedValueOnce([{ symbol: "TSLA", cnt: 8 }]);
+      .mockResolvedValueOnce([{ symbol: "TSLA", coCount: 4, targetTotal: 10 }]);
+
+    mockGetPairwiseCorrelations.mockResolvedValue([]); // No correlation data
 
     mockFindManyTicker.mockResolvedValue([
       makeTicker("TSLA", 65, "FORMING", daysAgo(1)),
@@ -136,8 +145,8 @@ describe("GET /api/tickers/[symbol]/related", () => {
     const res = await GET(...makeRequest("AAPL"));
     const body = await res.json();
 
-    // Jaccard = 4 / (10 + 8 - 4) = 4/14 ≈ 0.29
-    expect(body.relatedTickers[0].correlationScore).toBeCloseTo(0.29, 1);
+    expect(body.relatedTickers[0].correlationScore).toBeNull();
+    expect(body.relatedTickers[0].correlationDataPoints).toBe(0);
   });
 
   it("validates parameters", async () => {
@@ -166,11 +175,12 @@ describe("GET /api/tickers/[symbol]/related", () => {
       .mockResolvedValueOnce([
         { symbol: "TSLA", coCount: 5, targetTotal: 10 },
         { symbol: "MSFT", coCount: 3, targetTotal: 10 },
-      ])
-      .mockResolvedValueOnce([
-        { symbol: "TSLA", cnt: 8 },
-        { symbol: "MSFT", cnt: 6 },
       ]);
+
+    mockGetPairwiseCorrelations.mockResolvedValue([
+      { source: "AAPL", target: "TSLA", correlation: 0.8, dataPoints: 15 },
+      { source: "AAPL", target: "MSFT", correlation: 0.4, dataPoints: 10 },
+    ]);
 
     mockFindManyTicker.mockResolvedValue([
       makeTicker("TSLA", 70, "CONFIRMED", daysAgo(1)),
@@ -183,7 +193,7 @@ describe("GET /api/tickers/[symbol]/related", () => {
 
     expect(body.relatedTickers).toHaveLength(1);
     expect(body.total).toBe(2);
-    expect(body.relatedTickers[0].symbol).toBe("TSLA"); // Higher co-occurrence
+    expect(body.relatedTickers[0].symbol).toBe("TSLA"); // Higher |correlation|
   });
 
   it("returns 401 when not authenticated", async () => {

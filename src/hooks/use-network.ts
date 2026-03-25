@@ -18,20 +18,19 @@ export interface NetworkNode {
 export interface NetworkEdge {
   source: string;
   target: string;
-  weight: number;
   correlation: number;
+  dataPoints: number;
 }
 
 export interface NetworkResponse {
   nodes: NetworkNode[];
   edges: NetworkEdge[];
   centerSymbol: string | null;
-  effectiveMinWeight?: number;
 }
 
 export interface NetworkFilters {
   symbol?: string;
-  minWeight?: number;
+  minCorrelation?: number;
   stage?: string;
   days?: number;
   maxNodes?: number;
@@ -43,7 +42,7 @@ export function useTickerNetwork(filters?: NetworkFilters) {
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filters?.symbol) params.set("symbol", filters.symbol);
-      if (filters?.minWeight) params.set("minWeight", String(filters.minWeight));
+      if (filters?.minCorrelation) params.set("minCorrelation", String(filters.minCorrelation));
       if (filters?.stage) params.set("stage", filters.stage);
       if (filters?.days) params.set("days", String(filters.days));
       if (filters?.maxNodes) params.set("maxNodes", String(filters.maxNodes));

@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
 import { TTLCache } from "@/lib/cache";
-import { getCoOccurringSymbols, getPairwiseEdges, jaccardScore } from "@/lib/co-occurrence";
+import { getCoOccurringSymbols } from "@/lib/co-occurrence";
+import { getPairwiseCorrelations } from "@/lib/price-correlation";
 import { withX402Logged, x402RouteConfigs, hasAuthCredentials, X402_ENABLED } from "@/lib/x402";
 import { stageLabel, stageToDb, API_STAGE_VALUES } from "@/lib/stage-labels";
 
@@ -12,7 +13,7 @@ export const networkCache = new TTLCache<unknown>(5 * 60 * 1000);
 
 const networkSchema = z.object({
   symbol: z.string().min(1).max(10).transform((s) => s.toUpperCase()).optional(),
-  minWeight: z.coerce.number().int().min(1).default(2),
+  minCorrelation: z.coerce.number().min(0).max(1).default(0.3),
   stage: z.enum([...API_STAGE_VALUES, "EARLY", "FORMING", "CONFIRMED"]).transform((v) => stageToDb(v)!).optional(),
   days: z.coerce.number().int().min(1).max(90).default(30),
   maxNodes: z.coerce.number().int().min(2).max(50).default(30),
@@ -28,9 +29,9 @@ async function handleNetwork(request: NextRequest) {
     );
   }
 
-  const { symbol, minWeight, stage, days, maxNodes } = parsed.data;
+  const { symbol, minCorrelation, stage, days, maxNodes } = parsed.data;
 
-  const cacheKey = `network:${symbol ?? ""}:${minWeight}:${stage ?? ""}:${days}:${maxNodes}`;
+  const cacheKey = `network:${symbol ?? ""}:${minCorrelation}:${stage ?? ""}:${days}:${maxNodes}`;
   const cached = networkCache.get(cacheKey);
   if (cached) {
     return NextResponse.json(cached, {
@@ -42,7 +43,7 @@ async function handleNetwork(request: NextRequest) {
   let nodeSymbols: string[];
 
   if (symbol) {
-    const coRows = await getCoOccurringSymbols(symbol, days, minWeight);
+    const coRows = await getCoOccurringSymbols(symbol, days, 1);
     nodeSymbols = [symbol, ...coRows.slice(0, maxNodes - 1).map((r) => r.symbol)];
   } else {
     const topRows = await prisma.$queryRaw<{ symbol: string }[]>`
@@ -66,7 +67,7 @@ async function handleNetwork(request: NextRequest) {
     return NextResponse.json(result);
   }
 
-  const edges = await getPairwiseEdges(nodeSymbols, days, minWeight);
+  const correlationEdges = await getPairwiseCorrelations(nodeSymbols, days, minCorrelation);
 
   const latestRecords = await prisma.validatedTicker.findMany({
     where: {
@@ -111,27 +112,22 @@ async function handleNetwork(request: NextRequest) {
     });
 
   const nodeSet = new Set(nodes.map((n) => n.symbol));
-  let validEdges = edges.filter((e) => nodeSet.has(e.source) && nodeSet.has(e.target));
+  let validEdges = correlationEdges.filter((e) => nodeSet.has(e.source) && nodeSet.has(e.target));
 
+  // Cap edges to prevent visual clutter
   const maxEdges = nodes.length * 4;
-  let effectiveMinWeight = minWeight;
-  if (validEdges.length > maxEdges && !request.nextUrl.searchParams.has("minWeight")) {
-    const weights = validEdges.map((e) => e.weight).sort((a, b) => a - b);
-    const cutoffIdx = Math.max(0, weights.length - maxEdges);
-    effectiveMinWeight = weights[cutoffIdx];
-    validEdges = validEdges.filter((e) => e.weight >= effectiveMinWeight);
+  if (validEdges.length > maxEdges) {
+    validEdges = validEdges.slice(0, maxEdges); // already sorted by |correlation| desc
   }
 
   const filteredEdges = validEdges.map((e) => ({
     source: e.source,
     target: e.target,
-    weight: e.weight,
-    correlation: Math.round(
-      jaccardScore(e.weight, totalMap.get(e.source) ?? 0, totalMap.get(e.target) ?? 0) * 100,
-    ) / 100,
+    correlation: e.correlation,
+    dataPoints: e.dataPoints,
   }));
 
-  const result = { nodes, edges: filteredEdges, centerSymbol: symbol ?? null, effectiveMinWeight };
+  const result = { nodes, edges: filteredEdges, centerSymbol: symbol ?? null };
   networkCache.set(cacheKey, result);
   return NextResponse.json(result, {
     headers: { "Cache-Control": "private, max-age=300" },

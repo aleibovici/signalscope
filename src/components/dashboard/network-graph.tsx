@@ -95,7 +95,7 @@ function runSimulation(
       if (!a || !b) continue;
       let dx = b.x - a.x, dy = b.y - a.y;
       const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-      const f = (dist - 80) * 0.01 * edge.weight;
+      const f = (dist - 80) * 0.01 * Math.abs(edge.correlation) * 5;
       dx = (dx / dist) * f; dy = (dy / dist) * f;
       a.vx += dx; a.vy += dy; b.vx -= dx; b.vy -= dy;
     }
@@ -253,7 +253,7 @@ export function NetworkGraph({ nodes, edges, centerSymbol, colorMode = "stage", 
   }, [dimensions]);
 
   const nodeMap = new Map(simNodes.map((n) => [n.symbol, n]));
-  const maxWeight = edges.length > 0 ? Math.max(...edges.map((e) => e.weight)) : 1;
+  const maxCorr = edges.length > 0 ? Math.max(...edges.map((e) => Math.abs(e.correlation))) : 1;
 
   // Active highlight set
   const activeNode = hoveredNode || selectedNode;
@@ -267,7 +267,7 @@ export function NetworkGraph({ nodes, edges, centerSymbol, colorMode = "stage", 
     if (!selectedNode) return [];
     return edges
       .filter((e) => e.source === selectedNode || e.target === selectedNode)
-      .sort((a, b) => b.weight - a.weight);
+      .sort((a, b) => Math.abs(b.correlation) - Math.abs(a.correlation));
   }, [edges, selectedNode]);
 
   return (
@@ -331,9 +331,15 @@ export function NetworkGraph({ nodes, edges, centerSymbol, colorMode = "stage", 
               key={`${edge.source}-${edge.target}`}
               x1={a.x} y1={a.y} x2={b.x} y2={b.y}
               stroke={
-                isEdgeHovered ? "#1d4ed8" : isConnected ? "#3b82f6" : isDark ? "#52525b" : "#e5e7eb"
+                isEdgeHovered
+                  ? "#1d4ed8"
+                  : isConnected
+                    ? edge.correlation >= 0 ? "#22c55e" : "#ef4444"
+                    : edge.correlation >= 0
+                      ? isDark ? "#166534" : "#bbf7d0"
+                      : isDark ? "#7f1d1d" : "#fecaca"
               }
-              strokeWidth={1 + (edge.weight / maxWeight) * 3}
+              strokeWidth={1 + (Math.abs(edge.correlation) / maxCorr) * 3}
               strokeOpacity={dimmed ? 0.08 : isConnected ? 0.7 : 0.3}
               className="cursor-pointer"
               onPointerEnter={(e) => {
@@ -441,8 +447,10 @@ export function NetworkGraph({ nodes, edges, centerSymbol, colorMode = "stage", 
             {edgeTooltip.edge.source} &harr; {edgeTooltip.edge.target}
           </p>
           <div className="mt-0.5 flex gap-3 text-xs text-gray-600 dark:text-zinc-300">
-            <span>{edgeTooltip.edge.weight} shared scans</span>
-            <span>{Math.round(edgeTooltip.edge.correlation * 100)}% correlation</span>
+            <span className={edgeTooltip.edge.correlation >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+              {edgeTooltip.edge.correlation >= 0 ? "+" : ""}{Math.round(edgeTooltip.edge.correlation * 100)}% price correlation
+            </span>
+            <span>{edgeTooltip.edge.dataPoints} data points</span>
           </div>
         </div>
       )}
@@ -525,7 +533,9 @@ export function NetworkGraph({ nodes, edges, centerSymbol, colorMode = "stage", 
                           onClick={() => { setSelectedNode(other); }}
                           className="font-medium text-blue-600 hover:underline dark:text-blue-400"
                         >{other}</button>
-                        <span className="text-gray-400 dark:text-zinc-500">{e.weight} scans ({Math.round(e.correlation * 100)}%)</span>
+                        <span className={`${e.correlation >= 0 ? "text-green-500 dark:text-green-400" : "text-red-500 dark:text-red-400"}`}>
+                          {e.correlation >= 0 ? "+" : ""}{Math.round(e.correlation * 100)}%
+                        </span>
                       </div>
                     );
                   })}
