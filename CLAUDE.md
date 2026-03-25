@@ -277,7 +277,7 @@ BING_SITE_VERIFICATION=...
 
 - **Cloud Run** — web app (`signalscope-web`) serving Next.js standalone on port 3000
 - **Cloud SQL** — PostgreSQL 16 (`signalscope-db`, db-f1-micro), connected via Unix socket
-- **Cloud Scheduler** — 5 jobs (all ET, Mon–Fri): email alerts (9:10 AM), portfolio alerts (9:12 AM), reports (9:15 AM), snapshots open (9:45 AM), snapshots close (4:05 PM)
+- **Cloud Scheduler** — 6 jobs (all ET, Mon–Fri): email alerts (9:10 AM), portfolio alerts (9:12 AM), reports (9:15 AM), snapshots open (9:45 AM), snapshots midday (12:30 PM), snapshots close (4:05 PM)
 - **Secret Manager** — stores `DATABASE_URL`, `AUTH_SECRET`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `SNAPSHOT_API_KEY`, `RESEND_API_KEY`
 - **Artifact Registry** — Docker images (`signalscope` repo)
 - **GitHub Actions** — CI/CD on push to `main` (`.github/workflows/deploy.yml`)
@@ -310,6 +310,7 @@ Continuous price tracking for all validated tickers, runs on Cloud Run triggered
   - `signalscope-portfolio-alerts` — `12 9 * * 1-5` (9:12 AM ET, 42 min after harvest)
   - `signalscope-reports` — `15 9 * * 1-5` (9:15 AM ET, 45 min after harvest)
   - `signalscope-snapshots` — `45 9 * * 1-5` (9:45 AM ET, 15 min after open — avoids auction volatility)
+  - `signalscope-snapshots-midday` — `30 12 * * 1-5` (12:30 PM ET, midday price level)
   - `signalscope-snapshots-close` — `5 16 * * 1-5` (4:05 PM ET, 5 min after close)
 - **Auth**: `x-snapshot-key` header checked against `SNAPSHOT_API_KEY` env var (stored in Secret Manager)
 
@@ -324,6 +325,16 @@ gcloud scheduler jobs create http signalscope-snapshots \
   --headers="x-snapshot-key=<SNAPSHOT_API_KEY_VALUE>" \
   --attempt-deadline=300s \
   --description="Collect opening price snapshots (15 min after open, avoids auction volatility)"
+
+gcloud scheduler jobs create http signalscope-snapshots-midday \
+  --location=us-central1 \
+  --schedule="30 12 * * 1-5" \
+  --time-zone="America/New_York" \
+  --uri="http://localhost:3000/api/snapshots/collect" \
+  --http-method=POST \
+  --headers="x-snapshot-key=<SNAPSHOT_API_KEY_VALUE>" \
+  --attempt-deadline=300s \
+  --description="Collect midday price snapshots (12:30 PM ET, midpoint between open and close)"
 
 gcloud scheduler jobs create http signalscope-snapshots-close \
   --location=us-central1 \
