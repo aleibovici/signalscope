@@ -315,6 +315,7 @@ export function selectDiversifiedTickers(candidates: TickerDetail[], maxTotal = 
 }
 
 export interface TweetBatchResult {
+  /** Root tweets on our timeline (only when no thread target or reply failed and we fell back). */
   posted: { symbol: string; tweetId?: string }[];
   failed: { symbol: string; error: string }[];
   replies: { symbol: string; tweetId?: string; topTweetId: string }[];
@@ -329,28 +330,38 @@ export async function tweetTickerBatch(tickers: TickerDetail[]): Promise<TweetBa
 
   for (const ticker of tickers) {
     const text = composeTickerTweet(ticker);
-    console.log(`[twitter/post] Posting tweet for $${ticker.symbol} (${text.length} chars)`);
-    const result = await postTweet(text);
+    console.log(`[twitter/post] $${ticker.symbol}: composed tweet (${text.length} chars)`);
 
-    if (result.success) {
-      posted.push({ symbol: ticker.symbol, tweetId: result.tweetId });
-    } else {
-      failed.push({ symbol: ticker.symbol, error: result.error ?? "Unknown error" });
-    }
-
-    // Find the top tweet for this symbol and reply to it (best-effort)
+    // Resolve trending thread first so we only consume one tweet when replying (no duplicate standalone + reply)
     await new Promise((r) => setTimeout(r, 1000));
     const topTweetId = await findTopTweetForSymbol(ticker.symbol);
+
     if (topTweetId) {
-      console.log(`[twitter/post] Replying to top tweet ${topTweetId} for $${ticker.symbol}`);
+      console.log(`[twitter/post] Replying to top tweet ${topTweetId} for $${ticker.symbol} (no separate timeline post)`);
       const replyResult = await postTweet(text, topTweetId);
       if (replyResult.success) {
         replies.push({ symbol: ticker.symbol, tweetId: replyResult.tweetId, topTweetId });
       } else {
-        replyFailed.push({ symbol: ticker.symbol, error: replyResult.error ?? "Unknown error" });
+        const replyErr = replyResult.error ?? "Unknown error";
+        console.warn(`[twitter/post] Reply failed for $${ticker.symbol}, posting to timeline instead: ${replyErr}`);
+        const fallback = await postTweet(text);
+        if (fallback.success) {
+          posted.push({ symbol: ticker.symbol, tweetId: fallback.tweetId });
+        } else {
+          replyFailed.push({
+            symbol: ticker.symbol,
+            error: `Reply: ${replyErr}; fallback: ${fallback.error ?? "Unknown error"}`,
+          });
+        }
       }
     } else {
-      console.log(`[twitter/post] No top tweet found for $${ticker.symbol}, skipping reply`);
+      console.log(`[twitter/post] No top tweet for $${ticker.symbol}, posting to timeline only`);
+      const result = await postTweet(text);
+      if (result.success) {
+        posted.push({ symbol: ticker.symbol, tweetId: result.tweetId });
+      } else {
+        failed.push({ symbol: ticker.symbol, error: result.error ?? "Unknown error" });
+      }
     }
 
     // Delay between tickers to avoid rate limiting
