@@ -6,7 +6,8 @@ import { tweetTickerBatch, selectDiversifiedTickers, type TickerDetail } from "@
 /**
  * POST /api/tweets/post
  *
- * Tweets individual posts for the top 5 emerging tickers (EARLY/FORMING with reports).
+ * Tweets emerging tickers (EARLY/FORMING with reports): replies to top $SYMBOL search hits when found,
+ * otherwise a timeline post; one post per ticker (no duplicate standalone + reply).
  * Auth: x-snapshot-key header (same as reports/snapshots).
  * Intended to run after /api/reports/generate completes.
  */

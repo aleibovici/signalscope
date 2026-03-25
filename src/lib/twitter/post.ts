@@ -73,10 +73,34 @@ export interface TweetResult {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Find the top tweet for a cashtag symbol (by engagement)           */
+/*  Find a thread to reply into for a cashtag (by engagement)         */
 /* ------------------------------------------------------------------ */
 
-export async function findTopTweetForSymbol(symbol: string): Promise<string | null> {
+/** Target for POST /2/tweets reply — use thread root so the post shows in the full conversation. */
+export interface CashtagReplyTarget {
+  /** Pass to `reply.in_reply_to_tweet_id` (conversation root when API provides it). */
+  inReplyToTweetId: string;
+  /** The search hit we ranked (may differ from inReplyToTweetId when replying at thread root). */
+  matchedTweetId: string;
+}
+
+type SearchTweet = {
+  id: string;
+  author_id?: string;
+  conversation_id?: string;
+  public_metrics?: { retweet_count: number; like_count: number };
+};
+
+function engagementScore(m: SearchTweet["public_metrics"]): number {
+  if (!m) return 0;
+  return m.retweet_count + m.like_count;
+}
+
+/**
+ * Picks a high-engagement $SYMBOL hit and returns the **conversation root** tweet id so replies
+ * appear in the same thread in the X UI (not orphaned under a deep reply).
+ */
+export async function findCashtagReplyTarget(symbol: string): Promise<CashtagReplyTarget | null> {
   const bearerToken = process.env.X_BEARER_TOKEN;
   if (!bearerToken) return null;
 
@@ -86,7 +110,9 @@ export async function findTopTweetForSymbol(symbol: string): Promise<string | nu
   const params = new URLSearchParams({
     query,
     max_results: "10",
-    "tweet.fields": "public_metrics",
+    expansions: "author_id",
+    "tweet.fields": "public_metrics,conversation_id,author_id",
+    "user.fields": "username",
     start_time: startTime,
   });
 
@@ -97,23 +123,31 @@ export async function findTopTweetForSymbol(symbol: string): Promise<string | nu
     });
 
     if (!res.ok) {
-      console.warn(`[twitter/post] findTopTweet $${symbol}: ${res.status}`);
+      console.warn(`[twitter/post] findCashtagReplyTarget $${symbol}: ${res.status}`);
       return null;
     }
 
-    const data = (await res.json()) as { data?: { id: string; public_metrics: { retweet_count: number; like_count: number } }[] };
+    const data = (await res.json()) as {
+      data?: SearchTweet[];
+      includes?: { users?: { id: string; username: string }[] };
+    };
     if (!data.data || data.data.length === 0) return null;
 
-    const top = [...data.data].sort(
-      (a, b) =>
-        b.public_metrics.retweet_count + b.public_metrics.like_count -
-        (a.public_metrics.retweet_count + a.public_metrics.like_count)
-    )[0];
+    const top = [...data.data].sort((a, b) => engagementScore(b.public_metrics) - engagementScore(a.public_metrics))[0];
 
-    console.log(`[twitter/post] Top tweet for $${symbol}: ${top.id} (RT:${top.public_metrics.retweet_count} ❤:${top.public_metrics.like_count})`);
-    return top.id;
+    const threadRoot = top.conversation_id ?? top.id;
+    const m = top.public_metrics ?? { retweet_count: 0, like_count: 0 };
+    const author =
+      top.author_id && data.includes?.users?.find((u) => u.id === top.author_id)?.username;
+
+    console.log(
+      `[twitter/post] Reply target for $${symbol}: thread_root=${threadRoot} matched=${top.id}` +
+        ` (RT:${m.retweet_count} ❤:${m.like_count})${author ? ` @${author}` : ""}`
+    );
+
+    return { inReplyToTweetId: threadRoot, matchedTweetId: top.id };
   } catch (err) {
-    console.warn(`[twitter/post] findTopTweet $${symbol} error:`, err);
+    console.warn(`[twitter/post] findCashtagReplyTarget $${symbol} error:`, err);
     return null;
   }
 }
@@ -134,7 +168,14 @@ export async function postTweet(text: string, replyToTweetId?: string): Promise<
 
   try {
     const bodyObj: Record<string, unknown> = { text };
-    if (replyToTweetId) bodyObj.reply = { in_reply_to_tweet_id: replyToTweetId };
+    // auto_populate_reply_metadata: X prepends @mentions so the reply is wired to the conversation
+    // (and stays under limits when composeTickerTweet reserves headroom for replies).
+    if (replyToTweetId) {
+      bodyObj.reply = {
+        in_reply_to_tweet_id: replyToTweetId,
+        auto_populate_reply_metadata: true,
+      };
+    }
     const body = JSON.stringify(bodyObj);
     // OAuth body signing only applies to form-encoded bodies; JSON body uses empty params
     const authHeader = buildOAuthHeader("POST", TWEET_URL, {}, creds);
@@ -208,7 +249,11 @@ function truncate(str: string, maxLen: number): string {
   return str.slice(0, maxLen - 1) + "…";
 }
 
-export function composeTickerTweet(t: TickerDetail): string {
+/**
+ * @param maxChars — default 280; use lower (e.g. 235) for replies when X may prepend @mentions via
+ *   `auto_populate_reply_metadata`, so the final post stays within 280.
+ */
+export function composeTickerTweet(t: TickerDetail, maxChars: number = 280): string {
   const emoji = recEmoji[t.recommendation] ?? "⚪";
   const footer = `\n\nhttps://signalscopes.com/ticker/${t.symbol}`;
   // t.co shortens all URLs to 23 chars
@@ -232,7 +277,7 @@ export function composeTickerTweet(t: TickerDetail): string {
 
   // Remaining space: catalyst + AI reasoning
   const fixedLen = line1.length + 1 + line2.length + 1 + line3.length + 1 + footerLen + 1;
-  const remaining = 280 - fixedLen;
+  const remaining = maxChars - fixedLen;
 
   // Build analysis body: catalyst first, then AI reasoning if space allows
   let body: string;
@@ -251,8 +296,8 @@ export function composeTickerTweet(t: TickerDetail): string {
   const tweet = `${line1}\n${line2}\n${line3}\n${body}${footer}`;
 
   // Safety trim
-  if (tweet.length > 280) {
-    const over = tweet.length - 280;
+  if (tweet.length > maxChars) {
+    const over = tweet.length - maxChars;
     return `${line1}\n${line2}\n${line3}\n${truncate(t.catalyst, remaining - over)}${footer}`;
   }
 
@@ -315,42 +360,65 @@ export function selectDiversifiedTickers(candidates: TickerDetail[], maxTotal = 
 }
 
 export interface TweetBatchResult {
+  /** Root tweets on our timeline (only when no thread target or reply failed and we fell back). */
   posted: { symbol: string; tweetId?: string }[];
   failed: { symbol: string; error: string }[];
-  replies: { symbol: string; tweetId?: string; topTweetId: string }[];
+  /** inReplyToTweetId is the thread root passed to the API (conversation root when available). */
+  replies: { symbol: string; tweetId?: string; inReplyToTweetId: string; matchedTweetId: string }[];
   replyFailed: { symbol: string; error: string }[];
 }
+
+/** Headroom for X prepending @mentions on replies (`auto_populate_reply_metadata`). */
+const REPLY_COMPOSE_MAX_CHARS = 235;
 
 export async function tweetTickerBatch(tickers: TickerDetail[]): Promise<TweetBatchResult> {
   const posted: { symbol: string; tweetId?: string }[] = [];
   const failed: { symbol: string; error: string }[] = [];
-  const replies: { symbol: string; tweetId?: string; topTweetId: string }[] = [];
+  const replies: { symbol: string; tweetId?: string; inReplyToTweetId: string; matchedTweetId: string }[] = [];
   const replyFailed: { symbol: string; error: string }[] = [];
 
   for (const ticker of tickers) {
-    const text = composeTickerTweet(ticker);
-    console.log(`[twitter/post] Posting tweet for $${ticker.symbol} (${text.length} chars)`);
-    const result = await postTweet(text);
-
-    if (result.success) {
-      posted.push({ symbol: ticker.symbol, tweetId: result.tweetId });
-    } else {
-      failed.push({ symbol: ticker.symbol, error: result.error ?? "Unknown error" });
-    }
-
-    // Find the top tweet for this symbol and reply to it (best-effort)
+    // Resolve trending thread first so we only consume one tweet when replying (no duplicate standalone + reply)
     await new Promise((r) => setTimeout(r, 1000));
-    const topTweetId = await findTopTweetForSymbol(ticker.symbol);
-    if (topTweetId) {
-      console.log(`[twitter/post] Replying to top tweet ${topTweetId} for $${ticker.symbol}`);
-      const replyResult = await postTweet(text, topTweetId);
+    const target = await findCashtagReplyTarget(ticker.symbol);
+
+    const text = composeTickerTweet(ticker, target ? REPLY_COMPOSE_MAX_CHARS : 280);
+    console.log(`[twitter/post] $${ticker.symbol}: composed tweet (${text.length} chars${target ? ", reply budget" : ""})`);
+
+    if (target) {
+      console.log(
+        `[twitter/post] Replying in thread ${target.inReplyToTweetId} (matched ${target.matchedTweetId}) for $${ticker.symbol}`
+      );
+      const replyResult = await postTweet(text, target.inReplyToTweetId);
       if (replyResult.success) {
-        replies.push({ symbol: ticker.symbol, tweetId: replyResult.tweetId, topTweetId });
+        replies.push({
+          symbol: ticker.symbol,
+          tweetId: replyResult.tweetId,
+          inReplyToTweetId: target.inReplyToTweetId,
+          matchedTweetId: target.matchedTweetId,
+        });
       } else {
-        replyFailed.push({ symbol: ticker.symbol, error: replyResult.error ?? "Unknown error" });
+        const replyErr = replyResult.error ?? "Unknown error";
+        console.warn(`[twitter/post] Reply failed for $${ticker.symbol}, posting to timeline instead: ${replyErr}`);
+        const fallbackText = composeTickerTweet(ticker, 280);
+        const fallback = await postTweet(fallbackText);
+        if (fallback.success) {
+          posted.push({ symbol: ticker.symbol, tweetId: fallback.tweetId });
+        } else {
+          replyFailed.push({
+            symbol: ticker.symbol,
+            error: `Reply: ${replyErr}; fallback: ${fallback.error ?? "Unknown error"}`,
+          });
+        }
       }
     } else {
-      console.log(`[twitter/post] No top tweet found for $${ticker.symbol}, skipping reply`);
+      console.log(`[twitter/post] No top tweet for $${ticker.symbol}, posting to timeline only`);
+      const result = await postTweet(text);
+      if (result.success) {
+        posted.push({ symbol: ticker.symbol, tweetId: result.tweetId });
+      } else {
+        failed.push({ symbol: ticker.symbol, error: result.error ?? "Unknown error" });
+      }
     }
 
     // Delay between tickers to avoid rate limiting
