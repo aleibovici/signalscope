@@ -4,6 +4,7 @@ const CALL_POINT_ENV: Record<AiCallPoint, string> = {
   scoring: "AI_PROVIDER_SCORING",
   pnd: "AI_PROVIDER_PND",
   report: "AI_PROVIDER_REPORT",
+  promo: "AI_PROVIDER_PROMO",
 };
 
 function hasKey(provider: AiProvider): boolean {

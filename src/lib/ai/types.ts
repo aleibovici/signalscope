@@ -1,5 +1,5 @@
 export type AiProvider = "openai" | "anthropic";
-export type AiCallPoint = "scoring" | "pnd" | "report";
+export type AiCallPoint = "scoring" | "pnd" | "report" | "promo";
 
 export interface ChatJSONRequest {
   callPoint: AiCallPoint;
