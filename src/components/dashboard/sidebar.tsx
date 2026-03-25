@@ -239,6 +239,17 @@ export function Sidebar({ revision }: { revision: string }) {
               <div className="mb-2 truncate text-xs text-gray-500 dark:text-zinc-400">
                 {session.user.email}
               </div>
+              <Link
+                href="/login"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mb-2 flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 dark:text-zinc-500 dark:hover:text-zinc-300"
+              >
+                <svg className="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+                What is SignalScope?
+              </Link>
               <button
                 onClick={(e) => {
                   e.preventDefault();
@@ -274,6 +285,15 @@ export function Sidebar({ revision }: { revision: string }) {
                 className="block w-full rounded-md border border-gray-300 px-3 py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
                 Register
+              </Link>
+              <Link
+                href="/login"
+                className="flex items-center justify-center gap-1.5 pt-1 text-xs text-gray-400 hover:text-gray-600 dark:text-zinc-500 dark:hover:text-zinc-300"
+              >
+                <svg className="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+                What is SignalScope?
               </Link>
             </div>
           )}
