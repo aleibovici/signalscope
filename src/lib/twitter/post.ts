@@ -89,6 +89,7 @@ type SearchTweet = {
   author_id?: string;
   conversation_id?: string;
   public_metrics?: { retweet_count: number; like_count: number };
+  reply_settings?: "everyone" | "mentionedUsers" | "following";
 };
 
 function engagementScore(m: SearchTweet["public_metrics"]): number {
@@ -111,7 +112,7 @@ export async function findCashtagReplyTarget(symbol: string): Promise<CashtagRep
     query,
     max_results: "10",
     expansions: "author_id",
-    "tweet.fields": "public_metrics,conversation_id,author_id",
+    "tweet.fields": "public_metrics,conversation_id,author_id,reply_settings",
     "user.fields": "username",
     start_time: startTime,
   });
@@ -133,7 +134,14 @@ export async function findCashtagReplyTarget(symbol: string): Promise<CashtagRep
     };
     if (!data.data || data.data.length === 0) return null;
 
-    const top = [...data.data].sort((a, b) => engagementScore(b.public_metrics) - engagementScore(a.public_metrics))[0];
+    // Only consider tweets where anyone can reply
+    const replyable = data.data.filter((t) => !t.reply_settings || t.reply_settings === "everyone");
+    if (replyable.length === 0) {
+      console.log(`[twitter/post] findCashtagReplyTarget $${symbol}: ${data.data.length} hits but none allow replies`);
+      return null;
+    }
+
+    const top = [...replyable].sort((a, b) => engagementScore(b.public_metrics) - engagementScore(a.public_metrics))[0];
 
     const threadRoot = top.conversation_id ?? top.id;
     const m = top.public_metrics ?? { retweet_count: 0, like_count: 0 };
@@ -142,7 +150,8 @@ export async function findCashtagReplyTarget(symbol: string): Promise<CashtagRep
 
     console.log(
       `[twitter/post] Reply target for $${symbol}: thread_root=${threadRoot} matched=${top.id}` +
-        ` (RT:${m.retweet_count} ❤:${m.like_count})${author ? ` @${author}` : ""}`
+        ` (RT:${m.retweet_count} ❤:${m.like_count})${author ? ` @${author}` : ""}` +
+        ` reply_settings=${top.reply_settings ?? "everyone"}`
     );
 
     return { inReplyToTweetId: threadRoot, matchedTweetId: top.id };
