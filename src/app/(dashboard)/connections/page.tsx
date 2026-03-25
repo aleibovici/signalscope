@@ -46,7 +46,7 @@ export default function ConnectionsPage() {
         <div>
           <h1 className="text-xl font-bold text-gray-900 md:text-2xl dark:text-zinc-100">Connections</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">
-            Explore how tickers are connected through co-occurrence in scans
+            Discover tickers with correlated price movements
           </p>
         </div>
         {filters.symbol && (
@@ -75,17 +75,17 @@ export default function ConnectionsPage() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-zinc-400">Min Co-occurrence</label>
+            <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-zinc-400">Min Correlation</label>
             <select
-              value={filters.minWeight || ""}
-              onChange={(e) => updateFilter({ minWeight: e.target.value ? Number(e.target.value) : undefined })}
+              value={filters.minCorrelation || ""}
+              onChange={(e) => updateFilter({ minCorrelation: e.target.value ? Number(e.target.value) : undefined })}
               className={selectClass}
             >
-              <option value="">Auto</option>
-              <option value="3">3+</option>
-              <option value="5">5+</option>
-              <option value="10">10+</option>
-              <option value="20">20+</option>
+              <option value="">30% (default)</option>
+              <option value="0.1">10%+</option>
+              <option value="0.2">20%+</option>
+              <option value="0.5">50%+</option>
+              <option value="0.7">70%+</option>
             </select>
           </div>
 
@@ -190,8 +190,8 @@ export default function ConnectionsPage() {
       ) : !data || data.nodes.length === 0 ? (
         <div className="rounded-xl border border-gray-200 bg-gray-50/50 py-16 text-center dark:border-zinc-800 dark:bg-zinc-900/30">
           <p className="text-sm text-gray-500 dark:text-zinc-400">
-            No connections found{filters.symbol ? ` for ${filters.symbol}` : ""}.
-            {" "}Tickers need at least 2 co-occurrences across completed scans.
+            No correlations found{filters.symbol ? ` for ${filters.symbol}` : ""}.
+            {" "}Tickers need sufficient price snapshot data to compute correlations.
           </p>
         </div>
       ) : (
@@ -279,7 +279,14 @@ export default function ConnectionsPage() {
             <span className="hidden text-gray-300 dark:text-zinc-700 sm:inline">·</span>
             <span className="text-gray-400 dark:text-zinc-500">Node size = AI score</span>
             <span className="text-gray-300 dark:text-zinc-700">·</span>
-            <span className="text-gray-400 dark:text-zinc-500">Edge thickness = co-occurrence count</span>
+            <span className="flex items-center gap-1.5 text-gray-400 dark:text-zinc-500">
+              <span className="inline-block h-0.5 w-4 rounded bg-green-500" /> Positive correlation
+            </span>
+            <span className="flex items-center gap-1.5 text-gray-400 dark:text-zinc-500">
+              <span className="inline-block h-0.5 w-4 rounded bg-red-500" /> Negative correlation
+            </span>
+            <span className="text-gray-300 dark:text-zinc-700">·</span>
+            <span className="text-gray-400 dark:text-zinc-500">Edge thickness = correlation strength</span>
           </div>
         </div>
       )}

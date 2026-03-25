@@ -5,7 +5,8 @@ import { getCurrentUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
 import { paginationSchema } from "@/lib/validators";
 import { TTLCache } from "@/lib/cache";
-import { getCoOccurringSymbols, jaccardScore } from "@/lib/co-occurrence";
+import { getCoOccurringSymbols } from "@/lib/co-occurrence";
+import { getPairwiseCorrelations } from "@/lib/price-correlation";
 import { withX402Logged, x402RouteConfigs, hasAuthCredentials, X402_ENABLED } from "@/lib/x402";
 import { stageLabel, stageToDb, API_STAGE_VALUES } from "@/lib/stage-labels";
 
@@ -47,20 +48,14 @@ async function handleRelated(request: NextRequest, upperSymbol: string) {
 
   const targetTotal = coRows[0].targetTotal;
   const coSymbols = coRows.map((r) => r.symbol);
-  const coCountMap = new Map(coRows.map((r) => [r.symbol, r.coCount]));
 
-  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-  const appearanceRows = await prisma.$queryRaw<{ symbol: string; cnt: number }[]>`
-    SELECT vt.symbol, COUNT(DISTINCT vt."scanId")::int AS cnt
-    FROM "ValidatedTicker" vt
-    JOIN "Scan" s ON s.id = vt."scanId"
-    WHERE vt.symbol = ANY(${coSymbols})
-      AND vt."createdAt" >= ${since}
-      AND s.status = 'COMPLETED'
-      AND vt.stage NOT IN ('FILTERED', 'UNSCORED')
-    GROUP BY vt.symbol
-  `;
-  const totalMap = new Map(appearanceRows.map((r) => [r.symbol, r.cnt]));
+  // Compute price correlations between target and all co-occurring symbols
+  const corrEdges = await getPairwiseCorrelations([upperSymbol, ...coSymbols], days, 0);
+  const corrMap = new Map<string, { correlation: number; dataPoints: number }>();
+  for (const e of corrEdges) {
+    const other = e.source === upperSymbol ? e.target : e.target === upperSymbol ? e.source : null;
+    if (other) corrMap.set(other, { correlation: e.correlation, dataPoints: e.dataPoints });
+  }
 
   const latestRecords = await prisma.validatedTicker.findMany({
     where: {
@@ -95,7 +90,12 @@ async function handleRelated(request: NextRequest, upperSymbol: string) {
   }
 
   const filtered = coSymbols.filter((s) => latestBySymbol.has(s));
-  filtered.sort((a, b) => (coCountMap.get(b) ?? 0) - (coCountMap.get(a) ?? 0));
+  // Sort by absolute price correlation descending (no correlation data → bottom)
+  filtered.sort((a, b) => {
+    const corrA = corrMap.get(a);
+    const corrB = corrMap.get(b);
+    return (corrB ? Math.abs(corrB.correlation) : -1) - (corrA ? Math.abs(corrA.correlation) : -1);
+  });
 
   const total = filtered.length;
   const start = (page - 1) * limit;
@@ -103,13 +103,12 @@ async function handleRelated(request: NextRequest, upperSymbol: string) {
 
   const relatedTickers = pageSymbols.map((sym) => {
     const record = latestBySymbol.get(sym)!;
-    const coCount = coCountMap.get(sym) ?? 0;
-    const symTotal = totalMap.get(sym) ?? 0;
+    const corr = corrMap.get(sym);
     return {
       symbol: record.symbol,
       name: record.name,
-      coOccurrenceCount: coCount,
-      correlationScore: Math.round(jaccardScore(coCount, targetTotal, symTotal) * 100) / 100,
+      correlationScore: corr?.correlation ?? null,
+      correlationDataPoints: corr?.dataPoints ?? 0,
       latestAiScore: record.aiScore,
       latestStage: stageLabel(record.stage),
       sector: record.sector,

@@ -16,6 +16,12 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
+// Mock price-correlation
+const mockGetPairwiseCorrelations = vi.fn();
+vi.mock("@/lib/price-correlation", () => ({
+  getPairwiseCorrelations: (...args: unknown[]) => mockGetPairwiseCorrelations(...args),
+}));
+
 // Mock x402 (avoids @x402/next ESM resolution issues in vitest)
 vi.mock("@/lib/x402", () => ({
   X402_ENABLED: false,
@@ -65,6 +71,7 @@ beforeEach(() => {
   networkCache.clear();
   mockQueryRaw.mockResolvedValue([]);
   mockFindManyTicker.mockResolvedValue([]);
+  mockGetPairwiseCorrelations.mockResolvedValue([]);
 });
 
 describe("GET /api/tickers/network", () => {
@@ -81,14 +88,17 @@ describe("GET /api/tickers/network", () => {
   });
 
   it("returns nodes and edges with correct structure", async () => {
-    // Call sequence: 1) top symbols, 2) pairwise edges, 3) appearance counts
+    // Call sequence: 1) top symbols, 2) appearance counts (correlations mocked separately)
     mockQueryRaw
       .mockResolvedValueOnce([{ symbol: "AAPL" }, { symbol: "TSLA" }])
-      .mockResolvedValueOnce([{ source: "AAPL", target: "TSLA", weight: 3 }])
       .mockResolvedValueOnce([
         { symbol: "AAPL", cnt: 5 },
         { symbol: "TSLA", cnt: 4 },
       ]);
+
+    mockGetPairwiseCorrelations.mockResolvedValue([
+      { source: "AAPL", target: "TSLA", correlation: 0.72, dataPoints: 15 },
+    ]);
 
     mockFindManyTicker.mockResolvedValue([
       makeTicker("AAPL", 70, "CONFIRMED", daysAgo(1)),
@@ -112,19 +122,22 @@ describe("GET /api/tickers/network", () => {
     const edge = body.edges[0];
     expect(edge.source).toBe("AAPL");
     expect(edge.target).toBe("TSLA");
-    expect(edge.weight).toBe(3);
-    expect(edge.correlation).toBeGreaterThan(0);
+    expect(edge.correlation).toBe(0.72);
+    expect(edge.dataPoints).toBe(15);
   });
 
   it("centers on symbol when provided", async () => {
-    // Call sequence for symbol-centered: 1) getCoOccurringSymbols, 2) pairwise edges, 3) appearance counts
+    // Call sequence for symbol-centered: 1) getCoOccurringSymbols, 2) appearance counts (correlations mocked separately)
     mockQueryRaw
       .mockResolvedValueOnce([{ symbol: "TSLA", coCount: 3, targetTotal: 5 }])
-      .mockResolvedValueOnce([{ source: "AAPL", target: "TSLA", weight: 3 }])
       .mockResolvedValueOnce([
         { symbol: "AAPL", cnt: 5 },
         { symbol: "TSLA", cnt: 4 },
       ]);
+
+    mockGetPairwiseCorrelations.mockResolvedValue([
+      { source: "AAPL", target: "TSLA", correlation: 0.65, dataPoints: 10 },
+    ]);
 
     mockFindManyTicker.mockResolvedValue([
       makeTicker("AAPL", 70, "CONFIRMED", daysAgo(1)),
