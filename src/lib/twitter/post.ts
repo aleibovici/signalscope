@@ -369,69 +369,65 @@ export function selectDiversifiedTickers(candidates: TickerDetail[], maxTotal = 
 }
 
 export interface TweetBatchResult {
-  /** Root tweets on our timeline (only when no thread target or reply failed and we fell back). */
+  /** First tweet in the thread (standalone on timeline). */
   posted: { symbol: string; tweetId?: string }[];
   failed: { symbol: string; error: string }[];
-  /** inReplyToTweetId is the thread root passed to the API (conversation root when available). */
-  replies: { symbol: string; tweetId?: string; inReplyToTweetId: string; matchedTweetId: string }[];
+  /** Self-replies chained after the first tweet. */
+  replies: { symbol: string; tweetId?: string; inReplyToTweetId: string }[];
   replyFailed: { symbol: string; error: string }[];
 }
 
-/** Headroom for X prepending @mentions on replies (`auto_populate_reply_metadata`). */
-const REPLY_COMPOSE_MAX_CHARS = 235;
-
+/**
+ * Posts tickers as a single self-thread: first ticker is a standalone tweet,
+ * subsequent tickers reply to the previous tweet in the chain.
+ * Self-replies don't prepend @mentions so all tweets use full 280 chars.
+ */
 export async function tweetTickerBatch(tickers: TickerDetail[]): Promise<TweetBatchResult> {
   const posted: { symbol: string; tweetId?: string }[] = [];
   const failed: { symbol: string; error: string }[] = [];
-  const replies: { symbol: string; tweetId?: string; inReplyToTweetId: string; matchedTweetId: string }[] = [];
+  const replies: { symbol: string; tweetId?: string; inReplyToTweetId: string }[] = [];
   const replyFailed: { symbol: string; error: string }[] = [];
 
-  for (const ticker of tickers) {
-    // Resolve trending thread first so we only consume one tweet when replying (no duplicate standalone + reply)
-    await new Promise((r) => setTimeout(r, 1000));
-    const target = await findCashtagReplyTarget(ticker.symbol);
+  let previousTweetId: string | undefined;
 
-    const text = composeTickerTweet(ticker, target ? REPLY_COMPOSE_MAX_CHARS : 280);
-    console.log(`[twitter/post] $${ticker.symbol}: composed tweet (${text.length} chars${target ? ", reply budget" : ""})`);
+  for (let i = 0; i < tickers.length; i++) {
+    const ticker = tickers[i];
+    const text = composeTickerTweet(ticker, 280);
+    console.log(`[twitter/post] $${ticker.symbol}: composed tweet (${text.length} chars${previousTweetId ? ", thread reply" : ", thread root"})`);
 
-    if (target) {
-      console.log(
-        `[twitter/post] Replying in thread ${target.inReplyToTweetId} (matched ${target.matchedTweetId}) for $${ticker.symbol}`
-      );
-      const replyResult = await postTweet(text, target.inReplyToTweetId);
-      if (replyResult.success) {
-        replies.push({
-          symbol: ticker.symbol,
-          tweetId: replyResult.tweetId,
-          inReplyToTweetId: target.inReplyToTweetId,
-          matchedTweetId: target.matchedTweetId,
-        });
+    if (previousTweetId) {
+      // Chain as self-reply to build thread
+      const result = await postTweet(text, previousTweetId);
+      if (result.success) {
+        replies.push({ symbol: ticker.symbol, tweetId: result.tweetId, inReplyToTweetId: previousTweetId });
+        previousTweetId = result.tweetId ?? previousTweetId;
+        console.log(`[twitter/post] $${ticker.symbol}: threaded after ${previousTweetId}`);
       } else {
-        const replyErr = replyResult.error ?? "Unknown error";
-        console.warn(`[twitter/post] Reply failed for $${ticker.symbol}, posting to timeline instead: ${replyErr}`);
-        const fallbackText = composeTickerTweet(ticker, 280);
-        const fallback = await postTweet(fallbackText);
-        if (fallback.success) {
-          posted.push({ symbol: ticker.symbol, tweetId: fallback.tweetId });
+        // If self-reply fails, post standalone (thread breaks but tweet still goes out)
+        console.warn(`[twitter/post] $${ticker.symbol}: thread reply failed, posting standalone: ${result.error}`);
+        const standalone = await postTweet(text);
+        if (standalone.success) {
+          posted.push({ symbol: ticker.symbol, tweetId: standalone.tweetId });
+          // Don't update previousTweetId — keep threading from last successful reply
         } else {
-          replyFailed.push({
-            symbol: ticker.symbol,
-            error: `Reply: ${replyErr}; fallback: ${fallback.error ?? "Unknown error"}`,
-          });
+          replyFailed.push({ symbol: ticker.symbol, error: `Reply: ${result.error}; standalone: ${standalone.error}` });
         }
       }
     } else {
-      console.log(`[twitter/post] No top tweet for $${ticker.symbol}, posting to timeline only`);
+      // First tweet: standalone (thread root)
       const result = await postTweet(text);
       if (result.success) {
         posted.push({ symbol: ticker.symbol, tweetId: result.tweetId });
+        previousTweetId = result.tweetId;
+        console.log(`[twitter/post] $${ticker.symbol}: thread root ${result.tweetId}`);
       } else {
         failed.push({ symbol: ticker.symbol, error: result.error ?? "Unknown error" });
+        // First tweet failed — next ticker will try as root instead
       }
     }
 
     // Delay between tickers to avoid rate limiting
-    if (tickers.indexOf(ticker) < tickers.length - 1) {
+    if (i < tickers.length - 1) {
       await new Promise((r) => setTimeout(r, 2000));
     }
   }

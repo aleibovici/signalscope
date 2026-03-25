@@ -6,8 +6,8 @@ import { tweetTickerBatch, selectDiversifiedTickers, type TickerDetail } from "@
 /**
  * POST /api/tweets/post
  *
- * Tweets emerging tickers (EARLY/FORMING with reports): replies to top $SYMBOL search hits when found,
- * otherwise a timeline post; one post per ticker (no duplicate standalone + reply).
+ * Tweets emerging tickers (EARLY/FORMING with reports) as a self-thread: first ticker is
+ * a standalone tweet, subsequent tickers chain as self-replies to build a single thread.
  * Auth: x-snapshot-key header (same as reports/snapshots).
  * Intended to run after /api/reports/generate completes.
  */
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     const result = await tweetTickerBatch(diversified);
 
     return NextResponse.json({
-      status: result.posted.length > 0 ? "tweeted" : "failed",
+      status: result.posted.length > 0 || result.replies.length > 0 ? "tweeted" : "failed",
       posted: result.posted,
       failed: result.failed,
       replies: result.replies,
