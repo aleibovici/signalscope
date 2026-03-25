@@ -10,13 +10,14 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-03-25",
-    title: "Dashboard & Methodology Redesign, Twitter Reply Engagement, Dynamic Ticker OG Images",
+    title: "Dashboard & Methodology Redesign, Twitter Reply Engagement, Dynamic Ticker OG Images, Automated Promo Tweets",
     changes: [
       {
         category: "new",
         items: [
           "After posting each ticker tweet, SignalScope now finds the top-engaged tweet mentioning that cashtag in the last 24h and replies to it — increasing reach and engagement in active stock conversations.",
           "Ticker pages now generate dynamic Open Graph images — when a tweet links to a ticker, Twitter shows a card with the ticker symbol, recommendation badge, price, arc gauges, tags, thesis, and risks instead of the generic site image.",
+          "Automated promotional tweets — 3 AI-generated tweets per day (10 AM, 2 PM, 6 PM ET) rotating through 20 feature topics. Tweets include live platform stats, trending cashtags for discoverability, 1-2 hashtags, and deep links to the relevant page.",
         ],
       },
       {
