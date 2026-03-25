@@ -23,6 +23,11 @@ describe("composeTickerTweet", () => {
     expect(tweet.length).toBeLessThanOrEqual(280);
   });
 
+  it("respects a lower max length for reply-safe composition", () => {
+    const tweet = composeTickerTweet(makeTicker(), 235);
+    expect(tweet.length).toBeLessThanOrEqual(235);
+  });
+
   it("includes ticker symbol with $ prefix", () => {
     const tweet = composeTickerTweet(makeTicker({ symbol: "TSLA" }));
     expect(tweet).toContain("$TSLA");
