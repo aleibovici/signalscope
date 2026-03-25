@@ -5,14 +5,12 @@ import { useSession } from "next-auth/react";
 import { useTrendingTickers, type TrendingFilters } from "@/hooks/use-trending";
 import { useWatchlist, useToggleWatchlist } from "@/hooks/use-watchlist";
 import { TrendingCard } from "@/components/dashboard/trending-card";
-import { Card, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { STAGE_LABELS } from "@/lib/stage-labels";
-import { scoreExplainerTrendingCallout } from "@/lib/score-explainer";
 
 const PAGE_SIZE = 12;
 const selectClass =
-  "h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-blue-400 dark:focus:ring-blue-400";
+  "h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-blue-400 dark:focus:ring-blue-400";
 const checkboxLabelClass =
   "flex cursor-pointer select-none items-center gap-2 text-sm text-gray-700 dark:text-zinc-300";
 
@@ -102,10 +100,17 @@ export default function TrendingPage() {
   }
 
   return (
-    <div className="space-y-3 md:space-y-5">
-      {/* Header + filter toggle */}
+    <div className="space-y-4 md:space-y-5">
+
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-900 dark:text-zinc-100 md:text-2xl">Trending Tickers</h1>
+        <div>
+          <h1 className="text-xl font-bold text-gray-900 md:text-2xl dark:text-zinc-100">Trending Tickers</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">
+            Tickers appearing across multiple scans, ranked by signal momentum
+          </p>
+        </div>
+        {/* Mobile filter toggle */}
         <button
           onClick={() => setFiltersOpen((o) => !o)}
           className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800 md:hidden"
@@ -122,8 +127,8 @@ export default function TrendingPage() {
         </button>
       </div>
 
-      {/* Quick bar: return period + sort (always visible on mobile) */}
-      <div className="flex items-center gap-3 overflow-x-auto pb-1 -mb-1">
+      {/* Quick bar: return period + sort (always visible) */}
+      <div className="flex items-center gap-3 overflow-x-auto -mb-1 pb-1">
         <div className="flex shrink-0 items-center gap-0.5 rounded-lg border border-gray-200 bg-white p-0.5 dark:border-zinc-700 dark:bg-zinc-900">
           {RETURN_PERIODS.map((rp) => (
             <button
@@ -143,7 +148,7 @@ export default function TrendingPage() {
         <select
           value={filters.sortBy || ""}
           onChange={(e) => updateFilter({ sortBy: (e.target.value || undefined) as TrendingFilters["sortBy"] })}
-          className="h-9 shrink-0 rounded-lg border border-gray-200 bg-white px-2.5 pr-7 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-blue-400 dark:focus:ring-blue-400"
+          className="h-9 shrink-0 rounded-lg border border-gray-200 bg-white px-2.5 pr-7 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-blue-400 dark:focus:ring-blue-400"
         >
           {SORT_OPTIONS.map((s) => (
             <option key={s.value} value={s.value}>Sort: {s.label}</option>
@@ -162,11 +167,11 @@ export default function TrendingPage() {
 
       {/* Full filter panel — always visible on desktop, collapsible on mobile */}
       <div className={`${filtersOpen ? "block" : "hidden"} md:block`}>
-        <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-3 dark:border-zinc-700 dark:bg-zinc-900/40 md:p-4">
-          {/* Dropdown grid: 2 cols on mobile, 4 on tablet, 7 on desktop */}
+        <div className="rounded-xl border border-gray-200 bg-gray-50/80 px-5 py-4 dark:border-zinc-800 dark:bg-zinc-900/40">
+          <p className="mb-3 text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-zinc-500">Filters</p>
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">Min Appearances</label>
+              <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-zinc-400">Min Appearances</label>
               <select
                 value={filters.minAppearances || ""}
                 onChange={(e) => updateFilter({ minAppearances: e.target.value ? Number(e.target.value) : undefined })}
@@ -179,7 +184,7 @@ export default function TrendingPage() {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">Stage</label>
+              <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-zinc-400">Stage</label>
               <select
                 value={filters.stage || ""}
                 onChange={(e) => updateFilter({ stage: e.target.value || undefined })}
@@ -193,7 +198,7 @@ export default function TrendingPage() {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">Trend</label>
+              <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-zinc-400">Trend</label>
               <select
                 value={filters.trend || ""}
                 onChange={(e) => updateFilter({ trend: e.target.value || undefined })}
@@ -207,7 +212,7 @@ export default function TrendingPage() {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">Sector</label>
+              <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-zinc-400">Sector</label>
               <select
                 value={filters.sector || ""}
                 onChange={(e) => updateFilter({ sector: e.target.value || undefined })}
@@ -221,7 +226,7 @@ export default function TrendingPage() {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">Market Cap</label>
+              <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-zinc-400">Market Cap</label>
               <select
                 value={filters.marketCap || ""}
                 onChange={(e) => updateFilter({ marketCap: (e.target.value || undefined) as TrendingFilters["marketCap"] })}
@@ -236,7 +241,7 @@ export default function TrendingPage() {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">Source</label>
+              <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-zinc-400">Source</label>
               <select
                 value={filters.source || ""}
                 onChange={(e) => updateFilter({ source: e.target.value || undefined })}
@@ -249,9 +254,9 @@ export default function TrendingPage() {
               </select>
             </div>
 
-            {/* Sort dropdown (desktop only — already in quick bar on mobile) */}
+            {/* Sort dropdown — desktop only, already in quick bar on mobile */}
             <div className="hidden lg:block">
-              <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">Sort By</label>
+              <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-zinc-400">Sort By</label>
               <select
                 value={filters.sortBy || ""}
                 onChange={(e) => updateFilter({ sortBy: (e.target.value || undefined) as TrendingFilters["sortBy"] })}
@@ -265,7 +270,7 @@ export default function TrendingPage() {
           </div>
 
           {/* Toggles row */}
-          <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+          <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-gray-100 pt-3 dark:border-zinc-800/60">
             <label className={checkboxLabelClass}>
               <input
                 type="checkbox"
@@ -289,37 +294,44 @@ export default function TrendingPage() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-700 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-300">
-        {scoreExplainerTrendingCallout}
-      </div>
-
       {/* Summary stats */}
       {data?.summary && (
-        <div className="grid grid-cols-3 gap-2 md:gap-4">
-          <Card>
-            <CardContent className="px-3! py-2! md:px-6! md:py-4!">
-              <p className="text-xs text-gray-500 dark:text-zinc-400 md:text-sm">Trending</p>
-              <p className="text-lg font-bold text-gray-900 dark:text-zinc-100 md:text-2xl">
-                {data.summary.totalTrending}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="px-3! py-2! md:px-6! md:py-4!">
-              <p className="text-xs text-gray-500 dark:text-zinc-400 md:text-sm">Rising</p>
-              <p className="text-lg font-bold text-green-600 dark:text-green-400 md:text-2xl">
-                {data.summary.risingCount}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="px-3! py-2! md:px-6! md:py-4!">
-              <p className="text-xs text-gray-500 dark:text-zinc-400 md:text-sm">Avg Score</p>
-              <p className="text-lg font-bold text-gray-900 dark:text-zinc-100 md:text-2xl">
-                {data.summary.avgScore}
-              </p>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-3 gap-3 md:gap-4">
+          <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900/40">
+            <div
+              className="pointer-events-none absolute inset-y-0 left-0 hidden w-[3px] rounded-l-xl dark:block"
+              style={{ background: "linear-gradient(to bottom, #71717a, #a1a1aa)" }}
+              aria-hidden="true"
+            />
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-zinc-500">Trending</p>
+            <p className="mt-1 text-2xl font-bold text-gray-900 md:text-3xl dark:text-zinc-100">
+              {data.summary.totalTrending}
+            </p>
+          </div>
+
+          <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900/40">
+            <div
+              className="pointer-events-none absolute inset-y-0 left-0 hidden w-[3px] rounded-l-xl dark:block"
+              style={{ background: "linear-gradient(to bottom, #22c55e, #10b981)" }}
+              aria-hidden="true"
+            />
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-zinc-500">Rising</p>
+            <p className="mt-1 text-2xl font-bold text-green-600 md:text-3xl dark:text-green-400">
+              {data.summary.risingCount}
+            </p>
+          </div>
+
+          <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900/40">
+            <div
+              className="pointer-events-none absolute inset-y-0 left-0 hidden w-[3px] rounded-l-xl dark:block"
+              style={{ background: "linear-gradient(to bottom, #3b82f6, #6366f1)" }}
+              aria-hidden="true"
+            />
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-zinc-500">Avg Score</p>
+            <p className="mt-1 text-2xl font-bold text-gray-900 md:text-3xl dark:text-zinc-100">
+              {data.summary.avgScore}
+            </p>
+          </div>
         </div>
       )}
 
@@ -328,16 +340,18 @@ export default function TrendingPage() {
           <Spinner className="h-8 w-8 text-blue-600 dark:text-blue-400" />
         </div>
       ) : isError ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 py-12 text-center dark:border-red-900/50 dark:bg-red-950/30">
-          <p className="text-red-600 dark:text-red-400">Failed to load trending tickers. Please refresh and try again.</p>
+        <div className="rounded-xl border border-red-200 bg-red-50 py-12 text-center dark:border-red-900/50 dark:bg-red-950/30">
+          <p className="text-sm text-red-600 dark:text-red-400">Failed to load trending tickers. Please refresh and try again.</p>
         </div>
       ) : !data?.tickers.length ? (
-        <p className="py-12 text-center text-sm text-gray-500 dark:text-zinc-400">
-          No trending tickers found{hasActiveFilters(filters) ? " matching your filters" : ""}. Tickers need at least {filters.minAppearances || 2} appearances across completed scans in the last 30 days.
-        </p>
+        <div className="rounded-xl border border-gray-200 bg-gray-50/50 py-12 text-center dark:border-zinc-800 dark:bg-zinc-900/30">
+          <p className="text-sm text-gray-500 dark:text-zinc-400">
+            No trending tickers found{hasActiveFilters(filters) ? " matching your filters" : ""}. Tickers need at least {filters.minAppearances || 2} appearances across completed scans in the last 30 days.
+          </p>
+        </div>
       ) : (
         <>
-          <div className="grid gap-3 md:gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-3">
             {data.tickers.map((ticker) => (
               <TrendingCard
                 key={ticker.id}
