@@ -9,6 +9,28 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-03-27",
+    title: "Error Boundaries, Data Freshness Indicators, Accessibility Improvements",
+    changes: [
+      {
+        category: "new",
+        items: [
+          "React error boundaries added to all dashboard pages — runtime errors now show a friendly 'Something went wrong' message with a Try again button instead of crashing the whole page.",
+          "Performance and Trending pages now display 'Updated X ago' in the header so you always know how fresh the data is.",
+        ],
+      },
+      {
+        category: "improved",
+        items: [
+          "Keyboard users can now skip past the sidebar with a Skip to main content link that appears on focus.",
+          "Filter toggle, stage tabs, and return period buttons now expose selected/expanded state via ARIA attributes for screen readers.",
+          "Public API endpoints (ticker data, trending, network) are now rate-limited to prevent abuse.",
+          "Database indexes added for signal velocity sorting and trending date/stage scans — faster dashboard queries.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-03-25",
     title: "Dashboard & Methodology Redesign, Twitter Reply Engagement, Dynamic Ticker OG Images, Automated Promo Tweets",
     changes: [
