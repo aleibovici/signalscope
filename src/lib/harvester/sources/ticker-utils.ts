@@ -76,6 +76,7 @@ export const BLACKLIST = new Set([
   // More false-positive English/slang words from production harvests
   "SHIT", "POSTS", "HINT", "IRAN", "UAE", "BMW", "BASF",
   "LOTTO", "PIPE", "VLCC", "ISM", "GMT", "NPV", "FCF",
+  "SWAP", "REPO", "CORP", "BIAS", "FLAT", "HIKE", "FUND", "HEDGE", "MACRO",
 ]);
 
 export const MEGA_CAPS = new Set([
