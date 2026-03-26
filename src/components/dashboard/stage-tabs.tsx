@@ -25,6 +25,7 @@ export function StageTabs({
           <button
             key={stage.key}
             onClick={() => onSelect(stage.key)}
+            aria-pressed={selected === stage.key}
             className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold transition-colors sm:px-5 sm:py-2 ${
               selected === stage.key
                 ? "bg-blue-500 text-white dark:bg-blue-500 dark:text-white"

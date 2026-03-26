@@ -33,6 +33,15 @@ const INTERVALS = [
   { label: "30d", days: 30 },
 ] as const;
 
+function formatTimeAgo(d: Date): string {
+  const s = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (s < 10) return "just now";
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
+}
+
 function formatPct(value: number): string {
   return `${value > 0 ? "+" : ""}${(value * 100).toFixed(1)}%`;
 }
@@ -341,7 +350,7 @@ function StatsTable({
 /* ---------- Main Page ---------- */
 export default function PerformancePage() {
   const [days, setDays] = useState(7);
-  const { data, isLoading, error } = useAggregatePerformance(days);
+  const { data, isLoading, error, dataUpdatedAt } = useAggregatePerformance(days);
 
   return (
     <div className="space-y-6">
@@ -351,12 +360,18 @@ export default function PerformancePage() {
           <p className="text-sm text-gray-500 dark:text-zinc-400">
             How high-confidence signals (AI score ≥70) perform after detection — broken down by week and type
           </p>
+          {dataUpdatedAt > 0 && (
+            <p className="mt-0.5 text-xs text-gray-400 dark:text-zinc-500">
+              Updated {formatTimeAgo(new Date(dataUpdatedAt))}
+            </p>
+          )}
         </div>
         <div className="flex rounded-lg border border-gray-200 bg-white p-1 dark:border-zinc-600 dark:bg-zinc-900">
           {INTERVALS.map((iv) => (
             <button
               key={iv.days}
               onClick={() => setDays(iv.days)}
+              aria-pressed={days === iv.days}
               className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 days === iv.days
                   ? "bg-blue-600 text-white dark:bg-blue-500"
