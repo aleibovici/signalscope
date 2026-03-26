@@ -521,22 +521,38 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
       pndAiReasoning?: string;
     }> = [];
 
+    // Pre-pass: compute all P&D flag results synchronously
+    const pndResultsMap = new Map(
+      validCandidates.map((agg) => [
+        agg.symbol,
+        checkPndFlags(agg, fundamentalsMap.get(agg.symbol) || null),
+      ])
+    );
+
+    // Resolve all borderline cases (score === 2) in parallel
+    const borderlineCandidates = validCandidates.filter(
+      (agg) => pndResultsMap.get(agg.symbol)!.score === 2
+    );
+    const aiPndResultsMap = new Map(
+      await Promise.all(
+        borderlineCandidates.map(async (agg) => {
+          const pnd = pndResultsMap.get(agg.symbol)!;
+          try {
+            const result = await aiPndAssessment(agg.symbol, agg, pnd.flags);
+            return [agg.symbol, result] as const;
+          } catch (err) {
+            console.warn(`[pnd] AI assessment failed for ${agg.symbol}, defaulting to flagged:`, err);
+            return [agg.symbol, { flagged: true, confidence: undefined, reasoning: undefined }] as const;
+          }
+        })
+      )
+    );
+
     for (const agg of validCandidates) {
       const fundamentals = fundamentalsMap.get(agg.symbol) || null;
-      const pnd = checkPndFlags(agg, fundamentals);
-
-      // AI assessment for borderline cases (2 flags)
-      let finalPndFlagged = pnd.flagged;
-      let pndAiResult: PndAiResult | undefined;
-      if (pnd.score === 2) {
-        try {
-          pndAiResult = await aiPndAssessment(agg.symbol, agg, pnd.flags);
-          finalPndFlagged = pndAiResult.flagged;
-        } catch (err) {
-          console.warn(`[pnd] AI assessment failed for ${agg.symbol}, defaulting to flagged:`, err);
-          finalPndFlagged = true; // conservative default
-        }
-      }
+      const pnd = pndResultsMap.get(agg.symbol)!;
+      const pndAiResult = aiPndResultsMap.get(agg.symbol) as PndAiResult | undefined;
+      const finalPndFlagged = pndAiResult !== undefined ? pndAiResult.flagged : pnd.flagged;
 
       if (finalPndFlagged) filteredCount++;
 

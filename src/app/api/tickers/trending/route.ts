@@ -177,7 +177,13 @@ async function handleTrending(request: NextRequest) {
   }
 
   // Fetch distinct signal sources for latest scan per symbol
-  const latestScanIds = [...new Set(latestRecords.map((r) => r.scanId))];
+  const latestScanIds = [
+    ...new Set(
+      filteredSymbols
+        .map((s) => latestBySymbol.get(s)?.scanId)
+        .filter((id): id is string => id != null)
+    ),
+  ];
   const signalSources = await prisma.signal.findMany({
     where: {
       scanId: { in: latestScanIds },
