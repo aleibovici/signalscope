@@ -1,9 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getOptionalUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
+import { getClientIP, isRateLimited } from "@/lib/rate-limit";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const ip = getClientIP(request);
+  if (isRateLimited(`stats:${ip}`, 60_000, 20)) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: { "Retry-After": "60" } });
+  }
+
   try {
     await getOptionalUserId();
     const [scans, signals, tickerCount] =

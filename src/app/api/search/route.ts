@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getClientIP, isRateLimited } from "@/lib/rate-limit";
 
 export async function GET(request: NextRequest) {
+  const ip = getClientIP(request);
+  if (isRateLimited(`search:${ip}`, 60_000, 60)) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: { "Retry-After": "60" } });
+  }
+
   try {
     const q = request.nextUrl.searchParams.get("q")?.trim().toUpperCase() ?? "";
     if (q.length < 1) return NextResponse.json({ results: [] });
