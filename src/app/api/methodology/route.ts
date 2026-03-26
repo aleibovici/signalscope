@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { handleApiError } from "@/lib/api-error";
+import { getClientIP, isRateLimited } from "@/lib/rate-limit";
 import {
   pipelineSteps,
   signalSources,
@@ -24,7 +25,12 @@ import {
   scoreExplainerPerformanceInsight,
 } from "@/lib/score-explainer";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const ip = getClientIP(request);
+  if (isRateLimited(`methodology:${ip}`, 60_000, 30)) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: { "Retry-After": "60" } });
+  }
+
   try {
     const activeSignalSources = signalSources.map((source) => ({
       ...source,
