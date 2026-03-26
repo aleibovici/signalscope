@@ -81,6 +81,7 @@ model Signal {
   createdAt     DateTime     @default(now())
 
   @@index([scanId, symbol])
+  @@index([scanId, velocityScore(sort: Desc)])
   @@index([symbol])
   @@index([symbol, source])
 }
@@ -158,6 +159,7 @@ model ValidatedTicker {
   @@index([symbol])
   @@index([stage])
   @@index([createdAt])
+  @@index([createdAt(sort: Desc), stage])
   @@index([symbol, createdAt(sort: Desc)])
   @@index([scanId, stage, createdAt])
 }
