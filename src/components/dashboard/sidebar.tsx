@@ -120,6 +120,7 @@ export function Sidebar({ revision }: { revision: string }) {
             onClick={() => setOpen(true)}
             className="mr-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 active:bg-gray-200 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:active:bg-zinc-700"
             aria-label="Open menu"
+            aria-expanded={open}
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="3" y1="6" x2="21" y2="6" />

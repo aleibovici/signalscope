@@ -189,6 +189,12 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <GoogleAnalyticsPageView />
         </Suspense>
+        <a
+          href="#main-scroll"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:shadow dark:focus:bg-zinc-900 dark:focus:text-zinc-100"
+        >
+          Skip to main content
+        </a>
         <AppThemeProvider>
           <AuthSessionProvider>
             <QueryProvider>{children}</QueryProvider>

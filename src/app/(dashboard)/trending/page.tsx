@@ -9,6 +9,15 @@ import { Spinner } from "@/components/ui/spinner";
 import { STAGE_LABELS } from "@/lib/stage-labels";
 
 const PAGE_SIZE = 12;
+
+function formatTimeAgo(d: Date): string {
+  const s = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (s < 10) return "just now";
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
+}
 const selectClass =
   "h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-blue-400 dark:focus:ring-blue-400";
 const checkboxLabelClass =
@@ -77,7 +86,7 @@ export default function TrendingPage() {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<TrendingFilters>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const { data, isLoading, isError } = useTrendingTickers(page, PAGE_SIZE, filters);
+  const { data, isLoading, isError, dataUpdatedAt } = useTrendingTickers(page, PAGE_SIZE, filters);
   const { data: bookmarkedSymbols = new Set<string>() } = useWatchlist();
   const { mutate: toggleWatchlist } = useToggleWatchlist();
 
@@ -109,10 +118,17 @@ export default function TrendingPage() {
           <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">
             Tickers appearing across multiple scans, ranked by signal momentum
           </p>
+          {dataUpdatedAt > 0 && (
+            <p className="mt-0.5 text-xs text-gray-400 dark:text-zinc-500">
+              Updated {formatTimeAgo(new Date(dataUpdatedAt))}
+            </p>
+          )}
         </div>
         {/* Mobile filter toggle */}
         <button
           onClick={() => setFiltersOpen((o) => !o)}
+          aria-expanded={filtersOpen}
+          aria-controls="trending-filters"
           className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800 md:hidden"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -134,6 +150,7 @@ export default function TrendingPage() {
             <button
               key={rp.value}
               onClick={() => updateFilter({ returnPeriod: rp.value === "7d" ? undefined : rp.value as TrendingFilters["returnPeriod"] })}
+              aria-pressed={(filters.returnPeriod || "7d") === rp.value}
               className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                 (filters.returnPeriod || "7d") === rp.value
                   ? "bg-blue-600 text-white shadow-sm dark:bg-blue-500"
@@ -166,7 +183,7 @@ export default function TrendingPage() {
       </div>
 
       {/* Full filter panel — always visible on desktop, collapsible on mobile */}
-      <div className={`${filtersOpen ? "block" : "hidden"} md:block`}>
+      <div id="trending-filters" className={`${filtersOpen ? "block" : "hidden"} md:block`}>
         <div className="rounded-xl border border-gray-200 bg-gray-50/80 px-5 py-4 dark:border-zinc-800 dark:bg-zinc-900/40">
           <p className="mb-3 text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-zinc-500">Filters</p>
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
