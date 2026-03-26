@@ -158,6 +158,8 @@ model ValidatedTicker {
   @@index([symbol])
   @@index([stage])
   @@index([createdAt])
+  @@index([symbol, createdAt(sort: Desc)])
+  @@index([scanId, stage, createdAt])
 }
 
 model TickerPerformance {
