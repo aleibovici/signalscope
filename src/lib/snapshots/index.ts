@@ -71,26 +71,35 @@ export async function collectSnapshots(): Promise<{ filled: number; errors: numb
   // 4. Dev DB mirroring
   const devPrisma = createDevPrismaClient();
 
-  // 5. Create snapshot + update returns for each ticker
+  // 5. Batch-insert all price snapshots in one round-trip
+  const snapshotBatch = trackable
+    .filter((t) => {
+      if (prices.get(t.symbol) == null) {
+        console.warn(`[snapshots] No price for ${t.symbol}, skipping`);
+        stats.errors++;
+        return false;
+      }
+      return true;
+    })
+    .map((t) => ({ validatedTickerId: t.id, symbol: t.symbol, price: prices.get(t.symbol)! }));
+
+  const createdSnapshots = snapshotBatch.length > 0
+    ? await prisma.priceSnapshot.createManyAndReturn({
+        data: snapshotBatch,
+        select: { id: true, validatedTickerId: true },
+      })
+    : [];
+  stats.filled = createdSnapshots.length;
+
+  const snapshotIdByTickerId = new Map(createdSnapshots.map((s) => [s.validatedTickerId, s.id]));
+
+  // 6. Update returns for each ticker
   for (const ticker of trackable) {
     const currentPrice = prices.get(ticker.symbol);
-    if (currentPrice == null) {
-      console.warn(`[snapshots] No price for ${ticker.symbol}, skipping`);
-      stats.errors++;
-      continue;
-    }
+    if (currentPrice == null) continue;
 
     try {
-      // Create a new price snapshot
-      const snapshot = await prisma.priceSnapshot.create({
-        data: {
-          validatedTickerId: ticker.id,
-          symbol: ticker.symbol,
-          price: currentPrice,
-        },
-      });
-
-      stats.filled++;
+      const snapshotId = snapshotIdByTickerId.get(ticker.id)!
 
       // Compute returns from all snapshots (including the one we just created)
       const allSnapshots = [...ticker.priceSnapshots, { price: currentPrice, createdAt: now }];
@@ -191,7 +200,7 @@ export async function collectSnapshots(): Promise<{ filled: number; errors: numb
         try {
           await devPrisma.priceSnapshot.create({
             data: {
-              id: snapshot.id,
+              id: snapshotId,
               validatedTickerId: ticker.id,
               symbol: ticker.symbol,
               price: currentPrice,
