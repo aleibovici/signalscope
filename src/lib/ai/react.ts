@@ -1,4 +1,5 @@
 import { chatJSON } from "@/lib/ai";
+import type { AiCostContext } from "@/lib/ai/types";
 import { TOOL_REGISTRY, TOOL_DEFINITIONS } from "@/lib/harvester/report-tools";
 import type { ToolName, ToolResult } from "@/lib/harvester/report-tools";
 import type { TickerReport } from "@/lib/harvester/types";
@@ -17,6 +18,7 @@ export interface ChatReACTConfig {
   temperature: number;
   maxIterations?: number;
   timeoutMs?: number;
+  context?: AiCostContext;
 }
 
 interface ToolCallResponse {
@@ -177,6 +179,7 @@ export async function chatReACT(config: ChatReACTConfig): Promise<TickerReport> 
       temperature: config.temperature,
       systemPrompt,
       userMessage,
+      context: config.context,
     });
 
     const parsed = parseReACTResponse(response.content);
@@ -227,6 +230,7 @@ export async function chatReACT(config: ChatReACTConfig): Promise<TickerReport> 
     temperature: config.temperature,
     systemPrompt,
     userMessage: finalMessage,
+    context: config.context,
   });
 
   const finalParsed = parseReACTResponse(finalResponse.content);

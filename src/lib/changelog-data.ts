@@ -10,11 +10,12 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-03-27",
-    title: "Error Boundaries, Data Freshness Indicators, Accessibility Improvements",
+    title: "AI Cost Tracking, Error Boundaries, Data Freshness Indicators",
     changes: [
       {
         category: "new",
         items: [
+          "AI cost tracking: every OpenAI/Anthropic call is now logged per-call with provider, model, token counts, and cost — visible in the admin dashboard broken down by call point (scoring, P&D, report, promo), trigger (harvest, batch-report, on-demand, promo), and per-harvest scan.",
           "React error boundaries added to all dashboard pages — runtime errors now show a friendly 'Something went wrong' message with a Try again button instead of crashing the whole page.",
           "Performance and Trending pages now display 'Updated X ago' in the header so you always know how fresh the data is.",
         ],

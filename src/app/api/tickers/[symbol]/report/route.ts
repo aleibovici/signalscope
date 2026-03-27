@@ -8,7 +8,7 @@ import type { SignalType, TradeSetup } from "@/lib/harvester/types";
 import { withX402Logged, x402RouteConfigs, hasAuthCredentials, X402_ENABLED } from "@/lib/x402";
 import { hasActiveSubscription } from "@/lib/subscription";
 
-async function handleReport(request: NextRequest, upperSymbol: string) {
+async function handleReport(request: NextRequest, upperSymbol: string, userId?: string) {
   const ticker = await prisma.validatedTicker.findFirst({
     where: { symbol: upperSymbol },
     orderBy: { createdAt: "desc" },
@@ -59,7 +59,8 @@ async function handleReport(request: NextRequest, upperSymbol: string) {
     ticker.aiScore,
     ticker.scanId,
     (ticker.signalType as SignalType) ?? undefined,
-    novelty
+    novelty,
+    { trigger: "on-demand", symbol: upperSymbol, userId }
   );
 
   // Persist the report to the DB
@@ -133,7 +134,7 @@ export async function POST(
         );
       }
 
-      return await handleReport(request, upperSymbol);
+      return await handleReport(request, upperSymbol, userId);
     }
 
     // x402 payment present — validate payment (AI agent flow)

@@ -232,6 +232,7 @@ Remember: max 230 chars for the tweet text (including 1-2 hashtags at the end). 
     userMessage,
     tier: "mini",
     temperature: 0.9,
+    context: { trigger: "promo" },
   });
 
   const parsed = JSON.parse(response.content) as { tweet: string };

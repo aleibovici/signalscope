@@ -312,3 +312,23 @@ model X402Payment {
   @@index([createdAt])
   @@index([endpoint])
 }
+
+model AiCostLog {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
+  callPoint    String   // "scoring" | "pnd" | "report" | "promo"
+  trigger      String   // "harvest" | "on-demand" | "batch-report" | "promo"
+  provider     String   // "openai" | "anthropic"
+  model        String
+  inputTokens  Int
+  outputTokens Int
+  cost         Float
+  scanId       String?  // set for harvest + batch-report triggers
+  symbol       String?  // set for pnd + report call points
+  userId       String?  // set for on-demand trigger
+
+  @@index([createdAt])
+  @@index([scanId])
+  @@index([trigger, createdAt])
+  @@index([callPoint, createdAt])
+}

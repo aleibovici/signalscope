@@ -4,7 +4,8 @@ import type { AggregatedSymbol, AiScoreResult, FundamentalData, NoveltyContext }
 export async function scoreSymbolBatch(
   symbols: AggregatedSymbol[],
   fundamentalsMap?: Map<string, FundamentalData>,
-  noveltyMap?: Map<string, NoveltyContext>
+  noveltyMap?: Map<string, NoveltyContext>,
+  scanId?: string
 ): Promise<AiScoreResult[]> {
   if (symbols.length === 0) return [];
 
@@ -116,6 +117,7 @@ Reddit comment engagement (check totalComments field):
 
 Return JSON: { "scores": [{ "symbol": "X", "score": 0-100, "sentiment": "bullish|bearish|neutral", "reasoning": "brief — state confidence level and what the score is based on" }] }`,
       userMessage: JSON.stringify(symbolSummaries),
+      context: scanId ? { trigger: "harvest" as const, scanId } : undefined,
     });
 
     const parsed = JSON.parse(response.content);

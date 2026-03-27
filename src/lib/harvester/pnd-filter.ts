@@ -194,7 +194,8 @@ export function checkPndFlags(
 export async function aiPndAssessment(
   symbol: string,
   agg: AggregatedSymbol,
-  flags: string[]
+  flags: string[],
+  scanId?: string
 ): Promise<PndAiResult> {
   // Only call AI for borderline cases (exactly at threshold - 1 effective flags)
   const effectiveFlags = flags.filter((f) => !INFORMATIONAL_FLAGS.has(f));
@@ -224,6 +225,7 @@ Return JSON: { "is_pnd": true/false, "confidence": 0-100, "reasoning": "brief ex
           postAge: s.postAge,
         })),
       }),
+      context: scanId ? { trigger: "harvest" as const, scanId, symbol } : undefined,
     });
 
     const result = JSON.parse(response.content);

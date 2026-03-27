@@ -75,7 +75,8 @@ export async function POST(req: NextRequest) {
           ticker.aiScore,
           ticker.scanId,
           (ticker.signalType as SignalType) ?? undefined,
-          novelty
+          novelty,
+          { trigger: "batch-report", scanId: ticker.scanId, symbol: ticker.symbol }
         );
 
         await prisma.validatedTicker.update({
