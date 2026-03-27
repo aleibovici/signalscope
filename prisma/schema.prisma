@@ -71,6 +71,7 @@ model Signal {
   subreddit     String?
   postAge       Float?
   sortType      String?
+  flair         String?
   purchaseValue Float?
   insiderTitle  String?
   volumeRatio   Float?

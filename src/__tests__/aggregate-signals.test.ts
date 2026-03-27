@@ -19,7 +19,7 @@ vi.mock("@/lib/ai", () => ({
   chatJSON: vi.fn(),
 }));
 
-const { aggregateSignals } = await import("@/lib/harvester/index");
+const { aggregateSignals, resolveFlairWeight } = await import("@/lib/harvester/index");
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -367,5 +367,146 @@ describe("aggregateSignals — sorting", () => {
     const result = aggregateSignals(signals);
     // Both have sourceCount=1 but PLTR has 2 signals
     expect(result[0].symbol).toBe("PLTR");
+  });
+});
+
+// ── hot sortType ──────────────────────────────────────────────────────────────
+
+describe("aggregateSignals — hot sortType", () => {
+  it("assigns velocity 2 for hot sortType", () => {
+    const signals = [sig("PTON", { sortType: "hot", postAge: 5 })];
+    const [agg] = aggregateSignals(signals);
+    expect(agg.avgVelocity).toBe(2);
+  });
+
+  it("hot velocity is between rising (3) and comment (1.5)", () => {
+    const [rising] = aggregateSignals([sig("PTON", { sortType: "rising", postAge: 5 })]);
+    const [hot] = aggregateSignals([sig("PTON", { sortType: "hot", postAge: 5 })]);
+    const [comment] = aggregateSignals([sig("PTON", { sortType: "comment", postAge: 5 })]);
+    expect(hot.avgVelocity).toBeLessThan(rising.avgVelocity);
+    expect(hot.avgVelocity).toBeGreaterThan(comment.avgVelocity);
+  });
+
+  it("counts hot signals in risingCount for momentum", () => {
+    const signals = [
+      sig("PTON", { sortType: "hot", postAge: 2 }),
+      sig("PTON", { sortType: "rising", postAge: 1 }),
+    ];
+    const [agg] = aggregateSignals(signals);
+    expect(agg.momentum.risingCount).toBe(2);
+  });
+});
+
+// ── resolveFlairWeight ────────────────────────────────────────────────────────
+
+describe("resolveFlairWeight", () => {
+  it("returns 1.5 for DD flair", () => {
+    expect(resolveFlairWeight("DD")).toBe(1.5);
+  });
+
+  it("returns 1.5 for Due Diligence flair (case-insensitive)", () => {
+    expect(resolveFlairWeight("Due Diligence")).toBe(1.5);
+  });
+
+  it("returns 1.4 for News flair", () => {
+    expect(resolveFlairWeight("News")).toBe(1.4);
+  });
+
+  it("returns 1.4 for Breaking News flair", () => {
+    expect(resolveFlairWeight("Breaking News")).toBe(1.4);
+  });
+
+  it("returns 1.2 for Technical Analysis flair", () => {
+    expect(resolveFlairWeight("Technical Analysis")).toBe(1.2);
+  });
+
+  it("returns 0.8 for YOLO flair", () => {
+    expect(resolveFlairWeight("YOLO")).toBe(0.8);
+  });
+
+  it("returns 0.6 for Gain flair", () => {
+    expect(resolveFlairWeight("Gain")).toBe(0.6);
+  });
+
+  it("returns 0.6 for Loss flair", () => {
+    expect(resolveFlairWeight("Loss")).toBe(0.6);
+  });
+
+  it("returns 0.5 for Meme flair", () => {
+    expect(resolveFlairWeight("Meme")).toBe(0.5);
+  });
+
+  it("returns 0.5 for Shitpost flair", () => {
+    expect(resolveFlairWeight("Shitpost")).toBe(0.5);
+  });
+
+  it("returns 0.4 for Daily Discussion flair", () => {
+    expect(resolveFlairWeight("Daily Discussion")).toBe(0.4);
+  });
+
+  it("returns 0.4 for Weekend Thread flair", () => {
+    expect(resolveFlairWeight("Weekend Thread")).toBe(0.4);
+  });
+
+  it("returns 1.0 for undefined flair", () => {
+    expect(resolveFlairWeight(undefined)).toBe(1.0);
+  });
+
+  it("returns 1.0 for unrecognized flair", () => {
+    expect(resolveFlairWeight("Question")).toBe(1.0);
+  });
+
+  it("is case-insensitive", () => {
+    expect(resolveFlairWeight("dd")).toBe(1.5);
+    expect(resolveFlairWeight("MEME")).toBe(0.5);
+    expect(resolveFlairWeight("daily discussion")).toBe(0.4);
+  });
+
+  it("matches first category when flair could match multiple", () => {
+    // "DD / Research" matches DD (1.5) before Research (also 1.5)
+    expect(resolveFlairWeight("DD / Research")).toBe(1.5);
+  });
+});
+
+// ── flair × velocity integration ─────────────────────────────────────────────
+
+describe("aggregateSignals — flair velocity weighting", () => {
+  it("DD flair boosts rising velocity: 3 × 1.5 = 4.5", () => {
+    const signals = [sig("PTON", { sortType: "rising", postAge: 5, flair: "DD" })];
+    const [agg] = aggregateSignals(signals);
+    expect(agg.avgVelocity).toBe(4.5);
+  });
+
+  it("Meme flair reduces rising velocity: 3 × 0.5 = 1.5", () => {
+    const signals = [sig("PTON", { sortType: "rising", postAge: 5, flair: "Meme" })];
+    const [agg] = aggregateSignals(signals);
+    expect(agg.avgVelocity).toBe(1.5);
+  });
+
+  it("News flair boosts hot velocity: 2 × 1.4 = 2.8", () => {
+    const signals = [sig("PTON", { sortType: "hot", postAge: 5, flair: "News" })];
+    const [agg] = aggregateSignals(signals);
+    expect(agg.avgVelocity).toBeCloseTo(2.8);
+  });
+
+  it("Daily Discussion flair reduces fresh new velocity: 2 × 0.4 = 0.8", () => {
+    const signals = [sig("PTON", { sortType: "new", postAge: 1, flair: "Daily Discussion" })];
+    const [agg] = aggregateSignals(signals);
+    expect(agg.avgVelocity).toBeCloseTo(0.8);
+  });
+
+  it("undefined flair uses neutral weight (1.0)", () => {
+    const signals = [sig("PTON", { sortType: "rising", postAge: 5 })];
+    const [agg] = aggregateSignals(signals);
+    expect(agg.avgVelocity).toBe(3); // 3 × 1.0
+  });
+
+  it("averages flair-weighted velocities across multiple signals", () => {
+    const signals = [
+      sig("PTON", { sortType: "rising", postAge: 1, flair: "DD" }),        // 3 × 1.5 = 4.5
+      sig("PTON", { sortType: "new", postAge: 6, flair: "Meme" }),         // 1 × 0.5 = 0.5
+    ];
+    const [agg] = aggregateSignals(signals);
+    expect(agg.avgVelocity).toBe(2.5); // (4.5 + 0.5) / 2
   });
 });
