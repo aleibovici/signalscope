@@ -46,5 +46,12 @@ export async function chatJSONOpenAI(
     ? computeCost(model, usage.prompt_tokens, usage.completion_tokens)
     : 0;
 
-  return { content, provider: "openai", cost };
+  return {
+    content,
+    provider: "openai",
+    model,
+    cost,
+    inputTokens: usage?.prompt_tokens ?? 0,
+    outputTokens: usage?.completion_tokens ?? 0,
+  };
 }

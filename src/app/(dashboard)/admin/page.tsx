@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAdminStats } from "@/hooks/use-admin-stats";
 import { useAdminUsers } from "@/hooks/use-admin-users";
 import { useAdminPayments } from "@/hooks/use-admin-payments";
+import { useAdminCosts } from "@/hooks/use-admin-costs";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { stageLabel } from "@/lib/stage-labels";
@@ -79,6 +80,7 @@ export default function AdminPage() {
   const { data, isLoading, error } = useAdminStats();
   const { data: usersData, isLoading: usersLoading } = useAdminUsers();
   const { data: paymentsData } = useAdminPayments();
+  const { data: costsData } = useAdminCosts();
 
   // Redirect non-admins once session loads
   useEffect(() => {
@@ -112,6 +114,7 @@ export default function AdminPage() {
             queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
             queryClient.invalidateQueries({ queryKey: ["admin-users"] });
             queryClient.invalidateQueries({ queryKey: ["admin-payments"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-costs"] });
           }}
           className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:active:bg-zinc-800"
         >
@@ -311,6 +314,117 @@ export default function AdminPage() {
                       <td className="hidden max-w-[180px] truncate px-3 py-1 font-mono text-gray-400 dark:text-zinc-500 md:table-cell">
                         {p.payerAddress ?? "—"}
                       </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* AI Costs */}
+      {costsData && (
+        <Card>
+          <div className="border-b border-gray-100 px-3 py-2 dark:border-zinc-800">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">AI Costs</h2>
+          </div>
+
+          {/* Period totals */}
+          <div className="grid grid-cols-3 divide-x divide-gray-100 dark:divide-zinc-800">
+            {[
+              { label: "All time", ...costsData.totals.allTime },
+              { label: "Last 30d", ...costsData.totals.last30d },
+              { label: "Last 7d", ...costsData.totals.last7d },
+            ].map(({ label, cost, calls }) => (
+              <div key={label} className="px-3 py-2">
+                <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-zinc-500">{label}</p>
+                <p className="mt-0.5 text-sm font-semibold text-orange-600 dark:text-orange-400">${cost.toFixed(4)}</p>
+                <p className="text-[10px] text-gray-400 dark:text-zinc-500">{calls} calls</p>
+              </div>
+            ))}
+          </div>
+
+          {/* By call point + by trigger */}
+          <div className="grid grid-cols-2 divide-x divide-gray-100 border-t border-gray-100 dark:divide-zinc-800 dark:border-zinc-800">
+            <div>
+              <p className="border-b border-gray-50 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:border-zinc-800/60 dark:text-zinc-500">
+                By call point
+              </p>
+              <div className="divide-y divide-gray-50 px-3 py-1 dark:divide-zinc-800/60">
+                {costsData.byCallPoint.length === 0 ? (
+                  <p className="py-2 text-[10px] text-gray-400 dark:text-zinc-500">No data yet</p>
+                ) : costsData.byCallPoint.map((r) => (
+                  <div key={r.callPoint} className="flex items-center justify-between py-0.5 text-xs">
+                    <span className="text-gray-600 dark:text-zinc-300">{r.callPoint}</span>
+                    <span className="font-semibold text-orange-600 dark:text-orange-400">${r.cost.toFixed(4)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="border-b border-gray-50 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:border-zinc-800/60 dark:text-zinc-500">
+                By trigger
+              </p>
+              <div className="divide-y divide-gray-50 px-3 py-1 dark:divide-zinc-800/60">
+                {costsData.byTrigger.length === 0 ? (
+                  <p className="py-2 text-[10px] text-gray-400 dark:text-zinc-500">No data yet</p>
+                ) : costsData.byTrigger.map((r) => (
+                  <div key={r.trigger} className="flex items-center justify-between py-0.5 text-xs">
+                    <span className="text-gray-600 dark:text-zinc-300">{r.trigger}</span>
+                    <span className="font-semibold text-orange-600 dark:text-orange-400">${r.cost.toFixed(4)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Per-harvest table */}
+          {costsData.recentScans.length > 0 && (
+            <div className="border-t border-gray-100 dark:border-zinc-800">
+              <p className="border-b border-gray-50 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:border-zinc-800/60 dark:text-zinc-500">
+                Per harvest (last 30d)
+              </p>
+              <div className="max-h-[200px] overflow-y-auto overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-gray-50 bg-gray-50 text-left font-medium uppercase tracking-wide text-gray-400 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-500">
+                      <th className="px-3 py-1">Date</th>
+                      <th className="px-3 py-1 text-right">Scoring</th>
+                      <th className="px-3 py-1 text-right">P&D</th>
+                      <th className="px-3 py-1 text-right">Reports</th>
+                      <th className="px-3 py-1 text-right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50 dark:divide-zinc-800/60">
+                    {costsData.recentScans.map((s) => (
+                      <tr key={s.scanId} className="hover:bg-gray-50 dark:hover:bg-zinc-900/40">
+                        <td className="whitespace-nowrap px-3 py-1 text-gray-500 dark:text-zinc-400">{s.startedAt ? formatDate(s.startedAt) : "—"}</td>
+                        <td className="px-3 py-1 text-right text-gray-600 dark:text-zinc-300">${s.scoring.toFixed(4)}</td>
+                        <td className="px-3 py-1 text-right text-gray-600 dark:text-zinc-300">${s.pnd.toFixed(4)}</td>
+                        <td className="px-3 py-1 text-right text-gray-600 dark:text-zinc-300">${s.report.toFixed(4)}</td>
+                        <td className="px-3 py-1 text-right font-semibold text-orange-600 dark:text-orange-400">${s.total.toFixed(4)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* On-demand by user */}
+          {costsData.onDemandByUser.length > 0 && (
+            <div className="border-t border-gray-100 dark:border-zinc-800">
+              <p className="border-b border-gray-50 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:border-zinc-800/60 dark:text-zinc-500">
+                On-demand by user (last 30d)
+              </p>
+              <table className="w-full text-xs">
+                <tbody className="divide-y divide-gray-50 dark:divide-zinc-800/60">
+                  {costsData.onDemandByUser.map((u) => (
+                    <tr key={u.userId ?? "anon"} className="hover:bg-gray-50 dark:hover:bg-zinc-900/40">
+                      <td className="max-w-[200px] truncate px-3 py-1 text-gray-600 dark:text-zinc-300">{u.email}</td>
+                      <td className="px-3 py-1 text-right text-gray-400 dark:text-zinc-500">{u.calls} reports</td>
+                      <td className="px-3 py-1 text-right font-semibold text-orange-600 dark:text-orange-400">${u.cost.toFixed(4)}</td>
                     </tr>
                   ))}
                 </tbody>

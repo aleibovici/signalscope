@@ -1,4 +1,5 @@
 import { chatJSON } from "@/lib/ai";
+import type { AiCostContext } from "@/lib/ai/types";
 import { chatReACT, validateTradeSetup } from "@/lib/ai/react";
 import type { AggregatedSymbol, FundamentalData, NoveltyContext, SignalType, TickerReport } from "./types";
 
@@ -133,7 +134,8 @@ export async function generateTickerReport(
   fundamentals: FundamentalData | null,
   aiScore: number,
   signalType?: SignalType,
-  novelty?: NoveltyContext
+  novelty?: NoveltyContext,
+  context?: AiCostContext
 ): Promise<TickerReport> {
   try {
     const response = await chatJSON({
@@ -142,6 +144,7 @@ export async function generateTickerReport(
       temperature: 0.4,
       systemPrompt: REPORT_SYSTEM_PROMPT,
       userMessage: buildTickerContext(symbol, agg, fundamentals, aiScore, signalType, novelty),
+      context,
     });
 
     const raw = JSON.parse(response.content);
@@ -178,7 +181,8 @@ export async function generateTickerReportReACT(
   aiScore: number,
   scanId: string,
   signalType?: SignalType,
-  novelty?: NoveltyContext
+  novelty?: NoveltyContext,
+  context?: AiCostContext
 ): Promise<TickerReport> {
   try {
     return await chatReACT({
@@ -187,10 +191,11 @@ export async function generateTickerReportReACT(
       initialContext: buildTickerContext(symbol, agg, fundamentals, aiScore, signalType, novelty),
       reportSystemPrompt: REPORT_SYSTEM_PROMPT,
       temperature: 0.4,
+      context,
     });
   } catch (err) {
     console.warn(`[react] ReACT failed for ${symbol}, falling back to single-shot:`, err instanceof Error ? err.message : err);
-    return generateTickerReport(symbol, agg, fundamentals, aiScore, signalType, novelty);
+    return generateTickerReport(symbol, agg, fundamentals, aiScore, signalType, novelty, context);
   }
 }
 

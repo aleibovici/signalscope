@@ -499,7 +499,7 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
     }
     const scoreResults = (
       await Promise.all(
-        scoreBatches.map((batch) => scoreSymbolBatch(batch, fundamentalsMap, noveltyMap))
+        scoreBatches.map((batch) => scoreSymbolBatch(batch, fundamentalsMap, noveltyMap, scan.id))
       )
     ).flat();
 
@@ -538,7 +538,7 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
         borderlineCandidates.map(async (agg) => {
           const pnd = pndResultsMap.get(agg.symbol)!;
           try {
-            const result = await aiPndAssessment(agg.symbol, agg, pnd.flags);
+            const result = await aiPndAssessment(agg.symbol, agg, pnd.flags, scan.id);
             return [agg.symbol, result] as const;
           } catch (err) {
             console.warn(`[pnd] AI assessment failed for ${agg.symbol}, defaulting to flagged:`, err);

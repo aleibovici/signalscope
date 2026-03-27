@@ -52,5 +52,12 @@ export async function chatJSONAnthropic(
 
   const cost = computeCost(model, response.usage.input_tokens, response.usage.output_tokens);
 
-  return { content: raw, provider: "anthropic", cost };
+  return {
+    content: raw,
+    provider: "anthropic",
+    model,
+    cost,
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+  };
 }
