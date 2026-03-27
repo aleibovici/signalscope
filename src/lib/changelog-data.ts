@@ -10,7 +10,7 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-03-27",
-    title: "AI Cost Tracking, Error Boundaries, Data Freshness Indicators",
+    title: "AI Cost Tracking, Error Boundaries, Data Freshness Indicators, Harvester Improvements",
     changes: [
       {
         category: "new",
@@ -23,6 +23,11 @@ export const changelog: ChangelogEntry[] = [
       {
         category: "improved",
         items: [
+          "Reddit harvester now fetches hot posts (top 25) in addition to new and rising, giving each subreddit three signal angles. Hot posts from the same thread as a rising or new post are deduplicated at the comment level.",
+          "Reddit harvester paginates new posts across up to 3 pages for WSB and 2 pages for stocks/pennystocks — up to 3× more signals per harvest.",
+          "Flair-based velocity weighting: DD and News posts receive a signal boost; Meme, YOLO, and Gain/Loss posts are down-weighted. Signals from daily/megathreads are deprioritized.",
+          "Twitter/X harvester now filters retweets from search results (-is:retweet), eliminating duplicate content while retaining engagement metrics on originals.",
+          "Twitter/X harvester paginates using next_token across up to 3 pages per harvest (configurable via X_MAX_PAGES, max 5) — up to 3× more tweets analysed per run.",
           "Keyboard users can now skip past the sidebar with a Skip to main content link that appears on focus.",
           "Filter toggle, stage tabs, and return period buttons now expose selected/expanded state via ARIA attributes for screen readers.",
           "Public API endpoints (ticker data, trending, network) are now rate-limited to prevent abuse.",
