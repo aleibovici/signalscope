@@ -26,6 +26,26 @@ const SOURCE_WEIGHTS: Record<string, number> = {
   STOCKTWITS: 1,
 };
 
+// Flair-based velocity weight — ordered array, first substring match wins on lowercased flair
+const FLAIR_WEIGHTS: Array<{ match: string[]; weight: number }> = [
+  { match: ["dd", "due diligence", "research", "fundamentals"],          weight: 1.5 },
+  { match: ["news", "catalyst", "breaking", "earnings"],                 weight: 1.4 },
+  { match: ["technical analysis", " ta", "chart"],                       weight: 1.2 },
+  { match: ["yolo", "bet"],                                              weight: 0.8 },
+  { match: ["gain", "loss", "position"],                                 weight: 0.6 },
+  { match: ["meme", "shitpost", "humor", "satire"],                      weight: 0.5 },
+  { match: ["daily", "weekly", "megathread", "weekend"],                 weight: 0.4 },
+];
+
+export function resolveFlairWeight(flair: string | undefined): number {
+  if (!flair) return 1.0;
+  const lower = flair.toLowerCase();
+  for (const { match, weight } of FLAIR_WEIGHTS) {
+    if (match.some((m) => lower.includes(m))) return weight;
+  }
+  return 1.0;
+}
+
 export function aggregateSignals(signals: RawSignal[]): AggregatedSymbol[] {
   const bySymbol = new Map<string, RawSignal[]>();
 
@@ -55,19 +75,22 @@ export function aggregateSignals(signals: RawSignal[]): AggregatedSymbol[] {
           const socialSigs = sigs.filter((s) => s.postAge != null && s.sortType);
           if (socialSigs.length === 0) return 0;
           const velocitySum = socialSigs.reduce((sum, s) => {
-            if (s.sortType === "rising") return sum + 3;
-            if (s.sortType === "trending") return sum + 1.5;
-            if (s.sortType === "comment") return sum + 1.5;
-            if (s.postAge! < 3) return sum + 2;
-            if (s.postAge! < 12) return sum + 1;
-            return sum + 0.5;
+            let base: number;
+            if (s.sortType === "rising") base = 3;
+            else if (s.sortType === "hot") base = 2;
+            else if (s.sortType === "trending") base = 1.5;
+            else if (s.sortType === "comment") base = 1.5;
+            else if (s.postAge! < 3) base = 2;
+            else if (s.postAge! < 12) base = 1;
+            else base = 0.5;
+            return sum + base * resolveFlairWeight(s.flair);
           }, 0);
           return velocitySum / socialSigs.length;
         })(),
         momentum: sigs.reduce(
           (m, s) => {
             if (s.postAge != null && s.sortType) {
-              if (s.sortType === "rising") m.risingCount++;
+              if (s.sortType === "rising" || s.sortType === "hot") m.risingCount++;
               else if (s.sortType === "trending") m.recentCount++;
               else if (s.sortType === "comment") m.commentDerivedCount++;
               else if (s.postAge < 3) m.freshCount++;
@@ -636,23 +659,22 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
       authorKarma: signal.authorKarma,
       upvotes: signal.upvotes,
       commentCount: signal.commentCount,
-      velocityScore:
-        signal.postAge != null && signal.sortType
-          ? signal.sortType === "rising"
-            ? 3
-            : signal.sortType === "trending"
-              ? 1.5
-              : signal.sortType === "comment"
-                ? 1.5
-                : signal.postAge < 3
-                  ? 2
-                  : signal.postAge < 12
-                    ? 1
-                    : 0.5
-          : 0,
+      velocityScore: (() => {
+        if (signal.postAge == null || !signal.sortType) return 0;
+        let base: number;
+        if (signal.sortType === "rising") base = 3;
+        else if (signal.sortType === "hot") base = 2;
+        else if (signal.sortType === "trending") base = 1.5;
+        else if (signal.sortType === "comment") base = 1.5;
+        else if (signal.postAge < 3) base = 2;
+        else if (signal.postAge < 12) base = 1;
+        else base = 0.5;
+        return base * resolveFlairWeight(signal.flair);
+      })(),
       subreddit: signal.subreddit,
       postAge: signal.postAge,
       sortType: signal.sortType,
+      flair: signal.flair,
       purchaseValue: signal.purchaseValue,
       insiderTitle: signal.insiderTitle,
       volumeRatio: signal.volumeRatio,

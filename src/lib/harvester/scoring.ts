@@ -72,7 +72,7 @@ Also consider:
 - Price relative to 52-week range
 - Exchange quality — NYSE/NASDAQ preferred over OTC
 - Pre-consensus (first appearance) vs already widely discussed
-- avgVelocity measures signal momentum: 3 = trending/rising, 2 = very fresh (<3h), 1 = recent (<12h), 0.5 = older.
+- avgVelocity measures signal momentum: 3 = rising, 2 = hot/very fresh (<3h), 1.5 = trending/comment-derived, 1 = recent (<12h), 0.5 = older. Flair-based multiplier applied on top (DD=1.5x, News=1.4x, Meme=0.5x, etc.).
   High velocity (≥2.0) with multiple mentions = potential early breakout. Weight this as a positive signal.
 - momentum breakdown (risingCount, freshCount, recentCount, commentDerivedCount, staleCount) shows the composition behind avgVelocity.
   Multiple rising signals = strong trending evidence. commentDerivedCount > 0 means organic discussion (tickers mentioned in comments, not just post titles). High staleCount dilutes the signal.

@@ -13,7 +13,8 @@ export interface RawSignal {
   commentCount?: number;
   subreddit?: string;
   postAge?: number;         // hours since post creation
-  sortType?: string;        // "new" | "rising" — needed for velocity weighting
+  sortType?: string;        // "new" | "rising" | "hot" — needed for velocity weighting
+  flair?: string;            // Reddit post flair (DD, News, Meme, etc.) — used for velocity weighting
   watchlistCount?: number;  // StockTwits watchlist count
   insiderTitle?: string;    // insider's role (CEO, CFO, Director, etc.)
   purchaseValue?: number;   // dollar value of insider purchase
