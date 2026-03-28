@@ -9,6 +9,21 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-03-29",
+    title: "Polymarket Prediction Market Signal Source",
+    changes: [
+      {
+        category: "new",
+        items: [
+          "Polymarket is now a live signal source (weight 2.0). Each harvest searches Polymarket prediction markets for all tracked tickers — both the default scan list and any symbols discovered by other sources that run. Markets matching price keywords (close, above, below, hit) or catalyst keywords (earnings, merger, FDA approval, S&P 500 inclusion, IPO, launch) are captured as signals.",
+          "Catalyst detection: Polymarket markets about upcoming earnings, mergers, FDA decisions, or index additions are treated as early-signal catalysts — exactly the pre-breakout events the scoring model looks for. A ticker with a prediction market in play before consensus means smart money is pricing in a move.",
+          "Two-phase harvest: Phase 1 scans the standard symbol list in parallel with all other sources. Phase 2 automatically scans any new symbols discovered by Reddit, Twitter, or other sources in that same run — so Polymarket coverage expands dynamically without requiring those symbols to be pre-listed.",
+          "Four new signal fields persisted: market probability (implied yes/no or best bracket probability), 24h volume, total liquidity, and market end date. These are passed to the AI scorer and stored in the database.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-03-28",
     title: "Deeper Reddit & Twitter Harvesting, ML Model Alignment, API & Docs Audit",
     changes: [
