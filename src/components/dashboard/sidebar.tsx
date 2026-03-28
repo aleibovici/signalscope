@@ -70,8 +70,6 @@ const publicNavItems = [
   { href: "/trending", label: "Trending", icon: NavIcons.Trending },
   { href: "/connections", label: "Connections", icon: NavIcons.Connections },
   { href: "/performance", label: "Performance", icon: NavIcons.Performance },
-  { href: "/methodology", label: "How It Works", icon: NavIcons.HowItWorks },
-  { href: "/changelog", label: "Changelog", icon: NavIcons.Changelog },
 ];
 const authNavItems = [
   { href: "/portfolio", label: "Portfolio", icon: NavIcons.Portfolio },
@@ -231,6 +229,25 @@ export function Sidebar({ revision }: { revision: string }) {
 
           <div className="border-t border-gray-200 px-4 py-3 dark:border-zinc-800">
             <NextScanCountdown />
+          </div>
+        </div>
+
+        <div className="shrink-0 border-t border-gray-200 px-4 py-2 dark:border-zinc-800">
+          <div className="flex flex-wrap gap-x-3 gap-y-1">
+            {[
+              { href: "/blog", label: "Blog" },
+              { href: "/faq", label: "FAQ" },
+              { href: "/changelog", label: "Changelog" },
+              { href: "/how-it-works", label: "How it works" },
+            ].map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                className="text-xs text-gray-400 hover:text-gray-600 dark:text-zinc-500 dark:hover:text-zinc-300"
+              >
+                {label}
+              </Link>
+            ))}
           </div>
         </div>
 
