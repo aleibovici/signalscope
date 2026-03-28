@@ -126,7 +126,7 @@ export function Sidebar({ revision }: { revision: string }) {
               <line x1="3" y1="18" x2="21" y2="18" />
             </svg>
           </button>
-          <Link href="/dashboard" className="truncate text-lg font-bold text-gray-900 dark:text-zinc-100">
+          <Link href="/login" className="truncate text-lg font-bold text-gray-900 dark:text-zinc-100">
             SignalScope
           </Link>
         </div>
@@ -150,7 +150,7 @@ export function Sidebar({ revision }: { revision: string }) {
       >
         <div className="flex items-center justify-between gap-2 border-b border-gray-200 px-4 py-5 dark:border-zinc-800 md:px-6">
           <div className="min-w-0">
-            <Link href="/dashboard" className="text-xl font-bold text-gray-900 dark:text-zinc-100">
+            <Link href="/login" className="text-xl font-bold text-gray-900 dark:text-zinc-100">
               SignalScope
             </Link>
             <p className="mt-1 text-xs text-gray-500 dark:text-zinc-400">Breakout Detection</p>
