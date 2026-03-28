@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
 import { EmergingReturnsChart } from "@/components/emerging-returns-chart";
 
@@ -33,6 +33,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [perfStats, setPerfStats] = useState<PerfStats | null>(null);
+  const { status } = useSession();
 
   useEffect(() => {
     fetch("/api/stats/performance")
@@ -70,15 +71,37 @@ export default function LoginPage() {
             Signal<span className="text-blue-300">Scope</span>
           </span>
           <div className="flex items-center gap-3">
-            <a href="#sign-in" className="text-sm font-medium text-blue-200 hover:text-white transition-colors touch-manipulation">
-              Sign In
-            </a>
-            <Link
-              href="/register"
-              className="rounded-md bg-white/15 px-3.5 py-1.5 text-sm font-medium text-white backdrop-blur-sm hover:bg-white/25 transition-colors touch-manipulation"
-            >
-              Register
-            </Link>
+            {status === "authenticated" ? (
+              <>
+                <Link href="/dashboard" className="text-sm font-medium text-blue-200 hover:text-white transition-colors touch-manipulation">
+                  Dashboard
+                </Link>
+                <button
+                  onClick={() =>
+                    fetch("/api/auth/csrf")
+                      .then((r) => r.json())
+                      .then(({ csrfToken }) =>
+                        fetch("/api/auth/signout", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                          body: new URLSearchParams({ csrfToken }),
+                        })
+                      )
+                      .finally(() => { window.location.reload(); })
+                  }
+                  className="rounded-md bg-white/15 px-3.5 py-1.5 text-sm font-medium text-white backdrop-blur-sm hover:bg-white/25 transition-colors touch-manipulation cursor-pointer"
+                >
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/register"
+                className="rounded-md bg-white/15 px-3.5 py-1.5 text-sm font-medium text-white backdrop-blur-sm hover:bg-white/25 transition-colors touch-manipulation"
+              >
+                Register
+              </Link>
+            )}
           </div>
         </div>
       </nav>
