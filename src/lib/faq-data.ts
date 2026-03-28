@@ -12,7 +12,7 @@ export const faqItems: FaqItem[] = [
   {
     question: "How does SignalScope detect signals?",
     answer:
-      "SignalScope monitors seven data sources on every scan: Reddit (17 subreddits), X/Twitter, StockTwits, SEC insider filings (C-suite purchases over $50K), congressional stock trades (STOCK Act disclosures), options flow (unusual call volume), and volume spikes (2x+ average). Raw mentions are aggregated by ticker symbol, scored by AI, filtered for pump-and-dump schemes, and assigned to stages based on conviction level.",
+      "SignalScope monitors eight data sources on every scan: Reddit (17 subreddits), X/Twitter, StockTwits, SEC insider filings (C-suite purchases over $50K), congressional stock trades (STOCK Act disclosures), options flow (unusual call volume), volume spikes (2x+ average), and Polymarket prediction markets (active price and catalyst markets with meaningful trading volume). Raw mentions are aggregated by ticker symbol, scored by AI, filtered for pump-and-dump schemes, and assigned to stages based on conviction level.",
   },
   {
     question: "What do signal stages (Emerging, Building, Consensus, Filtered) mean?",
@@ -37,7 +37,7 @@ export const faqItems: FaqItem[] = [
   {
     question: "What sources does SignalScope monitor?",
     answer:
-      "Seven sources, each with a weight reflecting its predictive value: SEC Insider filings (3.0x weight — C-suite purchases over $50K), Options Flow (2.5x — unusual call volume and sweeps), Congressional trades (2.5x — STOCK Act disclosures), Volume Spikes (2.0x — stocks at 2x+ average volume), X/Twitter (1.2x — API v2 keyword search), Reddit (1.0x — 17 subreddits), and StockTwits (1.0x — trending tickers).",
+      "Eight sources, each with a weight reflecting its predictive value: SEC Insider filings (3.0x weight — C-suite purchases over $50K), Options Flow (2.5x — unusual call volume and sweeps), Congressional trades (2.5x — STOCK Act disclosures), Volume Spikes (2.5x — stocks at 2x+ average volume), Polymarket (2.0x — active prediction markets for price targets and catalyst events), X/Twitter (1.2x — API v2 keyword search), Reddit (1.0x — 17 subreddits), and StockTwits (1.0x — trending tickers). Polymarket is unique in that it also runs a second scan pass specifically for any new tickers discovered by other sources during the same harvest run.",
   },
   {
     question: "What is x402 and how do AI agents pay for data?",

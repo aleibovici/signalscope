@@ -77,6 +77,12 @@ export const signalSources: SignalSource[] = [
     description: "Congressional stock purchases from public STOCK Act disclosures. Cross-scan dedup prevents repeated ingestion of the same transaction.",
     params: "Buys only · US tickers · 7-day pub window · txId dedup",
   },
+  {
+    icon: "🔮",
+    name: "Polymarket",
+    description: "Active prediction markets for stock catalysts — price targets, earnings beats, merger closes, FDA approvals, and S&P 500 inclusions. Two-phase scan: known symbols first, then any tickers discovered by other sources.",
+    params: "Public Gamma API · $5K total vol OR $1K 24h vol · event-level aggregation · two-phase scan",
+  },
 ];
 
 export const sourceWeights: SourceWeight[] = [
@@ -86,6 +92,7 @@ export const sourceWeights: SourceWeight[] = [
   { source: "Volume Spike", weight: "2.5" },
   { source: "X / Twitter", weight: "1.2" },
   { source: "SEC Filing", weight: "1.0" },
+  { source: "Polymarket", weight: "2.0" },
   { source: "Reddit", weight: "1.0" },
   { source: "StockTwits", weight: "1.0" },
 ];
@@ -163,8 +170,8 @@ export const recommendationLevels: RecommendationLevel[] = [
 ];
 
 export const methodologyDescription =
-  "SignalScope monitors public ticker mentions across seven signal sources — from social media to SEC filings " +
-  "and congressional trades — aggregates them by symbol, scores each candidate with AI, runs a " +
+  "SignalScope monitors public ticker mentions across eight signal sources — from social media and SEC filings " +
+  "to congressional trades and Polymarket prediction markets — aggregates them by symbol, scores each candidate with AI, runs a " +
   "13-flag pump-and-dump filter, and surfaces only the tickers with the strongest multi-source backing and " +
   "verifiable catalysts. The result is a prioritised watchlist you can act on before the crowd.";
 
