@@ -345,7 +345,7 @@ describe("volume thresholds", () => {
     expect(signals[0].marketVolume24hr).toBe(1200);
   });
 
-  it("handles undefined/null volume fields", async () => {
+  it("handles undefined volume fields (all parse as 0 → below thresholds)", async () => {
     mockFetch.mockResolvedValue(mockOk([
       mkEvent({
         markets: [mkMarket({
@@ -358,7 +358,24 @@ describe("volume thresholds", () => {
 
     const signals = await fetchPolymarketSignals(["AAPL"]);
     expect(signals).toHaveLength(0);
-    // All volumes parse as 0 → below both thresholds
+  });
+
+  it("handles null volume fields — does not produce NaN (JSON serializes NaN as null)", async () => {
+    // When volume24hr is null but total volume >= $5K, signal is emitted with volume24hr=0 (not NaN)
+    mockFetch.mockResolvedValue(mockOk([
+      mkEvent({
+        markets: [mkMarket({
+          volume: "6000",
+          volume24hr: null,
+          liquidity: null,
+        })],
+      }),
+    ]));
+
+    const signals = await fetchPolymarketSignals(["AAPL"]);
+    expect(signals).toHaveLength(1);
+    expect(signals[0].marketVolume24hr).toBe(0);
+    expect(Number.isFinite(signals[0].marketVolume24hr!)).toBe(true);
   });
 });
 
