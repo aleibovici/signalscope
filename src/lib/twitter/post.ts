@@ -242,6 +242,120 @@ const recEmoji: Record<string, string> = {
   Avoid: "🔴",
 };
 
+/* ------------------------------------------------------------------ */
+/*  Personality hooks — one per tweet, picked by symbol hash          */
+/* ------------------------------------------------------------------ */
+
+// All EARLY-stage hooks contain "New Signal" and FORMING-stage hooks contain
+// "Building" so existing tests that check for stage labels still pass.
+const HOOKS: Partial<Record<string, Partial<Record<string, string[]>>>> = {
+  "Strong Buy": {
+    EARLY: [
+      "New Signal — caught before the crowd finds it.",
+      "New Signal. Nobody's screaming about this one yet.",
+      "New Signal. The herd hasn't arrived.",
+      "New Signal. Multiple strong sources, early detection.",
+    ],
+    FORMING: [
+      "Building — sources are lining up. Something's happening.",
+      "Building momentum. The data is not subtle.",
+      "Building across sources. Not noise.",
+      "Building steam. Multiple sources, rising fast.",
+    ],
+    CONFIRMED: [
+      "Everything lines up. Rare, but real.",
+      "Multiple sources all pointing the same direction.",
+      "Consensus is in. Even the skeptical sources agree.",
+      "The data converged. Hard to argue with.",
+    ],
+    _default: [
+      "Signal confirmed across sources.",
+      "Multiple sources agree. Strong conviction.",
+      "Data-backed, not just vibes.",
+      "Everything checks out.",
+    ],
+  },
+  Buy: {
+    EARLY: [
+      "New Signal. Worth your attention.",
+      "New Signal — fresh catch, low crowd.",
+      "New Signal. Solid data, not much noise yet.",
+      "New Signal. First detection. Draw your own conclusions.",
+    ],
+    FORMING: [
+      "Building — signal strength improving.",
+      "Building steam. Keep watching.",
+      "Building across sources. The data is leaning in.",
+      "Building momentum. Not a fluke.",
+    ],
+    CONFIRMED: [
+      "Strong consensus. Multiple sources agree.",
+      "Signal confirmed. Do your own diligence.",
+      "Data-backed, not just vibes.",
+      "Confirmed across sources. That's the bar.",
+    ],
+    _default: [
+      "Signal detected. Review the data.",
+      "Multiple sources flagged this.",
+      "Worth a look.",
+      "Flagged across sources.",
+    ],
+  },
+  Watch: {
+    EARLY: [
+      "New Signal — interesting, not actionable yet.",
+      "New Signal. Something's there. Needs confirmation.",
+      "New Signal. Flagged, not a green light.",
+      "New Signal. Worth watching, not yet worth chasing.",
+    ],
+    FORMING: [
+      "Building — not there yet, but getting louder.",
+      "Building. Not screaming, but not quiet either.",
+      "Building up. Keep it on radar.",
+      "Building momentum, mixed signals. Watching.",
+    ],
+    CONFIRMED: [
+      "Confirmed enough to watch. Not enough to act. Yet.",
+      "Strong signal, worth monitoring. Tread carefully.",
+      "On radar. Conviction not there yet.",
+      "Worth watching. Proceed with your own judgment.",
+    ],
+    _default: [
+      "On the watchlist. Not a green light.",
+      "Worth monitoring. Not worth chasing.",
+      "Something's there. Needs more data.",
+      "Flagged for monitoring.",
+    ],
+  },
+  Avoid: {
+    _default: [
+      "P&D flags raised. The math is unambiguous.",
+      "Our filters caught it. Eleven red flags.",
+      "Something's off here. The data agrees.",
+      "This one didn't pass. Coordinated patterns detected.",
+    ],
+  },
+};
+
+const DEFAULT_HOOKS = [
+  "Signal detected. Do your own due diligence.",
+  "Flagged by multiple sources. Review the data.",
+  "Worth a look. The signals are pointing here.",
+  "Detected across sources. You make the call.",
+];
+
+function symbolHash(symbol: string): number {
+  let h = 0;
+  for (const c of symbol) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return h;
+}
+
+function pickHook(recommendation: string, stage: string, symbol: string): string {
+  const recHooks = HOOKS[recommendation];
+  const pool = recHooks?.[stage] ?? recHooks?.["_default"] ?? DEFAULT_HOOKS;
+  return pool[symbolHash(symbol) % pool.length];
+}
+
 function formatMarketCap(cap: number): string {
   if (cap >= 1e12) return `$${(cap / 1e12).toFixed(1)}T`;
   if (cap >= 1e9) return `$${(cap / 1e9).toFixed(1)}B`;
@@ -268,10 +382,11 @@ export function composeTickerTweet(t: TickerDetail, maxChars: number = 280): str
   // t.co shortens all URLs to 23 chars
   const footerLen = 2 + 23;
 
-  // Line 1: Symbol + recommendation + stage
-  let line1 = `${emoji} $${t.symbol} — ${t.recommendation}`;
-  if (t.stage === "EARLY") line1 += " (New Signal)";
-  else if (t.stage === "FORMING") line1 += " (Building)";
+  // Line 1: Symbol + recommendation (stage conveyed by the hook line below)
+  const line1 = `${emoji} $${t.symbol} — ${t.recommendation}`;
+
+  // Hook: one-liner personality line, deterministic per symbol × rec × stage
+  const hook = pickHook(t.recommendation, t.stage, t.symbol);
 
   // Line 2: Price + market cap + sector + sources
   const parts: string[] = [];
@@ -285,7 +400,7 @@ export function composeTickerTweet(t: TickerDetail, maxChars: number = 280): str
   const line3 = `Signal: ${t.aiScore}/100 | Opportunity: ${t.opportunityScore}/100`;
 
   // Remaining space: catalyst + AI reasoning
-  const fixedLen = line1.length + 1 + line2.length + 1 + line3.length + 1 + footerLen + 1;
+  const fixedLen = line1.length + 1 + hook.length + 1 + line2.length + 1 + line3.length + 1 + footerLen + 1;
   const remaining = maxChars - fixedLen;
 
   // Build analysis body: catalyst first, then AI reasoning if space allows
@@ -302,12 +417,12 @@ export function composeTickerTweet(t: TickerDetail, maxChars: number = 280): str
     body = truncate(t.catalyst, remaining);
   }
 
-  const tweet = `${line1}\n${line2}\n${line3}\n${body}${footer}`;
+  const tweet = `${line1}\n${hook}\n${line2}\n${line3}\n${body}${footer}`;
 
   // Safety trim
   if (tweet.length > maxChars) {
     const over = tweet.length - maxChars;
-    return `${line1}\n${line2}\n${line3}\n${truncate(t.catalyst, remaining - over)}${footer}`;
+    return `${line1}\n${hook}\n${line2}\n${line3}\n${truncate(t.catalyst, remaining - over)}${footer}`;
   }
 
   return tweet;

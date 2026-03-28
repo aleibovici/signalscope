@@ -21,6 +21,7 @@ export const changelog: ChangelogEntry[] = [
       {
         category: "improved",
         items: [
+          "Twitter alert tweets now have personality — a dry, one-liner hook line between the headline and data block conveys stage and tone (e.g. 'New Signal. Nobody's screaming about this one yet.' or 'Everything lines up. Rare, but real.'). Hook is deterministic per ticker so the same symbol always gets the same voice. Promo tweets updated to use a lightly snarky, self-aware tone in AI generation.",
           "Reddit harvester now fetches hot posts (top 25) in addition to new and rising, giving each subreddit three signal angles. Comment fetches are deduplicated across all sorts so the same thread is never fetched twice.",
           "Reddit harvester paginates new posts across up to 3 pages for WSB and 2 pages for stocks/pennystocks — up to 3× more signals per harvest run.",
           "Flair-based velocity weighting: DD and News posts receive a signal boost; Meme, YOLO, and Gain/Loss posts are down-weighted. Daily threads and megaposts are deprioritized.",

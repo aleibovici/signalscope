@@ -65,8 +65,8 @@ describe("composeTickerTweet", () => {
 
   it("omits price from info line when null", () => {
     const tweet = composeTickerTweet(makeTicker({ price: null, tradeSetup: null }));
-    // Info line should not have a price, just market cap / sector / sources
-    const infoLine = tweet.split("\n")[1];
+    // Info line is now line index 2 (after headline + hook)
+    const infoLine = tweet.split("\n")[2];
     expect(infoLine).toMatch(/^\$/); // starts with market cap $
     expect(infoLine).not.toMatch(/^\$\d+\.\d{2} \|/); // no leading stock price
   });
