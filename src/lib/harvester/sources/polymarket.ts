@@ -104,9 +104,9 @@ async function searchSymbol(symbol: string): Promise<RawSignal[]> {
         if (!isRelevantMarket(market.question, symbol)) continue;
 
         activeMarkets.push(market);
-        eventVolume += parseFloat(String(market.volume) || "0");
-        eventVolume24h += parseFloat(String(market.volume24hr) || "0");
-        eventLiquidity += parseFloat(String(market.liquidity) || "0");
+        eventVolume += Number(market.volume) || 0;
+        eventVolume24h += Number(market.volume24hr) || 0;
+        eventLiquidity += Number(market.liquidity) || 0;
       }
 
       if (activeMarkets.length === 0) continue;
