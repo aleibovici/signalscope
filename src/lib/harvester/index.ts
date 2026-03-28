@@ -8,6 +8,8 @@ import { fetchOptionsFlowSignals } from "./sources/options-flow";
 import { fetchVolumeSpikeSignals } from "./sources/volume-spike";
 import { fetchTwitterSignals } from "./sources/twitter";
 import { fetchCongressSignals } from "./sources/congress";
+import { fetchPolymarketSignals } from "./sources/polymarket";
+import { SCAN_SYMBOLS } from "./sources/ticker-utils";
 import { scoreSymbolBatch, defaultScore } from "./scoring";
 import { checkPndFlags, aiPndAssessment } from "./pnd-filter";
 import { fetchFundamentals } from "./fundamentals";
@@ -20,6 +22,7 @@ const SOURCE_WEIGHTS: Record<string, number> = {
   OPTIONS_FLOW: 2.5,
   VOLUME_SPIKE: 2.5,
   CONGRESS: 2.5,
+  POLYMARKET: 2.0,
   TWITTER: 1.2,
   SEC_FILING: 1,
   REDDIT: 1,
@@ -319,9 +322,10 @@ function classifySignalType(agg: AggregatedSymbol): SignalType {
   const hasOptions = sources.has("OPTIONS_FLOW");
   const hasVolume = sources.has("VOLUME_SPIKE");
   const hasCongress = sources.has("CONGRESS");
+  const hasPolymarket = sources.has("POLYMARKET");
 
-  // Multi-source: social (Reddit/StockTwits/Twitter) + at least one of insider/options/volume/congress
-  if ((hasReddit || hasStockTwits || hasTwitter) && (hasInsider || hasOptions || hasVolume || hasCongress) && sources.size >= 3) {
+  // Multi-source: social (Reddit/StockTwits/Twitter) + at least one of insider/options/volume/congress/polymarket
+  if ((hasReddit || hasStockTwits || hasTwitter) && (hasInsider || hasOptions || hasVolume || hasCongress || hasPolymarket) && sources.size >= 3) {
     return "multi_source";
   }
 
@@ -338,6 +342,11 @@ function classifySignalType(agg: AggregatedSymbol): SignalType {
   // Options flow: unusual call sweep/volume
   if (hasOptions) {
     return "options_flow";
+  }
+
+  // Polymarket activity: prediction market volume spike
+  if (hasPolymarket) {
+    return "polymarket_activity";
   }
 
   // Twitter velocity: Twitter-only signals
@@ -373,7 +382,7 @@ async function mirrorToDevDb(
  */
 export async function fetchSignals(): Promise<RawSignal[]> {
   console.log("Fetching signals from all sources...");
-  const sourceNames = ["reddit", "stocktwits", "secInsider", "optionsFlow", "volumeSpike", "twitter", "congress"] as const;
+  const sourceNames = ["reddit", "stocktwits", "secInsider", "optionsFlow", "volumeSpike", "twitter", "congress", "polymarket"] as const;
   const sourceResults = await Promise.allSettled([
     fetchRedditSignals(),
     fetchStockTwitsSignals(),
@@ -382,6 +391,7 @@ export async function fetchSignals(): Promise<RawSignal[]> {
     fetchVolumeSpikeSignals(),
     fetchTwitterSignals(),
     fetchCongressSignals(),
+    fetchPolymarketSignals(),
   ]);
 
   sourceResults.forEach((r, i) => {
@@ -393,6 +403,22 @@ export async function fetchSignals(): Promise<RawSignal[]> {
   const allSignals: RawSignal[] = sourceResults.flatMap((r) =>
     r.status === "fulfilled" ? r.value : []
   );
+
+  // Phase 2: Search Polymarket for symbols discovered by other sources but not in SCAN_SYMBOLS
+  const scanSymbolSet = new Set(SCAN_SYMBOLS);
+  const extraSymbols = [...new Set(allSignals.map((s) => s.symbol))].filter(
+    (s) => !scanSymbolSet.has(s)
+  );
+
+  if (extraSymbols.length > 0) {
+    console.log(`Polymarket phase 2: searching ${extraSymbols.length} extra symbols...`);
+    try {
+      const extraSignals = await fetchPolymarketSignals(extraSymbols);
+      allSignals.push(...extraSignals);
+    } catch (err) {
+      console.error("[harvest] Polymarket phase 2 failed:", err);
+    }
+  }
 
   console.log(`Total raw signals: ${allSignals.length}`);
   return allSignals;
@@ -588,7 +614,7 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
       const sentiment = aiScore?.sentiment ?? "neutral";
       const novelty = noveltyMap.get(agg.symbol);
       const sources = new Set(agg.signals.map((s) => s.source));
-      const hasNonSocialSource = sources.has("SEC_INSIDER") || sources.has("OPTIONS_FLOW") || sources.has("VOLUME_SPIKE") || sources.has("CONGRESS");
+      const hasNonSocialSource = sources.has("SEC_INSIDER") || sources.has("OPTIONS_FLOW") || sources.has("VOLUME_SPIKE") || sources.has("CONGRESS") || sources.has("POLYMARKET");
       const pctFrom52wkLow = parsePctFrom52wkLow(fundamentals?.price, fundamentals?.wk52Lo, fundamentals?.fiftyTwoWeekRange);
       const wk52Lo = fundamentals?.wk52Lo ?? undefined;
       const isAmexPenny = !!(
@@ -686,6 +712,10 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
       retweetCount: signal.retweetCount,
       likeCount: signal.likeCount,
       tweetType: signal.tweetType,
+      marketProbability: signal.marketProbability,
+      marketVolume24hr: signal.marketVolume24hr,
+      marketLiquidity: signal.marketLiquidity,
+      marketEndDate: signal.marketEndDate,
       sentiment: "neutral", // Default for single-mention symbols
       pndFlagged: false,    // Default for single-mention symbols
       pndFlags: [],         // Default for single-mention symbols

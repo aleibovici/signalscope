@@ -44,6 +44,7 @@ const SOURCES = [
   { value: "SEC_INSIDER", label: "SEC Insider" },
   { value: "CONGRESS", label: "Congress" },
   { value: "VOLUME_SPIKE", label: "Volume Spike" },
+  { value: "POLYMARKET", label: "Polymarket" },
 ];
 
 const SORT_OPTIONS = [

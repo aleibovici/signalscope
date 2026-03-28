@@ -5,7 +5,7 @@ import { handleApiError } from "@/lib/api-error";
 
 const signalSchema = z.object({
   symbol: z.string(),
-  source: z.enum(["REDDIT", "STOCKTWITS", "SEC_INSIDER", "SEC_FILING", "OPTIONS_FLOW", "VOLUME_SPIKE", "TWITTER", "CONGRESS"]),
+  source: z.enum(["REDDIT", "STOCKTWITS", "SEC_INSIDER", "SEC_FILING", "OPTIONS_FLOW", "VOLUME_SPIKE", "TWITTER", "CONGRESS", "POLYMARKET"]),
   title: z.string().optional(),
   body: z.string().optional(),
   url: z.string().optional(),
@@ -32,6 +32,10 @@ const signalSchema = z.object({
   followerCount: z.number().optional(),
   isVerified: z.boolean().optional(),
   tweetType: z.string().optional(),
+  marketProbability: z.number().optional(),
+  marketVolume24hr: z.number().optional(),
+  marketLiquidity: z.number().optional(),
+  marketEndDate: z.string().optional(),
 });
 
 const ingestPayloadSchema = z.object({
