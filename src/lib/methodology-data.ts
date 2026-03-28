@@ -57,13 +57,13 @@ export const signalSources: SignalSource[] = [
     icon: "📈",
     name: "Volume Spike",
     description: "Flags symbols whose volume is ≥2× their 10-day average.",
-    params: "99 symbols · ≥2× 10-day avg",
+    params: "89 symbols · ≥2× 10-day avg",
   },
   {
     icon: "💎",
     name: "Options Flow",
     description: "Detects unusual call volume, heavy OTM call activity, and call sweeps across a watchlist of liquid stocks.",
-    params: "99 symbols · Vol/OI ≥3× · OTM 10%+ · nearest expiry",
+    params: "89 symbols · Vol/OI ≥3× · OTM 10%+ · nearest expiry",
   },
   {
     icon: "📣",
