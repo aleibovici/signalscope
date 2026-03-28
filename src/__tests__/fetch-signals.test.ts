@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { RawSignal } from "@/lib/harvester/types";
 
 // Mock all harvester deps
@@ -11,6 +11,7 @@ const mockFetchOptionsFlow = vi.fn();
 const mockFetchVolumeSpike = vi.fn();
 const mockFetchTwitter = vi.fn();
 const mockFetchCongress = vi.fn();
+const mockFetchPolymarket = vi.fn();
 
 vi.mock("@/lib/harvester/sources/reddit", () => ({
   fetchRedditSignals: (...args: unknown[]) => mockFetchReddit(...args),
@@ -33,6 +34,9 @@ vi.mock("@/lib/harvester/sources/twitter", () => ({
 vi.mock("@/lib/harvester/sources/congress", () => ({
   fetchCongressSignals: (...args: unknown[]) => mockFetchCongress(...args),
 }));
+vi.mock("@/lib/harvester/sources/polymarket", () => ({
+  fetchPolymarketSignals: (...args: unknown[]) => mockFetchPolymarket(...args),
+}));
 vi.mock("@/lib/harvester/scoring", () => ({ scoreSymbolBatch: vi.fn() }));
 vi.mock("@/lib/harvester/pnd-filter", () => ({ checkPndFlags: vi.fn(), aiPndAssessment: vi.fn() }));
 vi.mock("@/lib/harvester/fundamentals", () => ({ fetchFundamentals: vi.fn() }));
@@ -50,6 +54,10 @@ function sig(symbol: string, source: RawSignal["source"] = "REDDIT"): RawSignal 
 }
 
 describe("fetchSignals", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("aggregates signals from all sources", async () => {
     mockFetchReddit.mockResolvedValue([sig("AAPL"), sig("TSLA")]);
     mockFetchStockTwits.mockResolvedValue([sig("AAPL", "STOCKTWITS")]);
@@ -58,6 +66,7 @@ describe("fetchSignals", () => {
     mockFetchVolumeSpike.mockResolvedValue([sig("TSLA", "VOLUME_SPIKE")]);
     mockFetchTwitter.mockResolvedValue([sig("GME", "TWITTER")]);
     mockFetchCongress.mockResolvedValue([]);
+    mockFetchPolymarket.mockResolvedValue([]);
 
     const signals = await fetchSignals();
 
@@ -73,6 +82,7 @@ describe("fetchSignals", () => {
     mockFetchVolumeSpike.mockResolvedValue([]);
     mockFetchTwitter.mockResolvedValue([]);
     mockFetchCongress.mockResolvedValue([]);
+    mockFetchPolymarket.mockResolvedValue([]);
 
     const signals = await fetchSignals();
     expect(signals).toEqual([]);
@@ -86,12 +96,55 @@ describe("fetchSignals", () => {
     mockFetchVolumeSpike.mockResolvedValue([]);
     mockFetchTwitter.mockResolvedValue([sig("AAPL", "TWITTER")]);
     mockFetchCongress.mockResolvedValue([]);
+    mockFetchPolymarket.mockResolvedValue([]);
 
     const signals = await fetchSignals();
 
     // Reddit failed but others succeeded
     expect(signals).toHaveLength(2);
     expect(signals.map((s) => s.symbol).sort()).toEqual(["AAPL", "NVDA"]);
+  });
+
+  it("runs Polymarket phase 2 for symbols not in SCAN_SYMBOLS", async () => {
+    // Phase 1: other sources discover "ZZZZ" which is not in SCAN_SYMBOLS
+    mockFetchReddit.mockResolvedValue([sig("ZZZZ")]);
+    mockFetchStockTwits.mockResolvedValue([]);
+    mockFetchSecInsider.mockResolvedValue([]);
+    mockFetchOptionsFlow.mockResolvedValue([]);
+    mockFetchVolumeSpike.mockResolvedValue([]);
+    mockFetchTwitter.mockResolvedValue([]);
+    mockFetchCongress.mockResolvedValue([]);
+    // Phase 1 polymarket returns nothing
+    mockFetchPolymarket.mockResolvedValueOnce([]);
+    // Phase 2 polymarket called with extra symbols
+    mockFetchPolymarket.mockResolvedValueOnce([sig("ZZZZ", "POLYMARKET")]);
+
+    const signals = await fetchSignals();
+
+    // Phase 1 polymarket called without args (SCAN_SYMBOLS)
+    expect(mockFetchPolymarket).toHaveBeenCalledTimes(2);
+    // Phase 2 called with ["ZZZZ"] since it's not in SCAN_SYMBOLS
+    expect(mockFetchPolymarket.mock.calls[1][0]).toEqual(["ZZZZ"]);
+    // Total: 1 reddit + 1 polymarket phase 2
+    expect(signals).toHaveLength(2);
+    expect(signals.map((s) => s.source)).toContain("POLYMARKET");
+  });
+
+  it("skips Polymarket phase 2 when no extra symbols", async () => {
+    // Only AAPL which IS in SCAN_SYMBOLS
+    mockFetchReddit.mockResolvedValue([sig("AAPL")]);
+    mockFetchStockTwits.mockResolvedValue([]);
+    mockFetchSecInsider.mockResolvedValue([]);
+    mockFetchOptionsFlow.mockResolvedValue([]);
+    mockFetchVolumeSpike.mockResolvedValue([]);
+    mockFetchTwitter.mockResolvedValue([]);
+    mockFetchCongress.mockResolvedValue([]);
+    mockFetchPolymarket.mockResolvedValue([]);
+
+    await fetchSignals();
+
+    // Phase 1 only — no phase 2 since AAPL is in SCAN_SYMBOLS
+    expect(mockFetchPolymarket).toHaveBeenCalledTimes(1);
   });
 
   it("handles all sources failing", async () => {
@@ -102,6 +155,7 @@ describe("fetchSignals", () => {
     mockFetchVolumeSpike.mockRejectedValue(new Error("down"));
     mockFetchTwitter.mockRejectedValue(new Error("down"));
     mockFetchCongress.mockRejectedValue(new Error("down"));
+    mockFetchPolymarket.mockRejectedValue(new Error("down"));
 
     const signals = await fetchSignals();
     expect(signals).toEqual([]);

@@ -79,6 +79,10 @@ model Signal {
   retweetCount  Int?
   likeCount     Int?
   tweetType     String?
+  marketProbability Float?
+  marketVolume24hr  Float?
+  marketLiquidity   Float?
+  marketEndDate     String?
   createdAt     DateTime     @default(now())
 
   @@index([scanId, symbol])
@@ -96,6 +100,7 @@ enum SignalSource {
   VOLUME_SPIKE
   TWITTER
   CONGRESS
+  POLYMARKET
 }
 
 model ValidatedTicker {

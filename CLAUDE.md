@@ -55,7 +55,7 @@ gcloud scheduler jobs run signalscope-snapshots --location=us-central1
 ### Signal Harvesting Pipeline (`src/lib/harvester/`)
 
 ```
-Sources (7 in parallel) → Aggregate by symbol → Fetch fundamentals for ALL symbols (Yahoo Finance)
+Sources (8 in parallel) → Aggregate by symbol → Fetch fundamentals for ALL symbols (Yahoo Finance)
   ↓ candidates (≥2 signals / sources / weighted score)        ↓ non-candidates with YF price
   AI Scoring → P&D Filter (11 flags + AI edge-case)          Heuristic score + P&D flags (no AI)
   → stage: EARLY/FORMING/CONFIRMED/FILTERED                       → stage: UNSCORED
@@ -65,7 +65,7 @@ Sources (7 in parallel) → Aggregate by symbol → Fetch fundamentals for ALL s
 ```
 
 - `index.ts` — `fetchSignals()` (source fetching), `processSignals()` (AI scoring, P&D filter, DB writes — no report generation); includes `extractTxIdsFromUrls()` and `deduplicateCongressSignals()` for Congress dedup
-- `sources/` — reddit, twitter, stocktwits, sec-insider, congress, volume-spike, options-flow
+- `sources/` — reddit, twitter, stocktwits, sec-insider, congress, volume-spike, options-flow, polymarket
 - `sources/ticker-utils.ts` — Shared ticker regex, blacklist, mega-caps, extraction functions
 - `scoring.ts` — AI batch scoring with hard-rule overrides
 - `pnd-filter.ts` — Pump & dump detection (statistical flags + AI fallback)
@@ -229,7 +229,7 @@ Key models in `prisma/schema.prisma`: **User** (with `emailAlerts: Boolean`, `st
 
 `ValidatedTicker` notable fields: `wk52Lo/wk52Hi` (52-week range), `firstSeenDaysAgo` (null = truly novel, 0 = first seen today, N = days ago), `priorAppearances` (count of prior appearances in 30d window), `exchange`, `aiReasoning`, `pndFlagged/pndFlags/pndScore/pndAiConfidence/pndAiReasoning`, `tradeSetupEntryLo/EntryHi/StopLoss/Target1/Target2/Timeframe/RiskReward/Confidence` (AI trade setup, generated on-demand for Buy/Strong Buy recommendations).
 
-`SignalSource` enum: `REDDIT | TWITTER | STOCKTWITS | SEC_INSIDER | SEC_FILING | CONGRESS | OPTIONS_FLOW | VOLUME_SPIKE`
+`SignalSource` enum: `REDDIT | TWITTER | STOCKTWITS | SEC_INSIDER | SEC_FILING | CONGRESS | OPTIONS_FLOW | VOLUME_SPIKE | POLYMARKET`
 
 Signal stages: `EARLY | FORMING | CONFIRMED | FILTERED | UNSCORED`
 
@@ -398,6 +398,7 @@ done
 | Volume Spike | Active | Yahoo Finance, 89 symbols, 2x avg volume threshold |
 | StockTwits | Active | Uses TrendSpider mirror (server-side rendered); direct StockTwits access is Cloudflare-blocked |
 | Options Flow | Active | Yahoo Finance options chain API, scans SCAN_SYMBOLS for unusual call volume, OTM activity, and call sweeps |
+| Polymarket | Active | Gamma API (`gamma-api.polymarket.com`), scans SCAN_SYMBOLS for stock price prediction markets with volume spikes (24h vol > $5K and > 10% of total) |
 
 ### Initial Setup
 

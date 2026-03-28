@@ -1,4 +1,4 @@
-export type Source = "REDDIT" | "STOCKTWITS" | "SEC_INSIDER" | "SEC_FILING" | "OPTIONS_FLOW" | "VOLUME_SPIKE" | "TWITTER" | "CONGRESS";
+export type Source = "REDDIT" | "STOCKTWITS" | "SEC_INSIDER" | "SEC_FILING" | "OPTIONS_FLOW" | "VOLUME_SPIKE" | "TWITTER" | "CONGRESS" | "POLYMARKET";
 
 export interface RawSignal {
   symbol: string;
@@ -31,6 +31,11 @@ export interface RawSignal {
   followerCount?: number;
   isVerified?: boolean;
   tweetType?: string;       // "cashtag" | "keyword"
+  // Polymarket-specific fields
+  marketProbability?: number;  // implied probability (0–1)
+  marketVolume24hr?: number;   // 24h volume in USD
+  marketLiquidity?: number;    // available liquidity in USD
+  marketEndDate?: string;      // market expiration (ISO)
 }
 
 export interface ScoredSignal extends RawSignal {
@@ -59,7 +64,7 @@ export interface FundamentalData {
   sharesOutstanding?: number | null;
 }
 
-export type SignalType = "insider_buy" | "options_flow" | "congress_buy" | "multi_source" | "reddit_velocity" | "twitter_velocity";
+export type SignalType = "insider_buy" | "options_flow" | "congress_buy" | "multi_source" | "reddit_velocity" | "twitter_velocity" | "polymarket_activity";
 
 export interface AiScoreResult {
   symbol: string;
