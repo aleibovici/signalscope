@@ -10,7 +10,7 @@ import { stageLabel, stageToDb, API_STAGE_VALUES } from "@/lib/stage-labels";
 
 export const trendingCache = new TTLCache<unknown>(5 * 60 * 1000);
 
-const SOURCES = ["REDDIT", "TWITTER", "STOCKTWITS", "SEC_INSIDER", "CONGRESS", "VOLUME_SPIKE", "OPTIONS_FLOW"] as const;
+const SOURCES = ["REDDIT", "TWITTER", "STOCKTWITS", "SEC_INSIDER", "CONGRESS", "VOLUME_SPIKE", "OPTIONS_FLOW", "POLYMARKET"] as const;
 
 const MARKET_CAP_RANGES: Record<string, { min: number; max: number }> = {
   micro: { min: 0, max: 300_000_000 },
