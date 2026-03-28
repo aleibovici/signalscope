@@ -85,11 +85,11 @@ describe("POST /api/stripe/webhook", () => {
     });
     mockRetrieve.mockResolvedValue({
       id: "sub_123",
+      current_period_start: Math.floor(Date.now() / 1000),
+      current_period_end: Math.floor(Date.now() / 1000) + 30 * 86400,
       items: {
         data: [{
           price: { id: "price_monthly" },
-          current_period_start: Math.floor(Date.now() / 1000),
-          current_period_end: Math.floor(Date.now() / 1000) + 30 * 86400,
         }],
       },
     });
@@ -109,11 +109,11 @@ describe("POST /api/stripe/webhook", () => {
         object: {
           id: "sub_123",
           status: "active",
+          current_period_start: Math.floor(Date.now() / 1000),
+          current_period_end: Math.floor(Date.now() / 1000) + 365 * 86400,
           items: {
             data: [{
               price: { id: "price_yearly" },
-              current_period_start: Math.floor(Date.now() / 1000),
-              current_period_end: Math.floor(Date.now() / 1000) + 365 * 86400,
             }],
           },
           cancel_at_period_end: false,
