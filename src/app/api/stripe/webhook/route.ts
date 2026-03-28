@@ -40,22 +40,23 @@ export async function POST(request: NextRequest) {
           session.subscription as string
         );
 
+        const item = subscription.items.data[0];
         await prisma.subscription.upsert({
           where: { userId },
           create: {
             userId,
             stripeSubscriptionId: subscription.id,
-            stripePriceId: subscription.items.data[0].price.id,
+            stripePriceId: item.price.id,
             status: "ACTIVE",
-            currentPeriodStart: new Date(subscription.current_period_start * 1000),
-            currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+            currentPeriodStart: new Date(item.current_period_start * 1000),
+            currentPeriodEnd: new Date(item.current_period_end * 1000),
           },
           update: {
             stripeSubscriptionId: subscription.id,
-            stripePriceId: subscription.items.data[0].price.id,
+            stripePriceId: item.price.id,
             status: "ACTIVE",
-            currentPeriodStart: new Date(subscription.current_period_start * 1000),
-            currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+            currentPeriodStart: new Date(item.current_period_start * 1000),
+            currentPeriodEnd: new Date(item.current_period_end * 1000),
             cancelAtPeriodEnd: false,
             canceledAt: null,
           },
@@ -77,13 +78,14 @@ export async function POST(request: NextRequest) {
         });
         if (!dbSub) break;
 
+        const updItem = subscription.items.data[0];
         await prisma.subscription.update({
           where: { stripeSubscriptionId: subscription.id },
           data: {
-            stripePriceId: subscription.items.data[0].price.id,
+            stripePriceId: updItem.price.id,
             status: mapStripeStatus(subscription.status),
-            currentPeriodStart: new Date(subscription.current_period_start * 1000),
-            currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+            currentPeriodStart: new Date(updItem.current_period_start * 1000),
+            currentPeriodEnd: new Date(updItem.current_period_end * 1000),
             cancelAtPeriodEnd: subscription.cancel_at_period_end,
             canceledAt: subscription.canceled_at
               ? new Date(subscription.canceled_at * 1000)
