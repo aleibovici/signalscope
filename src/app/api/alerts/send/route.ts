@@ -34,7 +34,6 @@ export async function POST(req: NextRequest) {
       stage: "EARLY",
       aiScore: { gte: 50 },
       pndFlagged: false,
-      pndScore: { lte: 1 },
       priorAppearances: { lte: 5 },
       catalyst: { not: null },
       OR: [

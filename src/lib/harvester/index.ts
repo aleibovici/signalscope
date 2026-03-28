@@ -223,6 +223,10 @@ export function determineStage(
   const isExchangePenny = isAmexPenny || isNasdaqSmallPenny;
   if (!hasNonSocialSource && !isExchangePenny && price != null && price < 0.20) return "EARLY";
 
+  // Stale repeater gate: priorAppearances is the #2 most predictive ML feature (negative direction).
+  // Tickers appearing 6+ times without a catalyst source are played out — cap at EARLY.
+  if (novelty && novelty.priorAppearances >= 6 && !hasNonSocialSource) return "EARLY";
+
   const effectiveScore = novelty?.isNovel ? aiScore + 5 : aiScore;
 
   // Comment-heavy penalty: high comments with low upvote/comment ratio = peak hype (ML: comments negatively predict 7d returns)

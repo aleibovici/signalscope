@@ -91,7 +91,7 @@ export function checkPndFlags(
     }
   }
 
-  // 3. Market cap < $50M with no real news catalyst
+  // 3. Market cap < $40M with no real news catalyst
   if (
     fundamentals?.marketCap != null &&
     fundamentals.marketCap < 40_000_000 &&

@@ -76,8 +76,9 @@ Also consider:
   High velocity (≥2.0) with multiple mentions = potential early breakout. Weight this as a positive signal.
 - momentum breakdown (risingCount, freshCount, recentCount, commentDerivedCount, staleCount) shows the composition behind avgVelocity.
   Multiple rising signals = strong trending evidence. commentDerivedCount > 0 means organic discussion (tickers mentioned in comments, not just post titles). High staleCount dilutes the signal.
-- Rising signal fraction (risingCount / total signals) is the #2 most predictive ML feature. If most signals are rising/trending (rising_frac > 0.5), apply +3 to +5 boost. If mostly stale (staleCount > risingCount + freshCount), apply -3 to -5 penalty.
+- Rising signal fraction (risingCount / total signals) is the #4 most predictive ML feature (positive direction). If most signals are rising/trending (rising_frac > 0.5), apply +3 to +5 boost. If mostly stale (staleCount > risingCount + freshCount), apply -3 to -5 penalty.
 - subredditCount = number of unique subreddits mentioning the ticker. 3+ subreddits = broad consensus across communities (stronger signal, +3-5 boost). 1 subreddit = possible echo chamber (weaker).
+- sourceCount >= 2 adds +2.4% avg 7d return, sourceCount >= 3 adds +2.8%. Multi-source corroboration is one of the strongest bullish signals — apply +3 to +5 boost for 2+ sources, +5 to +8 for 3+ sources.
 - High upvote-to-comment ratio (>5:1) with significant upvotes (>100) suggests strong conviction — apply +5 to +8 boost.
 - CRITICAL: High comment count alone is NOT positive engagement — ML shows it predicts worse 7d returns (SHAP -0.004). When totalComments > 150 with ratio < 2:1, this is peak hype — apply -8 to -10 penalty, signal is likely already played out.
 - reddit_velocity is the strongest source-level predictor. Weight high-velocity Reddit signals (avgVelocity >= 2.5) as +3 to +5.
@@ -90,15 +91,21 @@ Signal age (medianSignalAgeHrs field — median age of social signals in hours):
 - medianSignalAgeHrs > 12: Very stale — apply -5 to -10 penalty. By the time signals are this old, the initial momentum is exhausted and you're buying at or near the top.
 - null: Non-social signals (insider, congress) — no age penalty, these are filed disclosures.
 
+Historical source breadth (ML #1 feature — hist_source_max, positive direction):
+- Tickers that have historically been detected from many different sources (high hist_source_max) significantly outperform. This is a legitimacy/reputation signal — real opportunities get picked up by multiple independent sources over time.
+- If a ticker has appeared before with broad source coverage (3+ sources historically), apply +3 to +5 boost.
+- If a ticker has only ever appeared from a single source historically, apply -2 to -3 penalty.
+
 Signal novelty (check isNovel, daysSinceFirstSeen, priorAppearances fields):
 - Novel tickers (first appearance, isNovel=true): apply +3 to +5 boost — potential early signal, but unproven.
 - daysSinceFirstSeen 3-5 days: SWEET SPOT — apply +5 to +8 boost. ML shows tickers validated over 3+ days have the best near-term returns. The signal has proven staying power.
 - 1-2 prior appearances in last few days: no penalty, signal is still forming.
-- 3+ appearances or 7+ days old: apply -5 to -15 staleness penalty — signal may be played out. priorAppearances is the #1 most predictive ML feature (negative direction) — more appearances = worse returns. Be aggressive with this penalty.
+- 3+ appearances or 7+ days old: apply -5 to -15 staleness penalty — signal may be played out. priorAppearances is the #2 most predictive ML feature (negative direction) — more appearances = worse returns. Be aggressive with this penalty.
 - Exception: a stale ticker with a NEW catalyst type (e.g. insider buy appearing for first time on a previously social-only ticker) should NOT be penalized.
 
-Historical P&D reputation (ML #3 feature: interaction of historical P&D score × current P&D flags):
-- Tickers with a history of triggering P&D flags across multiple scans are repeat offenders. If a ticker has appeared before AND had P&D flags in prior appearances, apply -5 to -10 penalty. The combination of historical P&D reputation + current P&D flags is the 3rd strongest predictor of negative returns.
+Historical P&D reputation (ML #3 feature: pnd_micro_cap_no_catalyst, negative direction):
+- micro_cap_no_catalyst is the strongest individual bearish flag (-5.2% avg 7d). Tickers with this flag AND a history of P&D flags across multiple scans are repeat offenders — apply -5 to -10 penalty.
+- The combination of historical P&D reputation + current P&D flags is the 3rd strongest predictor of negative returns.
 
 Price quality (check price field):
 - price < $0.12: heavy penalty (-10 to -15). Sub-dime stocks almost never generate positive returns at any horizon. Score should rarely exceed 20 without an exceptional catalyst.
