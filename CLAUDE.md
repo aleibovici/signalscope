@@ -82,6 +82,21 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 - Requires `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_TOKEN_SECRET` env vars; silently skipped if absent
 - Uses Node.js built-in `crypto` for OAuth 1.0a HMAC-SHA1 signing (no extra dependencies)
 
+### Twitter/X Auto-Follow (`src/lib/twitter/follow.ts`)
+
+Automated follow/unfollow growth strategy. Discovers relevant accounts from harvest signals and a curated seed list, follows ~30/day, unfollows stale accounts after 30 days.
+
+- `follow.ts` — `runFollowJob()` orchestrates: seed accounts → discover from harvest → follow batch (5/run) → unfollow stale (3/run) → update follow-backs
+- Discovery: extracts unique authors from recent `TWITTER` signals, prioritizes by follower count
+- Seed list: ~16 curated finance/market accounts (unusual_whales, DeItaone, OptionsHawk, etc.), `keep: true` prevents auto-unfollow
+- Unfollow logic: accounts followed 30+ days with no follow-back and `keep=false` are unfollowed
+- Follow-back check: fetches our followers list each run, updates `followBack` flag
+- Endpoint: `POST /api/twitter/follow` (x-snapshot-key auth, Cloud Scheduler)
+- Schedule: 6 runs/day hourly 9AM–2PM ET → ~30 follows/day, ~18 unfollows/day
+- Requires both OAuth 1.0a credentials (follow/unfollow) and `X_BEARER_TOKEN` (user lookups, follower checks)
+- X API rate limit: 5 follows per 15-min window per user — each run stays within this limit
+- DB model: `TwitterFollow` tracks queue state, follow/unfollow timestamps, follow-back status
+
 ### Email Alerts (`src/lib/email/`)
 
 - `index.ts` — `sendTickerAlerts()` sends a digest of CONFIRMED tickers via Resend. Requires `RESEND_API_KEY` env var; silently skipped if absent. Only sends to users with active subscriptions.
@@ -140,6 +155,7 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 | `/api/reports/generate` | POST | Batch pre-generate AI reports for top 10 emerging tickers (x-snapshot-key auth) |
 | `/api/snapshots/collect` | POST | Collect price snapshots for validated tickers (x-snapshot-key auth) |
 | `/api/tweets/post` | POST | Tweet top emerging tickers with reports (x-snapshot-key auth) |
+| `/api/twitter/follow` | POST | Automated follow/unfollow job — discovers, follows 5, unfollows 3 stale (x-snapshot-key auth) |
 | `/api/stripe/checkout` | POST | Create Stripe Checkout session for subscription (authenticated) |
 | `/api/stripe/portal` | POST | Create Stripe Customer Portal session (authenticated) |
 | `/api/stripe/webhook` | POST | Stripe webhook handler (public, signature-verified) |
@@ -209,7 +225,7 @@ Paid subscription ($10/mo or $100/yr) gates three features: API key access, on-d
 
 ### Database Models
 
-Key models in `prisma/schema.prisma`: **User** (with `emailAlerts: Boolean`, `stripeCustomerId`), **Subscription** (Stripe subscription state: status, period dates, cancelAtPeriodEnd), **Scan** (harvest run), **Signal** (raw from sources), **ValidatedTicker** (scored candidates with fundamentals/report), **TickerPerformance** (post-scan price performance tracking), **PriceSnapshot** (continuous price time-series for return computation), **UserPosition** (portfolio), **UserWatchlist** (bookmarked tickers), **RefreshToken** (mobile auth token rotation, indexed on token/userId/expiresAt), **ApiKey** (SHA-256 hashed API keys for programmatic access, single key per user, `sk_sig_` prefix).
+Key models in `prisma/schema.prisma`: **User** (with `emailAlerts: Boolean`, `stripeCustomerId`), **Subscription** (Stripe subscription state: status, period dates, cancelAtPeriodEnd), **Scan** (harvest run), **Signal** (raw from sources), **ValidatedTicker** (scored candidates with fundamentals/report), **TickerPerformance** (post-scan price performance tracking), **PriceSnapshot** (continuous price time-series for return computation), **UserPosition** (portfolio), **UserWatchlist** (bookmarked tickers), **RefreshToken** (mobile auth token rotation, indexed on token/userId/expiresAt), **ApiKey** (SHA-256 hashed API keys for programmatic access, single key per user, `sk_sig_` prefix), **TwitterFollow** (auto-follow queue: twitterId, username, source, priority, followedAt/unfollowedAt, followBack, keep).
 
 `ValidatedTicker` notable fields: `wk52Lo/wk52Hi` (52-week range), `firstSeenDaysAgo` (null = truly novel, 0 = first seen today, N = days ago), `priorAppearances` (count of prior appearances in 30d window), `exchange`, `aiReasoning`, `pndFlagged/pndFlags/pndScore/pndAiConfidence/pndAiReasoning`, `tradeSetupEntryLo/EntryHi/StopLoss/Target1/Target2/Timeframe/RiskReward/Confidence` (AI trade setup, generated on-demand for Buy/Strong Buy recommendations).
 
@@ -277,7 +293,7 @@ BING_SITE_VERIFICATION=...
 
 - **Cloud Run** — web app (`signalscope-web`) serving Next.js standalone on port 3000
 - **Cloud SQL** — PostgreSQL 16 (`signalscope-db`, db-f1-micro), connected via Unix socket
-- **Cloud Scheduler** — 6 jobs (all ET, Mon–Fri): email alerts (9:10 AM), portfolio alerts (9:12 AM), reports (9:15 AM), snapshots open (9:45 AM), snapshots midday (12:30 PM), snapshots close (4:05 PM)
+- **Cloud Scheduler** — 6 weekday jobs (ET, Mon–Fri): email alerts (9:10 AM), portfolio alerts (9:12 AM), reports (9:15 AM), snapshots open (9:45 AM), snapshots midday (12:30 PM), snapshots close (4:05 PM); 6 daily follow jobs (hourly 9AM–2PM ET); 3 daily promo tweet jobs
 - **Secret Manager** — stores `DATABASE_URL`, `AUTH_SECRET`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `SNAPSHOT_API_KEY`, `RESEND_API_KEY`
 - **Artifact Registry** — Docker images (`signalscope` repo)
 - **GitHub Actions** — CI/CD on push to `main` (`.github/workflows/deploy.yml`)
@@ -355,6 +371,20 @@ gcloud scheduler jobs create http signalscope-reports \
   --headers="x-snapshot-key=<SNAPSHOT_API_KEY_VALUE>" \
   --attempt-deadline=600s \
   --description="Pre-generate AI reports for top 10 emerging tickers (45 min after harvest)"
+
+# Twitter auto-follow: 6 runs/day (hourly 9AM–2PM ET, every day)
+# Each run: discovers from harvest, follows 5, unfollows 3 stale → ~30 follows/day
+for hour in 9 10 11 12 13 14; do
+  gcloud scheduler jobs create http "signalscope-follow-${hour}" \
+    --location=us-central1 \
+    --schedule="0 ${hour} * * *" \
+    --time-zone="America/New_York" \
+    --uri="https://signalscopes.com/api/twitter/follow" \
+    --http-method=POST \
+    --headers="x-snapshot-key=<SNAPSHOT_API_KEY_VALUE>" \
+    --attempt-deadline=120s \
+    --description="Twitter auto-follow batch (${hour}:00 ET)"
+done
 ```
 
 ### Source Status

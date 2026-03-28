@@ -4,11 +4,11 @@ import crypto from "crypto";
 /*  OAuth 1.0a helpers (Node built-in crypto, no extra deps)          */
 /* ------------------------------------------------------------------ */
 
-function percentEncode(str: string): string {
+export function percentEncode(str: string): string {
   return encodeURIComponent(str).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
 }
 
-function buildOAuthHeader(method: string, url: string, body: Record<string, string>, creds: TwitterCredentials): string {
+export function buildOAuthHeader(method: string, url: string, body: Record<string, string>, creds: TwitterCredentials): string {
   const oauthParams: Record<string, string> = {
     oauth_consumer_key: creds.apiKey,
     oauth_nonce: crypto.randomBytes(16).toString("hex"),
@@ -43,14 +43,14 @@ function buildOAuthHeader(method: string, url: string, body: Record<string, stri
 /*  Twitter credentials                                                */
 /* ------------------------------------------------------------------ */
 
-interface TwitterCredentials {
+export interface TwitterCredentials {
   apiKey: string;
   apiSecret: string;
   accessToken: string;
   accessTokenSecret: string;
 }
 
-function getCredentials(): TwitterCredentials | null {
+export function getCredentials(): TwitterCredentials | null {
   const apiKey = process.env.X_API_KEY;
   const apiSecret = process.env.X_API_SECRET;
   const accessToken = process.env.X_ACCESS_TOKEN;

@@ -314,6 +314,24 @@ model X402Payment {
   @@index([endpoint])
 }
 
+model TwitterFollow {
+  id           String    @id @default(cuid())
+  twitterId    String    @unique
+  username     String    @unique
+  source       String    // "harvest" | "seed"
+  reason       String?
+  priority     Int       @default(0)
+  followedAt   DateTime?
+  unfollowedAt DateTime?
+  followBack   Boolean   @default(false)
+  keep         Boolean   @default(false) // Never auto-unfollow
+  createdAt    DateTime  @default(now())
+
+  @@index([followedAt])
+  @@index([source])
+  @@index([priority(sort: Desc)])
+}
+
 model AiCostLog {
   id           String   @id @default(cuid())
   createdAt    DateTime @default(now())
