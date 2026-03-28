@@ -42,7 +42,7 @@ export async function reconstructAggregatedSymbol(
 ): Promise<{
   agg: AggregatedSymbol;
   fundamentals: FundamentalData | null;
-  novelty: NoveltyContext | undefined;
+  novelty: NoveltyContext;
   signals: RawSignal[];
 }> {
   const signals = await prisma.signal.findMany({
@@ -106,15 +106,15 @@ export async function reconstructAggregatedSymbol(
         }
       : null;
 
-  const novelty: NoveltyContext | undefined =
-    ticker.firstSeenDaysAgo !== null || ticker.priorAppearances > 0
-      ? {
-          firstSeenAt: null,
-          daysSinceFirstSeen: ticker.firstSeenDaysAgo,
-          priorAppearances: ticker.priorAppearances,
-          isNovel: ticker.firstSeenDaysAgo === null,
-        }
-      : undefined;
+  // Always reconstruct novelty context so report generation gets accurate isNovel signal.
+  // - firstSeenDaysAgo === null && priorAppearances === 0  → truly novel (first appearance ever)
+  // - firstSeenDaysAgo !== null || priorAppearances > 0   → known ticker, not novel
+  const novelty: NoveltyContext = {
+    firstSeenAt: null,
+    daysSinceFirstSeen: ticker.firstSeenDaysAgo,
+    priorAppearances: ticker.priorAppearances,
+    isNovel: ticker.firstSeenDaysAgo === null && ticker.priorAppearances === 0,
+  };
 
   return { agg, fundamentals, novelty, signals: rawSignals };
 }
