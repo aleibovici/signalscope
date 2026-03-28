@@ -56,6 +56,7 @@ export default function LoginPage() {
       setError("Invalid email or password");
       setLoading(false);
     } else {
+      window.gtag?.("event", "login", { method: "credentials" });
       window.location.href = "/dashboard";
     }
   }

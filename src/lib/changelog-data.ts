@@ -13,6 +13,12 @@ export const changelog: ChangelogEntry[] = [
     title: "Deeper Reddit & Twitter Harvesting",
     changes: [
       {
+        category: "new",
+        items: [
+          "Google Analytics 4 conversion tracking: login, subscription page views, checkout initiation, purchase, cancellation, and payment failure events now feed GA4 for revenue funnel analysis.",
+        ],
+      },
+      {
         category: "improved",
         items: [
           "Reddit harvester now fetches hot posts (top 25) in addition to new and rising, giving each subreddit three signal angles. Comment fetches are deduplicated across all sorts so the same thread is never fetched twice.",
