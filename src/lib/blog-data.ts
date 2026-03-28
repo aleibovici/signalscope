@@ -13,7 +13,7 @@ export interface BlogPost {
   sections: BlogSection[];
 }
 
-export const blogPosts: BlogPost[] = [
+const blogPostsUnsorted: BlogPost[] = [
   {
     slug: "how-breakout-signals-work",
     title: "How Breakout Signals Work: Multi-Source Stock Monitoring Explained",
@@ -294,4 +294,122 @@ export const blogPosts: BlogPost[] = [
       },
     ],
   },
+  {
+    slug: "options-flow-detection",
+    title: "Options Flow as a Breakout Signal: Reading Unusual Activity in Real Time",
+    description:
+      "How SignalScope scans options chains for unusual call volume, OTM activity, and call sweeps — and why concentrated options bets often precede breakout moves.",
+    date: "2026-03-28",
+    readingTime: "7 min read",
+    tags: ["options-flow", "methodology", "signals"],
+    sections: [
+      {
+        body: "On March 25, 2026, Firefly Aerospace saw 7,674 call contracts trade at the $30 strike expiring April 17 — a concentrated bullish bet on near-term price movement. The same day, BILL Holdings logged 12,044 contracts and lululemon hit 17,291. OneWater Marine saw heavy put concentration at a single strike. None of these had obvious news catalysts. For options traders, this kind of activity is the signal. For everyone else, it is invisible. Options flow is one of the most underappreciated sources of breakout intelligence because it requires specific knowledge to interpret and is difficult to monitor at scale.",
+      },
+      {
+        heading: "What makes options volume 'unusual'",
+        body: "Every listed stock has options trading on it, so raw volume numbers are meaningless without context. What matters is the relationship between today's volume and the normal baseline. SignalScope scans options chains via Yahoo Finance and flags activity that meets specific criteria: unusual call volume relative to historical averages, concentrated out-of-the-money (OTM) activity suggesting directional bets rather than hedging, and call sweeps — large orders that lift through multiple ask prices to get filled quickly. A single institution quietly accumulating calls over a week looks very different from a sweep that hits the tape all at once. Sweeps signal urgency.",
+      },
+      {
+        heading: "Why options flow carries 2.5x source weight",
+        body: "In SignalScope's source weighting system, options flow carries 2.5x weight — tied with congressional trades and second only to SEC insider purchases at 3.0x. This weighting reflects a simple reality: options are leveraged instruments, and the people placing large directional bets are typically institutional traders, hedge funds, or informed participants who have done significant research before risking capital. Unlike social media posts, which cost nothing to write, options positions cost real money and expire worthless if wrong. The financial commitment behind options flow makes it a high-quality signal.",
+      },
+      {
+        heading: "OTM calls: the smart money tell",
+        body: "Out-of-the-money call buying is particularly interesting because it represents a bet that the stock will move significantly higher before expiration. When a trader buys thousands of OTM calls on a stock trading at $25 with a $30 strike expiring in three weeks, they are betting on a 20%+ move in a short timeframe. This is not hedging. This is a directional conviction bet. When this kind of activity appears for a ticker that is simultaneously showing up in SEC insider filings or volume spikes, the convergence dramatically increases breakout probability.",
+      },
+      {
+        heading: "Volume versus open interest",
+        body: "A common mistake is looking at options volume in isolation. The volume-to-open-interest ratio tells you whether today's activity represents new positions or closing of existing ones. High volume with low prior open interest means new money is flowing into the position — a much stronger signal than high volume on a strike that already had thousands of contracts open. SignalScope's options flow scanner considers both the absolute volume and its relationship to existing open interest when flagging unusual activity.",
+      },
+      {
+        heading: "Filtering noise from signal",
+        body: "Not all unusual options activity is bullish or even informative. Earnings plays, index rebalancing, and market-maker hedging can all create volume spikes that look unusual but carry no predictive value. The multi-source aggregation approach handles this naturally: options flow alone creates a candidate, but it takes corroboration from other sources — social media attention, volume spikes in the underlying stock, insider purchases — to push a ticker through AI scoring and into the dashboard. The March 25 Firefly Aerospace activity is meaningful precisely because options were not the only signal: when concentrated call buying appears alongside other independent indicators, the case for a breakout strengthens considerably.",
+      },
+      {
+        heading: "Real-time scanning at scale",
+        body: "Manually monitoring options chains across hundreds of stocks is impractical. The data is fragmented across chains with dozens of strikes and expirations per ticker. SignalScope automates this by scanning the full options chain for a curated list of actively traded symbols, computing volume ratios against historical baselines, identifying OTM concentration patterns, and flagging call sweeps. The results feed directly into the same aggregation pipeline as every other source — meaning options signals are weighted, scored, and filtered alongside Reddit mentions, insider filings, and volume spikes. The output is a unified picture of market interest, not a separate options-only feed.",
+      },
+    ],
+  },
+  {
+    slug: "breakout-signals-high-volatility",
+    title: "When the VIX Spikes: How Breakout Signals Change in High-Volatility Markets",
+    description:
+      "How elevated volatility changes the quality and reliability of breakout signals — and why insider purchases during selloffs are among the strongest contrarian indicators.",
+    date: "2026-03-27",
+    readingTime: "6 min read",
+    tags: ["signals", "volatility", "risk-management"],
+    sections: [
+      {
+        body: "On March 27, 2026, the VIX surged 13% to 31.05 — its highest level in months — as escalating tensions between the U.S., Israel, and Iran drove oil prices sharply higher and sent the Dow down over 400 points. The S&P 500 dropped to roughly 6,848 while the Nasdaq held slightly positive, propped up by tech. The Fed had just held rates steady at 3.5-3.75% with its dot-plot projecting only one cut all year. This is the kind of environment that separates robust signal detection from noise chasing. When everything is red, which signals still matter?",
+      },
+      {
+        heading: "Volume spikes become unreliable",
+        body: "In calm markets, a stock trading at 2x its 10-day average volume is a genuine signal of unusual interest. In high-VIX environments, nearly everything trades at elevated volume. Broad-based panic selling pushes volume higher across the board as portfolio managers rebalance, stop-losses trigger, and retail traders react to headlines. The 2x threshold that works well during normal markets can flood the pipeline with false positives during selloffs. This does not mean volume signals are useless — it means they need stronger corroboration from independent sources before they carry conviction.",
+      },
+      {
+        heading: "Social media degrades into noise",
+        body: "When VIX is above 25, the quality of social media signals drops significantly. Fear-driven posting floods Reddit and Twitter with bearish sentiment, apocalyptic predictions, and reactive takes that have no predictive value. Tickers mentioned during panic are often discussed because they are falling, not because they are about to break out. The usual social media patterns — organic discovery of under-the-radar tickers, growing attention ahead of a catalyst — get drowned out by market-wide panic commentary. SignalScope's multi-source requirement naturally filters much of this: a ticker needs corroboration from filings, options, or volume to advance beyond social mentions.",
+      },
+      {
+        heading: "Insider purchases become the strongest signal",
+        body: "Here is where high volatility creates opportunity rather than noise. When a CEO spends $500,000 of personal money buying company stock while the broader market is in freefall, that is one of the most powerful signals in finance. Insider purchases during drawdowns have historically produced the strongest forward returns of any insider buying pattern. The logic is straightforward: insiders know their business. If the broad market is selling their stock because of geopolitical fears that have nothing to do with the company's fundamentals, and the CEO responds by buying, the informational asymmetry is enormous. These are the signals that survive volatility filtering with the highest conviction.",
+      },
+      {
+        heading: "Congressional and options signals hold steady",
+        body: "Congressional stock purchases and unusual options flow are relatively unaffected by broad market volatility because they reflect individual conviction rather than market sentiment. A senator buying defense contractor stock during Middle East tensions is arguably a stronger signal during conflict than during peacetime — the informational advantage is more acute. Similarly, concentrated call buying during a selloff indicates someone believes a specific stock will outperform regardless of the macro backdrop. These source types maintain their predictive quality in high-VIX environments precisely because they represent deliberate, informed actions rather than reactive behavior.",
+      },
+      {
+        heading: "How the pipeline adapts",
+        body: "SignalScope does not change its source weights based on market conditions — the methodology is consistent regardless of VIX levels. But the multi-source convergence requirement inherently raises the bar during volatility. When volume spikes are everywhere and social media is all noise, the only tickers that survive aggregation are those backed by high-quality sources: insider filings, congressional trades, and unusual options activity. The pipeline naturally becomes more selective during fear, surfacing fewer tickers but with higher average conviction. This is exactly the behavior you want from a signal detection system — more conservative when the environment is uncertain, not less.",
+      },
+      {
+        heading: "What to watch for now",
+        body: "With the VIX above 30 and geopolitical uncertainty elevated, the signals worth paying attention to are insider cluster buying during the drawdown, concentrated options positioning in sectors directly affected by the catalyst (energy, defense, shipping), and any congressional purchases that align with committee-relevant sectors. The tickers that appear across these sources while the broader market panics are the strongest contrarian candidates. When fear is at its peak, the convergence of independent, money-backed signals is the clearest lens available.",
+      },
+    ],
+  },
+  {
+    slug: "congressional-trading-ban-reform",
+    title: "The Congressional Trading Ban Debate: What It Means for Signal Detection",
+    description:
+      "With bipartisan bills to ban congressional stock trading gaining momentum in 2026, what would reform mean for one of SignalScope's highest-weighted signal sources?",
+    date: "2026-03-26",
+    readingTime: "6 min read",
+    tags: ["congress", "regulation", "signals"],
+    sections: [
+      {
+        body: "March 2026 has been the most active month for congressional stock trading reform since the STOCK Act passed in 2012. On March 18, Senators Bill Cassidy and Pete Ricketts introduced the Stop Insider Trading Act, which would prohibit members of Congress, their spouses, and dependent children from purchasing publicly traded stocks and require seven-day public notice before any sales. A week earlier, Representative Chris Pappas introduced the No Getting Rich in Congress Act with similar provisions. A separate House bill, the End Congressional Stock Trading Act, is also advancing. Public support sits at 86% across party lines. The question is no longer whether reform is coming, but what form it takes — and what it means for anyone who uses congressional trade data as a market signal.",
+      },
+      {
+        heading: "Why congressional trades are a 2.5x signal today",
+        body: "Congressional stock purchases currently carry a source weight of 2.5x in SignalScope's scoring system — the second-highest of any source, behind only SEC insider purchases at 3.0x. This weight reflects the documented informational advantage that legislators hold: committee assignments give them early visibility into regulatory changes, defense spending, healthcare policy, and infrastructure plans. Academic research consistently shows that congressional portfolios outperform the market on average. A senator on the Armed Services Committee purchasing defense contractor stock, or a representative on the Financial Services Committee buying bank stocks ahead of regulatory changes, represents a signal with clear informational asymmetry. These trades are public data under the STOCK Act, and SignalScope monitors them through CapitolTrades disclosures.",
+      },
+      {
+        heading: "The 45-day lag problem",
+        body: "The STOCK Act requires disclosure within 45 days — though many members report faster. This disclosure lag already limits the real-time utility of congressional trades. By the time a purchase appears in the data, the information advantage that motivated the trade may have partially or fully played out. SignalScope addresses this with a 7-day publication window that captures recent disclosures while filtering stale data, and by treating congressional signals as confirmation rather than primary triggers. When a congressional purchase coincides with independent volume spikes or social media attention detected in the same scan, the combined signal is more actionable than the congressional trade alone.",
+      },
+      {
+        heading: "What a full ban would change",
+        body: "If the Stop Insider Trading Act or similar legislation passes, members of Congress would be prohibited from purchasing individual stocks entirely. This would eliminate congressional purchase signals from the data pipeline. SignalScope's Congress source — which monitors CapitolTrades for stock purchases by legislators — would stop producing new signals. The 2.5x weighted source that currently contributes to signal aggregation would go silent. For any platform that monitors STOCK Act disclosures, this is a meaningful data loss.",
+      },
+      {
+        heading: "Why the pipeline is designed for this",
+        body: "Multi-source signal detection is inherently resilient to the loss of any single source because no source is load-bearing on its own. The aggregation system requires convergence across independent channels — a ticker backed only by congressional purchases and nothing else would be a single-source signal with limited conviction regardless. The strongest tickers in SignalScope's pipeline typically appear across three or more sources: insider filings plus volume spikes plus social attention, or options flow plus insider purchases plus Reddit momentum. Removing one source from a convergence of four still leaves three independent channels corroborating the signal.",
+      },
+      {
+        heading: "What fills the gap",
+        body: "If congressional trades disappear, the remaining six sources continue operating: SEC insider filings, options flow, volume spikes, Reddit, Twitter, and StockTwits. SEC insider purchases — the highest-weighted source at 3.0x — provide a similar type of signal (informed buying by people with informational advantages) without the political controversy. Options flow at 2.5x captures institutional positioning that often reflects the same kind of policy-adjacent information that congressional trades represent. The overall pipeline would lose some edge in detecting policy-driven breakouts specifically, but the core thesis — convergence across independent sources with different incentive structures — remains intact.",
+      },
+      {
+        heading: "The real signal in the reform debate",
+        body: "Paradoxically, the push to ban congressional trading makes the remaining disclosures more valuable in the near term. As reform legislation advances, legislators may accelerate their trading activity before new rules take effect — creating a window of heightened signal density. The market already pays closer attention to congressional trades when the political spotlight is on them. With 86% public support and bipartisan sponsorship, some form of restriction is likely to pass eventually. Until it does, STOCK Act disclosures remain one of the most unique data sources available to signal detection platforms — publicly available, legally mandated, and backed by the informational asymmetry of legislative power.",
+      },
+    ],
+  },
 ];
+
+export const blogPosts = blogPostsUnsorted.toSorted(
+  (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+);
