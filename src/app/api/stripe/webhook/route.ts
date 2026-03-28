@@ -47,15 +47,15 @@ export async function POST(request: NextRequest) {
             stripeSubscriptionId: subscription.id,
             stripePriceId: subscription.items.data[0].price.id,
             status: "ACTIVE",
-            currentPeriodStart: new Date(subscription.items.data[0].current_period_start * 1000),
-            currentPeriodEnd: new Date(subscription.items.data[0].current_period_end * 1000),
+            currentPeriodStart: new Date(subscription.current_period_start * 1000),
+            currentPeriodEnd: new Date(subscription.current_period_end * 1000),
           },
           update: {
             stripeSubscriptionId: subscription.id,
             stripePriceId: subscription.items.data[0].price.id,
             status: "ACTIVE",
-            currentPeriodStart: new Date(subscription.items.data[0].current_period_start * 1000),
-            currentPeriodEnd: new Date(subscription.items.data[0].current_period_end * 1000),
+            currentPeriodStart: new Date(subscription.current_period_start * 1000),
+            currentPeriodEnd: new Date(subscription.current_period_end * 1000),
             cancelAtPeriodEnd: false,
             canceledAt: null,
           },
@@ -82,8 +82,8 @@ export async function POST(request: NextRequest) {
           data: {
             stripePriceId: subscription.items.data[0].price.id,
             status: mapStripeStatus(subscription.status),
-            currentPeriodStart: new Date(subscription.items.data[0].current_period_start * 1000),
-            currentPeriodEnd: new Date(subscription.items.data[0].current_period_end * 1000),
+            currentPeriodStart: new Date(subscription.current_period_start * 1000),
+            currentPeriodEnd: new Date(subscription.current_period_end * 1000),
             cancelAtPeriodEnd: subscription.cancel_at_period_end,
             canceledAt: subscription.canceled_at
               ? new Date(subscription.canceled_at * 1000)
