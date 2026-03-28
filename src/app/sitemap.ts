@@ -12,7 +12,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }));
 
   // Static last-modified dates (update when content actually changes)
-  const SITE_CONTENT_DATE = new Date("2026-03-28");
+  const SITE_CONTENT_DATE = new Date("2026-03-29");
 
   return [
     {

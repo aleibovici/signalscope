@@ -12,6 +12,14 @@ export const metadata: Metadata = {
     title: "FAQ — SignalScope",
     description:
       "Frequently asked questions about SignalScope — how breakout signals work, AI scoring, pump-and-dump filtering, data freshness, API access, and more.",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "SignalScope — Stock Breakout Signal Detection",
+      },
+    ],
   },
 };
 
