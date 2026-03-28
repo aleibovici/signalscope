@@ -10,7 +10,7 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-03-28",
-    title: "Deeper Reddit & Twitter Harvesting",
+    title: "Deeper Reddit & Twitter Harvesting, ML Model Alignment, API & Docs Audit",
     changes: [
       {
         category: "new",
@@ -26,6 +26,18 @@ export const changelog: ChangelogEntry[] = [
           "Flair-based velocity weighting: DD and News posts receive a signal boost; Meme, YOLO, and Gain/Loss posts are down-weighted. Daily threads and megaposts are deprioritized.",
           "Twitter/X harvester now filters retweets (-is:retweet), eliminating duplicate content while retaining engagement metrics captured on original tweets.",
           "Twitter/X harvester paginates using next_token across up to 3 pages per harvest (configurable via X_MAX_PAGES, max 5) — up to 3× more tweets analysed per run.",
+          "P&D filter thresholds and flag return numbers updated to new Mar 2026 backtesting dataset: micro_cap_no_catalyst is now −5.2% avg 7d (was −4.3%), penny_price is +3.3% (was +3.8%), OTC listing is +1.7% (was +1.3%). Bullish informational flags (penny price, OTC listing, Twitter coordinated pump) now display as green badges in ticker detail.",
+          "Scoring prompt updated with new ML feature rankings: hist_source_max is now the #1 positive predictor — tickers with historically broad source coverage get a boost. Prior appearances (#2 negative) and rising signal fraction (#4 positive) rankings corrected. Multi-source boost (+2.4% for 2 sources, +2.8% for 3+) made explicit.",
+          "Stage logic: social-only tickers with 6+ prior appearances are now capped at Emerging stage — frequent repeaters without a catalyst source have demonstrably worse 7d returns per ML data.",
+        ],
+      },
+      {
+        category: "fixed",
+        items: [
+          "Email alerts no longer exclude tickers with informational P&D flags (penny price, OTC listing) — these flags predict positive returns and should not gate alerts.",
+          "API skill docs corrected: network endpoint parameter is minCorrelation (not minWeight), related endpoint returns correlationScore/correlationDataPoints (not coOccurrenceCount), report response includes catalyst/risks/recommendation fields, performance response field is dailyReturns (not cumulativeReturns), scans/signals/methodology endpoints are fully public.",
+          "FAQ corrected: subscription model ($10/mo Pro tier for API keys, on-demand reports, email alerts), snapshot schedule (3×/day not 2×), harvest timing (8:30 AM ET, ~1h before open), ML model (RidgeCV not XGBoost), P&D filter effective vs informational flag distinction.",
+          "Landing page corrected: ML backtesting references updated from XGBoost to RidgeCV, snapshot schedule updated to 3×/day, Methodology page link updated to reflect it is now publicly accessible.",
         ],
       },
     ],
