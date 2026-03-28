@@ -26,21 +26,19 @@ const SEED_ACCOUNTS: { username: string; keep: boolean }[] = [
   { username: "FirstSquawk", keep: true },
   { username: "Newsquawk", keep: true },
   // Congress & insider tracking
-  { username: "CapitolTrades", keep: true },
+  { username: "quaborofficial", keep: true },
   { username: "QuiverQuant", keep: true },
   // Trading / fintech community
-  { username: "traborofficial", keep: false },
-  { username: "SwaggyStocks", keep: false },
-  { username: "gaborofficial", keep: false },
+  { username: "ripaborofficial", keep: false },
+  { username: "TradeAlgoBot", keep: false },
   // Options flow
   { username: "OptionsHawk", keep: true },
-  { username: "SqueezeMetrics", keep: true },
+  { username: "unusual_option", keep: true },
   // Market data & research
-  { username: "baborofficial", keep: false },
-  { username: "stockaborofficial", keep: false },
-  { username: "MarketRebels", keep: false },
   { username: "Barchart", keep: true },
-  { username: "FinvizTeam", keep: true },
+  { username: "ABOROFFICIAL", keep: true },
+  { username: "StockMKTNewz", keep: false },
+  { username: "MarketBeat", keep: false },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -91,9 +89,20 @@ async function lookupUserIds(
   const bearer = process.env.X_BEARER_TOKEN;
   if (!bearer || usernames.length === 0) return result;
 
+  // Twitter usernames: 1-15 alphanumeric/underscore chars
+  const validUsername = /^[A-Za-z0-9_]{1,15}$/;
+  const filtered = usernames.filter((u) => {
+    if (!validUsername.test(u)) {
+      console.warn(`[twitter/follow] Skipping invalid username: @${u}`);
+      return false;
+    }
+    return true;
+  });
+  if (filtered.length === 0) return result;
+
   // API allows up to 100 per request
-  for (let i = 0; i < usernames.length; i += 100) {
-    const batch = usernames.slice(i, i + 100);
+  for (let i = 0; i < filtered.length; i += 100) {
+    const batch = filtered.slice(i, i + 100);
     const url = `https://api.x.com/2/users/by?usernames=${batch.join(",")}`;
 
     try {
@@ -116,7 +125,7 @@ async function lookupUserIds(
     }
 
     // Small delay between batches
-    if (i + 100 < usernames.length) {
+    if (i + 100 < filtered.length) {
       await new Promise((r) => setTimeout(r, 1000));
     }
   }
