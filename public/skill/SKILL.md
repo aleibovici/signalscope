@@ -51,8 +51,10 @@ Pay-per-call in USDC on Base (L2). No account or API key needed. Each request to
 - `GET /api/search` — symbol discovery endpoint
 - `GET /api/health` — health check
 
-**Requires API key or session (not x402):**
-- `GET /api/methodology` — methodology, scoring, P&D detection, and `scoreComparison` (Opportunity vs AI confidence text for UI/agents)
+**Also free (no auth, no payment):**
+- `GET /api/methodology` — methodology, scoring, P&D detection, and `scoreComparison` (rate-limited: 30 req/min)
+- `GET /api/scans` / `GET /api/scans/:scanId` — scan list and scan detail
+- `GET /api/signals` — raw signals for a scan
 
 ```bash
 # Example: x402 flow (most x402 clients handle this automatically)
@@ -86,7 +88,7 @@ API keys provide access to all endpoints including account management (portfolio
 ## Key Concepts
 
 - **Scan**: A monitoring run that collects signals from all sources, scores them, and produces validated tickers
-- **Signal stages**: `Emerging` (1 source), `Building` (2 sources), `Consensus` (3+ sources), `Filtered` (P&D flagged)
+- **Signal stages**: `Emerging` (score ≥40, earliest detection), `Building` (score ≥45–50 with velocity or multi-source), `Consensus` (score ≥65+ with broad corroboration), `Filtered` (P&D flagged)
 - **Opportunity score** (0–100): Early-mover / setup quality — higher means the model favors timing alpha (dashboard sorts by this)
 - **AI score / signal confidence** (0–100): Strength of evidence (sources, sentiment, corroboration). 70+ is strong, 50–70 moderate, below 50 weak — not the same as expected upside; very high scores often overlap with consensus
 - **Trending**: Tickers appearing in 2+ scans within 30 days, with trend direction (rising/falling/stable)
@@ -97,8 +99,8 @@ API keys provide access to all endpoints including account management (portfolio
 
 ## API Reference
 
-- [Signal & scan endpoints](api-public.md) — 12 endpoints for scans, signals, tickers, trending, network, methodology
-- [Account endpoints](api-authenticated.md) — 16 endpoints for portfolio, watchlist, performance, profile, API key management (require API key or session, not x402)
+- [Signal & scan endpoints](api-public.md) — scans, signals, tickers, trending, network, methodology (most public or x402)
+- [Account endpoints](api-authenticated.md) — portfolio, watchlist, performance, profile, API key management (require API key or session, not x402)
 
 ## Common Workflows
 
@@ -119,17 +121,17 @@ curl -H "X-PAYMENT: <proof>" http://localhost:3000/api/tickers/trending
 curl -H "X-PAYMENT: <proof>" http://localhost:3000/api/tickers/network
 ```
 
-### Check latest scan results (API key)
+### Check latest scan results (public — no auth needed)
 
 ```bash
 # Get recent scans
-curl -H "x-api-key: $KEY" http://localhost:3000/api/scans?limit=5
+curl http://localhost:3000/api/scans?limit=5
 
 # Get tickers from a specific scan
-curl -H "x-api-key: $KEY" http://localhost:3000/api/scans/SCAN_ID
+curl http://localhost:3000/api/scans/SCAN_ID
 
 # Include filtered (P&D flagged) tickers
-curl -H "x-api-key: $KEY" "http://localhost:3000/api/scans/SCAN_ID?includeFiltered=true"
+curl "http://localhost:3000/api/scans/SCAN_ID?includeFiltered=true"
 ```
 
 ### Find trending tickers
@@ -163,7 +165,7 @@ curl -H "x-api-key: $KEY" http://localhost:3000/api/tickers/AAPL/history
 # Price performance (1d/3d/7d/30d returns)
 curl -H "x-api-key: $KEY" http://localhost:3000/api/tickers/AAPL/performance
 
-# Co-occurring tickers (appear in same scans)
+# Price-correlated tickers (sorted by absolute price correlation)
 curl -H "x-api-key: $KEY" http://localhost:3000/api/tickers/AAPL/related
 
 # Generate AI report + trade setup ($0.05 via x402; NOT available via API key)

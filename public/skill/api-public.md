@@ -14,7 +14,7 @@ Generate your API key at localhost:3000/profile.
 
 **Free** endpoints (no auth, no payment): `/api/search`, `/api/health`.
 
-`/api/methodology` requires an API key or session (not x402).
+`/api/methodology`, `/api/scans`, `/api/scans/:scanId`, and `/api/signals` are fully public (no auth required).
 
 ---
 
@@ -72,17 +72,17 @@ Cross-scan trending tickers (last 30 days).
 
 ## GET /api/tickers/network — $0.01 via x402
 
-Network graph of ticker co-occurrences.
+Network graph of ticker price-correlation relationships.
 
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
 | symbol | string | — | Center node symbol (omit for top trending tickers) |
-| minWeight | number | 2 | Minimum co-occurrence count for edges |
+| minCorrelation | number | 0.3 | Minimum absolute price correlation (0–1) for edges |
 | stage | string | — | Filter by stage: `Emerging`, `Building`, `Consensus` |
 | days | number | 30 | Lookback window in days (max 90) |
 | maxNodes | number | 30 | Maximum nodes to return (max 50) |
 
-**Response:** `{ nodes: [{ symbol, name, aiScore, opportunityScore, stage, price, marketCap, sector, recommendation, appearances }], edges: [{ source, target, weight, correlation }], centerSymbol, effectiveMinWeight }` — node **size** in the web UI is driven by `aiScore` (confidence); both scores are shown in the node tooltip/panel.
+**Response:** `{ nodes: [{ symbol, name, aiScore, opportunityScore, stage, price, marketCap, sector, recommendation, appearances }], edges: [{ source, target, correlation, dataPoints }], centerSymbol }` — `correlation` is the Pearson price correlation coefficient; `dataPoints` is the number of overlapping snapshot pairs used. Node **size** in the web UI is driven by `aiScore` (confidence); both scores are shown in the node tooltip/panel.
 
 ---
 
@@ -98,17 +98,17 @@ Returns 404 if the symbol has never been validated.
 
 ## GET /api/tickers/:symbol/related — $0.005 via x402
 
-Co-occurring tickers (tickers that appear in the same scans).
+Price-correlated tickers (sorted by absolute price correlation descending).
 
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
 | page | number | 1 | Page number |
 | limit | number | 20 | Results per page (max 100) |
-| minCoOccurrences | number | 2 | Minimum shared scan appearances |
+| minCoOccurrences | number | 2 | Minimum shared scan appearances to be considered |
 | days | number | 30 | Lookback window in days (max 90) |
 | stage | string | — | Filter by latest stage: `Emerging`, `Building`, `Consensus` |
 
-**Response:** `{ relatedTickers: [{ symbol, name, coOccurrenceCount, correlationScore, latestAiScore, latestStage, sector, sources, price, marketCap, recommendation }], targetSymbol, targetScanCount, total }` — `latestAiScore` is signal confidence only; use `GET /api/tickers/:symbol` for `opportunityScore` on the target.
+**Response:** `{ relatedTickers: [{ symbol, name, correlationScore, correlationDataPoints, latestAiScore, latestStage, sector, sources, price, marketCap, recommendation }], targetSymbol, targetScanCount, total }` — `correlationScore` is the Pearson price correlation coefficient (null if insufficient data); `correlationDataPoints` is the number of overlapping snapshot pairs; `latestAiScore` is signal confidence only; use `GET /api/tickers/:symbol` for `opportunityScore` on the target.
 
 ---
 
@@ -136,7 +136,7 @@ Generate an AI report and trade setup for a ticker. Cached after first generatio
 
 **Note:** This endpoint is **not available via API key** — use x402 payment or a browser session. Returns `403` for API key requests.
 
-**Response:** `{ report: string, tradeSetup: { entryLo, entryHi, stopLoss, target1, target2, timeframe, riskReward, confidence } | null }`
+**Response:** `{ catalyst: string | null, risks: string | null, recommendation: string | null, report: string | null, tradeSetup: { entryLo, entryHi, stopLoss, target1, target2, timeframe, riskReward, confidence } | null }` — `tradeSetup` is only present for `Buy` or `Strong Buy` recommendations.
 
 Returns 404 if the ticker has never been validated. Trade setup is only generated for `Buy` or `Strong Buy` recommendations.
 
@@ -144,7 +144,7 @@ Returns 404 if the ticker has never been validated. Trade setup is only generate
 
 ## GET /api/scans
 
-List monitoring scans (paginated). Requires API key or session.
+List monitoring scans (paginated). No authentication required.
 
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
@@ -160,19 +160,19 @@ List monitoring scans (paginated). Requires API key or session.
 
 ## GET /api/scans/:scanId
 
-Get scan detail with validated tickers. Requires API key or session.
+Get scan detail with validated tickers. No authentication required.
 
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
 | includeFiltered | boolean | false | Include FILTERED (P&D flagged) tickers |
 
-**Response:** `{ scan: { ... }, tickers: [{ id, symbol, aiScore, opportunityScore, stage, price, ... }] }` — tickers are ordered by `opportunityScore` descending (see [Two scores](#opportunity-score-vs-signal-confidence-ai)).
+**Response:** `{ scan: { ... }, tickers: [{ id, symbol, aiScore, opportunityScore, stage, price, ... }] }` — tickers are ordered by `aiScore` descending (`opportunityScore` as tiebreaker).
 
 ---
 
 ## GET /api/signals
 
-Get raw signals for a scan. Requires API key or session.
+Get raw signals for a scan. No authentication required.
 
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
@@ -187,9 +187,9 @@ Max 200 results, sorted by sourceCount then velocityScore descending.
 
 ## GET /api/methodology
 
-Platform methodology (scoring, stages, P&D detection, signal sources). Requires API key or session.
+Platform methodology (scoring, stages, P&D detection, signal sources). No authentication required (rate-limited: 30 req/min).
 
-**Response:** `{ description, pipelineSteps, signalSources, scoring: { bands }, pumpAndDumpDetection: { flags, threshold }, signalStages, backtesting, scoreComparison: { title, detail, dashboardCallout, trendingCallout, performanceInsight }, disclaimer }` — `scoreComparison` explains Opportunity vs AI confidence (high confidence ≠ highest forward returns).
+**Response:** `{ description, pipelineSteps, signalSources, aggregation: { description, sourceWeights }, scoring: { description, bands }, pumpAndDumpDetection: { description, flags, threshold }, signalStages, recommendationLevels, backtesting, scoreComparison: { title, detail, dashboardCallout, trendingCallout, performanceInsight }, disclaimer }` — `scoreComparison` explains Opportunity vs AI confidence (high confidence ≠ highest forward returns). Response is cached 1 hour (`Cache-Control: public, max-age=3600`).
 
 ---
 

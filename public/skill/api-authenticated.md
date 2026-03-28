@@ -105,7 +105,7 @@ Platform-wide ticker performance breakdown.
 |-------|------|---------|-------------|
 | days | number | 7 | Return period: 1, 3, 7, or 30 |
 
-**Response:** `{ summary, cohorts, cumulativeReturns, overall, confirmed, emerging, byStage, byType, byScoreRange, byOpportunityScoreRange, bestPerformers, worstPerformers }` — `byScoreRange` buckets returns by **AI confidence** (`aiScore`); `byOpportunityScoreRange` buckets by **Opportunity** (`opportunityScore`). Same horizon as `days`. Performer rows include `aiScore` (confidence at detection). See [two scores](api-public.md#opportunity-score-vs-signal-confidence-ai).
+**Response:** `{ summary, cohorts, dailyReturns, overall, confirmed, emerging, byStage, byType, byScoreRange, byOpportunityScoreRange, bestPerformers, worstPerformers }` — `byScoreRange` buckets returns by **AI confidence** (`aiScore`); `byOpportunityScoreRange` buckets by **Opportunity** (`opportunityScore`). Same horizon as `days`. Performer rows include `aiScore` (confidence at detection). See [two scores](api-public.md#opportunity-score-vs-signal-confidence-ai).
 
 ---
 
@@ -132,7 +132,7 @@ Current prices for symbols (cached 5 min).
 **Response:** `{ prices: { "AAPL": 185.50, "INVALID": null } }`
 
 Notes:
-- Requires authentication (`x-api-key`, Bearer token, or valid session)
+- Authentication is optional; unauthenticated requests are accepted
 - Missing `symbols` query parameter returns `400`
 - Maximum of 50 symbols per request
 
@@ -144,7 +144,7 @@ Notes:
 
 Get current user profile.
 
-**Response:** `{ id, email, username, emailAlerts }`
+**Response:** `{ id, email, username, emailAlerts, subscription: { status, plan, currentPeriodEnd, cancelAtPeriodEnd } | null }` — `subscription` is `null` when no active Stripe subscription exists.
 
 ### PATCH /api/user/profile
 

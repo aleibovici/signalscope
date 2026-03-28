@@ -395,7 +395,7 @@ done
 | X/Twitter | Active | X API v2 Recent Search (api.x.com), single keyword query, requires Basic tier ($200/mo) — Free tier returns 403, requires `X_BEARER_TOKEN` |
 | SEC Insider | Active | OpenInsider HTML + EDGAR RSS, filters C-suite $50K+ purchases |
 | Congress | Active | CapitolTrades.com — congressional stock trades; deduplicates by transaction ID across runs |
-| Volume Spike | Active | Yahoo Finance, 110 symbols, 2x avg volume threshold |
+| Volume Spike | Active | Yahoo Finance, 89 symbols, 2x avg volume threshold |
 | StockTwits | Active | Uses TrendSpider mirror (server-side rendered); direct StockTwits access is Cloudflare-blocked |
 | Options Flow | Active | Yahoo Finance options chain API, scans SCAN_SYMBOLS for unusual call volume, OTM activity, and call sweeps |
 
