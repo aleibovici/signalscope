@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { useCheckout, usePortal } from "@/hooks/use-subscription";
@@ -27,7 +27,16 @@ export default function SubscriptionPage() {
   const subscription = profile?.subscription;
   const isActive = subscription?.isActive ?? false;
 
+  useEffect(() => {
+    window.gtag?.("event", "view_subscription_page");
+  }, []);
+
   function handleSubscribe() {
+    window.gtag?.("event", "begin_checkout", {
+      currency: "USD",
+      value: period === "monthly" ? MONTHLY_PRICE : YEARLY_PRICE,
+      items: [{ item_name: `SignalScope Pro (${period})`, price: period === "monthly" ? MONTHLY_PRICE : YEARLY_PRICE }],
+    });
     checkout.mutate(period, {
       onSuccess: (data) => {
         window.location.href = data.url;

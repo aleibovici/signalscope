@@ -5,6 +5,7 @@ const mockUpsert = vi.fn();
 const mockUpdate = vi.fn();
 const mockUpdateMany = vi.fn();
 const mockFindUnique = vi.fn();
+const mockFindFirst = vi.fn();
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -13,8 +14,13 @@ vi.mock("@/lib/prisma", () => ({
       update: (...args: unknown[]) => mockUpdate(...args),
       updateMany: (...args: unknown[]) => mockUpdateMany(...args),
       findUnique: (...args: unknown[]) => mockFindUnique(...args),
+      findFirst: (...args: unknown[]) => mockFindFirst(...args),
     },
   },
+}));
+
+vi.mock("@/lib/ga4-server", () => ({
+  sendGA4Event: vi.fn(),
 }));
 
 const mockConstructEvent = vi.fn();

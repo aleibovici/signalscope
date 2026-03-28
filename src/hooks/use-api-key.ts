@@ -38,6 +38,7 @@ export function useGenerateApiKey() {
       return data;
     },
     onSuccess: () => {
+      window.gtag?.("event", "generate_api_key");
       qc.invalidateQueries({ queryKey: ["api-key"] });
     },
   });
