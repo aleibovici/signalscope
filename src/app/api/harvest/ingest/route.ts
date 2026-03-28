@@ -32,10 +32,10 @@ const signalSchema = z.object({
   followerCount: z.number().optional(),
   isVerified: z.boolean().optional(),
   tweetType: z.string().optional(),
-  marketProbability: z.number().nullish(),
-  marketVolume24hr: z.number().nullish(),
-  marketLiquidity: z.number().nullish(),
-  marketEndDate: z.string().nullish(),
+  marketProbability: z.number().nullable().optional().transform((v) => v ?? undefined),
+  marketVolume24hr: z.number().nullable().optional().transform((v) => v ?? undefined),
+  marketLiquidity: z.number().nullable().optional().transform((v) => v ?? undefined),
+  marketEndDate: z.string().nullable().optional().transform((v) => v ?? undefined),
 });
 
 const ingestPayloadSchema = z.object({
