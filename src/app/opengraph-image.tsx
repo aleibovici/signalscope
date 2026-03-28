@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
+export const revalidate = 86400; // cache for 24 hours
 
 export default function OgImage() {
   return new ImageResponse(
@@ -111,7 +112,7 @@ export default function OgImage() {
           }}
         >
           {[
-            ["6", "Signal sources"],
+            ["7", "Signal sources"],
             ["11", "P&D flags"],
             ["4", "Signal stages"],
           ].map(([num, label]) => (

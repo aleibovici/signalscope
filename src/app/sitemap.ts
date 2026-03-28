@@ -11,41 +11,38 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
+  // Static last-modified dates (update when content actually changes)
+  const SITE_CONTENT_DATE = new Date("2026-03-28");
+
   return [
     {
-      url: BASE_URL,
-      lastModified: new Date(),
+      url: `${BASE_URL}/login`,
+      lastModified: SITE_CONTENT_DATE,
       changeFrequency: "monthly",
       priority: 1.0,
     },
     {
-      url: `${BASE_URL}/login`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
       url: `${BASE_URL}/register`,
-      lastModified: new Date(),
+      lastModified: SITE_CONTENT_DATE,
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
       url: `${BASE_URL}/blog`,
-      lastModified: new Date(),
+      lastModified: new Date(blogPosts[0]?.date ?? SITE_CONTENT_DATE),
       changeFrequency: "weekly",
       priority: 0.8,
     },
     ...blogEntries,
     {
       url: `${BASE_URL}/faq`,
-      lastModified: new Date(),
+      lastModified: SITE_CONTENT_DATE,
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
       url: `${BASE_URL}/how-it-works`,
-      lastModified: new Date(),
+      lastModified: SITE_CONTENT_DATE,
       changeFrequency: "monthly",
       priority: 0.7,
     },
@@ -70,36 +67,30 @@ export default function sitemap(): MetadataRoute.Sitemap {
     {
       url: `${BASE_URL}/performance`,
       lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE_URL}/methodology`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.6,
+      changeFrequency: "weekly",
+      priority: 0.7,
     },
     {
       url: `${BASE_URL}/changelog`,
-      lastModified: new Date(),
+      lastModified: SITE_CONTENT_DATE,
       changeFrequency: "weekly",
       priority: 0.6,
     },
     {
       url: `${BASE_URL}/skill/SKILL.md`,
-      lastModified: new Date(),
+      lastModified: SITE_CONTENT_DATE,
       changeFrequency: "monthly",
       priority: 0.5,
     },
     {
       url: `${BASE_URL}/skill/api-public.md`,
-      lastModified: new Date(),
+      lastModified: SITE_CONTENT_DATE,
       changeFrequency: "monthly",
       priority: 0.5,
     },
     {
       url: `${BASE_URL}/skill/api-authenticated.md`,
-      lastModified: new Date(),
+      lastModified: SITE_CONTENT_DATE,
       changeFrequency: "monthly",
       priority: 0.5,
     },

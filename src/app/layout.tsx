@@ -21,8 +21,7 @@ const geistMono = Geist_Mono({
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
   themeColor: "#ffffff",
 };
 
@@ -134,7 +133,7 @@ const jsonLd = {
         "@type": "SearchAction",
         "target": {
           "@type": "EntryPoint",
-          "urlTemplate": "https://signalscopes.com/ticker/{search_term_string}",
+          "urlTemplate": "https://signalscopes.com/api/search?q={search_term_string}",
         },
         "query-input": "required name=search_term_string",
       },
@@ -149,9 +148,11 @@ const jsonLd = {
       "description":
         "Find breakout stock candidates before market consensus. SignalScope monitors public market signals from Reddit, X/Twitter, SEC insider filings, congressional trades, options flow, and volume spikes — scored by AI, filtered for pump-and-dumps, with cross-scan trending analysis, ML backtesting, an AI Agent Skill, and x402 pay-per-call API access.",
       "offers": {
-        "@type": "Offer",
-        "price": "0",
+        "@type": "AggregateOffer",
+        "lowPrice": "0",
+        "highPrice": "100",
         "priceCurrency": "USD",
+        "offerCount": "2",
       },
       "publisher": { "@id": "https://signalscopes.com/#organization" },
     },
@@ -166,6 +167,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://www.googletagmanager.com" />
+        <link rel="dns-prefetch" href="https://www.google-analytics.com" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

@@ -1,0 +1,18 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Signal Performance",
+  description:
+    "Historical performance tracking for SignalScope's AI-scored breakout signals. View 1d, 3d, 7d, and 30d returns across Emerging, Building, and Consensus stages.",
+  alternates: { canonical: "https://signalscopes.com/performance" },
+  openGraph: {
+    url: "https://signalscopes.com/performance",
+    title: "Signal Performance — SignalScope",
+    description:
+      "Track how SignalScope's AI-scored breakout signals perform over time. 1d through 30d return data by stage and score range.",
+  },
+};
+
+export default function PerformanceLayout({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
+}

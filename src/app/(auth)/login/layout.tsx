@@ -8,8 +8,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     url: "https://signalscopes.com/login",
-    title: "Login — SignalScope",
-    description: "Sign in to your SignalScope dashboard — view live AI-scored breakout signals, manage your portfolio, and track signal performance.",
+    title: "SignalScope — Stock Breakout Signal Detection",
+    description: "Find breakout stock candidates before market consensus. AI-scored signals from Reddit, X/Twitter, SEC filings, and volume spikes — with cross-scan trending, ML backtesting, and an AI Agent Skill.",
     images: [
       {
         url: "/opengraph-image",
@@ -18,6 +18,12 @@ export const metadata: Metadata = {
         alt: "SignalScope — Stock Breakout Signal Detection",
       },
     ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SignalScope — Stock Breakout Signal Detection",
+    description: "Find breakout stock candidates before market consensus. AI-scored signals from Reddit, X/Twitter, SEC filings, and volume spikes.",
+    images: ["/opengraph-image"],
   },
 };
 

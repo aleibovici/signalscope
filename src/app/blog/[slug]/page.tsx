@@ -61,12 +61,18 @@ export default async function BlogPostPage({
     "@type": "BlogPosting",
     headline: post.title,
     description: post.description,
+    image: "https://signalscopes.com/opengraph-image",
     datePublished: post.date,
+    dateModified: post.date,
     author: { "@type": "Organization", name: "SignalScope" },
     publisher: {
       "@type": "Organization",
       name: "SignalScope",
       url: "https://signalscopes.com",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://signalscopes.com/apple-touch-icon.png",
+      },
     },
     mainEntityOfPage: `https://signalscopes.com/blog/${post.slug}`,
   };
