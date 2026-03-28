@@ -169,6 +169,12 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://www.googletagmanager.com" />
         <link rel="dns-prefetch" href="https://www.google-analytics.com" />
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title="SignalScope Blog"
+          href="http://localhost:3000/blog/feed.xml"
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

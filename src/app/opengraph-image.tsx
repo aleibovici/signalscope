@@ -112,7 +112,7 @@ export default function OgImage() {
           }}
         >
           {[
-            ["7", "Signal sources"],
+            ["8", "Signal sources"],
             ["11", "P&D flags"],
             ["4", "Signal stages"],
           ].map(([num, label]) => (

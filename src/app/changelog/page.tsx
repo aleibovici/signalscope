@@ -14,6 +14,14 @@ export const metadata: Metadata = {
     title: "Changelog — SignalScope",
     description:
       "What's new in SignalScope — improvements, new signal sources, ML updates, and bug fixes.",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "SignalScope — Stock Breakout Signal Detection",
+      },
+    ],
   },
 };
 
