@@ -10,7 +10,7 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-03-29",
-    title: "Polymarket Prediction Market Signal Source",
+    title: "Polymarket Signal Source & Navigation Improvements",
     changes: [
       {
         category: "new",
@@ -19,6 +19,13 @@ export const changelog: ChangelogEntry[] = [
           "Catalyst detection: Polymarket markets about upcoming earnings, mergers, FDA decisions, or index additions are treated as early-signal catalysts — exactly the pre-breakout events the scoring model looks for. A ticker with a prediction market in play before consensus means smart money is pricing in a move.",
           "Two-phase harvest: Phase 1 scans the standard symbol list in parallel with all other sources. Phase 2 automatically scans any new symbols discovered by Reddit, Twitter, or other sources in that same run — so Polymarket coverage expands dynamically without requiring those symbols to be pre-listed.",
           "Four new signal fields persisted: market probability (implied yes/no or best bracket probability), 24h volume, total liquidity, and market end date. These are passed to the AI scorer and stored in the database.",
+        ],
+      },
+      {
+        category: "improved",
+        items: [
+          "Clicking the SignalScope logo in the sidebar now navigates to the landing page instead of the dashboard.",
+          "Landing page nav adapts to login state: logged-in users see Dashboard and Sign Out links instead of Register.",
         ],
       },
     ],
