@@ -32,7 +32,7 @@ export const faqItems: FaqItem[] = [
   {
     question: "How does the pump-and-dump filter work?",
     answer:
-      "Every candidate is checked against 13 statistical flags covering price characteristics (penny stocks, OTC listings), social manipulation patterns (coordinated posts, hyperbolic language, upvote pumping), source quality (single source, no news catalyst), and timing anomalies (sudden spikes, bot promoters). Three or more flags immediately quarantine a ticker. Exactly two flags triggers an AI edge-case review. This catches the vast majority of pump-and-dump schemes before they reach the dashboard.",
+      "Every candidate is checked against 13 statistical flags. Eight are 'effective' flags that count toward the quarantine threshold — these are ML-validated bearish predictors: micro-cap with no catalyst (−5.2% avg 7d return), sudden spike, no news catalyst, penny-only subreddits, sub-dime 52-week floor, upvote pumping, hyperbolic language, and Twitter bot promoters. Five are 'informational' flags stored for analysis but excluded from the threshold because ML backtesting shows they predict neutral or positive returns: penny price (+3.3% avg 7d), OTC listing (+1.7%), Twitter coordinated pump (+2.0%), coordinated posts, and single source. Three or more effective flags immediately quarantine a ticker. Exactly two effective flags triggers an AI edge-case review.",
   },
   {
     question: "What sources does SignalScope monitor?",
@@ -52,22 +52,22 @@ export const faqItems: FaqItem[] = [
   {
     question: "How fresh is the data and how often is it updated?",
     answer:
-      "Signal harvesting runs once daily, approximately 30 minutes before US market open. Price snapshots are collected twice daily — at market open (9:30 AM ET) and close (4:05 PM ET). Returns are computed at 1, 3, 7, and 30 days after detection with tolerance windows that handle weekends and holidays. AI reports for the top emerging tickers are pre-generated after each harvest.",
+      "Signal harvesting runs once daily at 8:30 AM ET on weekdays — approximately one hour before US market open. Price snapshots are collected three times daily: at 9:45 AM ET (15 min after open, avoiding auction volatility), 12:30 PM ET (midday), and 4:05 PM ET (after close). Returns are computed at 1, 3, 7, and 30 days after detection with tolerance windows that handle weekends and holidays. AI reports for the top emerging tickers are pre-generated after each harvest.",
   },
   {
     question: "Is SignalScope free?",
     answer:
-      "Yes — creating an account and using the dashboard is free with no credit card required. The platform is free for retail investors and traders. AI agents can also access data without an account via x402 micropayments (from $0.005 per call). There are no subscription tiers or premium features behind a paywall.",
+      "The dashboard is free for all registered users — no credit card required to browse signals, trending tickers, portfolio tracking, and watchlists. A Pro subscription ($10/month or $100/year) unlocks API key access for programmatic use, on-demand AI report generation, and email alerts for top emerging tickers. AI agents can also access data without an account via x402 micropayments (from $0.005 per call) — no registration needed.",
   },
   {
     question: "How is signal performance tracked?",
     answer:
-      "Automated price snapshots at market open and close track every validated ticker for 30 days after detection. Returns are measured at 1, 3, 7, and 30 days using nominal prices. Tickers that undergo corporate actions (reverse splits, forward splits, mergers) during the tracking window are automatically detected and excluded from performance statistics to prevent misleading returns. This data feeds into an XGBoost machine learning model that uses SHAP analysis to identify which signal features predict real-world outcomes, continuously refining scoring thresholds, stage assignments, and filtering logic.",
+      "Automated price snapshots three times daily track every validated ticker for 30 days after detection. Returns are measured at 1, 3, 7, and 30 days using nominal prices. Tickers that undergo corporate actions (reverse splits, forward splits, mergers) during the tracking window are automatically detected and excluded from performance statistics to prevent misleading returns. This data feeds into an external ML backtesting harness (RidgeCV models) that uses feature importance and information coefficient analysis to identify which signal features predict real-world outcomes, continuously refining scoring thresholds, stage assignments, and filtering logic.",
   },
   {
     question: "What does Filtered mean?",
     answer:
-      "Filtered tickers failed the pump-and-dump check — they triggered 3 or more of the 13 statistical flags (or 2 flags plus a confirming AI assessment). These tickers are quarantined from the main dashboard and visible in a dedicated Filtered tab. They are not deleted — you can still view the raw signals and understand why they were flagged. Filtering protects users from acting on potentially manipulated signals.",
+      "Filtered tickers failed the pump-and-dump check — they triggered 3 or more effective bearish flags (or exactly 2 effective flags plus a confirming AI assessment). Note that not all 13 flags count toward filtering: penny price, OTC listing, Twitter coordinated pump, coordinated posts, and single source are informational flags that don't trigger quarantine because ML data shows they actually predict neutral or positive returns. Filtered tickers are quarantined from the main dashboard but visible in a dedicated Filtered tab — you can still view the raw signals and understand why they were flagged.",
   },
   {
     question: "Can I track my portfolio?",
