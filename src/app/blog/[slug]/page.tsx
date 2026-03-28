@@ -61,12 +61,18 @@ export default async function BlogPostPage({
     "@type": "BlogPosting",
     headline: post.title,
     description: post.description,
+    image: "http://localhost:3000/opengraph-image",
     datePublished: post.date,
+    dateModified: post.date,
     author: { "@type": "Organization", name: "SignalScope" },
     publisher: {
       "@type": "Organization",
       name: "SignalScope",
       url: "http://localhost:3000",
+      logo: {
+        "@type": "ImageObject",
+        url: "http://localhost:3000/apple-touch-icon.png",
+      },
     },
     mainEntityOfPage: `http://localhost:3000/blog/${post.slug}`,
   };

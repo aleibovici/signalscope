@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import { stageLabel } from "@/lib/stage-labels";
+
+export const metadata: Metadata = {
+  title: "Methodology",
+  alternates: { canonical: "http://localhost:3000/how-it-works" },
+  robots: { index: false, follow: false },
+};
 import {
   pipelineSteps,
   signalSources,

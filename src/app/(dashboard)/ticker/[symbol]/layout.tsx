@@ -63,10 +63,14 @@ export async function generateMetadata({
   return {
     title,
     description,
+    alternates: {
+      canonical: `http://localhost:3000/ticker/${upper}`,
+    },
     openGraph: {
       title,
       description,
       type: "article",
+      url: `http://localhost:3000/ticker/${upper}`,
     },
     twitter: {
       card: "summary_large_image",

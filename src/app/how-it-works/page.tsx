@@ -62,7 +62,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 export default function PublicMethodologyPage() {
-  const jsonLd = {
+  const jsonLdBreadcrumb = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
@@ -71,11 +71,32 @@ export default function PublicMethodologyPage() {
     ],
   };
 
+  const jsonLdArticle = {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    headline: "SignalScope Methodology — How AI-Scored Stock Breakout Signals Work",
+    description: methodologyDescription,
+    url: "http://localhost:3000/how-it-works",
+    image: "http://localhost:3000/opengraph-image",
+    author: { "@type": "Organization", name: "SignalScope", url: "http://localhost:3000" },
+    publisher: {
+      "@type": "Organization",
+      name: "SignalScope",
+      url: "http://localhost:3000",
+      logo: { "@type": "ImageObject", url: "http://localhost:3000/apple-touch-icon.png" },
+    },
+    mainEntityOfPage: "http://localhost:3000/how-it-works",
+  };
+
   return (
     <PublicPageLayout maxWidth="max-w-4xl">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumb) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdArticle) }}
       />
 
       <div className="mb-10">

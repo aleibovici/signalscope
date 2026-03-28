@@ -4,9 +4,15 @@ const INDEXNOW_KEY = "f8dd4b98a32e43dba4ffefb26738aecb";
 const HOST = "localhost:3000";
 
 const PUBLIC_URLS = [
-  `https://${HOST}/`,
   `https://${HOST}/login`,
   `https://${HOST}/register`,
+  `https://${HOST}/blog`,
+  `https://${HOST}/faq`,
+  `https://${HOST}/how-it-works`,
+  `https://${HOST}/changelog`,
+  `https://${HOST}/dashboard`,
+  `https://${HOST}/trending`,
+  `https://${HOST}/connections`,
 ];
 
 // POST /api/indexnow — submit public URLs to IndexNow (Bing, Yandex)
