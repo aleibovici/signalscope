@@ -280,6 +280,26 @@ describe("determineStage — EARLY fallback", () => {
   });
 });
 
+describe("determineStage — stale repeater gate (priorAppearances >= 6)", () => {
+  it("caps social-only ticker with 6+ prior appearances at EARLY even with high score", () => {
+    const stale: NoveltyContext = { firstSeenAt: new Date(), daysSinceFirstSeen: 10, priorAppearances: 6, isNovel: false };
+    // score=60 + sourceCount=3 would normally be FORMING, but 6+ appearances blocks it
+    expect(determineStage(60, 3, 5, 2.5, false, false, stale)).toBe("EARLY");
+  });
+
+  it("allows catalyst-source ticker with 6+ prior appearances to advance", () => {
+    const stale: NoveltyContext = { firstSeenAt: new Date(), daysSinceFirstSeen: 10, priorAppearances: 6, isNovel: false };
+    // hasNonSocialSource=true bypasses the gate
+    expect(determineStage(70, 3, 5, 2.0, false, true, stale)).toBe("CONFIRMED");
+  });
+
+  it("does not block tickers with 5 prior appearances", () => {
+    const borderline: NoveltyContext = { firstSeenAt: new Date(), daysSinceFirstSeen: 8, priorAppearances: 5, isNovel: false };
+    // 5 is below the threshold — should still reach FORMING
+    expect(determineStage(50, 2, 2, 0.5, false, false, borderline)).toBe("FORMING");
+  });
+});
+
 describe("determineStage — novelty +5 boost affecting stage boundary", () => {
   it("novel ticker with aiScore=44 gets +5 → effectiveScore=49, reaches FORMING via score+sourceCount", () => {
     // effectiveScore 49 < 50 so doesn't meet score+sourceCount FORMING

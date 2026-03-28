@@ -423,7 +423,9 @@ export default function TickerDetailPage({
                       ? "border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400"
                       : flag === "no_news_catalyst" || flag === "only_penny_subs"
                         ? "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                        : "border-slate-200 bg-slate-100 text-slate-500 dark:border-[#1e262f] dark:bg-[#12181f] dark:text-zinc-400"
+                        : flag === "penny_price" || flag === "otc_listing" || flag === "twitter_coordinated_pump"
+                          ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                          : "border-slate-200 bg-slate-100 text-slate-500 dark:border-[#1e262f] dark:bg-[#12181f] dark:text-zinc-400"
                   }`}
                 >
                   {flag.replace(/_/g, " ")}

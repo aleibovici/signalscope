@@ -117,7 +117,7 @@ describe("POST /api/alerts/send", () => {
     expect(findManyCall.where.stage).toBe("EARLY");
     expect(findManyCall.where.aiScore).toEqual({ gte: 50 });
     expect(findManyCall.where.pndFlagged).toBe(false);
-    expect(findManyCall.where.pndScore).toEqual({ lte: 1 });
+    expect(findManyCall.where.pndScore).toBeUndefined();
     expect(findManyCall.where.priorAppearances).toEqual({ lte: 5 });
     expect(findManyCall.where.catalyst).toEqual({ not: null });
     expect(findManyCall.take).toBe(6);
