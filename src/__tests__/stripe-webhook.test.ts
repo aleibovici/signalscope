@@ -102,6 +102,51 @@ describe("POST /api/stripe/webhook", () => {
     expect(mockUpsert.mock.calls[0][0].create.stripeSubscriptionId).toBe("sub_123");
   });
 
+  it("checkout.session.completed — reads period dates from SubscriptionItem, not subscription root", async () => {
+    // Stripe v20 exposes current_period_start/end on the SubscriptionItem, not the
+    // subscription object. The webhook handler must read from items.data[0], otherwise
+    // dates are Invalid Date (undefined * 1000 = NaN).
+    const itemStart = 1_700_000_000; // a fixed epoch
+    const itemEnd   = 1_700_000_000 + 30 * 86_400;
+
+    mockConstructEvent.mockReturnValue({
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          mode: "subscription",
+          subscription: "sub_999",
+          metadata: { userId: "user_2" },
+        },
+      },
+    });
+    mockRetrieve.mockResolvedValue({
+      id: "sub_999",
+      // Intentionally omit root-level current_period_start/end to prove the handler
+      // doesn't read them from the subscription object.
+      items: {
+        data: [{
+          price: { id: "price_monthly" },
+          current_period_start: itemStart,
+          current_period_end: itemEnd,
+        }],
+      },
+    });
+    mockUpsert.mockResolvedValue({});
+
+    const res = await POST(makeRequest("{}"));
+    expect(res.status).toBe(200);
+
+    const upsertData = mockUpsert.mock.calls[0][0];
+    // Dates must be valid Date objects derived from the item timestamps
+    expect(upsertData.create.currentPeriodStart).toBeInstanceOf(Date);
+    expect(upsertData.create.currentPeriodEnd).toBeInstanceOf(Date);
+    expect(upsertData.create.currentPeriodStart.getTime()).toBe(itemStart * 1000);
+    expect(upsertData.create.currentPeriodEnd.getTime()).toBe(itemEnd * 1000);
+    // update path gets the same values
+    expect(upsertData.update.currentPeriodStart.getTime()).toBe(itemStart * 1000);
+    expect(upsertData.update.currentPeriodEnd.getTime()).toBe(itemEnd * 1000);
+  });
+
   it("handles customer.subscription.updated", async () => {
     mockConstructEvent.mockReturnValue({
       type: "customer.subscription.updated",
@@ -128,6 +173,42 @@ describe("POST /api/stripe/webhook", () => {
     expect(res.status).toBe(200);
     expect(mockUpdate).toHaveBeenCalledTimes(1);
     expect(mockUpdate.mock.calls[0][0].data.status).toBe("ACTIVE");
+  });
+
+  it("customer.subscription.updated — reads period dates from SubscriptionItem", async () => {
+    const itemStart = 1_710_000_000;
+    const itemEnd   = 1_710_000_000 + 365 * 86_400;
+
+    mockConstructEvent.mockReturnValue({
+      type: "customer.subscription.updated",
+      data: {
+        object: {
+          id: "sub_456",
+          status: "active",
+          // No root-level period dates — handler must read from item
+          items: {
+            data: [{
+              price: { id: "price_yearly" },
+              current_period_start: itemStart,
+              current_period_end: itemEnd,
+            }],
+          },
+          cancel_at_period_end: false,
+          canceled_at: null,
+        },
+      },
+    });
+    mockFindUnique.mockResolvedValue({ id: "db_sub_2" });
+    mockUpdate.mockResolvedValue({});
+
+    const res = await POST(makeRequest("{}"));
+    expect(res.status).toBe(200);
+
+    const updateData = mockUpdate.mock.calls[0][0].data;
+    expect(updateData.currentPeriodStart).toBeInstanceOf(Date);
+    expect(updateData.currentPeriodEnd).toBeInstanceOf(Date);
+    expect(updateData.currentPeriodStart.getTime()).toBe(itemStart * 1000);
+    expect(updateData.currentPeriodEnd.getTime()).toBe(itemEnd * 1000);
   });
 
   it("handles customer.subscription.deleted", async () => {
