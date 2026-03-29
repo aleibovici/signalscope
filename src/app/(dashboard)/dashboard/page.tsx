@@ -12,6 +12,17 @@ import { SignalCard } from "@/components/dashboard/signal-card";
 import { Spinner } from "@/components/ui/spinner";
 import { scoreExplainerDashboardCallout } from "@/lib/score-explainer";
 
+function downloadWatchlistCSV(symbols: Set<string>) {
+  const lines = ["Symbol", ...Array.from(symbols).sort()];
+  const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "signalscope-watchlist.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 const VALID_STAGES = new Set(["ALL", "Emerging", "Building", "Consensus"]);
 
 function setCookieStage(stage: string) {
@@ -91,10 +102,26 @@ function DashboardContent() {
     <div className="space-y-4 md:space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-bold text-gray-900 dark:text-zinc-100 md:text-2xl">Signal Dashboard</h1>
-        <ScanSelector
-          selectedScanId={selectedScanId}
-          onSelect={setSelectedScanId}
-        />
+        <div className="flex items-center gap-2">
+          {session?.user && bookmarkedSymbols.size > 0 && (
+            <button
+              onClick={() => downloadWatchlistCSV(bookmarkedSymbols)}
+              title={`Export ${bookmarkedSymbols.size} watchlist ticker${bookmarkedSymbols.size === 1 ? "" : "s"} as CSV for broker import`}
+              className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Export watchlist
+            </button>
+          )}
+          <ScanSelector
+            selectedScanId={selectedScanId}
+            onSelect={setSelectedScanId}
+          />
+        </div>
       </div>
 
       <StageTabs
