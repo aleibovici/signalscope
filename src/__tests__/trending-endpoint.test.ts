@@ -807,6 +807,27 @@ describe("GET /api/tickers/trending", () => {
     expect(res4.status).toBe(400);
   });
 
+  it("accepts POLYMARKET as a valid source filter (regression: was missing from enum)", async () => {
+    // Before fix c780351, source=POLYMARKET returned 400 validation error.
+    // Ensure the source is now accepted and filters correctly.
+    mockQueryRaw.mockResolvedValue([
+      { symbol: "MSTR", cnt: BigInt(2) },
+    ]);
+    mockFindManyTicker.mockImplementation((args: { distinct?: string[] }) => {
+      if (args.distinct) return [makeTicker("MSTR", 72, "CONFIRMED", daysAgo(1))];
+      return [{ symbol: "MSTR", aiScore: 72, stage: "CONFIRMED", createdAt: daysAgo(1) }];
+    });
+    mockFindManySignal.mockResolvedValue([
+      { symbol: "MSTR", source: "POLYMARKET" },
+    ]);
+
+    const res = await GET(makeRequest({ source: "POLYMARKET" }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.tickers).toHaveLength(1);
+    expect(body.tickers[0].symbol).toBe("MSTR");
+  });
+
   it("returns all return periods in response", async () => {
     mockQueryRaw.mockResolvedValue([
       { symbol: "RET", cnt: BigInt(2) },
