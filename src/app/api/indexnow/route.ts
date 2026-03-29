@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { blogPosts } from "@/lib/blog-data";
 
 const INDEXNOW_KEY = "f8dd4b98a32e43dba4ffefb26738aecb";
 const HOST = "signalscopes.com";
@@ -7,6 +8,7 @@ const PUBLIC_URLS = [
   `https://${HOST}/login`,
   `https://${HOST}/register`,
   `https://${HOST}/blog`,
+  ...blogPosts.map((p) => `https://${HOST}/blog/${p.slug}`),
   `https://${HOST}/faq`,
   `https://${HOST}/how-it-works`,
   `https://${HOST}/changelog`,

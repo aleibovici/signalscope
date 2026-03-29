@@ -47,8 +47,21 @@ function formatDate(iso: string) {
 }
 
 export default function ChangelogPage() {
+  const jsonLdBreadcrumb = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: "https://signalscopes.com" },
+      { "@type": "ListItem", position: 2, name: "Changelog", item: "https://signalscopes.com/changelog" },
+    ],
+  };
+
   return (
     <PublicPageLayout>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumb) }}
+      />
       <div className="mb-10">
         <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">Changelog</h1>
         <p className="mt-2 text-gray-500">

@@ -40,11 +40,24 @@ export default function BlogIndex() {
     },
   };
 
+  const jsonLdBreadcrumb = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: "https://signalscopes.com" },
+      { "@type": "ListItem", position: 2, name: "Blog", item: "https://signalscopes.com/blog" },
+    ],
+  };
+
   return (
     <PublicPageLayout maxWidth="max-w-4xl">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumb) }}
       />
 
       <div className="mb-10">
