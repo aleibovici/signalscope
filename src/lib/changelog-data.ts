@@ -22,6 +22,12 @@ export const changelog: ChangelogEntry[] = [
         ],
       },
       {
+        category: "new",
+        items: [
+          "Export watchlist to CSV: an 'Export watchlist' button now appears in the dashboard header when you have bookmarked tickers. Downloads a Symbol-column CSV compatible with Interactive Brokers TWS, Schwab, Fidelity, Webull, and most other brokers — import it directly as a watchlist without re-entering tickers.",
+        ],
+      },
+      {
         category: "improved",
         items: [
           "Clicking the SignalScope logo in the sidebar now navigates to the landing page instead of the dashboard.",
