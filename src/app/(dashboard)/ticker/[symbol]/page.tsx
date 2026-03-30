@@ -248,10 +248,9 @@ export default function TickerDetailPage({
   const { data: perfData } = useTickerPerformance(symbol);
   const { data: bookmarkedSymbols = new Set<string>() } = useWatchlist();
   const { mutate: toggleWatchlist } = useToggleWatchlist();
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"overview" | "signals" | "history">("overview");
   const [showAllHistory, setShowAllHistory] = useState(false);
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
-  const [signalsOpen, setSignalsOpen] = useState(false);
   const [showAddPosition, setShowAddPosition] = useState(false);
   const [livePrice, setLivePrice] = useState<number | null | undefined>(undefined);
   const [priceRefreshing, setPriceRefreshing] = useState(false);
@@ -548,299 +547,303 @@ export default function TickerDetailPage({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        <div className="space-y-6 lg:col-span-4">
-          <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-[#1e262f] dark:bg-[#12181f]">
-            <h3 className="mb-4 flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-zinc-100">
-              <IconAnalytics className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              Price &amp; scores
-            </h3>
-            <div className="divide-y divide-slate-100 dark:divide-[#1e262f]">
-              <ScoreRow
-                label="52-week position"
-                hint="Where the last scan price sits between 52-week low and high (0–100). Not RSI or strength vs the broad market."
-                value={rs52 != null ? `${rs52}/100` : "—"}
-                valueClassName={
-                  rs52 != null && rs52 >= 70 ? "text-emerald-600 dark:text-emerald-400" : "text-gray-900 dark:text-white"
-                }
-              />
-              <ScoreRow
-                label="Source mix"
-                hint="Heuristic from which feeds contributed (e.g. SEC, Congress, options). Not order flow or institutional dollars."
-                value={flowLabel}
-                valueClassName={flowValueClass(flowLabel)}
-              />
-              <ScoreRow
-                label="Social sentiment"
-                hint="Average sentiment from parsed social signals in this scan when text sentiment is available."
-                value={sentimentLabel}
-                valueClassName={
-                  sentimentLabel === "Bullish"
-                    ? "text-blue-600 dark:text-blue-400"
-                    : sentimentLabel === "Bearish"
-                      ? "text-rose-500"
-                      : "text-gray-900 dark:text-white"
-                }
-              />
-              <ScoreRow
-                label="Mention velocity"
-                hint="Velocity score from the harvest pipeline (social signal activity), when computed."
-                value={ticker.avgVelocity != null ? `${ticker.avgVelocity.toFixed(1)}×` : "—"}
-              />
-            </div>
-          </div>
-
-          {perfData?.latest && (
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white p-6 dark:border-[#1e262f] dark:bg-[#12181f]">
-              <h3 className="mb-4 text-sm font-bold text-gray-900 dark:text-zinc-100">Price performance</h3>
-              <div className="grid grid-cols-2 gap-4">
-                {([
-                  { label: "1 Day", value: perfData.latest.return1d },
-                  { label: "3 Day", value: perfData.latest.return3d },
-                  { label: "7 Day", value: perfData.latest.return7d },
-                  { label: "30 Day", value: perfData.latest.return30d },
-                ] as const).map((item) => (
-                  <div key={item.label} className="rounded-lg bg-slate-50 p-3 dark:bg-[#1e262f]/30">
-                    <p className="mb-1 text-[10px] font-bold uppercase text-slate-500 dark:text-zinc-500">
-                      {item.label}
-                    </p>
-                    <p
-                      className={`text-lg font-bold tabular-nums ${
-                        item.value == null
-                          ? "text-slate-300 dark:text-zinc-600"
-                          : item.value > 0
-                            ? "text-emerald-500"
-                            : item.value < 0
-                              ? "text-rose-500"
-                              : "text-gray-700 dark:text-zinc-300"
-                      }`}
-                    >
-                      {item.value != null
-                        ? `${item.value > 0 ? "+" : ""}${(item.value * 100).toFixed(2)}%`
-                        : "—"}
-                    </p>
-                  </div>
-                ))}
-              </div>
-              <p className="mt-4 text-[10px] text-slate-500 dark:text-zinc-500">
-                Initial detection at ${perfData.latest.detectionPrice.toFixed(2)} on{" "}
-                {new Date(perfData.latest.validatedTicker.createdAt).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </p>
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-6 lg:col-span-8">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="relative overflow-hidden rounded-xl border border-blue-600/20 bg-blue-600/5 p-6 dark:border-blue-500/25 dark:bg-blue-500/5">
-              <div className="pointer-events-none absolute right-0 top-0 p-4 opacity-10">
-                <IconRocket className="h-16 w-16 text-blue-600" />
-              </div>
-              <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400">
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
-                  <path d="M23 6l-9.5 9.5-5-5L1 18" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M17 6h6v6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                THESIS
-              </h4>
-              {reportGenerating ? (
-                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-zinc-400">
-                  <Spinner className="h-4 w-4" />
-                  Generating…
-                </div>
-              ) : reportError && (reportErrorObj?.message?.includes("subscription") || reportErrorObj?.message?.includes("Sign in")) ? (
-                <p className="text-sm leading-relaxed text-slate-600 dark:text-zinc-400">
-                  {session?.user ? (
-                    <>AI analysis requires a Pro subscription.{" "}
-                    <a href="/subscription" className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-                      Upgrade to Pro
-                    </a>{" "}
-                    to generate reports for any ticker.</>
-                  ) : (
-                    <><a href="/login" className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-                      Sign in
-                    </a>{" "}
-                    to unlock AI-generated analysis for this ticker.</>
-                  )}
-                </p>
-              ) : (
-                <p className="text-sm leading-relaxed text-slate-700 dark:text-zinc-300">
-                  {ticker.catalyst || (reportError ? "AI analysis unavailable." : "No catalyst data available.")}
-                </p>
-              )}
-            </div>
-            <div className="relative overflow-hidden rounded-xl border border-amber-500/20 bg-amber-500/5 p-6 dark:border-amber-500/25 dark:bg-amber-500/5">
-              <div className="pointer-events-none absolute right-0 top-0 p-4 opacity-10">
-                <svg className="h-16 w-16 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
-                  <path d="M12 9v4M12 17h.01" strokeLinecap="round" />
-                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                </svg>
-              </div>
-              <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400">
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
-                  <path d="M12 9v4M12 17h.01" strokeLinecap="round" />
-                  <circle cx="12" cy="12" r="10" />
-                </svg>
-                RISKS
-              </h4>
-              {ticker.risks ? (
-                <p className="text-sm leading-relaxed text-slate-700 dark:text-zinc-300">{ticker.risks}</p>
-              ) : reportError && (reportErrorObj?.message?.includes("subscription") || reportErrorObj?.message?.includes("Sign in")) ? (
-                <p className="text-sm text-slate-600 dark:text-zinc-400">
-                  {session?.user ? (
-                    <>Risk analysis requires a Pro subscription.{" "}
-                    <a href="/subscription" className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-                      Upgrade to Pro
-                    </a></>
-                  ) : (
-                    <><a href="/login" className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-                      Sign in
-                    </a>{" "}to unlock AI-generated risk analysis.</>
-                  )}
-                </p>
-              ) : (
-                <p className="text-sm text-slate-500 dark:text-zinc-500">No risk summary yet.</p>
-              )}
-            </div>
-          </div>
-
-          <TradeSetupCard ticker={ticker} />
-
-          {(ticker.report || reportGenerating) && (
-            <div
-              id="ticker-ai-analysis"
-              className="rounded-xl border border-slate-200 bg-white p-6 dark:border-[#1e262f] dark:bg-[#12181f]"
+      {/* Tab navigation */}
+      <div className="flex overflow-x-auto border-b border-slate-200 dark:border-[#1e262f]">
+        {(["overview", "signals", "history"] as const).map((tab) => {
+          const labels: Record<string, string> = {
+            overview: "Overview",
+            signals: `Signals\u00a0(${signals.length})`,
+            history: "History",
+          };
+          const icons: Record<string, ReactNode> = {
+            overview: (
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+                <rect x="14" y="14" width="7" height="7" rx="1" />
+              </svg>
+            ),
+            signals: <IconRadar className="h-4 w-4" />,
+            history: <IconHistory className="h-4 w-4" />,
+          };
+          return (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className={`-mb-px flex shrink-0 items-center gap-2 border-b-2 px-5 py-3 text-sm font-semibold transition-colors ${
+                activeTab === tab
+                  ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
+                  : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+              }`}
             >
-              <h3 className="mb-4 flex items-center gap-2 font-bold text-gray-900 dark:text-zinc-100">
-                <IconAiSparkles className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                AI technical analysis
-              </h3>
-              {reportGenerating ? (
-                <div className="flex items-center gap-2 py-4 text-sm text-slate-600 dark:text-zinc-400">
-                  <Spinner className="h-4 w-4" />
-                  Generating full report…
-                </div>
-              ) : (
-                <div className="prose prose-sm max-w-none space-y-4 leading-relaxed text-slate-500 dark:prose-invert dark:text-zinc-400">
-                  {ticker.report!.split("\n").map((paragraph, i) => (
-                    <p key={i}>{paragraph}</p>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+              {icons[tab]}
+              {labels[tab]}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="space-y-6">
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-[#1e262f] dark:bg-[#12181f]">
-            <button
-              type="button"
-              onClick={() => setSignalsOpen((o) => !o)}
-              className="flex w-full items-center justify-between bg-slate-50 p-4 text-left transition-colors hover:bg-slate-100 dark:bg-[#1e262f]/30 dark:hover:bg-[#1e262f]/50"
-            >
-              <span className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-zinc-100">
-                <IconRadar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                Active signals ({signals.length})
-              </span>
-              <svg
-                className={`h-5 w-5 text-slate-400 transition-transform dark:text-zinc-500 ${signalsOpen ? "rotate-180" : ""}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {signalsOpen && (
-              <div className="space-y-3 p-4">
-                {signals.map((signal) => (
-                  <div
-                    key={signal.id}
-                    className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 p-4 dark:border-[#1e262f] dark:bg-[#1e262f]/20"
-                  >
-                    <div className="flex min-w-0 items-center gap-4">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-600/10 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400">
-                        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
-                          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </div>
-                      <div className="min-w-0">
-                        <h5 className="text-sm font-bold text-gray-900 dark:text-white">
-                          {signal.title ? (
-                            signal.url && /^https?:\/\//.test(signal.url) ? (
-                              <a
-                                href={signal.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="hover:text-blue-600 dark:hover:text-blue-400"
-                              >
-                                {signal.title}
-                              </a>
-                            ) : (
-                              signal.title
-                            )
-                          ) : (
-                            signal.source
-                          )}
-                        </h5>
-                        <div className="mt-1 flex flex-wrap gap-2">
-                          <span className="rounded bg-blue-600/10 px-2 py-0.5 text-[10px] font-bold uppercase text-blue-600 dark:text-blue-400">
-                            {signal.source}
-                          </span>
-                          {signal.pndFlagged ? (
-                            <span className="rounded bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold uppercase text-rose-500">
-                              P&amp;D flagged
-                            </span>
-                          ) : (
-                            <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-600">
-                              P&amp;D risk: low
-                            </span>
-                          )}
-                        </div>
-                      </div>
+      {activeTab === "overview" && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <div className="space-y-6 lg:col-span-4">
+            <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-[#1e262f] dark:bg-[#12181f]">
+              <h3 className="mb-4 flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-zinc-100">
+                <IconAnalytics className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                Price &amp; scores
+              </h3>
+              <div className="divide-y divide-slate-100 dark:divide-[#1e262f]">
+                <ScoreRow
+                  label="52-week position"
+                  hint="Where the last scan price sits between 52-week low and high (0–100). Not RSI or strength vs the broad market."
+                  value={rs52 != null ? `${rs52}/100` : "—"}
+                  valueClassName={
+                    rs52 != null && rs52 >= 70 ? "text-emerald-600 dark:text-emerald-400" : "text-gray-900 dark:text-white"
+                  }
+                />
+                <ScoreRow
+                  label="Source mix"
+                  hint="Heuristic from which feeds contributed (e.g. SEC, Congress, options). Not order flow or institutional dollars."
+                  value={flowLabel}
+                  valueClassName={flowValueClass(flowLabel)}
+                />
+                <ScoreRow
+                  label="Social sentiment"
+                  hint="Average sentiment from parsed social signals in this scan when text sentiment is available."
+                  value={sentimentLabel}
+                  valueClassName={
+                    sentimentLabel === "Bullish"
+                      ? "text-blue-600 dark:text-blue-400"
+                      : sentimentLabel === "Bearish"
+                        ? "text-rose-500"
+                        : "text-gray-900 dark:text-white"
+                  }
+                />
+                <ScoreRow
+                  label="Mention velocity"
+                  hint="Velocity score from the harvest pipeline (social signal activity), when computed."
+                  value={ticker.avgVelocity != null ? `${ticker.avgVelocity.toFixed(1)}×` : "—"}
+                />
+              </div>
+            </div>
+
+            {perfData?.latest && (
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white p-6 dark:border-[#1e262f] dark:bg-[#12181f]">
+                <h3 className="mb-4 text-sm font-bold text-gray-900 dark:text-zinc-100">Price performance</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {([
+                    { label: "1 Day", value: perfData.latest.return1d },
+                    { label: "3 Day", value: perfData.latest.return3d },
+                    { label: "7 Day", value: perfData.latest.return7d },
+                    { label: "30 Day", value: perfData.latest.return30d },
+                  ] as const).map((item) => (
+                    <div key={item.label} className="rounded-lg bg-slate-50 p-3 dark:bg-[#1e262f]/30">
+                      <p className="mb-1 text-[10px] font-bold uppercase text-slate-500 dark:text-zinc-500">
+                        {item.label}
+                      </p>
+                      <p
+                        className={`text-lg font-bold tabular-nums ${
+                          item.value == null
+                            ? "text-slate-300 dark:text-zinc-600"
+                            : item.value > 0
+                              ? "text-emerald-500"
+                              : item.value < 0
+                                ? "text-rose-500"
+                                : "text-gray-700 dark:text-zinc-300"
+                        }`}
+                      >
+                        {item.value != null
+                          ? `${item.value > 0 ? "+" : ""}${(item.value * 100).toFixed(2)}%`
+                          : "—"}
+                      </p>
                     </div>
-                    <div className="ml-3 flex shrink-0 flex-col items-end gap-1 text-right">
-                      {signal.upvotes != null && (
-                        <span className="text-xs font-bold text-slate-500 dark:text-zinc-400">{signal.upvotes} pts</span>
-                      )}
-                      <span className="text-[10px] text-slate-500 dark:text-zinc-500">
-                        {new Date(signal.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+                <p className="mt-4 text-[10px] text-slate-500 dark:text-zinc-500">
+                  Initial detection at ${perfData.latest.detectionPrice.toFixed(2)} on{" "}
+                  {new Date(perfData.latest.validatedTicker.createdAt).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </p>
               </div>
             )}
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-[#1e262f] dark:bg-[#12181f]">
-            <button
-              type="button"
-              onClick={() => setHistoryOpen((o) => !o)}
-              className="flex w-full items-center justify-between bg-slate-50 p-4 text-left transition-colors hover:bg-slate-100 dark:bg-[#1e262f]/30 dark:hover:bg-[#1e262f]/50"
-            >
-              <span className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-zinc-100">
-                <IconHistory className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                Score history
-              </span>
-              <svg
-                className={`h-5 w-5 text-slate-400 transition-transform dark:text-zinc-500 ${historyOpen ? "rotate-180" : ""}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
+          <div className="space-y-6 lg:col-span-8">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="relative overflow-hidden rounded-xl border border-blue-600/20 bg-blue-600/5 p-6 dark:border-blue-500/25 dark:bg-blue-500/5">
+                <div className="pointer-events-none absolute right-0 top-0 p-4 opacity-10">
+                  <IconRocket className="h-16 w-16 text-blue-600" />
+                </div>
+                <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400">
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+                    <path d="M23 6l-9.5 9.5-5-5L1 18" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M17 6h6v6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  THESIS
+                </h4>
+                {reportGenerating ? (
+                  <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-zinc-400">
+                    <Spinner className="h-4 w-4" />
+                    Generating…
+                  </div>
+                ) : reportError && (reportErrorObj?.message?.includes("subscription") || reportErrorObj?.message?.includes("Sign in")) ? (
+                  <p className="text-sm leading-relaxed text-slate-600 dark:text-zinc-400">
+                    {session?.user ? (
+                      <>AI analysis requires a Pro subscription.{" "}
+                      <a href="/subscription" className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                        Upgrade to Pro
+                      </a>{" "}
+                      to generate reports for any ticker.</>
+                    ) : (
+                      <><a href="/login" className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                        Sign in
+                      </a>{" "}
+                      to unlock AI-generated analysis for this ticker.</>
+                    )}
+                  </p>
+                ) : (
+                  <p className="text-sm leading-relaxed text-slate-700 dark:text-zinc-300">
+                    {ticker.catalyst || (reportError ? "AI analysis unavailable." : "No catalyst data available.")}
+                  </p>
+                )}
+              </div>
+              <div className="relative overflow-hidden rounded-xl border border-amber-500/20 bg-amber-500/5 p-6 dark:border-amber-500/25 dark:bg-amber-500/5">
+                <div className="pointer-events-none absolute right-0 top-0 p-4 opacity-10">
+                  <svg className="h-16 w-16 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+                    <path d="M12 9v4M12 17h.01" strokeLinecap="round" />
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  </svg>
+                </div>
+                <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400">
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+                    <path d="M12 9v4M12 17h.01" strokeLinecap="round" />
+                    <circle cx="12" cy="12" r="10" />
+                  </svg>
+                  RISKS
+                </h4>
+                {ticker.risks ? (
+                  <p className="text-sm leading-relaxed text-slate-700 dark:text-zinc-300">{ticker.risks}</p>
+                ) : reportError && (reportErrorObj?.message?.includes("subscription") || reportErrorObj?.message?.includes("Sign in")) ? (
+                  <p className="text-sm text-slate-600 dark:text-zinc-400">
+                    {session?.user ? (
+                      <>Risk analysis requires a Pro subscription.{" "}
+                      <a href="/subscription" className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                        Upgrade to Pro
+                      </a></>
+                    ) : (
+                      <><a href="/login" className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                        Sign in
+                      </a>{" "}to unlock AI-generated risk analysis.</>
+                    )}
+                  </p>
+                ) : (
+                  <p className="text-sm text-slate-500 dark:text-zinc-500">No risk summary yet.</p>
+                )}
+              </div>
+            </div>
+
+            <TradeSetupCard ticker={ticker} />
+
+            {(ticker.report || reportGenerating) && (
+              <div
+                id="ticker-ai-analysis"
+                className="rounded-xl border border-slate-200 bg-white p-6 dark:border-[#1e262f] dark:bg-[#12181f]"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {historyOpen && (
-        <div className="p-6">
+                <h3 className="mb-4 flex items-center gap-2 font-bold text-gray-900 dark:text-zinc-100">
+                  <IconAiSparkles className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  AI technical analysis
+                </h3>
+                {reportGenerating ? (
+                  <div className="flex items-center gap-2 py-4 text-sm text-slate-600 dark:text-zinc-400">
+                    <Spinner className="h-4 w-4" />
+                    Generating full report…
+                  </div>
+                ) : (
+                  <div className="prose prose-sm max-w-none space-y-4 leading-relaxed text-slate-500 dark:prose-invert dark:text-zinc-400">
+                    {ticker.report!.split("\n").map((paragraph, i) => (
+                      <p key={i}>{paragraph}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === "signals" && (
+        <div className="rounded-xl border border-slate-200 bg-white dark:border-[#1e262f] dark:bg-[#12181f]">
+          {signals.length === 0 ? (
+            <p className="p-6 text-sm text-slate-500 dark:text-zinc-400">No signals recorded for this ticker.</p>
+          ) : (
+            <div className="space-y-3 p-4">
+              {signals.map((signal) => (
+                <div
+                  key={signal.id}
+                  className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 p-4 dark:border-[#1e262f] dark:bg-[#1e262f]/20"
+                >
+                  <div className="flex min-w-0 items-center gap-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-600/10 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400">
+                      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                    <div className="min-w-0">
+                      <h5 className="text-sm font-bold text-gray-900 dark:text-white">
+                        {signal.title ? (
+                          signal.url && /^https?:\/\//.test(signal.url) ? (
+                            <a
+                              href={signal.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="hover:text-blue-600 dark:hover:text-blue-400"
+                            >
+                              {signal.title}
+                            </a>
+                          ) : (
+                            signal.title
+                          )
+                        ) : (
+                          signal.source
+                        )}
+                      </h5>
+                      <div className="mt-1 flex flex-wrap gap-2">
+                        <span className="rounded bg-blue-600/10 px-2 py-0.5 text-[10px] font-bold uppercase text-blue-600 dark:text-blue-400">
+                          {signal.source}
+                        </span>
+                        {signal.pndFlagged ? (
+                          <span className="rounded bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold uppercase text-rose-500">
+                            P&amp;D flagged
+                          </span>
+                        ) : (
+                          <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-600">
+                            P&amp;D risk: low
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="ml-3 flex shrink-0 flex-col items-end gap-1 text-right">
+                    {signal.upvotes != null && (
+                      <span className="text-xs font-bold text-slate-500 dark:text-zinc-400">{signal.upvotes} pts</span>
+                    )}
+                    <span className="text-[10px] text-slate-500 dark:text-zinc-500">
+                      {new Date(signal.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === "history" && (
+        <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-[#1e262f] dark:bg-[#12181f]">
           {!historyData ? (
             <div className="py-4 text-center text-sm text-gray-400 dark:text-zinc-500">Loading history…</div>
           ) : historyData.history.length <= 1 ? (
@@ -1024,9 +1027,7 @@ export default function TickerDetailPage({
             </div>
           )}
         </div>
-            )}
-          </div>
-      </div>
+      )}
 
       {session?.user && showAddPosition && (
         <AddPositionModal
