@@ -18,7 +18,7 @@ const blogPostsUnsorted: BlogPost[] = [
     slug: "how-breakout-signals-work",
     title: "How Breakout Signals Work: Multi-Source Stock Monitoring Explained",
     description:
-      "Learn how monitoring multiple data sources — from social media to SEC filings — catches stock breakouts before they become mainstream news.",
+      "Stock breakouts start with signals across Reddit, SEC filings, options flow, and volume data. Here's how 8 independent sources converge to spot moves before the crowd.",
     date: "2026-03-15",
     readingTime: "6 min read",
     tags: ["signals", "methodology", "getting-started"],
@@ -52,7 +52,7 @@ const blogPostsUnsorted: BlogPost[] = [
     slug: "pump-and-dump-detection",
     title: "Catching Pump-and-Dump Schemes: The 13-Flag Filter Explained",
     description:
-      "How SignalScope uses 13 statistical flags and AI assessment to identify and quarantine pump-and-dump manipulation before it reaches the dashboard.",
+      "13 statistical red flags — from coordinated posts to penny stocks with no catalyst — catch pump-and-dump schemes before they cause damage. Here's how each flag works.",
     date: "2026-03-14",
     readingTime: "8 min read",
     tags: ["pump-and-dump", "methodology", "filtering"],
@@ -94,7 +94,7 @@ const blogPostsUnsorted: BlogPost[] = [
     slug: "sec-insider-filing-analysis",
     title: "SEC Insider Filings: C-Suite Purchase Patterns as Breakout Indicators",
     description:
-      "Why corporate insider purchases are one of the strongest breakout signals, and how SignalScope monitors SEC filings for C-suite buying activity.",
+      "SEC insider purchases by CEOs and CFOs are among the strongest breakout predictors in finance. What makes a $50K+ open-market buy signal significant — and how to use it.",
     date: "2026-03-13",
     readingTime: "7 min read",
     tags: ["sec-filings", "methodology", "insider-trading"],
@@ -128,7 +128,7 @@ const blogPostsUnsorted: BlogPost[] = [
     slug: "congressional-trades-tracking",
     title: "Congressional Stock Trades: STOCK Act Disclosures and Signal Detection",
     description:
-      "How SignalScope tracks congressional stock purchases from STOCK Act disclosures and why these trades carry significant predictive weight.",
+      "Congressional stock portfolios outperform the market on average. STOCK Act disclosures reveal what legislators are buying — and why these trades are strong breakout signals.",
     date: "2026-03-12",
     readingTime: "6 min read",
     tags: ["congress", "methodology", "filings"],
@@ -162,7 +162,7 @@ const blogPostsUnsorted: BlogPost[] = [
     slug: "ml-backtesting-approach",
     title: "Machine Learning Backtesting: How SignalScope Gets Smarter Over Time",
     description:
-      "How SignalScope uses XGBoost gradient boosting and SHAP analysis to continuously improve signal scoring from real-world outcome data.",
+      "XGBoost gradient boosting and SHAP analysis turn real-world stock outcomes into better signal scoring. Inside the ML feedback loop that improves with every scan.",
     date: "2026-03-11",
     readingTime: "7 min read",
     tags: ["machine-learning", "backtesting", "methodology"],
@@ -230,7 +230,7 @@ const blogPostsUnsorted: BlogPost[] = [
     slug: "volume-spike-detection",
     title: "Volume Spike Detection: What 2x+ Volume Means for Breakout Trading",
     description:
-      "How SignalScope detects volume spikes and why trading volume at 2x or more of the 10-day average is a key breakout indicator.",
+      "When a stock trades at 2x its 10-day average volume, something is happening. What drives volume spikes, why they signal breakouts, and when they mislead.",
     date: "2026-03-09",
     readingTime: "5 min read",
     tags: ["volume", "technical-analysis", "methodology"],
@@ -260,7 +260,7 @@ const blogPostsUnsorted: BlogPost[] = [
     slug: "multi-source-signal-aggregation",
     title: "Why Multi-Source Signal Aggregation Beats Single-Source Analysis",
     description:
-      "How combining signals from 7 independent data sources creates a more reliable picture of breakout potential than monitoring any single source.",
+      "Single-source stock analysis has blind spots. Combining 8 independent data feeds — SEC filings, options flow, social media, volume — catches breakouts no single channel would.",
     date: "2026-03-08",
     readingTime: "7 min read",
     tags: ["signals", "methodology", "aggregation"],
@@ -298,7 +298,7 @@ const blogPostsUnsorted: BlogPost[] = [
     slug: "options-flow-detection",
     title: "Options Flow as a Breakout Signal: Reading Unusual Activity in Real Time",
     description:
-      "How SignalScope scans options chains for unusual call volume, OTM activity, and call sweeps — and why concentrated options bets often precede breakout moves.",
+      "Unusual call volume, OTM concentration, and call sweeps often precede major stock moves. How to read options flow as a breakout signal — with real examples from the tape.",
     date: "2026-03-28",
     readingTime: "7 min read",
     tags: ["options-flow", "methodology", "signals"],
@@ -336,7 +336,7 @@ const blogPostsUnsorted: BlogPost[] = [
     slug: "breakout-signals-high-volatility",
     title: "When the VIX Spikes: How Breakout Signals Change in High-Volatility Markets",
     description:
-      "How elevated volatility changes the quality and reliability of breakout signals — and why insider purchases during selloffs are among the strongest contrarian indicators.",
+      "When VIX spikes above 30, most signals become noise — but insider purchases during selloffs are among the strongest contrarian indicators. Here's what to watch.",
     date: "2026-03-27",
     readingTime: "6 min read",
     tags: ["signals", "volatility", "risk-management"],
@@ -374,7 +374,7 @@ const blogPostsUnsorted: BlogPost[] = [
     slug: "congressional-trading-ban-reform",
     title: "The Congressional Trading Ban Debate: What It Means for Signal Detection",
     description:
-      "With bipartisan bills to ban congressional stock trading gaining momentum in 2026, what would reform mean for one of SignalScope's highest-weighted signal sources?",
+      "Bipartisan bills to ban congressional stock trading are advancing in 2026 with 86% public support. What reform means for investors using STOCK Act disclosures.",
     date: "2026-03-26",
     readingTime: "6 min read",
     tags: ["congress", "regulation", "signals"],
