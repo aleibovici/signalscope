@@ -100,7 +100,7 @@ export function Sparkline({ points, height = 56 }: SparklineProps) {
           d={linePath}
           fill="none"
           stroke={isDark ? "#60a5fa" : "#93c5fd"}
-          strokeWidth="1"
+          strokeWidth="0.55"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
@@ -150,11 +150,11 @@ export function Sparkline({ points, height = 56 }: SparklineProps) {
             {(isLast || isHovered) && (
               <text
                 x={x}
-                y={y - r - 6}
+                y={y - r - 5}
                 textAnchor={labelAnchor}
-                fontSize="8"
+                fontSize="6.5"
                 fill={color}
-                fontWeight="700"
+                fontWeight="500"
                 letterSpacing="0.02em"
               >
                 {p.score}
