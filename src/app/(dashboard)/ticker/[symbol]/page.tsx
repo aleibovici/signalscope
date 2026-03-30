@@ -378,21 +378,23 @@ export default function TickerDetailPage({
 
   return (
     <div className="mx-auto min-w-0 w-full max-w-7xl space-y-6">
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-        <div className="space-y-1">
+      <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end md:gap-4">
+        <div className="space-y-0.5">
           <button
             type="button"
             onClick={() => router.back()}
-            className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-slate-500 transition-colors hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400"
+            className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500 transition-colors hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400"
           >
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
               <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             Back to list
           </button>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-            <h1 className="text-5xl font-black tracking-tighter text-gray-900 dark:text-white">{ticker.symbol}</h1>
-            <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-row flex-nowrap items-center gap-2 overflow-x-auto overscroll-x-contain sm:gap-3">
+            <h1 className="shrink-0 text-3xl font-black leading-none tracking-tighter text-gray-900 sm:text-4xl dark:text-white">
+              {ticker.symbol}
+            </h1>
+            <div className="flex shrink-0 items-center gap-1.5 pr-1">
               <a
                 href={`https://finance.yahoo.com/quote/${ticker.symbol}`}
                 target="_blank"
@@ -400,9 +402,9 @@ export default function TickerDetailPage({
                 title="View on Yahoo Finance"
                 className="opacity-70 transition-opacity hover:opacity-100"
               >
-                <svg className="h-7 w-7" viewBox="0 0 24 24" aria-hidden>
+                <svg className="h-6 w-6" viewBox="0 0 24 24" aria-hidden>
                   <circle cx="12" cy="12" r="12" fill="#6001d2" />
-                  <text x="12" y="17" textAnchor="middle" fill="white" fontSize="15" fontWeight="bold" fontFamily="Arial, sans-serif">Y!</text>
+                  <text x="12" y="16" textAnchor="middle" fill="white" fontSize="13" fontWeight="bold" fontFamily="Arial, sans-serif">Y!</text>
                 </svg>
               </a>
               {session?.user ? (
@@ -416,11 +418,11 @@ export default function TickerDetailPage({
                     className="text-slate-400 transition-colors hover:text-amber-400 dark:text-zinc-500"
                   >
                     {bookmarkedSymbols.has(ticker.symbol) ? (
-                      <svg className="h-8 w-8 text-amber-400" viewBox="0 0 24 24" fill="currentColor">
+                      <svg className="h-6 w-6 text-amber-400" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                       </svg>
                     ) : (
-                      <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -432,9 +434,9 @@ export default function TickerDetailPage({
                   <button
                     type="button"
                     onClick={() => setShowAddPosition(true)}
-                    className="flex items-center gap-2 rounded-lg border border-blue-600 px-4 py-2 text-sm font-bold text-blue-600 transition-colors hover:bg-blue-600/5 dark:border-blue-500 dark:text-blue-400 dark:hover:bg-blue-500/10"
+                    className="flex items-center gap-1.5 rounded-lg border border-blue-600 px-3 py-1.5 text-xs font-bold text-blue-600 transition-colors hover:bg-blue-600/5 dark:border-blue-500 dark:text-blue-400 dark:hover:bg-blue-500/10"
                   >
-                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
                       <path d="M12 5v14M5 12h14" strokeLinecap="round" />
                     </svg>
                     + Position
@@ -447,15 +449,15 @@ export default function TickerDetailPage({
                     title="Sign in to bookmark"
                     className="text-slate-300 opacity-50 transition-opacity hover:opacity-80 dark:text-zinc-600"
                   >
-                    <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                     </svg>
                   </a>
                   <a
                     href="/login"
-                    className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-bold text-gray-400 transition-colors hover:border-blue-400 hover:text-blue-500 dark:border-zinc-600 dark:text-zinc-500 dark:hover:border-blue-500 dark:hover:text-blue-400"
+                    className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-bold text-gray-400 transition-colors hover:border-blue-400 hover:text-blue-500 dark:border-zinc-600 dark:text-zinc-500 dark:hover:border-blue-500 dark:hover:text-blue-400"
                   >
-                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
                       <path d="M12 5v14M5 12h14" strokeLinecap="round" />
                     </svg>
                     Sign in to track
@@ -465,7 +467,7 @@ export default function TickerDetailPage({
             </div>
           </div>
           {subtitleParts.length > 0 ? (
-            <p className="font-medium text-slate-500 dark:text-zinc-400">{subtitleParts.join(" • ")}</p>
+            <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">{subtitleParts.join(" • ")}</p>
           ) : null}
         </div>
         <div className="flex flex-wrap gap-2">
