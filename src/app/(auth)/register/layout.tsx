@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Sign Up",
-  description: "Create a free SignalScope account — AI-scored breakout signals from 7 sources, pump-and-dump filtering, portfolio tracking, and ML-driven performance insights.",
+  description: "Create a free SignalScope account — AI-scored breakout signals from 8 sources, pump-and-dump filtering, XGBoost ML backtesting, and portfolio tracking.",
   alternates: {
     canonical: "https://signalscopes.com/register",
   },
   openGraph: {
     url: "https://signalscopes.com/register",
     title: "Sign Up — SignalScope",
-    description: "Create a free SignalScope account — AI-scored breakout signals from 7 sources, pump-and-dump filtering, portfolio tracking, and ML-driven performance insights.",
+    description: "Create a free SignalScope account — AI-scored breakout signals from 8 sources, pump-and-dump filtering, XGBoost ML backtesting, and portfolio tracking.",
     images: [
       {
         url: "/opengraph-image",
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Sign Up — SignalScope",
-    description: "Create a free SignalScope account — AI-scored breakout signals from 7 sources, pump-and-dump filtering, and portfolio tracking.",
+    description: "Create a free SignalScope account — AI-scored breakout signals from 8 sources, pump-and-dump filtering, XGBoost ML backtesting, and portfolio tracking.",
     images: ["/opengraph-image"],
   },
 };

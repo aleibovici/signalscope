@@ -120,7 +120,7 @@ export default function LoginPage() {
               <span className="text-blue-300">before the crowd</span>
             </h1>
             <p className="mb-5 text-sm leading-relaxed text-blue-100/90 sm:text-base md:mb-8 md:text-lg">
-              SignalScope monitors Reddit, X/Twitter, StockTwits, SEC insider filings, congressional trades, options flow, volume spikes, and Polymarket prediction markets — then uses AI to score, filter pump-and-dumps, and surface the tickers most likely to move.
+              SignalScope monitors Reddit, X/Twitter, StockTwits, SEC insider filings, congressional trades, options flow, volume spikes, and Polymarket prediction markets — then uses AI scoring, pump-and-dump filtering, and XGBoost ML backtesting to surface the tickers most likely to move.
             </p>
 
             {/* Perf stats inline badges (social proof above fold on desktop) */}

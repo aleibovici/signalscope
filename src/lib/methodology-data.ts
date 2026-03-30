@@ -172,8 +172,9 @@ export const recommendationLevels: RecommendationLevel[] = [
 export const methodologyDescription =
   "SignalScope monitors public ticker mentions across eight signal sources — from social media and SEC filings " +
   "to congressional trades and Polymarket prediction markets — aggregates them by symbol, scores each candidate with AI, runs a " +
-  "13-flag pump-and-dump filter, and surfaces only the tickers with the strongest multi-source backing and " +
-  "verifiable catalysts. The result is a prioritised watchlist you can act on before the crowd.";
+  "13-flag pump-and-dump filter, and validates signal quality against an XGBoost ML backtesting pipeline trained on historical breakout outcomes. " +
+  "The result is a prioritised watchlist of tickers with the strongest multi-source backing, " +
+  "verifiable catalysts, and machine-learning-confirmed signal patterns — surfaced before the crowd.";
 
 export const aggregationDescription =
   "Raw mentions are grouped by ticker symbol. A symbol becomes a candidate when it appears " +
