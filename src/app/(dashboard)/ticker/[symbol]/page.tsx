@@ -519,10 +519,10 @@ export default function TickerDetailPage({
       </div>
 
       <div className="grid grid-cols-2 gap-0 divide-x divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white dark:divide-[#1e262f] dark:border-[#1e262f] dark:bg-[#12181f] md:grid-cols-3 lg:grid-cols-6">
-        <div className="flex flex-col gap-1 p-5">
+        <div className="flex flex-col gap-0.5 px-2.5 py-2 sm:px-3 sm:py-2.5">
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">Live price</p>
-          <div className="flex flex-wrap items-baseline gap-2">
-            <span className="text-2xl font-black tabular-nums text-gray-900 dark:text-white">
+          <div className="flex flex-wrap items-baseline gap-1.5">
+            <span className="text-xl font-black tabular-nums text-gray-900 dark:text-white">
               {livePrice !== undefined
                 ? livePrice !== null
                   ? `$${livePrice.toFixed(2)}`
@@ -569,51 +569,51 @@ export default function TickerDetailPage({
             )}
           </div>
         </div>
-        <div className="flex flex-col gap-1 p-5">
+        <div className="flex flex-col gap-0.5 px-2.5 py-2 sm:px-3 sm:py-2.5">
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">Market cap</p>
-          <span className="text-2xl font-black tabular-nums text-gray-900 dark:text-white">
+          <span className="text-xl font-black tabular-nums text-gray-900 dark:text-white">
             {formatMarketCapCompact(ticker.marketCap)}
           </span>
           <p className="text-[10px] text-slate-500 dark:text-zinc-500">{marketCapTierLabel(ticker.marketCap) ?? "—"}</p>
         </div>
-        <div className="flex flex-col gap-1 p-5">
-          <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-col gap-0.5 px-2.5 py-2 sm:px-3 sm:py-2.5">
+          <div className="flex items-start justify-between gap-1.5">
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">Opp. score</p>
             <InfoHint text="Early-mover rank for this scan — not a forecast of returns." />
           </div>
-          <span className="text-2xl font-black text-blue-600 dark:text-blue-400">
+          <span className="text-xl font-black text-blue-600 dark:text-blue-400">
             {ticker.opportunityScore}
-            <span className="text-sm font-medium text-slate-500 dark:text-zinc-500">/100</span>
+            <span className="text-xs font-medium text-slate-500 dark:text-zinc-500">/100</span>
           </span>
           <p className="text-[10px] italic text-slate-500 dark:text-zinc-500">Early-mover rank</p>
         </div>
-        <div className="flex flex-col gap-1 p-5">
-          <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-col gap-0.5 px-2.5 py-2 sm:px-3 sm:py-2.5">
+          <div className="flex items-start justify-between gap-1.5">
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">
               AI confidence
             </p>
             <InfoHint text="Evidence strength from aggregated signals — not expected upside." />
           </div>
-          <span className="text-2xl font-black text-gray-900 dark:text-white">
+          <span className="text-xl font-black text-gray-900 dark:text-white">
             {ticker.aiScore}
-            <span className="text-sm font-medium text-slate-500 dark:text-zinc-500">/100</span>
+            <span className="text-xs font-medium text-slate-500 dark:text-zinc-500">/100</span>
           </span>
           <p className="text-[10px] italic text-slate-500 dark:text-zinc-500">Evidence strength</p>
         </div>
-        <div className="flex flex-col gap-1 p-5">
-          <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-col gap-0.5 px-2.5 py-2 sm:px-3 sm:py-2.5">
+          <div className="flex items-start justify-between gap-1.5">
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">Sources</p>
             <InfoHint text="Number of distinct signal feeds (Reddit, X, SEC insider, etc.) represented in this scan." />
           </div>
-          <span className="text-2xl font-black text-gray-900 dark:text-white">{ticker.sourceCount}</span>
+          <span className="text-xl font-black text-gray-900 dark:text-white">{ticker.sourceCount}</span>
           <p className="text-[10px] text-slate-500 dark:text-zinc-500">Distinct feed types</p>
         </div>
-        <div className="flex flex-col gap-1 p-5">
-          <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-col gap-0.5 px-2.5 py-2 sm:px-3 sm:py-2.5">
+          <div className="flex items-start justify-between gap-1.5">
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">Signals</p>
             <InfoHint text="Total raw signals aggregated for this symbol in the scan (posts, filings, tweets, etc.)." />
           </div>
-          <span className="text-2xl font-black text-gray-900 dark:text-white">{ticker.signalCount}</span>
+          <span className="text-xl font-black text-gray-900 dark:text-white">{ticker.signalCount}</span>
           <p className="text-[10px] text-slate-500 dark:text-zinc-500">In this scan</p>
         </div>
       </div>
