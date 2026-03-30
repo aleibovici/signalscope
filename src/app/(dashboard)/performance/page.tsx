@@ -110,7 +110,7 @@ function SummaryCards({
           >
             {hasData ? formatPct(current.avgReturn) : "--"}
           </p>
-          <p className="mt-1 text-xs text-gray-400 dark:text-zinc-500">{hasData ? `${current.count} signals` : "no data"}</p>
+          <p className="mt-1 text-xs text-gray-400 dark:text-zinc-500">{hasData ? `Median: ${formatPct(current.medianReturn)}` : "no data"}</p>
         </CardContent>
       </Card>
 
