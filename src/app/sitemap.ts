@@ -16,7 +16,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     {
-      url: `${BASE_URL}/login`,
+      url: BASE_URL,
       lastModified: SITE_CONTENT_DATE,
       changeFrequency: "monthly",
       priority: 1.0,
@@ -75,24 +75,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: SITE_CONTENT_DATE,
       changeFrequency: "weekly",
       priority: 0.6,
-    },
-    {
-      url: `${BASE_URL}/skill/SKILL.md`,
-      lastModified: SITE_CONTENT_DATE,
-      changeFrequency: "monthly",
-      priority: 0.5,
-    },
-    {
-      url: `${BASE_URL}/skill/api-public.md`,
-      lastModified: SITE_CONTENT_DATE,
-      changeFrequency: "monthly",
-      priority: 0.5,
-    },
-    {
-      url: `${BASE_URL}/skill/api-authenticated.md`,
-      lastModified: SITE_CONTENT_DATE,
-      changeFrequency: "monthly",
-      priority: 0.5,
     },
   ];
 }
