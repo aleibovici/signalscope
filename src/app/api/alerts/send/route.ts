@@ -25,33 +25,50 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ status: "skip", reason: "no completed scan" });
   }
 
-  // High-conviction EARLY signals only — mirrors the manual analyst filter:
-  // AI score >= 50, not P&D flagged, novel (firstSeenDaysAgo <= 3 or truly new),
-  // low prior appearances, has an identified catalyst. Quality over quantity (max 6).
-  const tickers = await prisma.validatedTicker.findMany({
-    where: {
-      scanId: scan.id,
-      stage: "EARLY",
-      aiScore: { gte: 50 },
-      pndFlagged: false,
-      priorAppearances: { lte: 5 },
-      catalyst: { not: null },
-      OR: [
-        { firstSeenDaysAgo: null },
-        { firstSeenDaysAgo: { lte: 3 } },
-      ],
-    },
-    select: {
-      symbol: true,
-      price: true,
-      aiScore: true,
-      catalyst: true,
-      signalType: true,
-      stage: true,
-    },
-    orderBy: [{ aiScore: "desc" }, { opportunityScore: "desc" }],
+  // Novel high-conviction signals: AI score >= 50, not P&D, first seen <= 3 days.
+  // Try EARLY first (emerging before consensus); fall back to FORMING if none qualify.
+  const alertSelect = {
+    symbol: true,
+    price: true,
+    aiScore: true,
+    catalyst: true,
+    signalType: true,
+    stage: true,
+  } as const;
+
+  const alertWhere = {
+    scanId: scan.id,
+    aiScore: { gte: 50 },
+    pndFlagged: false,
+    OR: [
+      { firstSeenDaysAgo: null },
+      { firstSeenDaysAgo: { lte: 3 } },
+    ],
+  };
+
+  const alertOrderBy = [
+    { aiScore: "desc" as const },
+    { opportunityScore: "desc" as const },
+  ];
+
+  let tickers = await prisma.validatedTicker.findMany({
+    where: { ...alertWhere, stage: "EARLY" },
+    select: alertSelect,
+    orderBy: alertOrderBy,
     take: 6,
   });
+
+  console.log(`[alerts/send] EARLY candidates: ${tickers.length}`);
+
+  if (tickers.length === 0) {
+    tickers = await prisma.validatedTicker.findMany({
+      where: { ...alertWhere, stage: "FORMING" },
+      select: alertSelect,
+      orderBy: alertOrderBy,
+      take: 6,
+    });
+    console.log(`[alerts/send] FORMING fallback: ${tickers.length}`);
+  }
 
   // Total available (for email footer context) — all non-filtered validated tickers in this scan
   const totalAvailable = await prisma.validatedTicker.count({
