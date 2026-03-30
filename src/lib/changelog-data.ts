@@ -10,19 +10,29 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-03-30",
-    title: "Yahoo Finance Link & SEO Improvements",
+    title: "Ticker Detail UX, Yahoo Finance Link & SEO",
     changes: [
       {
         category: "new",
         items: [
           "Ticker detail pages now include a Yahoo Finance link next to the symbol — click the purple Y! icon to jump straight to the full financials, earnings, balance sheet, and more on Yahoo Finance.",
+          "52-week high/low range is visualized on ticker detail — quick context for where price sits versus the yearly band.",
         ],
       },
       {
         category: "improved",
         items: [
+          "Ticker detail reorganized with tab navigation for cleaner scanning; layout, spacing, and typography refined for readability on small and large screens.",
+          "Sparkline charts use adjusted stroke weight and typography for clearer at-a-glance moves.",
+          "Landing login area: improved overflow handling and sign-up banner layout so the hero stays usable on narrow viewports.",
           "XGBoost ML backtesting is now prominently featured across all public-facing copy — hero paragraph, register page, FAQ, and the methodology description — so new visitors immediately understand the signal validation pipeline.",
           "Register page source count corrected to 8 (was 7) to reflect the Polymarket addition.",
+        ],
+      },
+      {
+        category: "fixed",
+        items: [
+          "Ticker detail responsive layout and tab navigation behave more reliably across breakpoints.",
         ],
       },
     ],
