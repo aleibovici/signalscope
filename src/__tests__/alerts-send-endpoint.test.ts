@@ -112,20 +112,54 @@ describe("POST /api/alerts/send", () => {
     expect(json.totalAvailable).toBe(12);
     expect(mockSendTickerAlerts).toHaveBeenCalledTimes(1);
 
-    // Verify the query applied the high-conviction filters
+    // Verify the EARLY query: aiScore >= 50, not P&D, no priorAppearances/catalyst hard filters
     const findManyCall = mockValidatedTickerFindMany.mock.calls[0][0];
     expect(findManyCall.where.stage).toBe("EARLY");
     expect(findManyCall.where.aiScore).toEqual({ gte: 50 });
     expect(findManyCall.where.pndFlagged).toBe(false);
-    expect(findManyCall.where.pndScore).toBeUndefined();
-    expect(findManyCall.where.priorAppearances).toEqual({ lte: 5 });
-    expect(findManyCall.where.catalyst).toEqual({ not: null });
+    expect(findManyCall.where.priorAppearances).toBeUndefined();
+    expect(findManyCall.where.catalyst).toBeUndefined();
     expect(findManyCall.take).toBe(6);
   });
 
-  it("sends empty alert when no tickers pass the high-conviction filter", async () => {
+  it("falls back to FORMING when no EARLY tickers qualify", async () => {
     mockScanFindFirst.mockResolvedValue({ id: "scan_1" });
-    mockValidatedTickerFindMany.mockResolvedValue([]);
+    mockValidatedTickerFindMany
+      .mockResolvedValueOnce([]) // EARLY query returns nothing
+      .mockResolvedValueOnce([   // FORMING fallback
+        {
+          symbol: "GS",
+          price: 400,
+          aiScore: 72,
+          catalyst: "Congress buy",
+          signalType: "congress_buy",
+          stage: "FORMING",
+        },
+      ]);
+    mockValidatedTickerCount.mockResolvedValue(8);
+    mockSendTickerAlerts.mockResolvedValue(undefined);
+
+    const res = await POST(makeRequest({ "x-snapshot-key": "test-snapshot-key" }));
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(json.tickerCount).toBe(1);
+    expect(json.totalAvailable).toBe(8);
+
+    // First call: EARLY, second call: FORMING fallback
+    expect(mockValidatedTickerFindMany).toHaveBeenCalledTimes(2);
+    expect(mockValidatedTickerFindMany.mock.calls[0][0].where.stage).toBe("EARLY");
+    expect(mockValidatedTickerFindMany.mock.calls[1][0].where.stage).toBe("FORMING");
+
+    // sendTickerAlerts called with the FORMING tickers
+    expect(mockSendTickerAlerts).toHaveBeenCalledTimes(1);
+    expect(mockSendTickerAlerts.mock.calls[0][0][0].symbol).toBe("GS");
+    expect(mockSendTickerAlerts.mock.calls[0][0][0].stage).toBe("FORMING");
+  });
+
+  it("sends empty alert when neither EARLY nor FORMING tickers qualify", async () => {
+    mockScanFindFirst.mockResolvedValue({ id: "scan_1" });
+    mockValidatedTickerFindMany.mockResolvedValue([]); // both queries return empty
     mockValidatedTickerCount.mockResolvedValue(5);
     mockSendTickerAlerts.mockResolvedValue(undefined);
 
@@ -136,6 +170,7 @@ describe("POST /api/alerts/send", () => {
     expect(json.status).toBe("sent");
     expect(json.tickerCount).toBe(0);
     expect(json.totalAvailable).toBe(5);
+    expect(mockValidatedTickerFindMany).toHaveBeenCalledTimes(2);
     expect(mockSendTickerAlerts).toHaveBeenCalledWith([], 5);
   });
 });
