@@ -377,7 +377,7 @@ export default function TickerDetailPage({
   const sentimentLabel = sentimentDescriptor(ticker.avgSentiment);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
+    <div className="mx-auto min-w-0 w-full max-w-7xl space-y-6">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div className="space-y-1">
           <button
@@ -616,8 +616,8 @@ export default function TickerDetailPage({
         </div>
       </div>
 
-      {/* Tab navigation */}
-      <div className="flex overflow-x-auto border-b border-slate-200 dark:border-[#1e262f]">
+      {/* Tab navigation — grid on small screens so three tabs stay in view; flex + scroll from md up */}
+      <div className="grid min-w-0 w-full grid-cols-3 border-b border-slate-200 dark:border-[#1e262f] md:flex md:overflow-x-auto">
         {(["overview", "signals", "history"] as const).map((tab) => {
           const labels: Record<string, string> = {
             overview: "Overview",
@@ -626,29 +626,30 @@ export default function TickerDetailPage({
           };
           const icons: Record<string, ReactNode> = {
             overview: (
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+              <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
                 <rect x="3" y="3" width="7" height="7" rx="1" />
                 <rect x="14" y="3" width="7" height="7" rx="1" />
                 <rect x="3" y="14" width="7" height="7" rx="1" />
                 <rect x="14" y="14" width="7" height="7" rx="1" />
               </svg>
             ),
-            signals: <IconRadar className="h-4 w-4" />,
-            history: <IconHistory className="h-4 w-4" />,
+            signals: <IconRadar className="h-4 w-4 shrink-0" />,
+            history: <IconHistory className="h-4 w-4 shrink-0" />,
           };
           return (
             <button
               key={tab}
               type="button"
               onClick={() => setActiveTab(tab)}
-              className={`-mb-px flex shrink-0 items-center gap-2 border-b-2 px-5 py-3 text-sm font-semibold transition-colors ${
+              title={labels[tab]}
+              className={`-mb-px flex min-w-0 items-center justify-center gap-1 border-b-2 px-2 py-2.5 text-center text-xs font-semibold transition-colors md:shrink-0 md:justify-start md:gap-2 md:px-5 md:py-3 md:text-left md:text-sm ${
                 activeTab === tab
                   ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
                   : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200"
               }`}
             >
               {icons[tab]}
-              {labels[tab]}
+              <span className="min-w-0 truncate">{labels[tab]}</span>
             </button>
           );
         })}
