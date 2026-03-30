@@ -3,8 +3,6 @@
 import { useState, useEffect } from "react";
 import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
-import { EmergingReturnsChart } from "@/components/emerging-returns-chart";
-
 /* ------------------------------------------------------------------ */
 /*  Login Page / Landing Page                                          */
 /* ------------------------------------------------------------------ */
@@ -63,7 +61,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen overflow-x-hidden bg-gray-50">
       {/* -- Nav ---------------------------------------------------- */}
       <nav className="fixed top-0 z-50 w-full border-b border-blue-800/30 bg-blue-900/80 backdrop-blur-md" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
@@ -230,10 +228,10 @@ export default function LoginPage() {
 
       {/* -- Agent callout strip ------------------------------------ */}
       <div className="border-y border-violet-100 bg-violet-50">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-3">
-            <span className="text-lg">🤖</span>
-            <p className="text-sm text-violet-800">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6">
+          <div className="flex min-w-0 items-start gap-3 sm:items-center">
+            <span className="shrink-0 text-lg leading-none">🤖</span>
+            <p className="min-w-0 text-sm text-violet-800">
               <span className="font-semibold">AI agent?</span>
               {" "}Access live breakout signal data via x402 micropayments — no account or signup required.
             </p>
@@ -242,7 +240,7 @@ export default function LoginPage() {
             href="/skill/SKILL.md"
             target="_blank"
             rel="noopener noreferrer"
-            className="shrink-0 rounded-md bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-700 transition-colors touch-manipulation"
+            className="shrink-0 self-start rounded-md bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-700 transition-colors touch-manipulation sm:self-auto"
           >
             View API docs →
           </a>
@@ -458,10 +456,10 @@ export default function LoginPage() {
             Two ways to give your AI access to live breakout signal data — no account required to get started.
           </p>
 
-          <div className="mx-auto max-w-4xl grid gap-6 sm:grid-cols-2">
+          <div className="mx-auto grid max-w-4xl min-w-0 gap-6 sm:grid-cols-2">
 
             {/* x402 path */}
-            <div className="rounded-2xl border-2 border-blue-200 bg-blue-50/40 p-6">
+            <div className="min-w-0 rounded-2xl border-2 border-blue-200 bg-blue-50/40 p-6">
               <div className="mb-4 flex items-center gap-3">
                 <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white">
                   {/* Lightning bolt */}
@@ -495,7 +493,7 @@ export default function LoginPage() {
                 ))}
               </ul>
 
-              <div className="rounded-lg bg-gray-900 px-4 py-3 font-mono text-xs text-gray-300 overflow-x-auto">
+              <div className="max-w-full min-w-0 overflow-x-auto rounded-lg bg-gray-900 px-4 py-3 font-mono text-xs text-gray-300 [overflow-wrap:anywhere]">
                 <span className="text-gray-500"># Agent hits endpoint → gets 402 → pays → gets data</span>{"\n"}
                 <span className="text-blue-400">curl</span> http://localhost:3000/api/tickers/trending{"\n"}
                 <span className="text-gray-500">→ HTTP 402  payment-required: ey...</span>
@@ -511,7 +509,7 @@ export default function LoginPage() {
             </div>
 
             {/* API key path */}
-            <div className="rounded-2xl border border-gray-200 bg-gray-50/50 p-6">
+            <div className="min-w-0 rounded-2xl border border-gray-200 bg-gray-50/50 p-6">
               <div className="mb-4 flex items-center gap-3">
                 <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gray-700 text-white">
                   {/* Key icon */}

@@ -153,6 +153,10 @@
   --color-stage-unscored:  var(--color-stage-unscored);
 }
 
+html {
+  overflow-x: clip;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
