@@ -45,6 +45,73 @@ function relativeStrengthFrom52w(price: number | null, lo: number | null, hi: nu
   return Math.round(Math.min(1, Math.max(0, t)) * 100);
 }
 
+/** 0–100 for CSS positioning; clamps price outside [lo, hi] to the bar ends. */
+function pctAlong52wRange(price: number, lo: number, hi: number): number {
+  if (hi <= lo) return 50;
+  const t = (price - lo) / (hi - lo);
+  return Math.min(100, Math.max(0, t * 100));
+}
+
+function formatPriceForRange(p: number): string {
+  return p >= 1 ? `$${p.toFixed(2)}` : `$${p.toFixed(4)}`;
+}
+
+function week52BarInputs(
+  lo: number | null,
+  hi: number | null,
+  price: number | null,
+): { lo: number; hi: number; price: number } | null {
+  if (lo == null || hi == null || hi <= lo || price == null || price <= 0) return null;
+  return { lo, hi, price };
+}
+
+function Week52PositionRow({
+  lo,
+  hi,
+  price,
+  hint,
+}: {
+  lo: number;
+  hi: number;
+  price: number;
+  hint: string;
+}) {
+  const pct = pctAlong52wRange(price, lo, hi);
+  const rs = relativeStrengthFrom52w(price, lo, hi);
+  const dotTint =
+    rs != null && rs >= 70 ? "bg-emerald-500 dark:bg-emerald-400" : "bg-blue-600 dark:bg-blue-400";
+  const label = "52-week range";
+  return (
+    <div
+      className="flex min-w-0 flex-nowrap items-center gap-2 py-2 sm:gap-3"
+      role="img"
+      aria-label={`52-week range from ${formatPriceForRange(lo)} to ${formatPriceForRange(hi)}, price near ${formatPriceForRange(price)}`}
+    >
+      <span className="flex shrink-0 items-center gap-1 text-sm text-slate-500 dark:text-zinc-500">
+        {label}
+        <InfoHint text={hint} />
+      </span>
+      <span className="shrink-0 text-sm font-bold tabular-nums text-gray-900 dark:text-white">
+        {formatPriceForRange(lo)}
+      </span>
+      <div className="relative min-h-4 min-w-[48px] flex-1">
+        <div
+          className="absolute top-1/2 right-0 left-0 h-px -translate-y-1/2 bg-slate-300 dark:bg-zinc-600"
+          aria-hidden
+        />
+        <div
+          className={`absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-sm dark:border-[#12181f] ${dotTint}`}
+          style={{ left: `${pct}%` }}
+          aria-hidden
+        />
+      </div>
+      <span className="shrink-0 text-sm font-bold tabular-nums text-gray-900 dark:text-white">
+        {formatPriceForRange(hi)}
+      </span>
+    </div>
+  );
+}
+
 function sentimentDescriptor(avg: number | null): string {
   if (avg == null) return "—";
   if (avg > 0.15) return "Bullish";
@@ -303,7 +370,9 @@ export default function TickerDetailPage({
   const exchangeShort = formatExchangeLabel(ticker.exchange);
   const subtitleParts = [ticker.name?.trim() || null, exchangeShort].filter(Boolean);
   const return1d = ticker.return1d;
-  const rs52 = relativeStrengthFrom52w(ticker.price, ticker.wk52Lo, ticker.wk52Hi);
+  const priceFor52w =
+    livePrice !== undefined && livePrice !== null ? livePrice : ticker.price;
+  const week52 = week52BarInputs(ticker.wk52Lo, ticker.wk52Hi, priceFor52w);
   const flowLabel = institutionalFlowLabel(ticker.sources);
   const sentimentLabel = sentimentDescriptor(ticker.avgSentiment);
 
@@ -594,14 +663,20 @@ export default function TickerDetailPage({
                 Price &amp; scores
               </h3>
               <div className="divide-y divide-slate-100 dark:divide-[#1e262f]">
-                <ScoreRow
-                  label="52-week position"
-                  hint="Where the last scan price sits between 52-week low and high (0–100). Not RSI or strength vs the broad market."
-                  value={rs52 != null ? `${rs52}/100` : "—"}
-                  valueClassName={
-                    rs52 != null && rs52 >= 70 ? "text-emerald-600 dark:text-emerald-400" : "text-gray-900 dark:text-white"
-                  }
-                />
+                {week52 ? (
+                  <Week52PositionRow
+                    lo={week52.lo}
+                    hi={week52.hi}
+                    price={week52.price}
+                    hint="Dot is the current price (live quote when loaded, otherwise last scan) between 52-week low and high. Not RSI or strength vs the broad market."
+                  />
+                ) : (
+                  <ScoreRow
+                    label="52-week range"
+                    hint="52-week low and high with current price on the range when data is available. Not RSI or strength vs the broad market."
+                    value="—"
+                  />
+                )}
                 <ScoreRow
                   label="Source mix"
                   hint="Heuristic from which feeds contributed (e.g. SEC, Congress, options). Not order flow or institutional dollars."
