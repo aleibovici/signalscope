@@ -9,6 +9,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-03-30",
+    title: "SEO & Copy Improvements",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "XGBoost ML backtesting is now prominently featured across all public-facing copy — hero paragraph, register page, FAQ, and the methodology description — so new visitors immediately understand the signal validation pipeline.",
+          "Register page source count corrected to 8 (was 7) to reflect the Polymarket addition.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-03-29",
     title: "Polymarket Signal Source & Navigation Improvements",
     changes: [
