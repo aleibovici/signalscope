@@ -325,6 +325,18 @@ export default function TickerDetailPage({
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
             <h1 className="text-5xl font-black tracking-tighter text-gray-900 dark:text-white">{ticker.symbol}</h1>
             <div className="flex items-center gap-2">
+              <a
+                href={`https://finance.yahoo.com/quote/${ticker.symbol}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="View on Yahoo Finance"
+                className="opacity-70 transition-opacity hover:opacity-100"
+              >
+                <svg className="h-7 w-7" viewBox="0 0 24 24" aria-hidden>
+                  <circle cx="12" cy="12" r="12" fill="#6001d2" />
+                  <text x="12" y="17" textAnchor="middle" fill="white" fontSize="15" fontWeight="bold" fontFamily="Arial, sans-serif">Y!</text>
+                </svg>
+              </a>
               {session?.user ? (
                 <>
                   <button

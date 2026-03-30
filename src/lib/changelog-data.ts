@@ -10,8 +10,14 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-03-30",
-    title: "SEO & Copy Improvements",
+    title: "Yahoo Finance Link & SEO Improvements",
     changes: [
+      {
+        category: "new",
+        items: [
+          "Ticker detail pages now include a Yahoo Finance link next to the symbol — click the purple Y! icon to jump straight to the full financials, earnings, balance sheet, and more on Yahoo Finance.",
+        ],
+      },
       {
         category: "improved",
         items: [
