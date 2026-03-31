@@ -79,7 +79,7 @@ describe("POST /api/alerts/send", () => {
     expect(mockSendTickerAlerts).not.toHaveBeenCalled();
   });
 
-  it("sends top AI-scored alerts across all stages", async () => {
+  it("prioritises EARLY > FORMING > CONFIRMED, then by aiScore", async () => {
     mockScanFindFirst.mockResolvedValue({ id: "scan_1" });
     mockValidatedTickerFindMany.mockResolvedValue([
       {
@@ -90,6 +90,7 @@ describe("POST /api/alerts/send", () => {
         catalyst: "Insider buy $10M",
         signalType: "insider_buy",
         stage: "FORMING",
+        opportunityScore: 60,
       },
       {
         symbol: "AAPL",
@@ -99,6 +100,17 @@ describe("POST /api/alerts/send", () => {
         catalyst: "Insider buy $2M",
         signalType: "insider_buy",
         stage: "EARLY",
+        opportunityScore: 50,
+      },
+      {
+        symbol: "MSFT",
+        price: 400,
+        aiScore: 90,
+        aiReasoning: "Strong momentum",
+        catalyst: null,
+        signalType: "options_flow",
+        stage: "CONFIRMED",
+        opportunityScore: 70,
       },
     ]);
     mockValidatedTickerCount.mockResolvedValue(12);
@@ -110,7 +122,7 @@ describe("POST /api/alerts/send", () => {
     expect(res.status).toBe(200);
     expect(json.status).toBe("sent");
     expect(json.scanId).toBe("scan_1");
-    expect(json.tickerCount).toBe(2);
+    expect(json.tickerCount).toBe(3);
     expect(json.totalAvailable).toBe(12);
     expect(mockSendTickerAlerts).toHaveBeenCalledTimes(1);
 
@@ -120,11 +132,13 @@ describe("POST /api/alerts/send", () => {
     expect(findManyCall.where.aiScore).toEqual({ gte: 50 });
     expect(findManyCall.where.pndFlagged).toBe(false);
     expect(findManyCall.select.aiReasoning).toBe(true);
-    expect(findManyCall.take).toBe(6);
 
-    // Verify aiReasoning is passed through to sendTickerAlerts
+    // Verify stage priority: EARLY first, then FORMING, then CONFIRMED
     const alertTickers = mockSendTickerAlerts.mock.calls[0][0];
-    expect(alertTickers[0].aiReasoning).toBe("CEO insider buy signals confidence");
+    expect(alertTickers[0].symbol).toBe("AAPL");   // EARLY (75)
+    expect(alertTickers[1].symbol).toBe("PANW");    // FORMING (85)
+    expect(alertTickers[2].symbol).toBe("MSFT");    // CONFIRMED (90)
+    expect(alertTickers[0].aiReasoning).toBe("Multi-source convergence");
   });
 
   it("sends empty alert when no tickers qualify", async () => {
