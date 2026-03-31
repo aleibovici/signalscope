@@ -30,11 +30,11 @@ const publicPagePrefixes = ["/blog", "/ticker"];
 
 // x402-monetized paths — bypass middleware auth so the route handler
 // can return 402 payment details or validate x-payment proofs.
-function isX402Path(pathname: string): boolean {
+export function isX402Path(pathname: string): boolean {
   return pathname === "/api/tickers" || pathname.startsWith("/api/tickers/");
 }
 
-function isPublicPath(pathname: string): boolean {
+export function isPublicPath(pathname: string): boolean {
   if (publicPages.has(pathname)) return true;
   if (publicPagePrefixes.some((p) => pathname === p || pathname.startsWith(p + "/"))) return true;
   return publicApiPrefixes.some(
