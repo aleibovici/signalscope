@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
-import { trackEvent } from "@/lib/analytics";
+import { trackConversion } from "@/lib/analytics";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -40,7 +40,7 @@ export default function RegisterPage() {
       setError("Account created but sign-in failed. Please log in manually.");
       setLoading(false);
     } else {
-      trackEvent("sign_up", { method: "credentials" });
+      await trackConversion("sign_up", { method: "credentials" });
       window.location.href = "/dashboard";
     }
   }
