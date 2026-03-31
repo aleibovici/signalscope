@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
+import { trackEvent } from "@/lib/analytics";
 /* ------------------------------------------------------------------ */
 /*  Login Page / Landing Page                                          */
 /* ------------------------------------------------------------------ */
@@ -55,7 +56,7 @@ export default function LoginPage() {
       setError("Invalid email or password");
       setLoading(false);
     } else {
-      window.gtag?.("event", "login", { method: "credentials" });
+      trackEvent("login", { method: "credentials" });
       window.location.href = "/dashboard";
     }
   }

@@ -2,6 +2,7 @@
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
+import { trackEvent } from "@/lib/analytics";
 
 export function GoogleAnalyticsPageView() {
   const pathname = usePathname();
@@ -9,7 +10,7 @@ export function GoogleAnalyticsPageView() {
 
   useEffect(() => {
     const url = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : "");
-    window.gtag?.("event", "page_view", {
+    trackEvent("page_view", {
       page_location: window.location.origin + url,
       page_path: url,
     });
