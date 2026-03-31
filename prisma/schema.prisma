@@ -24,6 +24,7 @@ model User {
   refreshTokens  RefreshToken[]
   apiKeys        ApiKey[]
   subscription   Subscription?
+  passwordResetTokens PasswordResetToken[]
 }
 
 model Scan {
@@ -355,4 +356,17 @@ model AiCostLog {
   @@index([scanId])
   @@index([trigger, createdAt])
   @@index([callPoint, createdAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([token])
+  @@index([expiresAt])
 }
