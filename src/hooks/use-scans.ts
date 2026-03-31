@@ -202,6 +202,10 @@ export function useGenerateReport(symbol: string | null) {
           };
         }
       );
+      // Invalidate scan detail caches so the ticker list reflects updated report data
+      queryClient.invalidateQueries({ queryKey: ["scan"], refetchType: "none" });
+      // Also invalidate watchlist-tickers which may display this ticker
+      queryClient.invalidateQueries({ queryKey: ["watchlist-tickers"], refetchType: "none" });
     },
   });
 }
