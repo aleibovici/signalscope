@@ -25,8 +25,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ status: "skip", reason: "no completed scan" });
   }
 
-  // Top high-conviction signals across all active stages, sorted by AI score.
-  const tickers = await prisma.validatedTicker.findMany({
+  // Top high-conviction signals: prioritise EARLY > FORMING > CONFIRMED,
+  // then highest AI score within each stage.
+  const STAGE_PRIORITY: Record<string, number> = { EARLY: 0, FORMING: 1, CONFIRMED: 2 };
+
+  const allCandidates = await prisma.validatedTicker.findMany({
     where: {
       scanId: scan.id,
       aiScore: { gte: 50 },
@@ -45,15 +48,22 @@ export async function POST(req: NextRequest) {
       catalyst: true,
       signalType: true,
       stage: true,
+      opportunityScore: true,
     },
-    orderBy: [
-      { aiScore: "desc" },
-      { opportunityScore: "desc" },
-    ],
-    take: 6,
+    orderBy: { aiScore: "desc" },
   });
 
-  console.log(`[alerts/send] Top candidates: ${tickers.length}`);
+  const tickers = allCandidates
+    .sort((a, b) => {
+      const stageDiff = (STAGE_PRIORITY[a.stage] ?? 9) - (STAGE_PRIORITY[b.stage] ?? 9);
+      if (stageDiff !== 0) return stageDiff;
+      const scoreDiff = b.aiScore - a.aiScore;
+      if (scoreDiff !== 0) return scoreDiff;
+      return (b.opportunityScore ?? 0) - (a.opportunityScore ?? 0);
+    })
+    .slice(0, 6);
+
+  console.log(`[alerts/send] Top candidates: ${tickers.length} (of ${allCandidates.length})`);
 
   // Total available (for email footer context) — all non-filtered validated tickers in this scan
   const totalAvailable = await prisma.validatedTicker.count({
