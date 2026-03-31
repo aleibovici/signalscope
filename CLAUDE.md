@@ -92,7 +92,7 @@ Automated follow/unfollow growth strategy. Discovers relevant accounts from harv
 - Unfollow logic: accounts followed 30+ days with no follow-back and `keep=false` are unfollowed
 - Follow-back check: fetches our followers list each run, updates `followBack` flag
 - Endpoint: `POST /api/twitter/follow` (x-snapshot-key auth, Cloud Scheduler)
-- Schedule: 6 runs/day hourly 9AM–2PM ET → ~30 follows/day, ~18 unfollows/day
+- Schedule: 20 runs/day every 30 min 9AM–6:30PM ET → ~100 follows/day, ~60 unfollows/day
 - Requires both OAuth 1.0a credentials (follow/unfollow) and `X_BEARER_TOKEN` (user lookups, follower checks)
 - X API rate limit: 5 follows per 15-min window per user — each run stays within this limit
 - DB model: `TwitterFollow` tracks queue state, follow/unfollow timestamps, follow-back status
@@ -293,7 +293,7 @@ BING_SITE_VERIFICATION=...
 
 - **Cloud Run** — web app (`signalscope-web`) serving Next.js standalone on port 3000
 - **Cloud SQL** — PostgreSQL 16 (`signalscope-db`, db-f1-micro), connected via Unix socket
-- **Cloud Scheduler** — 6 weekday jobs (ET, Mon–Fri): email alerts (9:10 AM), portfolio alerts (9:12 AM), reports (9:15 AM), snapshots open (9:45 AM), snapshots midday (12:30 PM), snapshots close (4:05 PM); 6 daily follow jobs (hourly 9AM–2PM ET); 3 daily promo tweet jobs
+- **Cloud Scheduler** — 6 weekday jobs (ET, Mon–Fri): email alerts (9:10 AM), portfolio alerts (9:12 AM), reports (9:15 AM), snapshots open (9:45 AM), snapshots midday (12:30 PM), snapshots close (4:05 PM); 1 daily follow job (every 30 min 9AM–6:30PM ET, 20 runs/day → ~100 follows/day); 3 daily promo tweet jobs
 - **Secret Manager** — stores `DATABASE_URL`, `AUTH_SECRET`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `SNAPSHOT_API_KEY`, `RESEND_API_KEY`
 - **Artifact Registry** — Docker images (`signalscope` repo)
 - **GitHub Actions** — CI/CD on push to `main` (`.github/workflows/deploy.yml`)
@@ -372,19 +372,19 @@ gcloud scheduler jobs create http signalscope-reports \
   --attempt-deadline=600s \
   --description="Pre-generate AI reports for top 10 emerging tickers (45 min after harvest)"
 
-# Twitter auto-follow: 6 runs/day (hourly 9AM–2PM ET, every day)
-# Each run: discovers from harvest, follows 5, unfollows 3 stale → ~30 follows/day
-for hour in 9 10 11 12 13 14; do
-  gcloud scheduler jobs create http "signalscope-follow-${hour}" \
-    --location=us-central1 \
-    --schedule="0 ${hour} * * *" \
-    --time-zone="America/New_York" \
-    --uri="https://signalscopes.com/api/twitter/follow" \
-    --http-method=POST \
-    --headers="x-snapshot-key=<SNAPSHOT_API_KEY_VALUE>" \
-    --attempt-deadline=120s \
-    --description="Twitter auto-follow batch (${hour}:00 ET)"
-done
+# Twitter auto-follow: 20 runs/day (every 30 min 9AM–6:30PM ET, every day)
+# Each run: discovers from harvest, follows 5, unfollows 3 stale → ~100 follows/day
+# First, delete old per-hour jobs if upgrading from 6-job setup:
+# for hour in 9 10 11 12 13 14; do gcloud scheduler jobs delete "signalscope-follow-${hour}" --location=us-central1 -q; done
+gcloud scheduler jobs create http signalscope-follow \
+  --location=us-central1 \
+  --schedule="0,30 9-18 * * *" \
+  --time-zone="America/New_York" \
+  --uri="https://signalscopes.com/api/twitter/follow" \
+  --http-method=POST \
+  --headers="x-snapshot-key=<SNAPSHOT_API_KEY_VALUE>" \
+  --attempt-deadline=120s \
+  --description="Twitter auto-follow batch (every 30 min 9AM–6:30PM ET, 20 runs/day → ~100 follows)"
 ```
 
 ### Source Status

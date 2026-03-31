@@ -12,7 +12,7 @@ import { runFollowJob } from "@/lib/twitter/follow";
  * - Unfollows 3 stale accounts (30+ days, no follow-back, not keep)
  * - Updates follow-back flags from our followers list
  *
- * Schedule 6x/day (hourly 9AM–3PM ET) for ~30 follows/day.
+ * Schedule every 30 min 9AM–6:30PM ET (20x/day) for ~100 follows/day.
  * Auth: x-snapshot-key header (same as other Cloud Scheduler endpoints).
  */
 export async function POST(req: NextRequest) {
