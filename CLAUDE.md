@@ -110,6 +110,7 @@ Automated follow/unfollow growth strategy. Discovers relevant accounts from harv
 - `src/lib/rate-limit.ts` — IP-based rate limiting for auth endpoints; `getClientIP()` handles `X-Forwarded-For` for Cloud Run
 - `src/lib/price-verification.ts` — `verifyPriceAgainstSnapshot()` validates user-reported prices against latest `PriceSnapshot` (5% deviation threshold)
 - `src/lib/co-occurrence.ts` — `getCoOccurringSymbols()`, `getPairwiseEdges()`, `jaccardScore()` — co-occurrence queries and Jaccard similarity for ticker connections
+- `src/lib/analytics.ts` — `trackEvent(event, params?)` pushes to GTM dataLayer; `trackConversion(event, params?)` does the same but returns a Promise that resolves after 300ms — **use `trackConversion` (with `await`) whenever the next line navigates away** (`window.location.href`, Stripe redirect, etc.) so pixel HTTP requests complete before the page unloads
 
 ### AI Provider System (`src/lib/ai/`)
 
