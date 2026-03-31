@@ -10,8 +10,14 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-04-01",
-    title: "LinkedIn Tracking Reliability Fix",
+    title: "Password Recovery & Tracking Fix",
     changes: [
+      {
+        category: "new",
+        items: [
+          "Forgot your password? A new password recovery flow lets you reset it via email — click \"Forgot password?\" on the login page to get a secure, time-limited reset link.",
+        ],
+      },
       {
         category: "fixed",
         items: [
