@@ -79,24 +79,38 @@ describe("POST /api/alerts/send", () => {
     expect(mockSendTickerAlerts).not.toHaveBeenCalled();
   });
 
-  it("sends high-conviction EARLY alerts for authorized requests", async () => {
+  it("prioritises EARLY > FORMING > CONFIRMED, then by aiScore", async () => {
     mockScanFindFirst.mockResolvedValue({ id: "scan_1" });
     mockValidatedTickerFindMany.mockResolvedValue([
+      {
+        symbol: "PANW",
+        price: 154,
+        aiScore: 85,
+        aiReasoning: "CEO insider buy signals confidence",
+        catalyst: "Insider buy $10M",
+        signalType: "insider_buy",
+        stage: "FORMING",
+        opportunityScore: 60,
+      },
       {
         symbol: "AAPL",
         price: 180,
         aiScore: 75,
+        aiReasoning: "Multi-source convergence",
         catalyst: "Insider buy $2M",
         signalType: "insider_buy",
         stage: "EARLY",
+        opportunityScore: 50,
       },
       {
-        symbol: "NVDA",
-        price: 500,
-        aiScore: 60,
-        catalyst: "Unusual options flow",
+        symbol: "MSFT",
+        price: 400,
+        aiScore: 90,
+        aiReasoning: "Strong momentum",
+        catalyst: null,
         signalType: "options_flow",
-        stage: "EARLY",
+        stage: "CONFIRMED",
+        opportunityScore: 70,
       },
     ]);
     mockValidatedTickerCount.mockResolvedValue(12);
@@ -108,58 +122,28 @@ describe("POST /api/alerts/send", () => {
     expect(res.status).toBe(200);
     expect(json.status).toBe("sent");
     expect(json.scanId).toBe("scan_1");
-    expect(json.tickerCount).toBe(2);
+    expect(json.tickerCount).toBe(3);
     expect(json.totalAvailable).toBe(12);
     expect(mockSendTickerAlerts).toHaveBeenCalledTimes(1);
 
-    // Verify the EARLY query: aiScore >= 50, not P&D, no priorAppearances/catalyst hard filters
+    // Verify query: all stages, aiScore >= 50, not P&D, includes aiReasoning
     const findManyCall = mockValidatedTickerFindMany.mock.calls[0][0];
-    expect(findManyCall.where.stage).toBe("EARLY");
+    expect(findManyCall.where.stage).toEqual({ in: ["EARLY", "FORMING", "CONFIRMED"] });
     expect(findManyCall.where.aiScore).toEqual({ gte: 50 });
     expect(findManyCall.where.pndFlagged).toBe(false);
-    expect(findManyCall.where.priorAppearances).toBeUndefined();
-    expect(findManyCall.where.catalyst).toBeUndefined();
-    expect(findManyCall.take).toBe(6);
+    expect(findManyCall.select.aiReasoning).toBe(true);
+
+    // Verify stage priority: EARLY first, then FORMING, then CONFIRMED
+    const alertTickers = mockSendTickerAlerts.mock.calls[0][0];
+    expect(alertTickers[0].symbol).toBe("AAPL");   // EARLY (75)
+    expect(alertTickers[1].symbol).toBe("PANW");    // FORMING (85)
+    expect(alertTickers[2].symbol).toBe("MSFT");    // CONFIRMED (90)
+    expect(alertTickers[0].aiReasoning).toBe("Multi-source convergence");
   });
 
-  it("falls back to FORMING when no EARLY tickers qualify", async () => {
+  it("sends empty alert when no tickers qualify", async () => {
     mockScanFindFirst.mockResolvedValue({ id: "scan_1" });
-    mockValidatedTickerFindMany
-      .mockResolvedValueOnce([]) // EARLY query returns nothing
-      .mockResolvedValueOnce([   // FORMING fallback
-        {
-          symbol: "GS",
-          price: 400,
-          aiScore: 72,
-          catalyst: "Congress buy",
-          signalType: "congress_buy",
-          stage: "FORMING",
-        },
-      ]);
-    mockValidatedTickerCount.mockResolvedValue(8);
-    mockSendTickerAlerts.mockResolvedValue(undefined);
-
-    const res = await POST(makeRequest({ "x-snapshot-key": "test-snapshot-key" }));
-    const json = await res.json();
-
-    expect(res.status).toBe(200);
-    expect(json.tickerCount).toBe(1);
-    expect(json.totalAvailable).toBe(8);
-
-    // First call: EARLY, second call: FORMING fallback
-    expect(mockValidatedTickerFindMany).toHaveBeenCalledTimes(2);
-    expect(mockValidatedTickerFindMany.mock.calls[0][0].where.stage).toBe("EARLY");
-    expect(mockValidatedTickerFindMany.mock.calls[1][0].where.stage).toBe("FORMING");
-
-    // sendTickerAlerts called with the FORMING tickers
-    expect(mockSendTickerAlerts).toHaveBeenCalledTimes(1);
-    expect(mockSendTickerAlerts.mock.calls[0][0][0].symbol).toBe("GS");
-    expect(mockSendTickerAlerts.mock.calls[0][0][0].stage).toBe("FORMING");
-  });
-
-  it("sends empty alert when neither EARLY nor FORMING tickers qualify", async () => {
-    mockScanFindFirst.mockResolvedValue({ id: "scan_1" });
-    mockValidatedTickerFindMany.mockResolvedValue([]); // both queries return empty
+    mockValidatedTickerFindMany.mockResolvedValue([]);
     mockValidatedTickerCount.mockResolvedValue(5);
     mockSendTickerAlerts.mockResolvedValue(undefined);
 
@@ -170,7 +154,7 @@ describe("POST /api/alerts/send", () => {
     expect(json.status).toBe("sent");
     expect(json.tickerCount).toBe(0);
     expect(json.totalAvailable).toBe(5);
-    expect(mockValidatedTickerFindMany).toHaveBeenCalledTimes(2);
+    expect(mockValidatedTickerFindMany).toHaveBeenCalledTimes(1);
     expect(mockSendTickerAlerts).toHaveBeenCalledWith([], 5);
   });
 });

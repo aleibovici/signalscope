@@ -10,6 +10,7 @@ interface AlertTicker {
   symbol: string;
   price?: number | null;
   aiScore: number;
+  aiReasoning?: string | null;
   catalyst?: string | null;
   signalType?: string | null;
   stage: string;
@@ -20,21 +21,30 @@ export function buildEmailHtml(tickers: AlertTicker[], totalAvailable?: number):
   const forming = tickers.filter((t) => t.stage === "FORMING");
   const early = tickers.filter((t) => t.stage === "EARLY");
 
+  function truncateSummary(text: string, maxLen = 120): string {
+    if (text.length <= maxLen) return text;
+    return text.slice(0, maxLen).replace(/\s+\S*$/, "") + "…";
+  }
+
   function renderSection(label: string, items: AlertTicker[], color: string, maxItems?: number): string {
     if (items.length === 0) return "";
     const displayed = maxItems ? items.slice(0, maxItems) : items;
     const remaining = items.length - displayed.length;
     const rows = displayed
-      .map(
-        (t) => `
+      .map((t) => {
+        const summary = t.aiReasoning || t.catalyst || null;
+        const summaryRow = summary
+          ? `<tr><td colspan="3" style="padding:2px 12px 8px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#6b7280;">${truncateSummary(summary)}</td></tr>`
+          : "";
+        return `
       <tr>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">
+        <td style="padding:8px 12px;${summary ? "" : "border-bottom:1px solid #e5e7eb;"}">
           <a href="https://signalscopes.com/ticker/${t.symbol}" style="color:#2563eb;font-weight:600;text-decoration:none;">${t.symbol}</a>
         </td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${t.aiScore}/100</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${t.catalyst || "—"}</td>
-      </tr>`
-      )
+        <td style="padding:8px 12px;${summary ? "" : "border-bottom:1px solid #e5e7eb;"}">${t.aiScore}/100</td>
+        <td style="padding:8px 12px;${summary ? "" : "border-bottom:1px solid #e5e7eb;"}">${t.catalyst || "—"}</td>
+      </tr>${summaryRow}`;
+      })
       .join("");
 
     const moreLink = remaining > 0

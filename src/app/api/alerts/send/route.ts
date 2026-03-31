@@ -25,50 +25,45 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ status: "skip", reason: "no completed scan" });
   }
 
-  // Novel high-conviction signals: AI score >= 50, not P&D, first seen <= 3 days.
-  // Try EARLY first (emerging before consensus); fall back to FORMING if none qualify.
-  const alertSelect = {
-    symbol: true,
-    price: true,
-    aiScore: true,
-    catalyst: true,
-    signalType: true,
-    stage: true,
-  } as const;
+  // Top high-conviction signals: prioritise EARLY > FORMING > CONFIRMED,
+  // then highest AI score within each stage.
+  const STAGE_PRIORITY: Record<string, number> = { EARLY: 0, FORMING: 1, CONFIRMED: 2 };
 
-  const alertWhere = {
-    scanId: scan.id,
-    aiScore: { gte: 50 },
-    pndFlagged: false,
-    OR: [
-      { firstSeenDaysAgo: null },
-      { firstSeenDaysAgo: { lte: 3 } },
-    ],
-  };
-
-  const alertOrderBy = [
-    { aiScore: "desc" as const },
-    { opportunityScore: "desc" as const },
-  ];
-
-  let tickers = await prisma.validatedTicker.findMany({
-    where: { ...alertWhere, stage: "EARLY" },
-    select: alertSelect,
-    orderBy: alertOrderBy,
-    take: 6,
+  const allCandidates = await prisma.validatedTicker.findMany({
+    where: {
+      scanId: scan.id,
+      aiScore: { gte: 50 },
+      pndFlagged: false,
+      stage: { in: ["EARLY", "FORMING", "CONFIRMED"] },
+      OR: [
+        { firstSeenDaysAgo: null },
+        { firstSeenDaysAgo: { lte: 3 } },
+      ],
+    },
+    select: {
+      symbol: true,
+      price: true,
+      aiScore: true,
+      aiReasoning: true,
+      catalyst: true,
+      signalType: true,
+      stage: true,
+      opportunityScore: true,
+    },
+    orderBy: { aiScore: "desc" },
   });
 
-  console.log(`[alerts/send] EARLY candidates: ${tickers.length}`);
+  const tickers = allCandidates
+    .sort((a, b) => {
+      const stageDiff = (STAGE_PRIORITY[a.stage] ?? 9) - (STAGE_PRIORITY[b.stage] ?? 9);
+      if (stageDiff !== 0) return stageDiff;
+      const scoreDiff = b.aiScore - a.aiScore;
+      if (scoreDiff !== 0) return scoreDiff;
+      return (b.opportunityScore ?? 0) - (a.opportunityScore ?? 0);
+    })
+    .slice(0, 6);
 
-  if (tickers.length === 0) {
-    tickers = await prisma.validatedTicker.findMany({
-      where: { ...alertWhere, stage: "FORMING" },
-      select: alertSelect,
-      orderBy: alertOrderBy,
-      take: 6,
-    });
-    console.log(`[alerts/send] FORMING fallback: ${tickers.length}`);
-  }
+  console.log(`[alerts/send] Top candidates: ${tickers.length} (of ${allCandidates.length})`);
 
   // Total available (for email footer context) — all non-filtered validated tickers in this scan
   const totalAvailable = await prisma.validatedTicker.count({
@@ -83,6 +78,7 @@ export async function POST(req: NextRequest) {
       symbol: t.symbol,
       price: t.price,
       aiScore: t.aiScore,
+      aiReasoning: t.aiReasoning,
       catalyst: t.catalyst,
       signalType: t.signalType,
       stage: t.stage,
