@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { trackEvent } from "@/lib/analytics";
 
 interface ApiKeyMeta {
   prefix: string;
@@ -38,7 +39,7 @@ export function useGenerateApiKey() {
       return data;
     },
     onSuccess: () => {
-      window.gtag?.("event", "generate_api_key");
+      trackEvent("generate_api_key");
       qc.invalidateQueries({ queryKey: ["api-key"] });
     },
   });
