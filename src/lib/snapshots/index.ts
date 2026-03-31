@@ -32,28 +32,16 @@ async function fetchPricesBatch(symbols: string[]): Promise<Map<string, number>>
 export async function collectSnapshots(): Promise<{ filled: number; errors: number; skipped: number; returnsUpdated: number }> {
   const stats = { filled: 0, errors: 0, skipped: 0, returnsUpdated: 0 };
   const now = new Date();
-  const cutoff = new Date(now.getTime() - (TRACKING_DAYS + 5) * 24 * 60 * 60 * 1000);
+  const trackingCutoff = new Date(now.getTime() - TRACKING_DAYS * 24 * 60 * 60 * 1000);
 
-  // 1. Get all eligible validated tickers from the tracking window
-  const tickers = await prisma.validatedTicker.findMany({
+  // 1. Get eligible ticker IDs without loading snapshots (lightweight query)
+  const trackable = await prisma.validatedTicker.findMany({
     where: {
-      createdAt: { gte: cutoff },
+      createdAt: { gte: trackingCutoff },
       price: { not: null },
     },
-    include: {
-      performance: true,
-      priceSnapshots: { orderBy: { createdAt: "asc" } },
-    },
+    select: { id: true, symbol: true, price: true, createdAt: true },
     orderBy: { createdAt: "asc" },
-  });
-
-  console.log(`[snapshots] Found ${tickers.length} eligible tickers from last ${TRACKING_DAYS + 5} days`);
-
-  // 2. Filter to tickers that still need tracking (within 30 days of detection)
-  const trackable = tickers.filter((t) => {
-    const ageMs = now.getTime() - new Date(t.createdAt).getTime();
-    const ageDays = ageMs / (1000 * 60 * 60 * 24);
-    return ageDays <= TRACKING_DAYS;
   });
 
   if (trackable.length === 0) {
@@ -64,14 +52,14 @@ export async function collectSnapshots(): Promise<{ filled: number; errors: numb
   const symbols = [...new Set(trackable.map((t) => t.symbol))];
   console.log(`[snapshots] ${trackable.length} tickers within ${TRACKING_DAYS}d window, fetching ${symbols.length} unique symbols`);
 
-  // 3. Batch-fetch current prices
+  // 2. Batch-fetch current prices
   const prices = await fetchPricesBatch(symbols);
   console.log(`[snapshots] Fetched prices for ${prices.size}/${symbols.length} symbols`);
 
-  // 4. Dev DB mirroring
+  // 3. Dev DB mirroring
   const devPrisma = createDevPrismaClient();
 
-  // 5. Batch-insert all price snapshots in one round-trip
+  // 4. Batch-insert all price snapshots in one round-trip
   const snapshotBatch = trackable
     .filter((t) => {
       if (prices.get(t.symbol) == null) {
@@ -93,144 +81,163 @@ export async function collectSnapshots(): Promise<{ filled: number; errors: numb
 
   const snapshotIdByTickerId = new Map(createdSnapshots.map((s) => [s.validatedTickerId, s.id]));
 
-  // 6. Update returns for each ticker
-  for (const ticker of trackable) {
-    const currentPrice = prices.get(ticker.symbol);
-    if (currentPrice == null) continue;
+  // 5. Process tickers in chunks to avoid OOM — load snapshots per chunk
+  const CHUNK_SIZE = 100;
+  for (let i = 0; i < trackable.length; i += CHUNK_SIZE) {
+    const chunk = trackable.slice(i, i + CHUNK_SIZE);
+    const chunkIds = chunk.map((t) => t.id);
 
-    try {
-      const snapshotId = snapshotIdByTickerId.get(ticker.id)!
+    // Load snapshots only for this chunk
+    const snapshotRows = await prisma.priceSnapshot.findMany({
+      where: { validatedTickerId: { in: chunkIds } },
+      select: { validatedTickerId: true, price: true, createdAt: true },
+      orderBy: { createdAt: "asc" },
+    });
 
-      // Compute returns from all snapshots (including the one we just created)
-      const allSnapshots = [...ticker.priceSnapshots, { price: currentPrice, createdAt: now }];
-      const detectionPrice = ticker.price!;
-      const detectedAt = new Date(ticker.createdAt);
+    const snapshotsByTickerId = new Map<string, { price: number; createdAt: Date }[]>();
+    for (const s of snapshotRows) {
+      let arr = snapshotsByTickerId.get(s.validatedTickerId);
+      if (!arr) { arr = []; snapshotsByTickerId.set(s.validatedTickerId, arr); }
+      arr.push({ price: s.price, createdAt: s.createdAt });
+    }
 
-      // Check for corporate actions (reverse splits, mergers, etc.)
-      const isCorporateAction = detectCorporateAction(allSnapshots, detectionPrice);
-      if (isCorporateAction) {
-        console.warn(`[snapshots] Corporate action detected for ${ticker.symbol} — nulling returns`);
-        await prisma.tickerPerformance.upsert({
-          where: { validatedTickerId: ticker.id },
-          create: {
-            validatedTickerId: ticker.id,
-            symbol: ticker.symbol,
-            detectionPrice,
-            corporateActionDetected: true,
-          },
-          update: {
-            corporateActionDetected: true,
-            return1d: null, return3d: null, return7d: null, return30d: null,
-            price1d: null, price3d: null, price7d: null, price30d: null,
-            snapped1dAt: null, snapped3dAt: null, snapped7dAt: null, snapped30dAt: null,
-          },
-        });
-        stats.returnsUpdated++;
+    for (const ticker of chunk) {
+      const currentPrice = prices.get(ticker.symbol);
+      if (currentPrice == null) continue;
+
+      try {
+        const snapshotId = snapshotIdByTickerId.get(ticker.id)!;
+        const existingSnapshots = snapshotsByTickerId.get(ticker.id) ?? [];
+        const allSnapshots = [...existingSnapshots, { price: currentPrice, createdAt: now }];
+        const detectionPrice = ticker.price!;
+        const detectedAt = new Date(ticker.createdAt);
+
+        // Check for corporate actions (reverse splits, mergers, etc.)
+        const isCorporateAction = detectCorporateAction(allSnapshots, detectionPrice);
+        if (isCorporateAction) {
+          console.warn(`[snapshots] Corporate action detected for ${ticker.symbol} — nulling returns`);
+          await prisma.tickerPerformance.upsert({
+            where: { validatedTickerId: ticker.id },
+            create: {
+              validatedTickerId: ticker.id,
+              symbol: ticker.symbol,
+              detectionPrice,
+              corporateActionDetected: true,
+            },
+            update: {
+              corporateActionDetected: true,
+              return1d: null, return3d: null, return7d: null, return30d: null,
+              price1d: null, price3d: null, price7d: null, price30d: null,
+              snapped1dAt: null, snapped3dAt: null, snapped7dAt: null, snapped30dAt: null,
+            },
+          });
+          stats.returnsUpdated++;
+
+          // Mirror to dev DB
+          if (devPrisma) {
+            try {
+              await devPrisma.tickerPerformance.upsert({
+                where: { validatedTickerId: ticker.id },
+                create: {
+                  validatedTickerId: ticker.id,
+                  symbol: ticker.symbol,
+                  detectionPrice,
+                  corporateActionDetected: true,
+                },
+                update: {
+                  corporateActionDetected: true,
+                  return1d: null, return3d: null, return7d: null, return30d: null,
+                  price1d: null, price3d: null, price7d: null, price30d: null,
+                  snapped1dAt: null, snapped3dAt: null, snapped7dAt: null, snapped30dAt: null,
+                },
+              });
+            } catch (devErr) {
+              console.warn(
+                `[snapshots] Dev DB corporate action write failed for ${ticker.symbol}:`,
+                devErr instanceof Error ? devErr.message : devErr
+              );
+            }
+          }
+
+          continue;
+        }
+
+        const returns = computeReturnsFromSnapshots(allSnapshots, detectionPrice, detectedAt, now);
+
+        // Update TickerPerformance with computed returns
+        const updateData: Record<string, number | Date | boolean> = {};
+        if (returns.return1d != null) {
+          updateData.price1d = returns.price1d!;
+          updateData.return1d = returns.return1d;
+          updateData.snapped1dAt = returns.snapped1dAt!;
+        }
+        if (returns.return3d != null) {
+          updateData.price3d = returns.price3d!;
+          updateData.return3d = returns.return3d;
+          updateData.snapped3dAt = returns.snapped3dAt!;
+        }
+        if (returns.return7d != null) {
+          updateData.price7d = returns.price7d!;
+          updateData.return7d = returns.return7d;
+          updateData.snapped7dAt = returns.snapped7dAt!;
+        }
+        if (returns.return30d != null) {
+          updateData.price30d = returns.price30d!;
+          updateData.return30d = returns.return30d;
+          updateData.snapped30dAt = returns.snapped30dAt!;
+        }
+
+        if (Object.keys(updateData).length > 0) {
+          await prisma.tickerPerformance.upsert({
+            where: { validatedTickerId: ticker.id },
+            create: {
+              validatedTickerId: ticker.id,
+              symbol: ticker.symbol,
+              detectionPrice,
+              ...updateData,
+            },
+            update: updateData,
+          });
+          stats.returnsUpdated++;
+        }
 
         // Mirror to dev DB
         if (devPrisma) {
           try {
-            await devPrisma.tickerPerformance.upsert({
-              where: { validatedTickerId: ticker.id },
-              create: {
+            await devPrisma.priceSnapshot.create({
+              data: {
+                id: snapshotId,
                 validatedTickerId: ticker.id,
                 symbol: ticker.symbol,
-                detectionPrice,
-                corporateActionDetected: true,
-              },
-              update: {
-                corporateActionDetected: true,
-                return1d: null, return3d: null, return7d: null, return30d: null,
-                price1d: null, price3d: null, price7d: null, price30d: null,
-                snapped1dAt: null, snapped3dAt: null, snapped7dAt: null, snapped30dAt: null,
+                price: currentPrice,
               },
             });
+            if (Object.keys(updateData).length > 0) {
+              await devPrisma.tickerPerformance.upsert({
+                where: { validatedTickerId: ticker.id },
+                create: {
+                  validatedTickerId: ticker.id,
+                  symbol: ticker.symbol,
+                  detectionPrice,
+                  ...updateData,
+                },
+                update: updateData,
+              });
+            }
           } catch (devErr) {
             console.warn(
-              `[snapshots] Dev DB corporate action write failed for ${ticker.symbol}:`,
+              `[snapshots] Dev DB write failed for ${ticker.symbol}:`,
               devErr instanceof Error ? devErr.message : devErr
             );
           }
         }
-
-        continue;
+      } catch (err) {
+        console.error(
+          `[snapshots] Failed to update ${ticker.symbol}:`,
+          err instanceof Error ? err.message : err
+        );
+        stats.errors++;
       }
-
-      const returns = computeReturnsFromSnapshots(allSnapshots, detectionPrice, detectedAt, now);
-
-      // Update TickerPerformance with computed returns
-      const updateData: Record<string, number | Date | boolean> = {};
-      if (returns.return1d != null) {
-        updateData.price1d = returns.price1d!;
-        updateData.return1d = returns.return1d;
-        updateData.snapped1dAt = returns.snapped1dAt!;
-      }
-      if (returns.return3d != null) {
-        updateData.price3d = returns.price3d!;
-        updateData.return3d = returns.return3d;
-        updateData.snapped3dAt = returns.snapped3dAt!;
-      }
-      if (returns.return7d != null) {
-        updateData.price7d = returns.price7d!;
-        updateData.return7d = returns.return7d;
-        updateData.snapped7dAt = returns.snapped7dAt!;
-      }
-      if (returns.return30d != null) {
-        updateData.price30d = returns.price30d!;
-        updateData.return30d = returns.return30d;
-        updateData.snapped30dAt = returns.snapped30dAt!;
-      }
-
-      if (Object.keys(updateData).length > 0) {
-        await prisma.tickerPerformance.upsert({
-          where: { validatedTickerId: ticker.id },
-          create: {
-            validatedTickerId: ticker.id,
-            symbol: ticker.symbol,
-            detectionPrice,
-            ...updateData,
-          },
-          update: updateData,
-        });
-        stats.returnsUpdated++;
-      }
-
-      // Mirror to dev DB
-      if (devPrisma) {
-        try {
-          await devPrisma.priceSnapshot.create({
-            data: {
-              id: snapshotId,
-              validatedTickerId: ticker.id,
-              symbol: ticker.symbol,
-              price: currentPrice,
-            },
-          });
-          if (Object.keys(updateData).length > 0) {
-            await devPrisma.tickerPerformance.upsert({
-              where: { validatedTickerId: ticker.id },
-              create: {
-                validatedTickerId: ticker.id,
-                symbol: ticker.symbol,
-                detectionPrice,
-                ...updateData,
-              },
-              update: updateData,
-            });
-          }
-        } catch (devErr) {
-          console.warn(
-            `[snapshots] Dev DB write failed for ${ticker.symbol}:`,
-            devErr instanceof Error ? devErr.message : devErr
-          );
-        }
-      }
-    } catch (err) {
-      console.error(
-        `[snapshots] Failed to update ${ticker.symbol}:`,
-        err instanceof Error ? err.message : err
-      );
-      stats.errors++;
     }
   }
 
