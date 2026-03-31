@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { useCheckout, usePortal } from "@/hooks/use-subscription";
-import { trackEvent } from "@/lib/analytics";
+import { trackEvent, trackConversion } from "@/lib/analytics";
 
 const MONTHLY_PRICE = 10;
 const YEARLY_PRICE = 100;
@@ -32,8 +32,8 @@ export default function SubscriptionPage() {
     trackEvent("view_subscription_page");
   }, []);
 
-  function handleSubscribe() {
-    trackEvent("begin_checkout", {
+  async function handleSubscribe() {
+    await trackConversion("begin_checkout", {
       currency: "USD",
       value: period === "monthly" ? MONTHLY_PRICE : YEARLY_PRICE,
       items: [{ item_name: `SignalScope Pro (${period})`, price: period === "monthly" ? MONTHLY_PRICE : YEARLY_PRICE }],

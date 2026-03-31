@@ -9,6 +9,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-04-01",
+    title: "LinkedIn Tracking Reliability Fix",
+    changes: [
+      {
+        category: "fixed",
+        items: [
+          "LinkedIn (and all ad pixel) conversion events now reliably fire on sign-up and checkout — a 300ms flush delay before page navigation ensures pixel requests complete before the browser unloads the page.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-03-30",
     title: "Ticker Detail UX, Yahoo Finance Link & SEO",
     changes: [
