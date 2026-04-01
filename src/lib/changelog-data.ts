@@ -10,11 +10,13 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-04-01",
-    title: "Password Recovery & Tracking Fix",
+    title: "Performance Tweets, Weekly Digest & Password Recovery",
     changes: [
       {
         category: "new",
         items: [
+          "Performance proof tweets — SignalScope now automatically tweets past successful calls with actual returns (\"$XYZ +23% in 7 days\"), building a public track record on X/Twitter.",
+          "Free weekly email digest — every Sunday, all users receive a curated email with the top 3 emerging signals and recent winners. No subscription required.",
           "Forgot your password? A new password recovery flow lets you reset it via email — click \"Forgot password?\" on the login page to get a secure, time-limited reset link.",
         ],
       },
