@@ -16,6 +16,15 @@ interface AlertTicker {
   stage: string;
 }
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 export function buildEmailHtml(tickers: AlertTicker[], totalAvailable?: number): string {
   const confirmed = tickers.filter((t) => t.stage === "CONFIRMED");
   const forming = tickers.filter((t) => t.stage === "FORMING");
@@ -34,15 +43,16 @@ export function buildEmailHtml(tickers: AlertTicker[], totalAvailable?: number):
       .map((t) => {
         const summary = t.aiReasoning || t.catalyst || null;
         const summaryRow = summary
-          ? `<tr><td colspan="3" style="padding:2px 12px 8px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#6b7280;">${truncateSummary(summary)}</td></tr>`
+          ? `<tr><td colspan="3" style="padding:2px 12px 8px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#6b7280;">${escapeHtml(truncateSummary(summary))}</td></tr>`
           : "";
+        const catalystCell = t.catalyst ? escapeHtml(t.catalyst) : "—";
         return `
       <tr>
         <td style="padding:8px 12px;${summary ? "" : "border-bottom:1px solid #e5e7eb;"}">
           <a href="https://signalscopes.com/ticker/${t.symbol}" style="color:#2563eb;font-weight:600;text-decoration:none;">${t.symbol}</a>
         </td>
         <td style="padding:8px 12px;${summary ? "" : "border-bottom:1px solid #e5e7eb;"}">${t.aiScore}/100</td>
-        <td style="padding:8px 12px;${summary ? "" : "border-bottom:1px solid #e5e7eb;"}">${t.catalyst || "—"}</td>
+        <td style="padding:8px 12px;${summary ? "" : "border-bottom:1px solid #e5e7eb;"}">${catalystCell}</td>
       </tr>${summaryRow}`;
       })
       .join("");
@@ -186,7 +196,7 @@ export function buildPortfolioAlertHtml(tickers: PortfolioAlertTicker[]): string
         </td>
         <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${t.aiScore}/100</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">$${t.entryPrice.toFixed(2)}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${t.catalyst || "—"}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${t.catalyst ? escapeHtml(t.catalyst) : "—"}</td>
       </tr>`
       )
       .join("");
