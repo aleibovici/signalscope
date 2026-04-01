@@ -3,7 +3,6 @@ import { getStripe, PRICE_IDS } from "@/lib/stripe";
 import { hasActiveSubscription } from "@/lib/subscription";
 
 export const SHARE_REWARD_TRIAL_DAYS = 30;
-export const SHARE_REWARD_CREDIT_CENTS = 1000; // $10
 
 /* ------------------------------------------------------------------ */
 /*  Tweet intent                                                       */
@@ -114,14 +113,22 @@ async function grantTrialSubscription(userId: string): Promise<void> {
   });
 }
 
-async function grantBalanceCredit(userId: string): Promise<void> {
+async function grantSubscriptionCoupon(userId: string): Promise<void> {
   const customerId = await ensureStripeCustomer(userId);
   const stripe = getStripe();
 
-  await stripe.customers.createBalanceTransaction(customerId, {
-    amount: -SHARE_REWARD_CREDIT_CENTS,
-    currency: "usd",
-    description: "Share reward: 1 month Pro credit",
+  const subscriptions = await stripe.subscriptions.list({
+    customer: customerId,
+    status: "active",
+    limit: 1,
+  });
+
+  if (subscriptions.data.length === 0) {
+    throw new Error("No active Stripe subscription found for coupon reward");
+  }
+
+  await stripe.subscriptions.update(subscriptions.data[0].id, {
+    coupon: "ohIkuVIp", // TestFreeV2: 100% off once (~$10 off at $10/mo)
   });
 }
 
@@ -160,7 +167,7 @@ export async function claimShareReward(
   const rewardType: RewardType = isSubscriber ? "credit" : "trial";
 
   if (rewardType === "credit") {
-    await grantBalanceCredit(userId);
+    await grantSubscriptionCoupon(userId);
   } else {
     await grantTrialSubscription(userId);
   }
