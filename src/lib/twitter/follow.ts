@@ -10,7 +10,7 @@ import {
 /* ------------------------------------------------------------------ */
 
 const FOLLOW_BATCH = 5; // X rate limit: 5 follows per 15-min window
-const UNFOLLOW_BATCH = 3;
+const UNFOLLOW_BATCH = 1;
 const STALE_DAYS = 30;
 const DISCOVER_LOOKBACK_HOURS = 72;
 
@@ -46,6 +46,10 @@ const SEED_ACCOUNTS: { username: string; keep: boolean }[] = [
 /* ------------------------------------------------------------------ */
 
 let cachedMyUserId: string | null = null;
+
+/** Throttle follower-list fetches to at most once every 12 hours (reduces Read API calls from 20/day to 2/day). */
+const FOLLOWER_CHECK_INTERVAL_MS = 12 * 60 * 60 * 1000;
+let lastFollowerCheckAt: number | null = null;
 
 /** GET /2/users/me — returns our authenticated user's numeric ID. */
 async function getMyUserId(
@@ -441,6 +445,13 @@ async function processUnfollows(
 
 /** Check which of our followed accounts have followed us back. */
 async function updateFollowBacks(myId: string): Promise<number> {
+  const now = Date.now();
+  if (lastFollowerCheckAt !== null && now - lastFollowerCheckAt < FOLLOWER_CHECK_INTERVAL_MS) {
+    console.log(`[twitter/follow] Skipping follower check (last ran ${Math.round((now - lastFollowerCheckAt) / 60_000)} min ago, interval: 12h)`);
+    return 0;
+  }
+  lastFollowerCheckAt = now;
+
   const followerIds = await fetchMyFollowerIds(myId);
   if (followerIds.size === 0) return 0;
 
