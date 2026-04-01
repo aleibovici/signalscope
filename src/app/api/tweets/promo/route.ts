@@ -7,11 +7,25 @@ import { generateAndPostPromoTweet, type PromoStats } from "@/lib/twitter/promo"
  * POST /api/tweets/promo
  *
  * Generates and posts a single promotional tweet about a SignalScope feature.
- * Called 3x/day by Cloud Scheduler with different slot values (0, 1, 2).
- *
- * Body: { "slot": 0 | 1 | 2 }  (optional — defaults to 0)
+ * Called 3x/day by a single Cloud Scheduler job (0 10,14,18 * * * ET).
+ * Slot is derived from the current ET hour: 10→0, 14→1, 18→2.
+ * Body `{ "slot": 0 | 1 | 2 }` still accepted for manual overrides.
  * Auth: x-snapshot-key header.
  */
+
+/** Map ET hour → slot index. Falls back to 0 for unrecognised hours. */
+function slotFromEtHour(): number {
+  const etHour = new Date().toLocaleString("en-US", {
+    timeZone: "America/New_York",
+    hour: "numeric",
+    hour12: false,
+  });
+  const hour = parseInt(etHour, 10);
+  if (hour === 14) return 1;
+  if (hour === 18) return 2;
+  return 0; // 10 AM and fallback
+}
+
 export async function POST(req: NextRequest) {
   try {
     const snapshotKey = req.headers.get("x-snapshot-key");
@@ -24,15 +38,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Parse slot from body (default 0)
-    let slot = 0;
+    // Use slot from body if explicitly provided, otherwise derive from ET hour
+    let slot = slotFromEtHour();
     try {
       const body = await req.json();
       if (typeof body.slot === "number" && [0, 1, 2].includes(body.slot)) {
         slot = body.slot;
       }
     } catch {
-      // No body or invalid JSON — use default slot 0
+      // No body or invalid JSON — use hour-derived slot
     }
 
     // Fetch platform stats + latest scan details + trending cashtags
