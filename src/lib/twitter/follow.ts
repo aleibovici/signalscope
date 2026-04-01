@@ -9,7 +9,7 @@ import {
 /*  Config                                                             */
 /* ------------------------------------------------------------------ */
 
-const FOLLOW_BATCH = 5; // X rate limit: 5 follows per 15-min window
+const FOLLOW_BATCH = 5; // X rate limit: 5 follows per 15-min window; 10 runs/day → ~50 follows/day
 const UNFOLLOW_BATCH = 1;
 const STALE_DAYS = 30;
 const DISCOVER_LOOKBACK_HOURS = 72;
