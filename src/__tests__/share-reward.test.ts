@@ -287,7 +287,7 @@ describe("claimShareReward", () => {
       limit: 1,
     });
     expect(mockStripeSubscriptionsUpdate).toHaveBeenCalledWith("sub_pro", {
-      coupon: "ohIkuVIp",
+      discounts: [{ coupon: "ohIkuVIp" }],
     });
     expect(mockStripeSubscriptionsCreate).not.toHaveBeenCalled();
   });

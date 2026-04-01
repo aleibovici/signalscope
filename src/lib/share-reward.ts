@@ -128,7 +128,7 @@ async function grantSubscriptionCoupon(userId: string): Promise<void> {
   }
 
   await stripe.subscriptions.update(subscriptions.data[0].id, {
-    coupon: "ohIkuVIp", // TestFreeV2: 100% off once (~$10 off at $10/mo)
+    discounts: [{ coupon: "ohIkuVIp" }], // TestFreeV2: 100% off once (~$10 off at $10/mo)
   });
 }
 
