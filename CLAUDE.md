@@ -82,6 +82,15 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 - Requires `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_TOKEN_SECRET` env vars; silently skipped if absent
 - Uses Node.js built-in `crypto` for OAuth 1.0a HMAC-SHA1 signing (no extra dependencies)
 
+### Twitter/X Performance Tweets (`src/lib/twitter/performance.ts`)
+
+Proof-based tweets showing past successful calls with actual returns. Builds trust by showing "We flagged $XYZ 7 days ago — up 23%".
+
+- `performance.ts` — `findTopPerformers()` queries TickerPerformance for tickers exceeding return thresholds (5% 1d, 8% 3d, 10% 7d, 15% 30d); `composePerformanceTweet()` formats individual ticker proof tweet; `composePerformanceSummary()` formats multi-ticker summary; `tweetPerformanceBatch()` posts summary + detail thread
+- Endpoint: `POST /api/tweets/performance` (x-snapshot-key auth, Cloud Scheduler)
+- Skips tickers with `corporateActionDetected = true`
+- Deduplicates by symbol (picks highest return)
+
 ### Twitter/X Auto-Follow (`src/lib/twitter/follow.ts`)
 
 Automated follow/unfollow growth strategy. Discovers relevant accounts from harvest signals and a curated seed list, follows ~30/day, unfollows stale accounts after 30 days.
@@ -102,6 +111,8 @@ Automated follow/unfollow growth strategy. Discovers relevant accounts from harv
 - `index.ts` — `sendTickerAlerts()` sends a digest of CONFIRMED tickers via Resend. Requires `RESEND_API_KEY` env var; silently skipped if absent. Only sends to users with active subscriptions.
 - Triggered by `POST /api/alerts/send` (authenticated via `x-snapshot-key` header, same as snapshots)
 - Users can opt out via `User.emailAlerts = false` (set in profile); email alerts require Pro subscription
+- `weekly-digest.ts` — `sendWeeklyDigest()` sends a free weekly email to ALL users with `emailAlerts=true` (not just subscribers). Shows top 3 tickers + recent winners with performance data. Free users get an upgrade CTA, subscribers get a dashboard link.
+- Triggered by `POST /api/alerts/weekly-digest` (x-snapshot-key auth, Cloud Scheduler, Sundays 10 AM ET)
 
 ### Utility Libs
 
@@ -156,7 +167,9 @@ Automated follow/unfollow growth strategy. Discovers relevant accounts from harv
 | `/api/reports/generate` | POST | Batch pre-generate AI reports for top 10 emerging tickers (x-snapshot-key auth) |
 | `/api/snapshots/collect` | POST | Collect price snapshots for validated tickers (x-snapshot-key auth) |
 | `/api/tweets/post` | POST | Tweet top emerging tickers with reports (x-snapshot-key auth) |
+| `/api/tweets/performance` | POST | Tweet performance proof thread — top performers with actual returns (x-snapshot-key auth) |
 | `/api/twitter/follow` | POST | Automated follow/unfollow job — discovers, follows 5, unfollows 3 stale (x-snapshot-key auth) |
+| `/api/alerts/weekly-digest` | POST | Free weekly email digest to all users — top 3 tickers + recent winners (x-snapshot-key auth) |
 | `/api/stripe/checkout` | POST | Create Stripe Checkout session for subscription (authenticated) |
 | `/api/stripe/portal` | POST | Create Stripe Customer Portal session (authenticated) |
 | `/api/stripe/webhook` | POST | Stripe webhook handler (public, signature-verified) |
@@ -294,7 +307,7 @@ BING_SITE_VERIFICATION=...
 
 - **Cloud Run** — web app (`signalscope-web`) serving Next.js standalone on port 3000
 - **Cloud SQL** — PostgreSQL 16 (`signalscope-db`, db-f1-micro), connected via Unix socket
-- **Cloud Scheduler** — 6 weekday jobs (ET, Mon–Fri): email alerts (9:10 AM), portfolio alerts (9:12 AM), reports (9:15 AM), snapshots open (9:45 AM), snapshots midday (12:30 PM), snapshots close (4:05 PM); 1 daily follow job (every 30 min 9AM–6:30PM ET, 20 runs/day → ~100 follows/day); 3 daily promo tweet jobs
+- **Cloud Scheduler** — 6 weekday jobs (ET, Mon–Fri): email alerts (9:10 AM), portfolio alerts (9:12 AM), reports (9:15 AM), snapshots open (9:45 AM), snapshots midday (12:30 PM), snapshots close (4:05 PM); 1 daily follow job (every 30 min 9AM–6:30PM ET, 20 runs/day → ~100 follows/day); 3 daily promo tweet jobs; 1 daily performance tweet (10 AM ET Mon–Fri); 1 weekly digest email (Sundays 10 AM ET)
 - **Secret Manager** — stores `DATABASE_URL`, `AUTH_SECRET`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `SNAPSHOT_API_KEY`, `RESEND_API_KEY`
 - **Artifact Registry** — Docker images (`signalscope` repo)
 - **GitHub Actions** — CI/CD on push to `main` (`.github/workflows/deploy.yml`)
@@ -386,6 +399,28 @@ gcloud scheduler jobs create http signalscope-follow \
   --headers="x-snapshot-key=<SNAPSHOT_API_KEY_VALUE>" \
   --attempt-deadline=120s \
   --description="Twitter auto-follow batch (every 30 min 9AM–6:30PM ET, 20 runs/day → ~100 follows)"
+
+# Performance proof tweets: daily Mon-Fri 10 AM ET (after reports + ticker tweets)
+gcloud scheduler jobs create http signalscope-performance-tweet \
+  --location=us-central1 \
+  --schedule="0 10 * * 1-5" \
+  --time-zone="America/New_York" \
+  --uri="https://signalscopes.com/api/tweets/performance" \
+  --http-method=POST \
+  --headers="x-snapshot-key=<SNAPSHOT_API_KEY_VALUE>" \
+  --attempt-deadline=120s \
+  --description="Tweet performance proof thread — top performers with actual returns (10 AM ET Mon-Fri)"
+
+# Free weekly digest email: Sundays 10 AM ET
+gcloud scheduler jobs create http signalscope-weekly-digest \
+  --location=us-central1 \
+  --schedule="0 10 * * 0" \
+  --time-zone="America/New_York" \
+  --uri="https://signalscopes.com/api/alerts/weekly-digest" \
+  --http-method=POST \
+  --headers="x-snapshot-key=<SNAPSHOT_API_KEY_VALUE>" \
+  --attempt-deadline=300s \
+  --description="Free weekly email digest to all users — top 3 tickers + recent winners (Sundays 10 AM ET)"
 ```
 
 ### Source Status
@@ -462,6 +497,8 @@ gh workflow run "Deploy to Cloud Run" --ref main
 | `related-endpoint.test.ts` | `GET /api/tickers/[symbol]/related` — empty results, co-occurrence counts, Jaccard computation, stage filtering, pagination, auth (401), validation (400) |
 | `network-endpoint.test.ts` | `GET /api/tickers/network` — node/edge structure, symbol-centered vs trending-based, minWeight filtering, maxNodes cap, auth (401) |
 | `tweet-compose.test.ts` | `composeTweet` — empty input, header/footer, ticker formatting, emoji per recommendation, 280-char limit, truncation, ordering |
+| `performance-tweet.test.ts` | `composePerformanceTweet` — 280-char limit, return formatting, price formatting, scores, hashtags, penny stocks, null catalyst; `composePerformanceSummary` — multi-ticker formatting, truncation, hashtags |
+| `weekly-digest.test.ts` | `buildWeeklyDigestHtml` — valid HTML, ticker links/scores/catalyst, stage labels, upgrade CTA for free users, dashboard link for subscribers, performers section, unsubscribe link, source mentions, positive/negative return colors |
 
 Key gotchas:
 - `BUY` is NOT in BLACKLIST (but `SELL`, `HOLD` are)
