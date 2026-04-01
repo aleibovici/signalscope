@@ -49,9 +49,24 @@ export default function RegisterPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
       <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
         <h1 className="mb-1 text-2xl font-bold text-gray-900">Create account</h1>
-        <p className="mb-6 text-sm text-gray-500">
-          Get started with SignalScope
+        <p className="mb-4 text-sm text-gray-500">
+          Free — no credit card required.
         </p>
+        <div className="mb-6 grid grid-cols-2 gap-x-3 gap-y-2 text-xs text-gray-600">
+          {[
+            ["Watchlist", "Save and track tickers"],
+            ["Portfolio", "Log and measure picks"],
+            ["Dashboard", "Trending, connections, history"],
+            ["Weekly digest", "Top signals every Sunday"],
+          ].map(([label, desc]) => (
+            <div key={label} className="flex items-start gap-1.5">
+              <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+              </svg>
+              <span><span className="font-medium text-gray-800">{label}</span> — {desc}</span>
+            </div>
+          ))}
+        </div>
 
         {error && (
           <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">

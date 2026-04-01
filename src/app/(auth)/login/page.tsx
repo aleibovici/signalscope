@@ -145,6 +145,19 @@ export default function LoginPage() {
                 Create account
               </Link>
             </div>
+            <div className="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1.5 text-xs text-blue-300/80 lg:justify-start">
+              {["Watchlist", "Portfolio tracking", "Full dashboard", "Weekly digest"].map((b) => (
+                <span key={b} className="inline-flex items-center gap-1">
+                  <svg className="h-3 w-3 text-blue-400/70" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                  </svg>
+                  {b}
+                </span>
+              ))}
+            </div>
+            <p className="mt-1.5 text-xs text-blue-300/50 text-center lg:text-left">
+              Free — no credit card required.
+            </p>
 
             {/* Quick stats */}
             <div className="mt-6 flex justify-center gap-6 sm:gap-8 md:mt-8 lg:justify-start">
@@ -576,9 +589,19 @@ export default function LoginPage() {
           <h2 className="mb-3 text-xl font-bold text-white sm:text-2xl md:text-3xl">
             Ready to find the next breakout?
           </h2>
-          <p className="mb-5 text-sm text-blue-200 md:text-base">
+          <p className="mb-4 text-sm text-blue-200 md:text-base">
             Free to use. No credit card required.
           </p>
+          <div className="mb-5 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-blue-300/80 md:text-sm">
+            {["Watchlist", "Portfolio tracking", "Full dashboard", "Weekly signal digest"].map((b) => (
+              <span key={b} className="inline-flex items-center gap-1">
+                <svg className="h-3 w-3 text-blue-400/70 md:h-3.5 md:w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                </svg>
+                {b}
+              </span>
+            ))}
+          </div>
           <Link
             href="/dashboard"
             className="inline-block rounded-lg bg-white px-8 py-3 text-sm font-semibold text-blue-700 shadow-md hover:bg-blue-50 transition-colors touch-manipulation sm:text-base"
