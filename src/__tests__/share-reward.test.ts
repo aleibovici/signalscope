@@ -29,17 +29,18 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 const mockStripeCustomersCreate = vi.fn();
-const mockStripeCustomersCreateBalanceTransaction = vi.fn();
 const mockStripeSubscriptionsCreate = vi.fn();
+const mockStripeSubscriptionsList = vi.fn();
+const mockStripeSubscriptionsUpdate = vi.fn();
 vi.mock("@/lib/stripe", () => ({
   getStripe: () => ({
     customers: {
       create: (...args: unknown[]) => mockStripeCustomersCreate(...args),
-      createBalanceTransaction: (...args: unknown[]) =>
-        mockStripeCustomersCreateBalanceTransaction(...args),
     },
     subscriptions: {
       create: (...args: unknown[]) => mockStripeSubscriptionsCreate(...args),
+      list: (...args: unknown[]) => mockStripeSubscriptionsList(...args),
+      update: (...args: unknown[]) => mockStripeSubscriptionsUpdate(...args),
     },
   }),
   PRICE_IDS: { monthly: "price_monthly", yearly: "price_yearly" },
@@ -267,22 +268,26 @@ describe("claimShareReward", () => {
     );
   });
 
-  it("returns rewardType=credit for Pro user and applies balance transaction", async () => {
+  it("returns rewardType=credit for Pro user and applies coupon to subscription", async () => {
     mockUserFindUniqueOrThrow
       .mockResolvedValueOnce({ shareRewardClaimedAt: null })
       .mockResolvedValueOnce({ email: "pro@example.com", stripeCustomerId: "cus_pro" });
     mockVerifiedTweet();
     mockHasActiveSubscription.mockResolvedValue(true);
-    mockStripeCustomersCreateBalanceTransaction.mockResolvedValue({});
+    mockStripeSubscriptionsList.mockResolvedValue({ data: [{ id: "sub_pro" }] });
+    mockStripeSubscriptionsUpdate.mockResolvedValue({});
     mockUserUpdate.mockResolvedValue({});
 
     const result = await claimShareReward("user_pro", validTweetUrl);
 
     expect(result.rewardType).toBe("credit");
-    expect(mockStripeCustomersCreateBalanceTransaction).toHaveBeenCalledWith("cus_pro", {
-      amount: -1000,
-      currency: "usd",
-      description: expect.stringContaining("credit"),
+    expect(mockStripeSubscriptionsList).toHaveBeenCalledWith({
+      customer: "cus_pro",
+      status: "active",
+      limit: 1,
+    });
+    expect(mockStripeSubscriptionsUpdate).toHaveBeenCalledWith("sub_pro", {
+      coupon: "ohIkuVIp",
     });
     expect(mockStripeSubscriptionsCreate).not.toHaveBeenCalled();
   });
@@ -439,7 +444,8 @@ describe("POST /api/user/share-reward", () => {
       json: async () => ({ data: { text: "I love SignalScope" } }),
     });
     mockHasActiveSubscription.mockResolvedValue(true);
-    mockStripeCustomersCreateBalanceTransaction.mockResolvedValue({});
+    mockStripeSubscriptionsList.mockResolvedValue({ data: [{ id: "sub_pro" }] });
+    mockStripeSubscriptionsUpdate.mockResolvedValue({});
     mockUserUpdate.mockResolvedValue({});
 
     const res = await POST(makeRequest({ tweetUrl: "https://x.com/user/status/123" }));
