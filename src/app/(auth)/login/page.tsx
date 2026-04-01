@@ -583,6 +583,24 @@ export default function LoginPage() {
         </div>
       </section>
 
+      {/* -- Share & Earn ------------------------------------------ */}
+      <section className="bg-gray-50 py-10 md:py-14">
+        <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
+          <h2 className="mb-2 text-xl font-bold text-gray-900 sm:text-2xl">
+            Tweet about us, get 1 month of Pro free
+          </h2>
+          <p className="mb-5 text-sm text-gray-600 md:text-base">
+            Sign up, share a tweet about SignalScope, and unlock Pro features instantly — AI reports, API access, and email alerts. No credit card required.
+          </p>
+          <Link
+            href="/register"
+            className="inline-block rounded-lg bg-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-md hover:bg-blue-700 transition-colors touch-manipulation sm:text-base"
+          >
+            Create account
+          </Link>
+        </div>
+      </section>
+
       {/* -- CTA Banner -------------------------------------------- */}
       <section className="bg-gradient-to-r from-blue-900 to-blue-700 py-10 md:py-16">
         <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">

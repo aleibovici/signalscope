@@ -14,10 +14,11 @@ model User {
   name         String?
   passwordHash String?
   role         String          @default("user")
-  emailAlerts  Boolean         @default(true)
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  lastActiveAt DateTime?
+  emailAlerts          Boolean         @default(true)
+  shareRewardClaimedAt DateTime?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  lastActiveAt         DateTime?
   stripeCustomerId String?        @unique
   positions      UserPosition[]
   watchlist      UserWatchlist[]

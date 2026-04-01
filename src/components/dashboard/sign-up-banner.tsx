@@ -43,6 +43,9 @@ export function SignUpBanner() {
         </li>
       </ul>
       <p className="mt-2.5 text-xs text-blue-800/85 dark:text-blue-200/80 sm:text-sm">
+        <span className="font-semibold text-blue-800 dark:text-blue-200">Plus:</span> tweet about us after signing up and get 1 month of Pro free.
+      </p>
+      <p className="mt-1.5 text-xs text-blue-800/85 dark:text-blue-200/80 sm:text-sm">
         <span className="font-semibold text-blue-800 dark:text-blue-200">Pro</span> (paid) unlocks{" "}
         <Link
           href="/subscription"
