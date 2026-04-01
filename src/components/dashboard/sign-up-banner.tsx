@@ -35,6 +35,12 @@ export function SignUpBanner() {
             Trending names, co-occurrence network, ticker history, and methodology — tied to your account.
           </span>
         </li>
+        <li className="flex gap-2">
+          <span className="shrink-0 font-semibold text-blue-600 dark:text-blue-400">Weekly digest</span>
+          <span className="text-blue-800/90 dark:text-blue-200/85">
+            Free weekly email with the top signals and recent winners — delivered every Sunday.
+          </span>
+        </li>
       </ul>
       <p className="mt-2.5 text-xs text-blue-800/85 dark:text-blue-200/80 sm:text-sm">
         <span className="font-semibold text-blue-800 dark:text-blue-200">Pro</span> (paid) unlocks{" "}
