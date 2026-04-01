@@ -41,14 +41,26 @@ const MIN_RETURN: Record<string, number> = {
   "30d": 0.15,  // 15% in 30 days
 };
 
+/** Returns above 100% are almost always corporate actions (reverse splits) or data errors */
+const MAX_RETURN = 1.0;
+
+/** Don't re-tweet the same ticker within this cooldown window */
+const COOLDOWN_DAYS = 7;
+
 export async function findTopPerformers(maxResults = 5): Promise<PerformanceHit[]> {
   // Look at performance records from the last 35 days with actual return data
   const cutoff = new Date(Date.now() - 35 * 24 * 60 * 60 * 1000);
+  const cooldownCutoff = new Date(Date.now() - COOLDOWN_DAYS * 24 * 60 * 60 * 1000);
 
   const rows = await prisma.tickerPerformance.findMany({
     where: {
       createdAt: { gte: cutoff },
       corporateActionDetected: false,
+      // Skip tickers already tweeted in the cooldown window
+      OR: [
+        { performanceTweetedAt: null },
+        { performanceTweetedAt: { lt: cooldownCutoff } },
+      ],
       validatedTicker: {
         recommendation: { in: ["Strong Buy", "Buy", "Watch"] },
         pndFlagged: false,
@@ -81,16 +93,16 @@ export async function findTopPerformers(maxResults = 5): Promise<PerformanceHit[
     const t = row.validatedTicker;
     const candidates: { period: "1d" | "3d" | "7d" | "30d"; ret: number }[] = [];
 
-    if (row.return30d !== null && row.return30d >= MIN_RETURN["30d"]) {
+    if (row.return30d !== null && row.return30d >= MIN_RETURN["30d"] && row.return30d <= MAX_RETURN) {
       candidates.push({ period: "30d", ret: row.return30d });
     }
-    if (row.return7d !== null && row.return7d >= MIN_RETURN["7d"]) {
+    if (row.return7d !== null && row.return7d >= MIN_RETURN["7d"] && row.return7d <= MAX_RETURN) {
       candidates.push({ period: "7d", ret: row.return7d });
     }
-    if (row.return3d !== null && row.return3d >= MIN_RETURN["3d"]) {
+    if (row.return3d !== null && row.return3d >= MIN_RETURN["3d"] && row.return3d <= MAX_RETURN) {
       candidates.push({ period: "3d", ret: row.return3d });
     }
-    if (row.return1d !== null && row.return1d >= MIN_RETURN["1d"]) {
+    if (row.return1d !== null && row.return1d >= MIN_RETURN["1d"] && row.return1d <= MAX_RETURN) {
       candidates.push({ period: "1d", ret: row.return1d });
     }
 
@@ -296,6 +308,17 @@ export async function tweetPerformanceBatch(): Promise<PerformanceTweetResult> {
         previousId = result.tweetId;
       }
     }
+  }
+
+  // Mark all tweeted tickers so they don't repeat within the cooldown window
+  if (summaryResult.success) {
+    const now = new Date();
+    const symbols = hits.map((h) => h.symbol);
+    await prisma.tickerPerformance.updateMany({
+      where: { symbol: { in: symbols } },
+      data: { performanceTweetedAt: now },
+    });
+    console.log(`[twitter/performance] Marked ${symbols.length} tickers as tweeted: ${symbols.join(", ")}`);
   }
 
   return { summary: summaryResult, details, hits };
