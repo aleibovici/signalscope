@@ -8,6 +8,8 @@ import { NextScanCountdown } from "@/components/dashboard/next-scan-countdown";
 import { StatsWidget } from "@/components/dashboard/stats-widget";
 import { ThemeToggle } from "@/components/dashboard/theme-toggle";
 import { TickerSearch } from "@/components/dashboard/ticker-search";
+import { useShareReward } from "@/hooks/use-share-reward";
+import { ShareRewardBadge } from "@/components/dashboard/share-reward-badge";
 const NavIcons = {
   Signals: (
     <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
@@ -80,6 +82,7 @@ const authNavItems = [
 export function Sidebar({ revision }: { revision: string }) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const { data: shareReward } = useShareReward(!!session?.user);
   const [open, setOpen] = useState(false);
 
   // Close sidebar on route change (mobile)
@@ -222,6 +225,12 @@ export function Sidebar({ revision }: { revision: string }) {
               </Link>
             )}
           </nav>
+
+          {(!session?.user || !shareReward?.claimed) && (
+            <div className="border-t border-gray-200 px-4 py-3 dark:border-zinc-800">
+              <ShareRewardBadge guest={!session?.user} hasPro={shareReward?.hasActiveSubscription ?? false} />
+            </div>
+          )}
 
           <div className="border-t border-gray-200 px-4 py-3 dark:border-zinc-800">
             <StatsWidget revision={revision} />

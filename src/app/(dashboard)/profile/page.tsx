@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useUserProfile, useUpdateUsername, useUpdateEmailAlerts } from "@/hooks/use-user-profile";
 import { useApiKey, useGenerateApiKey, useRevokeApiKey } from "@/hooks/use-api-key";
+import { useShareReward, useClaimShareReward } from "@/hooks/use-share-reward";
+import { trackEvent } from "@/lib/analytics";
 
 export default function ProfilePage() {
   const { data: profile, isLoading } = useUserProfile();
@@ -137,7 +139,113 @@ export default function ProfilePage() {
           </>
         )}
       </div>
+      <ShareRewardSection />
       <ApiKeySection hasSubscription={profile?.subscription?.isActive ?? false} />
+    </div>
+  );
+}
+
+function ShareRewardSection() {
+  const { data, isLoading } = useShareReward();
+  const claim = useClaimShareReward();
+  const [tweetUrl, setTweetUrl] = useState("");
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  if (isLoading) return null;
+
+  return (
+    <div id="share-reward" className="mt-6 scroll-mt-20 rounded-xl border border-blue-200 bg-blue-50 p-6 dark:border-blue-900/50 dark:bg-blue-950/30">
+      <h2 className="mb-1 text-base font-semibold text-gray-800 dark:text-zinc-100">Share & Earn</h2>
+
+      {data?.claimed ? (
+        <div className="flex items-start gap-2 mt-2">
+          <span className="mt-0.5 text-green-600 dark:text-green-400">&#10003;</span>
+          <div>
+            <p className="text-sm font-medium text-gray-800 dark:text-zinc-200">
+              Reward claimed!
+            </p>
+            <p className="text-xs text-gray-500 dark:text-zinc-400">
+              {data.claimedAt && `Claimed ${new Date(data.claimedAt).toLocaleDateString()}`}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <p className="mb-4 text-sm text-gray-600 dark:text-zinc-400">
+            Tweet about SignalScope and get <span className="font-semibold text-gray-800 dark:text-zinc-200">1 month of Pro free</span>.
+            {data?.hasActiveSubscription
+              ? " A $10 credit will be applied to your next invoice."
+              : " You'll instantly unlock AI reports, API access, and email alerts."}
+          </p>
+
+          <div className="space-y-3">
+            <a
+              href={data?.tweetIntentUrl ?? undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => {
+                if (!data?.tweetIntentUrl) { e.preventDefault(); return; }
+                trackEvent("share_reward_compose");
+              }}
+              className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 dark:bg-zinc-100 dark:text-gray-900 dark:hover:bg-zinc-200"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+              </svg>
+              Compose Tweet
+            </a>
+
+            <div>
+              <label htmlFor="tweet-url" className="mb-1 block text-xs font-medium text-gray-600 dark:text-zinc-400">
+                After tweeting, paste the link here
+              </label>
+              <div className="flex gap-2">
+                <input
+                  id="tweet-url"
+                  type="url"
+                  value={tweetUrl}
+                  onChange={(e) => {
+                    setTweetUrl(e.target.value);
+                    setSuccessMsg(null);
+                    claim.reset();
+                  }}
+                  placeholder="https://x.com/you/status/..."
+                  className="min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder-zinc-500 dark:focus:border-blue-400 dark:focus:ring-blue-400"
+                />
+                <button
+                  type="button"
+                  disabled={claim.isPending || !tweetUrl.trim()}
+                  onClick={() => {
+                    claim.mutate(tweetUrl.trim(), {
+                      onSuccess: (result) => {
+                        setSuccessMsg(
+                          result.rewardType === "trial"
+                            ? "Pro trial activated! You now have full access for 30 days."
+                            : "$10 credit applied to your next invoice!"
+                        );
+                        setTweetUrl("");
+                      },
+                    });
+                  }}
+                  className="shrink-0 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-600"
+                >
+                  {claim.isPending ? "Verifying..." : "Claim Reward"}
+                </button>
+              </div>
+            </div>
+
+            {claim.isError && (
+              <p className="text-sm text-red-600 dark:text-red-400">
+                {claim.error instanceof Error ? claim.error.message : "Something went wrong"}
+              </p>
+            )}
+
+            {successMsg && (
+              <p className="text-sm font-medium text-green-600 dark:text-green-400">{successMsg}</p>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

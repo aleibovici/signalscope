@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { useCheckout, usePortal } from "@/hooks/use-subscription";
+import { useShareReward } from "@/hooks/use-share-reward";
+import { ShareRewardBadge } from "@/components/dashboard/share-reward-badge";
 import { trackEvent, trackConversion } from "@/lib/analytics";
 
 const MONTHLY_PRICE = 10;
@@ -20,6 +23,7 @@ export default function SubscriptionPage() {
   const { data: profile, isLoading } = useUserProfile();
   const checkout = useCheckout();
   const portal = usePortal();
+  const { data: shareReward } = useShareReward();
   const searchParams = useSearchParams();
   const success = searchParams.get("success") === "1";
 
@@ -182,6 +186,12 @@ export default function SubscriptionPage() {
           <p className="mt-4 text-center text-xs text-gray-400 dark:text-zinc-500">
             Secure checkout via Stripe. Cancel anytime.
           </p>
+        </div>
+      )}
+
+      {!shareReward?.claimed && (
+        <div className="mt-6">
+          <ShareRewardBadge hasPro={isActive} />
         </div>
       )}
     </div>
