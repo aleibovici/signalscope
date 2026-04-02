@@ -74,11 +74,11 @@ function SummaryCards({
     <div className="grid gap-4 sm:grid-cols-4">
       <Card>
         <CardContent className="pt-6 text-center">
-          <p className="text-sm text-gray-500 dark:text-zinc-400">High-Score Picks<InfoTip text="Unique tickers that scored 70+ on AI signal confidence across all scans." /></p>
+          <p className="text-sm text-gray-500 dark:text-zinc-400">High-Score Picks<InfoTip text="Unique tickers that scored 70+ on AI signal confidence with return data for the selected period." /></p>
           <p className="text-3xl font-bold text-gray-900 dark:text-zinc-100">
             {summary.totalTracked}
           </p>
-          <p className="mt-1 text-xs text-gray-400 dark:text-zinc-500">all time, deduplicated</p>
+          <p className="mt-1 text-xs text-gray-400 dark:text-zinc-500">with {days}d return data</p>
         </CardContent>
       </Card>
 
