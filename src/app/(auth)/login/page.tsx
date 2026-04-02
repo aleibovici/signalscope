@@ -641,6 +641,7 @@ export default function LoginPage() {
               <Link href="/faq" className="hover:text-gray-300 transition-colors touch-manipulation">FAQ</Link>
               <Link href="/how-it-works" className="hover:text-gray-300 transition-colors touch-manipulation">Methodology</Link>
               <Link href="/changelog" className="hover:text-gray-300 transition-colors touch-manipulation">Changelog</Link>
+              <Link href="/privacy" className="hover:text-gray-300 transition-colors touch-manipulation">Privacy</Link>
               <a href="/skill/SKILL.md" target="_blank" className="hover:text-gray-300 transition-colors touch-manipulation">API Docs</a>
               <a href="https://x402.org" target="_blank" rel="noopener noreferrer" className="hover:text-gray-300 transition-colors touch-manipulation">x402 Protocol</a>
               <a href="https://x.com/signalscopes" target="_blank" rel="noopener noreferrer" className="hover:text-gray-300 transition-colors touch-manipulation">𝕏 @signalscopes</a>
