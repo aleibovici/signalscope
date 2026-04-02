@@ -68,10 +68,10 @@ const NavIcons = {
 };
 
 const publicNavItems = [
-  { href: "/dashboard", label: "Signals", icon: NavIcons.Signals },
-  { href: "/trending", label: "Trending", icon: NavIcons.Trending },
-  { href: "/connections", label: "Connections", icon: NavIcons.Connections },
-  { href: "/performance", label: "Performance", icon: NavIcons.Performance },
+  { href: "/dashboard", label: "Signals", icon: NavIcons.Signals, tourId: "tour-signals" },
+  { href: "/trending", label: "Trending", icon: NavIcons.Trending, tourId: "tour-trending" },
+  { href: "/connections", label: "Connections", icon: NavIcons.Connections, tourId: "tour-connections" },
+  { href: "/performance", label: "Performance", icon: NavIcons.Performance, tourId: "tour-performance" },
 ];
 const authNavItems = [
   { href: "/portfolio", label: "Portfolio", icon: NavIcons.Portfolio },
@@ -112,6 +112,19 @@ export function Sidebar({ revision }: { revision: string }) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
+  // Tour control: open/close sidebar from the tour component on mobile
+  const [tourActive, setTourActive] = useState(false);
+  useEffect(() => {
+    const onOpen = () => { setOpen(true); setTourActive(true); };
+    const onClose = () => { setOpen(false); setTourActive(false); };
+    window.addEventListener("tour:open-sidebar", onOpen);
+    window.addEventListener("tour:close-sidebar", onClose);
+    return () => {
+      window.removeEventListener("tour:open-sidebar", onOpen);
+      window.removeEventListener("tour:close-sidebar", onClose);
+    };
+  }, []);
+
   return (
     <>
       {/* Mobile header bar */}
@@ -136,8 +149,8 @@ export function Sidebar({ revision }: { revision: string }) {
         <ThemeToggle />
       </div>
 
-      {/* Backdrop overlay (mobile only) */}
-      {open && (
+      {/* Backdrop overlay (mobile only) — suppressed when tour is controlling the sidebar */}
+      {open && !tourActive && (
         <div
           className="fixed inset-0 z-40 bg-black/50 md:hidden"
           onPointerDown={() => setOpen(false)}
@@ -183,6 +196,7 @@ export function Sidebar({ revision }: { revision: string }) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  id={item.tourId}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                     isActive
                       ? "bg-blue-50 text-blue-700 border-l-2 border-blue-500 pl-[10px] dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-400"

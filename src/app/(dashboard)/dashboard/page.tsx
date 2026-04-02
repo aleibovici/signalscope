@@ -194,13 +194,14 @@ function DashboardContent() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((ticker: ValidatedTickerData) => (
-            <SignalCard
-              key={ticker.id}
-              ticker={ticker}
-              isBookmarked={bookmarkedSymbols.has(ticker.symbol)}
-              onToggle={session?.user ? (symbol, isCurrent) => toggleWatchlist({ symbol, isBookmarked: isCurrent }) : undefined}
-            />
+          {filtered.map((ticker: ValidatedTickerData, i) => (
+            <div key={ticker.id} id={i === 0 ? "tour-ticker-card" : undefined}>
+              <SignalCard
+                ticker={ticker}
+                isBookmarked={bookmarkedSymbols.has(ticker.symbol)}
+                onToggle={session?.user ? (symbol, isCurrent) => toggleWatchlist({ symbol, isBookmarked: isCurrent }) : undefined}
+              />
+            </div>
           ))}
         </div>
       )}

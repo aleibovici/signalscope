@@ -1,5 +1,6 @@
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { GuestBannerWrapper } from "@/components/dashboard/guest-banner-wrapper";
+import { Tour } from "@/components/dashboard/tour";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ export default function DashboardLayout({
           {children}
         </div>
       </main>
+      <Tour />
     </div>
   );
 }
