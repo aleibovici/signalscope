@@ -342,7 +342,7 @@ export default function PortfolioPage() {
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center">
           <form
             onSubmit={handleConfirmClose}
-            className="w-full max-w-sm rounded-t-lg bg-white p-6 shadow-xl dark:bg-zinc-900 sm:rounded-lg"
+            className="w-full max-w-sm rounded-t-lg border border-gray-200 bg-white p-6 shadow-xl dark:border-zinc-600/40 dark:bg-zinc-900/95 dark:ring-1 dark:ring-white/5 sm:rounded-lg"
           >
             <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100">
               Close {closingPos.symbol}
@@ -385,7 +385,7 @@ export default function PortfolioPage() {
               <button
                 type="submit"
                 disabled={updatePosition.isPending}
-                className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                className="rounded-lg bg-linear-to-br from-sky-500 to-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:from-sky-400 hover:to-blue-500 disabled:opacity-50 dark:shadow-sky-950/30"
               >
                 Close Position
               </button>
@@ -396,7 +396,7 @@ export default function PortfolioPage() {
 
       {deletingPosition && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center">
-          <div className="w-full max-w-sm rounded-t-lg bg-white p-6 shadow-xl dark:bg-zinc-900 sm:rounded-lg">
+          <div className="w-full max-w-sm rounded-t-lg border border-gray-200 bg-white p-6 shadow-xl dark:border-zinc-600/40 dark:bg-zinc-900/95 dark:ring-1 dark:ring-white/5 sm:rounded-lg">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100">
               Delete Position
             </h3>
@@ -431,7 +431,7 @@ export default function PortfolioPage() {
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center">
           <form
             onSubmit={handleConfirmEdit}
-            className="w-full max-w-sm rounded-t-lg bg-white p-6 shadow-xl dark:bg-zinc-900 sm:rounded-lg"
+            className="w-full max-w-sm rounded-t-lg border border-gray-200 bg-white p-6 shadow-xl dark:border-zinc-600/40 dark:bg-zinc-900/95 dark:ring-1 dark:ring-white/5 sm:rounded-lg"
           >
             <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100">
               Edit Position
@@ -467,7 +467,7 @@ export default function PortfolioPage() {
               <button
                 type="submit"
                 disabled={updatePosition.isPending}
-                className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                className="rounded-lg bg-linear-to-br from-sky-500 to-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:from-sky-400 hover:to-blue-500 disabled:opacity-50 dark:shadow-sky-950/30"
               >
                 Save Changes
               </button>

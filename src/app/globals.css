@@ -78,8 +78,9 @@
 }
 
 :root[data-theme="dark"] {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  /* Align with marketing / auth (zinc-950 family) */
+  --background: #09090b;
+  --foreground: #fafafa;
 
   /* text */
   --color-primary:   #f4f4f5; /* zinc-100 */

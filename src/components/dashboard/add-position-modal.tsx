@@ -28,24 +28,24 @@ export function AddPositionModal({
       });
       onClose();
     } catch {
-      // addPosition.isError / addPosition.error surface the failure in the UI
     }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center" onClick={onClose}>
       <div
-        className="w-full max-w-sm rounded-t-2xl bg-white px-5 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-xl sm:pb-5"
+        className="w-full max-w-sm rounded-t-2xl border border-gray-200 bg-white px-5 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl dark:border-zinc-600/40 dark:bg-zinc-900/95 dark:shadow-[0_0_48px_-12px_rgba(0,0,0,0.45)] dark:ring-1 dark:ring-white/5 sm:rounded-xl sm:pb-5"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Drag handle for mobile bottom-sheet feel */}
-        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-gray-300 sm:hidden" />
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-gray-300 dark:bg-zinc-600 sm:hidden" />
 
-        <h2 className="mb-4 text-lg font-bold">Add position — {symbol}</h2>
+        <h2 className="mb-4 text-lg font-bold text-gray-900 dark:text-zinc-100">
+          Add position — {symbol}
+        </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-zinc-300">
               Entry Price
             </label>
             <input
@@ -55,14 +55,14 @@ export function AddPositionModal({
               placeholder="0.00"
               value={entryPrice}
               onChange={(e) => setEntryPrice(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-3 text-base sm:py-2 sm:text-sm"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-3 text-base text-gray-900 placeholder-gray-400 shadow-inner focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:py-2 sm:text-sm dark:border-zinc-600 dark:bg-zinc-950/50 dark:text-zinc-100 dark:placeholder-zinc-500 dark:focus:border-sky-500/60 dark:focus:ring-sky-500/50"
               required
               autoFocus
             />
           </div>
 
           {addPosition.isError && (
-            <p className="text-sm text-red-600">
+            <p className="text-sm text-red-600 dark:text-red-400">
               Failed to add position. Please try again.
             </p>
           )}
@@ -71,14 +71,14 @@ export function AddPositionModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-lg px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-100 sm:flex-none sm:py-2"
+              className="flex-1 rounded-lg px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-100 sm:flex-none sm:py-2 dark:text-zinc-300 dark:hover:bg-zinc-800"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={addPosition.isPending}
-              className="flex-1 rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 sm:flex-none sm:py-2"
+              className="flex-1 rounded-lg bg-linear-to-br from-sky-500 to-blue-600 px-4 py-3 text-sm font-medium text-white shadow-md hover:from-sky-400 hover:to-blue-500 disabled:opacity-50 sm:flex-none sm:py-2 dark:shadow-sky-950/30"
             >
               {addPosition.isPending ? "Adding..." : "Add Position"}
             </button>
