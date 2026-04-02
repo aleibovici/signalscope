@@ -106,10 +106,10 @@ export default function LoginPage() {
       </nav>
 
       {/* -- Hero + Login ------------------------------------------- */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 pt-20 pb-10 md:pt-24 md:pb-20">
+      <section className="relative overflow-hidden bg-linear-to-br from-blue-900 via-blue-800 to-blue-700 pt-20 pb-10 md:pt-24 md:pb-20">
         {/* Decorative blurred circles */}
         <div className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-blue-500/20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-40 -right-40 h-[30rem] w-[30rem] rounded-full bg-indigo-500/15 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-40 -right-40 h-120 w-120 rounded-full bg-indigo-500/15 blur-3xl" />
 
         <div className="relative mx-auto flex max-w-6xl flex-col-reverse items-center gap-8 px-4 sm:px-6 md:gap-12 lg:flex-row lg:items-start lg:gap-16">
           {/* Left -- copy (appears BELOW login card on mobile due to flex-col-reverse) */}
@@ -513,7 +513,7 @@ export default function LoginPage() {
                 ))}
               </ul>
 
-              <div className="max-w-full min-w-0 overflow-x-auto rounded-lg bg-gray-900 px-4 py-3 font-mono text-xs text-gray-300 [overflow-wrap:anywhere]">
+              <div className="max-w-full min-w-0 overflow-x-auto rounded-lg bg-gray-900 px-4 py-3 font-mono text-xs text-gray-300 wrap-anywhere">
                 <span className="text-gray-500"># Agent hits endpoint → gets 402 → pays → gets data</span>{"\n"}
                 <span className="text-blue-400">curl</span> https://signalscopes.com/api/tickers/trending{"\n"}
                 <span className="text-gray-500">→ HTTP 402  payment-required: ey...</span>
@@ -602,7 +602,7 @@ export default function LoginPage() {
       </section>
 
       {/* -- CTA Banner -------------------------------------------- */}
-      <section className="bg-gradient-to-r from-blue-900 to-blue-700 py-10 md:py-16">
+      <section className="bg-linear-to-r from-blue-900 to-blue-700 py-10 md:py-16">
         <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
           <h2 className="mb-3 text-xl font-bold text-white sm:text-2xl md:text-3xl">
             Ready to find the next breakout?
