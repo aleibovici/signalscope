@@ -33,6 +33,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [perfStats, setPerfStats] = useState<PerfStats | null>(null);
   const { status } = useSession();
+  const showGuestMobileBar = status !== "authenticated";
 
   useEffect(() => {
     fetch("/api/stats/performance")
@@ -62,17 +63,19 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-gray-50">
+    <div
+      className={`min-h-screen overflow-x-hidden bg-zinc-950 text-zinc-100${showGuestMobileBar ? " pb-19 lg:pb-0" : ""}`}
+    >
       {/* -- Nav ---------------------------------------------------- */}
-      <nav className="fixed top-0 z-50 w-full border-b border-blue-800/30 bg-blue-900/80 backdrop-blur-md" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      <nav className="fixed top-0 z-50 w-full border-b border-white/15 bg-zinc-950/85 backdrop-blur-md" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <span className="text-xl font-bold tracking-tight text-white">
-            Signal<span className="text-blue-300">Scope</span>
+            Signal<span className="text-sky-400">Scope</span>
           </span>
           <div className="flex items-center gap-3">
             {status === "authenticated" ? (
               <>
-                <Link href="/dashboard" className="text-sm font-medium text-blue-200 hover:text-white transition-colors touch-manipulation">
+                <Link href="/dashboard" className="text-sm font-medium text-zinc-300 hover:text-white transition-colors touch-manipulation">
                   Dashboard
                 </Link>
                 <button
@@ -88,44 +91,61 @@ export default function LoginPage() {
                       )
                       .finally(() => { window.location.reload(); })
                   }
-                  className="rounded-md bg-white/15 px-3.5 py-1.5 text-sm font-medium text-white backdrop-blur-sm hover:bg-white/25 transition-colors touch-manipulation cursor-pointer"
+                  className="rounded-lg border border-white/15 bg-white/10 px-3.5 py-1.5 text-sm font-medium text-white hover:bg-white/15 transition-colors touch-manipulation cursor-pointer"
                 >
                   Sign Out
                 </button>
               </>
             ) : (
-              <Link
-                href="/register"
-                className="rounded-md bg-white/15 px-3.5 py-1.5 text-sm font-medium text-white backdrop-blur-sm hover:bg-white/25 transition-colors touch-manipulation"
-              >
-                Register
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="#sign-in"
+                  className="rounded-lg border border-white/20 px-3.5 py-1.5 text-sm font-medium text-zinc-200 hover:border-white/30 hover:bg-white/5 transition-colors touch-manipulation"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href="/register"
+                  className="rounded-lg border border-white/15 bg-white/10 px-3.5 py-1.5 text-sm font-medium text-white hover:bg-white/15 transition-colors touch-manipulation"
+                >
+                  Register
+                </Link>
+              </div>
             )}
           </div>
         </div>
       </nav>
 
       {/* -- Hero + Login ------------------------------------------- */}
-      <section className="relative overflow-hidden bg-linear-to-br from-blue-900 via-blue-800 to-blue-700 pt-20 pb-10 md:pt-24 md:pb-20">
-        {/* Decorative blurred circles */}
-        <div className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-blue-500/20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-40 -right-40 h-120 w-120 rounded-full bg-indigo-500/15 blur-3xl" />
+      <section className="relative overflow-hidden bg-zinc-950 pt-20 pb-10 md:pt-24 md:pb-20">
+        <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-zinc-950 via-zinc-950 to-blue-950/40" />
+        <div className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-sky-500/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-40 -right-40 h-120 w-120 rounded-full bg-emerald-500/8 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 left-1/2 h-px w-[min(100%,72rem)] -translate-x-1/2 bg-linear-to-r from-transparent via-sky-500/25 to-transparent" />
+        <svg className="pointer-events-none absolute right-[8%] top-1/4 hidden h-32 w-48 opacity-[0.12] lg:block" viewBox="0 0 200 80" fill="none" aria-hidden>
+          <path d="M0 65 L35 52 L58 58 L88 28 L118 38 L145 12 L200 8" stroke="url(#heroSigGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <defs>
+            <linearGradient id="heroSigGrad" x1="0" y1="0" x2="200" y2="0" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#38bdf8" />
+              <stop offset="1" stopColor="#34d399" />
+            </linearGradient>
+          </defs>
+        </svg>
 
-        <div className="relative mx-auto flex max-w-6xl flex-col-reverse items-center gap-8 px-4 sm:px-6 md:gap-12 lg:flex-row lg:items-start lg:gap-16">
-          {/* Left -- copy (appears BELOW login card on mobile due to flex-col-reverse) */}
-          <div className="max-w-xl text-center lg:pt-6 lg:text-left">
+        <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-8 px-4 sm:px-6 md:gap-12 lg:flex-row lg:items-start lg:gap-16">
+          {/* Left -- copy */}
+          <div className="max-w-xl text-center lg:min-w-0 lg:flex-1 lg:border-r lg:border-white/10 lg:pr-12 lg:pt-6 lg:text-left">
             <h1 className="mb-3 text-2xl font-extrabold leading-tight tracking-tight text-white sm:text-3xl md:mb-5 md:text-4xl lg:text-5xl">
               Spot breakout stocks<br />
-              <span className="text-blue-300">before the crowd</span>
+              <span className="text-sky-400">before the crowd</span>
             </h1>
-            <p className="mb-5 text-sm leading-relaxed text-blue-100/90 sm:text-base md:mb-8 md:text-lg">
-              SignalScope monitors Reddit, X/Twitter, StockTwits, SEC insider filings, congressional trades, options flow, volume spikes, and Polymarket prediction markets — then uses AI scoring, pump-and-dump filtering, and XGBoost ML backtesting to surface the tickers most likely to move.
+            <p className="mb-5 text-sm leading-relaxed text-zinc-300 sm:text-base md:mb-8 md:text-lg">
+              Identify institutional-grade opportunities with AI-filtered signals from eight disparate sources—then validate with fundamentals, reports, and ML backtesting as the dataset grows.
             </p>
 
-            {/* Perf stats inline badges (social proof above fold on desktop) */}
             {perfStats && (
               <div className="mb-5 flex flex-wrap justify-center gap-2 sm:gap-3 md:mb-8 lg:justify-start">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/20 px-3 py-1 text-xs font-semibold text-blue-200 sm:text-sm">
+                <span className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/4 px-3 py-1.5 text-xs font-semibold text-zinc-200 sm:text-sm">
                   {perfStats.totalTracked} tickers tracked
                 </span>
               </div>
@@ -134,61 +154,56 @@ export default function LoginPage() {
             <div className="flex flex-col items-center gap-3 sm:flex-row lg:justify-start">
               <Link
                 href="/dashboard"
-                className="w-full rounded-lg bg-white px-6 py-2.5 text-center text-sm font-semibold text-blue-700 shadow-md hover:bg-blue-50 transition-colors touch-manipulation sm:w-auto"
+                className="w-full rounded-xl bg-linear-to-br from-sky-500 to-blue-600 px-6 py-2.5 text-center text-sm font-semibold text-white shadow-lg shadow-sky-950/40 hover:from-sky-400 hover:to-blue-500 transition-colors touch-manipulation sm:w-auto"
               >
                 Browse signals
               </Link>
-              <Link
-                href="/register"
-                className="w-full rounded-lg border border-blue-400/40 px-5 py-2.5 text-center text-sm font-semibold text-blue-100 hover:bg-white/10 transition-colors touch-manipulation sm:w-auto"
-              >
-                Create account
-              </Link>
             </div>
-            <div className="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1.5 text-xs text-blue-300/80 lg:justify-start">
+            <div className="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1.5 text-xs text-zinc-500 lg:justify-start">
               {["Watchlist", "Portfolio tracking", "Full dashboard", "Weekly digest"].map((b) => (
                 <span key={b} className="inline-flex items-center gap-1">
-                  <svg className="h-3 w-3 text-blue-400/70" viewBox="0 0 20 20" fill="currentColor">
+                  <svg className="h-3 w-3 shrink-0 text-emerald-500/80" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
                     <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
                   </svg>
                   {b}
                 </span>
               ))}
             </div>
-            <p className="mt-1.5 text-xs text-blue-300/50 text-center lg:text-left">
+            <p className="mt-1.5 text-[11px] text-zinc-600 text-center lg:text-left">
               Free — no credit card required.
             </p>
 
-            {/* Quick stats */}
-            <div className="mt-6 flex justify-center gap-6 sm:gap-8 md:mt-8 lg:justify-start">
+            <div className="mt-6 grid max-w-md grid-cols-3 gap-2 sm:gap-3 md:mt-8 lg:max-w-none lg:justify-start">
               {[
                 ["8", "Signal sources"],
                 ["13", "P&D flags"],
                 ["4", "Signal stages"],
               ].map(([num, label]) => (
-                <div key={label} className="text-center lg:text-left">
-                  <p className="text-lg font-bold text-white sm:text-xl md:text-2xl">{num}</p>
-                  <p className="text-xs text-blue-300">{label}</p>
+                <div
+                  key={label}
+                  className="rounded-xl border border-white/10 bg-white/4 px-2 py-3 text-center shadow-[0_0_24px_-12px_rgba(56,189,248,0.25)] sm:px-3 lg:text-left"
+                >
+                  <p className="text-lg font-bold tabular-nums text-white sm:text-xl md:text-2xl">{num}</p>
+                  <p className="mt-1 text-[10px] font-medium uppercase tracking-wider text-zinc-400">{label}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Right -- login card (appears FIRST on mobile due to flex-col-reverse) */}
+          {/* Right -- login card */}
           <div id="sign-in" className="mx-auto w-full max-w-sm scroll-mt-24 lg:mx-0 lg:shrink-0">
-            <div className="rounded-2xl border border-white/10 bg-white/10 p-5 shadow-2xl shadow-blue-950/40 backdrop-blur-lg sm:p-6">
-              <h2 className="mb-1 text-xl font-bold text-white">Sign in</h2>
-              <p className="mb-4 text-sm text-blue-200 sm:mb-5">Welcome back</p>
+            <div className="rounded-2xl border border-white/15 bg-zinc-900/55 p-5 shadow-[0_0_48px_-12px_rgba(56,189,248,0.2)] backdrop-blur-xl ring-1 ring-white/10 sm:p-6">
+              <h2 className="sr-only">Sign in</h2>
 
               {error && (
-                <div className="mb-4 rounded-md bg-red-500/20 p-3 text-sm text-red-100">
+                <div className="mb-4 rounded-lg border border-red-500/30 bg-red-950/40 p-3 text-sm text-red-100">
                   {error}
                 </div>
               )}
 
               <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
                 <div>
-                  <label htmlFor="email" className="mb-1 block text-sm font-medium text-blue-100">
+                  <label htmlFor="email" className="mb-1 block text-sm font-medium text-zinc-300">
                     Email
                   </label>
                   <input
@@ -198,13 +213,13 @@ export default function LoginPage() {
                     autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2.5 text-sm text-white placeholder-blue-300/60 shadow-sm focus:border-blue-300 focus:outline-none focus:ring-1 focus:ring-blue-300"
+                    className="w-full rounded-lg border border-zinc-600/50 bg-zinc-950/50 px-3 py-2.5 text-sm text-white placeholder-zinc-500 shadow-inner focus:border-sky-500/60 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
                     placeholder="you@example.com"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="password" className="mb-1 block text-sm font-medium text-blue-100">
+                  <label htmlFor="password" className="mb-1 block text-sm font-medium text-zinc-300">
                     Password
                   </label>
                   <input
@@ -215,13 +230,13 @@ export default function LoginPage() {
                     autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2.5 text-sm text-white placeholder-blue-300/60 shadow-sm focus:border-blue-300 focus:outline-none focus:ring-1 focus:ring-blue-300"
+                    className="w-full rounded-lg border border-zinc-600/50 bg-zinc-950/50 px-3 py-2.5 text-sm text-white placeholder-zinc-500 shadow-inner focus:border-sky-500/60 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
                     placeholder="Min. 8 characters"
                   />
                 </div>
 
                 <div className="flex items-center justify-end">
-                  <Link href="/forgot-password" className="text-xs text-blue-200 hover:text-white transition-colors">
+                  <Link href="/forgot-password" className="text-xs text-zinc-400 hover:text-white transition-colors">
                     Forgot password?
                   </Link>
                 </div>
@@ -229,30 +244,55 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-blue-700 shadow-md hover:bg-blue-50 disabled:opacity-50 transition-colors touch-manipulation"
+                  className="w-full rounded-xl bg-linear-to-br from-sky-500 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:from-sky-400 hover:to-blue-500 disabled:opacity-50 transition-colors touch-manipulation"
                 >
                   {loading ? "Signing in..." : "Sign in"}
                 </button>
               </form>
 
-              <p className="mt-4 text-center text-sm text-blue-200 sm:mt-5">
-                Don&apos;t have an account?{" "}
-                <Link href="/register" className="font-semibold text-white hover:text-blue-100">
-                  Register
+              <p className="mt-4 text-center text-sm sm:mt-5">
+                <Link href="/register" className="font-semibold text-zinc-300 hover:text-white">
+                  Create an account
                 </Link>
               </p>
             </div>
           </div>
         </div>
+
+        <div className="relative mx-auto mt-10 max-w-6xl border-t border-white/10 px-4 pt-8 sm:px-6 lg:mt-14 lg:pt-10">
+          <p className="text-center text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+            Built for traders who want the full picture
+          </p>
+          <ul className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-zinc-400 sm:text-sm">
+            <li className="inline-flex items-center gap-1.5">
+              <span className="h-1 w-1 rounded-full bg-emerald-500/90" aria-hidden />
+              Live multi-source scans
+            </li>
+            <li className="hidden text-zinc-600 sm:inline" aria-hidden>
+              ·
+            </li>
+            <li className="inline-flex items-center gap-1.5">
+              <span className="h-1 w-1 rounded-full bg-sky-500/90" aria-hidden />
+              AI scoring + pump filters
+            </li>
+            <li className="hidden text-zinc-600 sm:inline" aria-hidden>
+              ·
+            </li>
+            <li className="inline-flex items-center gap-1.5">
+              <span className="h-1 w-1 rounded-full bg-violet-500/80" aria-hidden />
+              Dashboard free to use
+            </li>
+          </ul>
+        </div>
       </section>
 
       {/* -- Agent callout strip ------------------------------------ */}
-      <div className="border-y border-violet-100 bg-violet-50">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6">
+      <div className="border-y border-violet-900/50 bg-violet-950">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6">
           <div className="flex min-w-0 items-start gap-3 sm:items-center">
-            <span className="shrink-0 text-lg leading-none">🤖</span>
-            <p className="min-w-0 text-sm text-violet-800">
-              <span className="font-semibold">AI agent?</span>
+            <span className="shrink-0 text-lg leading-none" aria-hidden>🤖</span>
+            <p className="min-w-0 text-sm text-violet-200/90">
+              <span className="font-semibold text-violet-100">AI agent?</span>
               {" "}Access live breakout signal data via x402 micropayments — no account or signup required.
             </p>
           </div>
@@ -260,7 +300,7 @@ export default function LoginPage() {
             href="/skill/SKILL.md"
             target="_blank"
             rel="noopener noreferrer"
-            className="shrink-0 self-start rounded-md bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-700 transition-colors touch-manipulation sm:self-auto"
+            className="shrink-0 self-start rounded-lg bg-violet-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-400 transition-colors touch-manipulation sm:self-auto"
           >
             View API docs →
           </a>
@@ -268,12 +308,12 @@ export default function LoginPage() {
       </div>
 
       {/* -- Features Grid ------------------------------------------ */}
-      <section className="bg-white py-10 md:py-20">
+      <section className="border-t border-white/6 bg-zinc-900 py-10 md:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <h2 className="mb-3 text-center text-2xl font-bold text-gray-900 md:text-3xl">
+          <h2 className="mb-3 text-center text-2xl font-bold text-white md:text-3xl">
             Everything you need to find breakouts
           </h2>
-          <p className="mx-auto mb-6 max-w-2xl text-center text-sm text-gray-500 md:mb-12 md:text-base">
+          <p className="mx-auto mb-6 max-w-2xl text-center text-sm text-zinc-400 md:mb-12 md:text-base">
             From raw social chatter to validated, scored signals — SignalScope automates the entire pipeline.
           </p>
 
@@ -324,15 +364,15 @@ export default function LoginPage() {
             ].map(({ title, desc, icon }) => (
               <div
                 key={title}
-                className="group rounded-xl border border-gray-100 bg-gray-50/50 p-5 transition-all hover:border-blue-200 hover:bg-blue-50/40 hover:shadow-md sm:p-6"
+                className="group rounded-xl border border-white/10 bg-white/4 p-5 transition-all hover:border-sky-500/35 hover:bg-white/6 hover:shadow-[0_0_28px_-10px_rgba(56,189,248,0.25)] sm:p-6"
               >
-                <span className="mb-4 inline-flex rounded-lg bg-blue-100 p-2.5 text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white">
+                <span className="mb-4 inline-flex rounded-lg bg-sky-500/15 p-2.5 text-sky-400 transition-colors group-hover:bg-sky-500 group-hover:text-white">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-5 w-5">
                     {icon}
                   </svg>
                 </span>
-                <h3 className="mb-1.5 text-base font-semibold text-gray-900">{title}</h3>
-                <p className="text-sm leading-relaxed text-gray-500">{desc}</p>
+                <h3 className="mb-1.5 text-base font-semibold text-white">{title}</h3>
+                <p className="text-sm leading-relaxed text-zinc-400">{desc}</p>
               </div>
             ))}
           </div>
@@ -340,85 +380,87 @@ export default function LoginPage() {
       </section>
 
       {/* -- How It Works -- Pipeline ------------------------------ */}
-      <section id="how-it-works" className="scroll-mt-16 bg-gray-50 py-10 md:py-20">
+      <section id="how-it-works" className="scroll-mt-16 border-t border-white/6 bg-zinc-950 py-10 md:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <h2 className="mb-3 text-center text-2xl font-bold text-gray-900 md:text-3xl">
+          <h2 className="mb-3 text-center text-2xl font-bold text-white md:text-3xl">
             How it works
           </h2>
-          <p className="mx-auto mb-8 max-w-2xl text-center text-sm text-gray-500 md:mb-14 md:text-base">
+          <p className="mx-auto mb-8 max-w-2xl text-center text-sm text-zinc-400 md:mb-14 md:text-base">
             Every scan runs through a five-stage pipeline — from raw social data to validated, scored breakout candidates.
           </p>
 
-          {/* Mobile: vertical timeline */}
           <div className="relative mx-auto max-w-sm sm:hidden">
-            <div className="absolute left-5 top-6 bottom-6 w-0.5 bg-blue-200" />
+            <div className="absolute left-5 top-6 bottom-6 w-0.5 bg-sky-500/30" />
             {howItWorksSteps.map(({ step, label, desc }) => (
               <div key={label} className="relative flex items-start gap-4 py-3">
-                <span className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
+                <span className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-sky-500 to-blue-600 text-sm font-bold text-white shadow-md shadow-sky-950/50">
                   {step}
                 </span>
                 <div className="pt-1.5">
-                  <h3 className="text-sm font-semibold text-gray-900">{label}</h3>
-                  <p className="text-xs leading-relaxed text-gray-500">{desc}</p>
+                  <h3 className="text-sm font-semibold text-white">{label}</h3>
+                  <p className="text-xs leading-relaxed text-zinc-500">{desc}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Desktop: horizontal pipeline */}
           <div className="hidden sm:grid sm:grid-cols-5">
             {howItWorksSteps.map(({ step, label, desc }, i) => (
               <div key={label} className="relative flex flex-col items-center text-center px-4 py-6">
                 {i < 4 && (
-                  <div className="pointer-events-none absolute right-0 top-10 h-0.5 w-full translate-x-1/2 bg-blue-200" />
+                  <div className="pointer-events-none absolute right-0 top-10 h-0.5 w-full translate-x-1/2 bg-sky-500/25" />
                 )}
-                <span className="relative z-10 mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
+                <span className="relative z-10 mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-sky-500 to-blue-600 text-sm font-bold text-white shadow-md shadow-sky-950/50">
                   {step}
                 </span>
-                <h3 className="mb-1 text-sm font-semibold text-gray-900">{label}</h3>
-                <p className="text-xs leading-relaxed text-gray-500">{desc}</p>
+                <h3 className="mb-1 text-sm font-semibold text-white">{label}</h3>
+                <p className="text-xs leading-relaxed text-zinc-500">{desc}</p>
               </div>
             ))}
           </div>
 
-          <p className="mt-6 text-center text-sm text-gray-500 md:mt-10">
-            Detailed scoring weights, AI prompts, and filtering methodology are available on the public <a href="/methodology" className="text-blue-600 hover:underline">Methodology page</a>.
+          <p className="mt-6 text-center text-sm text-zinc-500 md:mt-10">
+            Detailed scoring weights, AI prompts, and filtering methodology are available on the public{" "}
+            <a href="/methodology" className="font-medium text-sky-400 hover:text-sky-300 hover:underline">
+              Methodology page
+            </a>
+            .
           </p>
         </div>
       </section>
 
       {/* -- Signal Sources ----------------------------------------- */}
-      <section className="bg-white py-10 md:py-20">
+      <section className="border-t border-white/6 bg-zinc-900 py-10 md:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <h2 className="mb-3 text-center text-2xl font-bold text-gray-900 md:text-3xl">
+          <h2 className="mb-3 text-center text-2xl font-bold text-white md:text-3xl">
             Signal sources
           </h2>
-          <p className="mx-auto mb-6 max-w-2xl text-center text-sm text-gray-500 md:mb-12 md:text-base">
+          <p className="mx-auto mb-6 max-w-2xl text-center text-sm text-zinc-400 md:mb-12 md:text-base">
             Eight data feeds monitored on every scan — from social chatter to institutional filings and prediction markets.
           </p>
 
           <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 md:gap-6">
             {[
-              { name: "Reddit", tag: "Social", tagColor: "bg-orange-100 text-orange-700", desc: "17 subreddits including r/wallstreetbets, r/stocks, and r/pennystocks." },
-              { name: "X / Twitter", tag: "Social", tagColor: "bg-sky-100 text-sky-700", desc: "X API v2 searches for stock-related trending discussions." },
-              { name: "StockTwits", tag: "Social", tagColor: "bg-amber-100 text-amber-700", desc: "Trending tickers for real-time retail sentiment." },
-              { name: "SEC Insider", tag: "Filings", tagColor: "bg-emerald-100 text-emerald-700", desc: "C-suite purchases over $50K from OpenInsider and EDGAR." },
-              { name: "Congress", tag: "Filings", tagColor: "bg-emerald-100 text-emerald-700", desc: "Congressional stock purchases from STOCK Act disclosures." },
-              { name: "Options Flow", tag: "Institutional", tagColor: "bg-blue-100 text-blue-700", desc: "Unusual call volume, OTM activity, and call sweeps." },
-              { name: "Volume Spike", tag: "Technical", tagColor: "bg-violet-100 text-violet-700", desc: "Stocks trading at 2x+ average volume." },
-              { name: "Polymarket", tag: "Prediction", tagColor: "bg-purple-100 text-purple-700", desc: "Active prediction markets for price targets, earnings, mergers, FDA approvals, and S&P 500 inclusions." },
+              { name: "Reddit", tag: "Social", tagColor: "border-orange-500/25 bg-orange-500/15 text-orange-300", desc: "17 subreddits including r/wallstreetbets, r/stocks, and r/pennystocks." },
+              { name: "X / Twitter", tag: "Social", tagColor: "border-sky-500/25 bg-sky-500/15 text-sky-300", desc: "X API v2 searches for stock-related trending discussions." },
+              { name: "StockTwits", tag: "Social", tagColor: "border-amber-500/25 bg-amber-500/15 text-amber-300", desc: "Trending tickers for real-time retail sentiment." },
+              { name: "SEC Insider", tag: "Filings", tagColor: "border-emerald-500/25 bg-emerald-500/15 text-emerald-300", desc: "C-suite purchases over $50K from OpenInsider and EDGAR." },
+              { name: "Congress", tag: "Filings", tagColor: "border-emerald-500/25 bg-emerald-500/15 text-emerald-300", desc: "Congressional stock purchases from STOCK Act disclosures." },
+              { name: "Options Flow", tag: "Institutional", tagColor: "border-blue-500/25 bg-blue-500/15 text-blue-300", desc: "Unusual call volume, OTM activity, and call sweeps." },
+              { name: "Volume Spike", tag: "Technical", tagColor: "border-violet-500/25 bg-violet-500/15 text-violet-300", desc: "Stocks trading at 2x+ average volume." },
+              { name: "Polymarket", tag: "Prediction", tagColor: "border-purple-500/25 bg-purple-500/15 text-purple-300", desc: "Active prediction markets for price targets, earnings, mergers, FDA approvals, and S&P 500 inclusions." },
             ].map(({ name, desc, tag, tagColor }) => (
               <div
                 key={name}
-                className="rounded-xl border border-gray-100 bg-gray-50/50 p-4 transition-all hover:border-blue-200 hover:shadow-md sm:p-5"
+                className="rounded-xl border border-white/10 bg-white/4 p-4 transition-all hover:border-sky-500/30 hover:shadow-[0_0_20px_-8px_rgba(56,189,248,0.2)] sm:p-5"
               >
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-semibold text-gray-900 sm:text-base">{name}</h3>
-                  <span className={`hidden rounded-full px-2 py-0.5 text-xs font-medium sm:inline ${tagColor}`}>
+                  <h3 className="text-sm font-semibold text-white sm:text-base">{name}</h3>
+                  <span className={`hidden rounded-full border px-2 py-0.5 text-xs font-medium sm:inline ${tagColor}`}>
                     {tag}
                   </span>
                 </div>
-                <p className="text-xs leading-relaxed text-gray-500 sm:text-sm">{desc}</p>
+                <p className="text-xs leading-relaxed text-zinc-400 sm:text-sm">{desc}</p>
               </div>
             ))}
           </div>
@@ -426,17 +468,16 @@ export default function LoginPage() {
       </section>
 
       {/* -- ML Backtesting ----------------------------------------- */}
-      <section className="bg-gray-50 py-10 md:py-20">
+      <section className="border-t border-white/6 bg-zinc-950 py-10 md:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <h2 className="mb-3 text-center text-2xl font-bold text-gray-900 md:text-3xl">
+          <h2 className="mb-3 text-center text-2xl font-bold text-white md:text-3xl">
             Continuously learning
           </h2>
-          <p className="mx-auto mb-6 max-w-2xl text-center text-sm text-gray-500 md:mb-12 md:text-base">
+          <p className="mx-auto mb-6 max-w-2xl text-center text-sm text-zinc-400 md:mb-12 md:text-base">
             SignalScope doesn&apos;t just detect signals — it measures what happens next and feeds the results back into the model.
           </p>
 
           <div className="mx-auto max-w-4xl">
-            {/* Pipeline diagram -- clean vertical on mobile, horizontal on desktop */}
             <div className="mb-6 flex flex-col items-center gap-0 sm:flex-row sm:justify-center sm:gap-0 md:mb-12">
               {[
                 { label: "Track prices", sub: "Automated snapshots 3× daily" },
@@ -447,19 +488,19 @@ export default function LoginPage() {
                 <div key={label} className="flex flex-col items-center sm:flex-col sm:gap-0">
                   {i > 0 && (
                     <>
-                      <span className="my-1 text-lg text-blue-400 sm:hidden">&#8595;</span>
-                      <span className="hidden text-blue-400 sm:mb-2 sm:block">&#8594;</span>
+                      <span className="my-1 text-lg text-sky-500/80 sm:hidden">&#8595;</span>
+                      <span className="hidden text-sky-500/80 sm:mb-2 sm:block">&#8594;</span>
                     </>
                   )}
-                  <div className="w-56 rounded-lg border border-blue-200 bg-white px-4 py-3 text-center shadow-sm sm:mx-2 sm:w-40">
-                    <p className="text-sm font-semibold text-gray-900">{label}</p>
-                    <p className="mt-0.5 text-xs text-gray-500">{sub}</p>
+                  <div className="w-56 rounded-xl border border-white/10 bg-zinc-900/80 px-4 py-3 text-center shadow-inner ring-1 ring-white/5 sm:mx-2 sm:w-40">
+                    <p className="text-sm font-semibold text-white">{label}</p>
+                    <p className="mt-0.5 text-xs text-zinc-500">{sub}</p>
                   </div>
                 </div>
               ))}
             </div>
 
-            <p className="text-center text-sm text-gray-500">
+            <p className="text-center text-sm text-zinc-500">
               Every signal&apos;s real-world outcome is tracked and fed back into the model — so scoring, filtering, and stage assignments get smarter over time.
             </p>
           </div>
@@ -467,37 +508,39 @@ export default function LoginPage() {
       </section>
 
       {/* -- Agent Skill / API -------------------------------------- */}
-      <section className="bg-white py-10 md:py-20">
+      <section className="border-t border-white/6 bg-zinc-900 py-10 md:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <h2 className="mb-3 text-center text-2xl font-bold text-gray-900 md:text-3xl">
+          <h2 className="mb-3 text-center text-2xl font-bold text-white md:text-3xl">
             Built for AI agents
           </h2>
-          <p className="mx-auto mb-6 max-w-2xl text-center text-sm text-gray-500 md:mb-12 md:text-base">
+          <p className="mx-auto mb-6 max-w-2xl text-center text-sm text-zinc-400 md:mb-12 md:text-base">
             Two ways to give your AI access to live breakout signal data — no account required to get started.
           </p>
 
           <div className="mx-auto grid max-w-4xl min-w-0 gap-6 sm:grid-cols-2">
 
-            {/* x402 path */}
-            <div className="min-w-0 rounded-2xl border-2 border-blue-200 bg-blue-50/40 p-6">
+            <div className="min-w-0 rounded-2xl border-2 border-sky-500/40 bg-sky-950/35 p-6 shadow-[0_0_32px_-12px_rgba(56,189,248,0.25)] ring-1 ring-sky-500/20">
               <div className="mb-4 flex items-center gap-3">
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white">
-                  {/* Lightning bolt */}
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-linear-to-br from-sky-500 to-blue-600 text-white shadow-md">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
                     <path fillRule="evenodd" d="M14.615 1.595a.75.75 0 0 1 .359.852L12.982 9.75h7.268a.75.75 0 0 1 .548 1.262l-10.5 11.25a.75.75 0 0 1-1.272-.71l1.992-7.302H3.818a.75.75 0 0 1-.548-1.262l10.5-11.25a.75.75 0 0 1 .845-.143Z" clipRule="evenodd" />
                   </svg>
                 </span>
                 <div>
-                  <h3 className="text-base font-bold text-gray-900">x402 micropayments</h3>
-                  <p className="text-xs font-medium text-blue-600">No registration needed</p>
+                  <h3 className="text-base font-bold text-white">x402 micropayments</h3>
+                  <p className="text-xs font-medium text-sky-400">No registration needed</p>
                 </div>
               </div>
 
-              <p className="mb-4 text-sm leading-relaxed text-gray-600">
-                The <a href="https://x402.org" target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 hover:underline">x402 protocol</a> lets AI agents pay per call in USDC on Base — no account, no API key, no subscription. Just send the request and pay the 402.
+              <p className="mb-4 text-sm leading-relaxed text-zinc-300">
+                The{" "}
+                <a href="https://x402.org" target="_blank" rel="noopener noreferrer" className="font-medium text-sky-400 hover:text-sky-300 hover:underline">
+                  x402 protocol
+                </a>{" "}
+                lets AI agents pay per call in USDC on Base — no account, no API key, no subscription. Just send the request and pay the 402.
               </p>
 
-              <ul className="mb-5 space-y-2 text-sm text-gray-600">
+              <ul className="mb-5 space-y-2 text-sm text-zinc-400">
                 {[
                   "From $0.005 per data call",
                   "USDC on Base (L2) — near-zero gas",
@@ -505,7 +548,7 @@ export default function LoginPage() {
                   "Works with any x402-compatible client",
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-2">
-                    <svg className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="mt-0.5 h-4 w-4 shrink-0 text-sky-500" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                     </svg>
                     {item}
@@ -513,37 +556,35 @@ export default function LoginPage() {
                 ))}
               </ul>
 
-              <div className="max-w-full min-w-0 overflow-x-auto rounded-lg bg-gray-900 px-4 py-3 font-mono text-xs text-gray-300 wrap-anywhere">
-                <span className="text-gray-500"># Agent hits endpoint → gets 402 → pays → gets data</span>{"\n"}
-                <span className="text-blue-400">curl</span> https://signalscopes.com/api/tickers/trending{"\n"}
-                <span className="text-gray-500">→ HTTP 402  payment-required: ey...</span>
+              <div className="max-w-full min-w-0 overflow-x-auto rounded-lg border border-white/10 bg-black/50 px-4 py-3 font-mono text-xs text-zinc-300 wrap-anywhere">
+                <span className="text-zinc-600"># Agent hits endpoint → gets 402 → pays → gets data</span>{"\n"}
+                <span className="text-sky-400">curl</span> https://signalscopes.com/api/tickers/trending{"\n"}
+                <span className="text-zinc-600">→ HTTP 402  payment-required: ey...</span>
               </div>
 
               <a
                 href="/skill/SKILL.md"
                 target="_blank"
-                className="mt-4 inline-block w-full rounded-lg bg-blue-600 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-blue-700 transition-colors touch-manipulation"
+                className="mt-4 inline-block w-full rounded-xl bg-linear-to-br from-sky-500 to-blue-600 px-4 py-2.5 text-center text-sm font-semibold text-white hover:from-sky-400 hover:to-blue-500 transition-colors touch-manipulation"
               >
                 View API docs
               </a>
             </div>
 
-            {/* API key path */}
-            <div className="min-w-0 rounded-2xl border border-gray-200 bg-gray-50/50 p-6">
+            <div className="min-w-0 rounded-2xl border border-white/10 bg-white/4 p-6 ring-1 ring-white/5">
               <div className="mb-4 flex items-center gap-3">
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gray-700 text-white">
-                  {/* Key icon */}
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-700 text-white ring-1 ring-white/10">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
                     <path fillRule="evenodd" d="M15.75 1.5a6.75 6.75 0 0 0-6.651 7.906c.067.39-.032.717-.221.906l-6.5 6.499a.75.75 0 0 0-.878.68l-.005 3a.75.75 0 0 0 .75.75H6a.75.75 0 0 0 .75-.75v-.75h.75a.75.75 0 0 0 .75-.75v-.75h.75a.75.75 0 0 0 .53-.22l2.658-2.658c.19-.189.517-.288.906-.22A6.75 6.75 0 1 0 15.75 1.5Zm0 3a.75.75 0 0 0 0 1.5A2.25 2.25 0 0 1 18 8.25a.75.75 0 0 0 1.5 0 3.75 3.75 0 0 0-3.75-3.75Z" clipRule="evenodd" />
                   </svg>
                 </span>
                 <div>
-                  <h3 className="text-base font-bold text-gray-900">API key + Agent Skill</h3>
-                  <p className="text-xs font-medium text-gray-500">For registered users</p>
+                  <h3 className="text-base font-bold text-white">API key + Agent Skill</h3>
+                  <p className="text-xs font-medium text-zinc-500">For registered users</p>
                 </div>
               </div>
 
-              <p className="mb-4 text-sm leading-relaxed text-gray-600">
+              <p className="mb-4 text-sm leading-relaxed text-zinc-400">
                 Register for full access including portfolio management, watchlists, and performance tracking. Connect any LLM via the Agent Skill.
               </p>
 
@@ -554,12 +595,12 @@ export default function LoginPage() {
                   { step: "3", label: "Install skill", desc: "Add the Agent Skill to Claude, ChatGPT, or any LLM." },
                 ].map(({ step, label, desc }) => (
                   <div key={step} className="flex items-start gap-3">
-                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-700 text-xs font-bold text-white">
+                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-xs font-bold text-white ring-1 ring-white/10">
                       {step}
                     </span>
                     <div>
-                      <p className="text-sm font-semibold text-gray-900">{label}</p>
-                      <p className="text-xs text-gray-500">{desc}</p>
+                      <p className="text-sm font-semibold text-white">{label}</p>
+                      <p className="text-xs text-zinc-500">{desc}</p>
                     </div>
                   </div>
                 ))}
@@ -569,11 +610,11 @@ export default function LoginPage() {
                 <a
                   href="/skill/SKILL.md"
                   target="_blank"
-                  className="inline-block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-center text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors touch-manipulation"
+                  className="inline-block w-full rounded-xl border border-white/20 bg-zinc-900/80 px-4 py-2.5 text-center text-sm font-semibold text-zinc-100 hover:border-white/30 hover:bg-zinc-800 transition-colors touch-manipulation"
                 >
                   Download Agent Skill
                 </a>
-                <p className="text-center text-xs text-gray-400">
+                <p className="text-center text-xs text-zinc-600">
                   Full access: signals, portfolio, watchlist, performance
                 </p>
               </div>
@@ -584,36 +625,38 @@ export default function LoginPage() {
       </section>
 
       {/* -- Share & Earn ------------------------------------------ */}
-      <section className="bg-gray-50 py-10 md:py-14">
+      <section className="border-t border-white/6 bg-zinc-950 py-10 md:py-14">
         <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
-          <h2 className="mb-2 text-xl font-bold text-gray-900 sm:text-2xl">
-            Tweet about us, get 1 month of Pro free
-          </h2>
-          <p className="mb-5 text-sm text-gray-600 md:text-base">
-            Sign up, share a tweet about SignalScope, and unlock Pro features instantly — AI reports, API access, and email alerts. No credit card required.
-          </p>
-          <Link
-            href="/register"
-            className="inline-block rounded-lg bg-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-md hover:bg-blue-700 transition-colors touch-manipulation sm:text-base"
-          >
-            Create account
-          </Link>
+          <div className="rounded-2xl border border-white/10 bg-white/4 px-6 py-8 ring-1 ring-white/5 md:px-10 md:py-10">
+            <h2 className="mb-2 text-xl font-bold text-white sm:text-2xl">
+              Tweet about us, get 1 month of Pro free
+            </h2>
+            <p className="mb-5 text-sm text-zinc-400 md:text-base">
+              Sign up, share a tweet about SignalScope, and unlock Pro features instantly — AI reports, API access, and email alerts. No credit card required.
+            </p>
+            <Link
+              href="/register"
+              className="inline-block rounded-xl bg-linear-to-br from-sky-500 to-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-950/40 hover:from-sky-400 hover:to-blue-500 transition-colors touch-manipulation sm:text-base"
+            >
+              Create account
+            </Link>
+          </div>
         </div>
       </section>
 
       {/* -- CTA Banner -------------------------------------------- */}
-      <section className="bg-linear-to-r from-blue-900 to-blue-700 py-10 md:py-16">
+      <section className="border-t border-white/6 bg-linear-to-br from-zinc-900 via-blue-950/90 to-zinc-950 py-10 md:py-16">
         <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
           <h2 className="mb-3 text-xl font-bold text-white sm:text-2xl md:text-3xl">
             Ready to find the next breakout?
           </h2>
-          <p className="mb-4 text-sm text-blue-200 md:text-base">
+          <p className="mb-4 text-sm text-zinc-400 md:text-base">
             Free to use. No credit card required.
           </p>
-          <div className="mb-5 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-blue-300/80 md:text-sm">
+          <div className="mb-5 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-zinc-500 md:text-sm">
             {["Watchlist", "Portfolio tracking", "Full dashboard", "Weekly signal digest"].map((b) => (
               <span key={b} className="inline-flex items-center gap-1">
-                <svg className="h-3 w-3 text-blue-400/70 md:h-3.5 md:w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                <svg className="h-3 w-3 shrink-0 text-emerald-500/80 md:h-3.5 md:w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
                   <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
                 </svg>
                 {b}
@@ -622,7 +665,7 @@ export default function LoginPage() {
           </div>
           <Link
             href="/dashboard"
-            className="inline-block rounded-lg bg-white px-8 py-3 text-sm font-semibold text-blue-700 shadow-md hover:bg-blue-50 transition-colors touch-manipulation sm:text-base"
+            className="inline-block rounded-xl bg-linear-to-br from-sky-500 to-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-950/40 hover:from-sky-400 hover:to-blue-500 transition-colors touch-manipulation sm:text-base"
           >
             Browse signals
           </Link>
@@ -630,31 +673,53 @@ export default function LoginPage() {
       </section>
 
       {/* -- Footer ------------------------------------------------- */}
-      <footer className="bg-gray-900 py-8">
+      <footer className="border-t border-white/10 bg-black py-8">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:justify-between sm:text-left">
             <span className="text-sm font-bold text-white">
-              Signal<span className="text-blue-400">Scope</span>
+              Signal<span className="text-sky-400">Scope</span>
             </span>
-            <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-gray-500">
-              <Link href="/blog" className="hover:text-gray-300 transition-colors touch-manipulation">Blog</Link>
-              <Link href="/faq" className="hover:text-gray-300 transition-colors touch-manipulation">FAQ</Link>
-              <Link href="/how-it-works" className="hover:text-gray-300 transition-colors touch-manipulation">Methodology</Link>
-              <Link href="/changelog" className="hover:text-gray-300 transition-colors touch-manipulation">Changelog</Link>
-              <Link href="/privacy" className="hover:text-gray-300 transition-colors touch-manipulation">Privacy</Link>
-              <a href="/skill/SKILL.md" target="_blank" className="hover:text-gray-300 transition-colors touch-manipulation">API Docs</a>
-              <a href="https://x402.org" target="_blank" rel="noopener noreferrer" className="hover:text-gray-300 transition-colors touch-manipulation">x402 Protocol</a>
-              <a href="https://x.com/signalscopes" target="_blank" rel="noopener noreferrer" className="hover:text-gray-300 transition-colors touch-manipulation">𝕏 @signalscopes</a>
+            <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-zinc-500">
+              <Link href="/blog" className="hover:text-zinc-300 transition-colors touch-manipulation">Blog</Link>
+              <Link href="/faq" className="hover:text-zinc-300 transition-colors touch-manipulation">FAQ</Link>
+              <Link href="/how-it-works" className="hover:text-zinc-300 transition-colors touch-manipulation">Methodology</Link>
+              <Link href="/changelog" className="hover:text-zinc-300 transition-colors touch-manipulation">Changelog</Link>
+              <Link href="/privacy" className="hover:text-zinc-300 transition-colors touch-manipulation">Privacy</Link>
+              <a href="/skill/SKILL.md" target="_blank" className="hover:text-zinc-300 transition-colors touch-manipulation">API Docs</a>
+              <a href="https://x402.org" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 transition-colors touch-manipulation">x402 Protocol</a>
+              <a href="https://x.com/signalscopes" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 transition-colors touch-manipulation">𝕏 @signalscopes</a>
             </div>
           </div>
-          <p className="mt-4 text-center text-xs leading-relaxed text-gray-500 sm:text-left">
+          <p className="mt-4 text-center text-xs leading-relaxed text-zinc-600 sm:text-left">
             Not financial advice. SignalScope is a research tool — always do your own due diligence before making investment decisions.
           </p>
-          <p className="mt-2 text-center text-xs text-gray-600 sm:text-left">
+          <p className="mt-2 text-center text-xs text-zinc-700 sm:text-left">
             &copy; {new Date().getFullYear()} SignalScope. All rights reserved.
           </p>
         </div>
       </footer>
+
+      {showGuestMobileBar && (
+        <div
+          className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/15 bg-zinc-950/95 backdrop-blur-md lg:hidden"
+          style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+        >
+          <div className="mx-auto flex max-w-md gap-2 px-4 pt-3">
+            <Link
+              href="/dashboard"
+              className="flex-1 rounded-xl bg-linear-to-br from-sky-500 to-blue-600 py-2.5 text-center text-sm font-semibold text-white shadow-md shadow-sky-950/30 hover:from-sky-400 hover:to-blue-500 transition-colors touch-manipulation"
+            >
+              Browse signals
+            </Link>
+            <Link
+              href="#sign-in"
+              className="flex-1 rounded-xl border border-white/20 py-2.5 text-center text-sm font-semibold text-zinc-100 hover:border-white/30 hover:bg-white/5 transition-colors touch-manipulation"
+            >
+              Sign in
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

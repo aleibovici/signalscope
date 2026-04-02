@@ -378,145 +378,171 @@ export default function TickerDetailPage({
 
   return (
     <div className="mx-auto min-w-0 w-full max-w-7xl space-y-6">
-      <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end md:gap-4">
-        <div className="space-y-0.5">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500 transition-colors hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400"
-          >
-            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
-              <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Back to list
-          </button>
-          <div className="flex min-w-0 flex-row flex-nowrap items-center gap-2 overflow-x-auto overscroll-x-contain sm:gap-3">
-            <h1 className="shrink-0 text-3xl font-black leading-none tracking-tighter text-gray-900 sm:text-4xl dark:text-white">
-              {ticker.symbol}
-            </h1>
-            <div className="flex shrink-0 items-center gap-1.5 pr-1">
+      <header className="space-y-4">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500 transition-colors hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400"
+        >
+          <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+            <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Back to list
+        </button>
+
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+          <div className="min-w-0 space-y-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <h1 className="text-2xl font-black leading-none tracking-tighter text-gray-900 sm:text-3xl dark:text-white">
+                {ticker.symbol}
+              </h1>
               <a
                 href={`https://finance.yahoo.com/quote/${ticker.symbol}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 title="View on Yahoo Finance"
-                className="opacity-70 transition-opacity hover:opacity-100"
+                className="inline-flex shrink-0 rounded-md opacity-70 ring-offset-2 ring-offset-gray-50 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:ring-offset-zinc-950"
               >
+                <span className="sr-only">Yahoo Finance</span>
                 <svg className="h-6 w-6" viewBox="0 0 24 24" aria-hidden>
                   <circle cx="12" cy="12" r="12" fill="#6001d2" />
-                  <text x="12" y="16" textAnchor="middle" fill="white" fontSize="13" fontWeight="bold" fontFamily="Arial, sans-serif">Y!</text>
+                  <text x="12" y="16" textAnchor="middle" fill="white" fontSize="13" fontWeight="bold" fontFamily="Arial, sans-serif">
+                    Y!
+                  </text>
                 </svg>
               </a>
-              {session?.user ? (
-                <>
-                  <button
-                    type="button"
-                    aria-label={bookmarkedSymbols.has(ticker.symbol) ? "Remove bookmark" : "Bookmark ticker"}
-                    onClick={() =>
-                      toggleWatchlist({ symbol: ticker.symbol, isBookmarked: bookmarkedSymbols.has(ticker.symbol) })
-                    }
-                    className="text-slate-400 transition-colors hover:text-amber-400 dark:text-zinc-500"
-                  >
-                    {bookmarkedSymbols.has(ticker.symbol) ? (
-                      <svg className="h-6 w-6 text-amber-400" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                      </svg>
-                    ) : (
-                      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-                        />
-                      </svg>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowAddPosition(true)}
-                    className="flex items-center gap-1.5 rounded-lg border border-blue-600 px-3 py-1.5 text-xs font-bold text-blue-600 transition-colors hover:bg-blue-600/5 dark:border-blue-500 dark:text-blue-400 dark:hover:bg-blue-500/10"
-                  >
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
-                      <path d="M12 5v14M5 12h14" strokeLinecap="round" />
-                    </svg>
-                    + Position
-                  </button>
-                </>
-              ) : (
-                <>
-                  <a
-                    href="/login"
-                    title="Sign in to bookmark"
-                    className="text-slate-300 opacity-50 transition-opacity hover:opacity-80 dark:text-zinc-600"
-                  >
-                    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                    </svg>
-                  </a>
-                  <a
-                    href="/login"
-                    className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-bold text-gray-400 transition-colors hover:border-blue-400 hover:text-blue-500 dark:border-zinc-600 dark:text-zinc-500 dark:hover:border-blue-500 dark:hover:text-blue-400"
-                  >
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
-                      <path d="M12 5v14M5 12h14" strokeLinecap="round" />
-                    </svg>
-                    Sign in to track
-                  </a>
-                </>
-              )}
             </div>
+            {subtitleParts.length > 0 ? (
+              <p className="max-w-2xl text-sm leading-snug text-slate-600 dark:text-zinc-400">{subtitleParts.join(" · ")}</p>
+            ) : null}
           </div>
-          {subtitleParts.length > 0 ? (
-            <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">{subtitleParts.join(" • ")}</p>
-          ) : null}
+
+          <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+            {session?.user ? (
+              <>
+                <button
+                  type="button"
+                  aria-label={bookmarkedSymbols.has(ticker.symbol) ? "Remove bookmark" : "Bookmark ticker"}
+                  onClick={() =>
+                    toggleWatchlist({ symbol: ticker.symbol, isBookmarked: bookmarkedSymbols.has(ticker.symbol) })
+                  }
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200/90 bg-white text-slate-500 transition-colors hover:border-amber-300/80 hover:text-amber-500 dark:border-[#1e262f] dark:bg-[#12181f] dark:text-zinc-400 dark:hover:border-amber-500/40 dark:hover:text-amber-400"
+                >
+                  {bookmarkedSymbols.has(ticker.symbol) ? (
+                    <svg className="h-5 w-5 text-amber-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                      <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                    </svg>
+                  ) : (
+                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+                      />
+                    </svg>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddPosition(true)}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-blue-600 bg-blue-600/5 px-3 text-xs font-bold text-blue-700 transition-colors hover:bg-blue-600/10 dark:border-blue-500 dark:bg-blue-500/10 dark:text-blue-300 dark:hover:bg-blue-500/15"
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+                    <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+                  </svg>
+                  Add position
+                </button>
+              </>
+            ) : (
+              <>
+                <a
+                  href="/login"
+                  title="Sign in to bookmark"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-dashed border-slate-200 text-slate-400 transition-colors hover:border-slate-300 hover:text-slate-600 dark:border-zinc-600 dark:text-zinc-500 dark:hover:border-zinc-500 dark:hover:text-zinc-300"
+                >
+                  <span className="sr-only">Sign in to bookmark</span>
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+                    />
+                  </svg>
+                </a>
+                <a
+                  href="/login"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 transition-colors hover:border-blue-400 hover:text-blue-600 dark:border-[#1e262f] dark:bg-[#12181f] dark:text-zinc-300 dark:hover:border-blue-500 dark:hover:text-blue-400"
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+                    <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+                  </svg>
+                  <span className="sm:hidden">Sign in</span>
+                  <span className="hidden sm:inline">Sign in to track</span>
+                </a>
+              </>
+            )}
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <span className="rounded-full border border-blue-600/20 bg-blue-600/10 px-3 py-1 text-xs font-bold text-blue-600 dark:text-blue-400">
-            Stage: {ticker.stage}
+
+        <div className="flex flex-wrap gap-1.5 rounded-xl border border-slate-200/90 bg-slate-50/80 p-2.5 dark:border-[#1e262f] dark:bg-[#12181f]/60">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-600/25 bg-blue-600/10 px-2.5 py-0.5 text-[11px] font-bold text-blue-700 dark:text-blue-300">
+            <span className="font-semibold text-blue-600/80 dark:text-blue-400/90">Stage</span>
+            {ticker.stage}
           </span>
           {ticker.recommendation ? (
             <span
-              className={`rounded-full border px-3 py-1 text-xs font-bold ${
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${
                 ticker.recommendation === "Avoid"
-                  ? "border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400"
-                  : "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  ? "border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-300"
+                  : "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
               }`}
             >
-              Recommendation: {ticker.recommendation}
+              <span
+                className={
+                  ticker.recommendation === "Avoid"
+                    ? "font-semibold text-rose-600/80 dark:text-rose-400/90"
+                    : "font-semibold text-emerald-600/80 dark:text-emerald-400/90"
+                }
+              >
+                Rec
+              </span>
+              {ticker.recommendation}
             </span>
           ) : null}
           {ticker.sector ? (
-            <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500 dark:border-[#1e262f] dark:bg-[#12181f] dark:text-zinc-400">
-              Sector: {ticker.sector}
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-[11px] font-bold text-slate-700 dark:border-[#2a3441] dark:bg-[#161d26] dark:text-zinc-300">
+              <span className="font-semibold text-slate-500 dark:text-zinc-500">Sector</span>
+              {ticker.sector}
             </span>
           ) : null}
           {ticker.sourceCount >= 2 && (
-            <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-              {ticker.sourceCount} sources
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+              <span className="font-semibold text-emerald-600/80 dark:text-emerald-400/90">Sources</span>
+              {ticker.sourceCount}
             </span>
           )}
-          {ticker.pndFlags && ticker.pndFlags.length > 0 && (
+          {ticker.pndFlags && ticker.pndFlags.length > 0 ? (
             <>
               {ticker.pndFlags.map((flag) => (
                 <span
                   key={flag}
-                  className={`rounded-full border px-3 py-1 text-xs font-bold ${
+                  className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${
                     flag === "micro_cap_no_catalyst" || flag === "sudden_spike"
-                      ? "border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                      ? "border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-300"
                       : flag === "no_news_catalyst" || flag === "only_penny_subs"
-                        ? "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                        ? "border-amber-500/25 bg-amber-500/10 text-amber-800 dark:text-amber-300"
                         : flag === "penny_price" || flag === "otc_listing" || flag === "twitter_coordinated_pump"
-                          ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                          : "border-slate-200 bg-slate-100 text-slate-500 dark:border-[#1e262f] dark:bg-[#12181f] dark:text-zinc-400"
+                          ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                          : "border-slate-200 bg-white text-slate-600 dark:border-[#2a3441] dark:bg-[#161d26] dark:text-zinc-400"
                   }`}
                 >
                   {flag.replace(/_/g, " ")}
                 </span>
               ))}
             </>
-          )}
+          ) : null}
         </div>
-      </div>
+      </header>
 
       <div className="grid grid-cols-2 gap-0 divide-x divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white dark:divide-[#1e262f] dark:border-[#1e262f] dark:bg-[#12181f] md:grid-cols-3 lg:grid-cols-6">
         <div className="flex flex-col gap-0.5 px-2.5 py-2 sm:px-3 sm:py-2.5">
@@ -618,7 +644,6 @@ export default function TickerDetailPage({
         </div>
       </div>
 
-      {/* Tab navigation — grid on small screens so three tabs stay in view; flex + scroll from md up */}
       <div className="grid min-w-0 w-full grid-cols-3 border-b border-slate-200 dark:border-[#1e262f] md:flex md:overflow-x-auto">
         {(["overview", "signals", "history"] as const).map((tab) => {
           const labels: Record<string, string> = {
