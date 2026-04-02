@@ -98,19 +98,19 @@ function SummaryCards({
 
       <Card>
         <CardContent className="pt-6 text-center">
-          <p className="text-sm text-gray-500 dark:text-zinc-400">Avg Return ({days}d)<InfoTip text="Mean return of all high-score picks (AI ≥70) detected in the last 30 days, measured at the selected period after detection." /></p>
+          <p className="text-sm text-gray-500 dark:text-zinc-400">Median Return ({days}d)<InfoTip text="Median return of all high-score picks (AI ≥70) detected in the last 30 days, measured at the selected period after detection. More representative than the mean for skewed distributions." /></p>
           <p
             className={`text-3xl font-bold ${
-              hasData && current.avgReturn > 0
+              hasData && current.medianReturn > 0
                 ? "text-green-600 dark:text-green-400"
-                : hasData && current.avgReturn < 0
+                : hasData && current.medianReturn < 0
                   ? "text-red-600 dark:text-red-400"
                   : "text-gray-900 dark:text-zinc-100"
             }`}
           >
-            {hasData ? formatPct(current.avgReturn) : "--"}
+            {hasData ? formatPct(current.medianReturn) : "--"}
           </p>
-          <p className="mt-1 text-xs text-gray-400 dark:text-zinc-500">{hasData ? `Median: ${formatPct(current.medianReturn)}` : "no data"}</p>
+          <p className="mt-1 text-xs text-gray-400 dark:text-zinc-500">{hasData ? `Avg: ${formatPct(current.avgReturn)}` : "no data"}</p>
         </CardContent>
       </Card>
 
