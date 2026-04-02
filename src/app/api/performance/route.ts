@@ -140,6 +140,8 @@ export async function GET(request: NextRequest) {
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
 
+    const recordsWithReturn = records.filter((r) => r[returnCol] !== null);
+
     const currentRecords = records.filter(
       (r) => r.validatedTicker.createdAt >= thirtyDaysAgo,
     );
@@ -150,7 +152,7 @@ export async function GET(request: NextRequest) {
     );
 
     const summary = {
-      totalTracked: records.length,
+      totalTracked: recordsWithReturn.length,
       current: computeStats(currentRecords, returnCol),
       prior: computeStats(priorRecords, returnCol),
     };
@@ -225,7 +227,6 @@ export async function GET(request: NextRequest) {
     })).reverse();
 
     // --- Breakdowns (for selected horizon) ---
-    const recordsWithReturn = records.filter((r) => r[returnCol] !== null);
     const overall = computeStats(recordsWithReturn, returnCol);
     const confirmed = computeStats(recordsWithReturn.filter((r) => r.validatedTicker.stage === "CONFIRMED"), returnCol);
     const emerging = computeStats(recordsWithReturn.filter((r) => r.validatedTicker.createdAt >= thirtyDaysAgo), returnCol);
