@@ -9,6 +9,24 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-04-02",
+    title: "Guided Onboarding Tour",
+    changes: [
+      {
+        category: "new",
+        items: [
+          "First-time visitors now get an 8-step guided tour — spotlight bubbles walk through the Signal Feed, Trending, Connections, Performance pages, the signal card, and the ticker search bar. Skip anytime; it never shows again once dismissed.",
+        ],
+      },
+      {
+        category: "improved",
+        items: [
+          "On mobile, the tour opens the sidebar to spotlight nav items in context rather than falling back to plain modals. Targets off-screen are scrolled into view before spotlighting.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-04-01",
     title: "Share & Earn, Performance Tweets, Weekly Digest & Password Recovery",
     changes: [
