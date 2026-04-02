@@ -25,8 +25,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ status: "skip", reason: "no completed scan" });
   }
 
-  // Top high-conviction signals: prioritise EARLY > FORMING > CONFIRMED,
-  // then highest AI score within each stage.
+  // Stage priority for the digest: Emerging (EARLY) → Building (FORMING) → Consensus (CONFIRMED).
+  // Within each stage, same tie-break as the dashboard: aiScore desc, then opportunityScore desc.
   const STAGE_PRIORITY: Record<string, number> = { EARLY: 0, FORMING: 1, CONFIRMED: 2 };
 
   const allCandidates = await prisma.validatedTicker.findMany({
@@ -35,10 +35,6 @@ export async function POST(req: NextRequest) {
       aiScore: { gte: 50 },
       pndFlagged: false,
       stage: { in: ["EARLY", "FORMING", "CONFIRMED"] },
-      OR: [
-        { firstSeenDaysAgo: null },
-        { firstSeenDaysAgo: { lte: 3 } },
-      ],
     },
     select: {
       symbol: true,
@@ -50,7 +46,6 @@ export async function POST(req: NextRequest) {
       stage: true,
       opportunityScore: true,
     },
-    orderBy: { aiScore: "desc" },
   });
 
   const tickers = allCandidates
