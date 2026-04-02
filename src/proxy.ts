@@ -4,7 +4,7 @@ import { authConfig } from "@/lib/auth.config";
 const { auth } = NextAuth(authConfig);
 
 // Exact page paths (no sub-routes)
-const publicPages = new Set(["/", "/login", "/register", "/changelog", "/faq", "/how-it-works", "/forgot-password", "/reset-password", "/api/stats/performance", "/api/search", "/api/methodology", "/opengraph-image", "/dashboard", "/trending", "/connections", "/performance", "/methodology"]);
+const publicPages = new Set(["/", "/login", "/register", "/changelog", "/privacy", "/faq", "/how-it-works", "/forgot-password", "/reset-password", "/api/stats/performance", "/api/search", "/api/methodology", "/opengraph-image", "/dashboard", "/trending", "/connections", "/performance", "/methodology"]);
 
 // API prefixes — matched with a boundary check so /api/scans matches
 // /api/scans and /api/scans/abc but NOT /api/scans-admin
@@ -17,6 +17,7 @@ const publicApiPrefixes = [
   "/api/reports",
   "/api/tweets",
   "/api/twitter",
+  "/api/linkedin",
   "/api/stripe/webhook",
   "/api/scans",
   "/api/signals",

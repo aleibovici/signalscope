@@ -13,6 +13,7 @@ export function PublicFooter() {
             <Link href="/faq" className="hover:text-gray-300 transition-colors">FAQ</Link>
             <Link href="/how-it-works" className="hover:text-gray-300 transition-colors">Methodology</Link>
             <Link href="/changelog" className="hover:text-gray-300 transition-colors">Changelog</Link>
+            <Link href="/privacy" className="hover:text-gray-300 transition-colors">Privacy</Link>
             <a href="/skill/SKILL.md" target="_blank" className="hover:text-gray-300 transition-colors">API Docs</a>
             <a href="https://x402.org" target="_blank" rel="noopener noreferrer" className="hover:text-gray-300 transition-colors">x402 Protocol</a>
           </div>
