@@ -360,6 +360,19 @@ model AiCostLog {
   @@index([callPoint, createdAt])
 }
 
+model XApiLog {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  endpoint  String   // "search/recent" | "tweets" | "follow" | "unfollow" | "users/me" | "users/by" | "followers"
+  method    String   // "GET" | "POST" | "DELETE"
+  action    String   // "harvest" | "ticker-tweet" | "perf-tweet" | "promo-tweet" | "follow" | "unfollow" | "lookup" | "followers" | "cashtag-search"
+  count     Int      @default(1) // number of API calls in this batch
+  statusCode Int?    // HTTP response status
+
+  @@index([createdAt])
+  @@index([action, createdAt])
+}
+
 model PasswordResetToken {
   id        String    @id @default(cuid())
   token     String    @unique
