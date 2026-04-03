@@ -1,7 +1,5 @@
-import YahooFinance from "yahoo-finance2";
+import { yahooFinance, withYahooTimeout } from "@/lib/yahoo-finance";
 import type { FundamentalData } from "./types";
-
-const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
 async function fetchQuoteSummaryData(
   symbols: string[]
@@ -13,9 +11,8 @@ async function fetchQuoteSummaryData(
     await Promise.all(
       batch.map(async (sym) => {
         try {
-          const summary = await withTimeout(
-            yf.quoteSummary(sym, { modules: ["assetProfile", "defaultKeyStatistics"] }),
-            YF_TIMEOUT_MS
+          const summary = await withYahooTimeout(
+            yahooFinance.quoteSummary(sym, { modules: ["assetProfile", "defaultKeyStatistics"] }),
           );
           result.set(sym, {
             sector: (summary.assetProfile as Record<string, unknown> | null | undefined)?.sector as string | undefined,
@@ -44,14 +41,14 @@ export async function fetchFundamentals(
   if (symbols.length === 0) return result;
 
   // Fetch quotes (batched) and quoteSummary data (sector/floatShares/shortFloat) in parallel
-  const quoteRows: Awaited<ReturnType<typeof yf.quote>>[] = [];
+  const quoteRows: Awaited<ReturnType<typeof yahooFinance.quote>>[] = [];
   const [quoteSummaryData] = await Promise.all([
     fetchQuoteSummaryData(symbols),
     (async () => {
       for (let i = 0; i < symbols.length; i += 50) {
         const batch = symbols.slice(i, i + 50);
         try {
-          const quotes = await withTimeout(yf.quote(batch), YF_TIMEOUT_MS);
+          const quotes = await withYahooTimeout(yahooFinance.quote(batch));
           const list = Array.isArray(quotes) ? quotes : [quotes];
           quoteRows.push(...list);
         } catch (err) {
@@ -114,19 +111,6 @@ export async function fetchFundamentals(
   return result;
 }
 
-const YF_TIMEOUT_MS = 10_000;
-
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  let timerId: ReturnType<typeof setTimeout>;
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timerId = setTimeout(() => reject(new Error(`Yahoo Finance timeout after ${ms}ms`)), ms);
-  });
-  return Promise.race([
-    promise.then((v) => { clearTimeout(timerId); return v; }),
-    timeoutPromise,
-  ]);
-}
-
 export async function fetchCurrentPrices(
   symbols: string[]
 ): Promise<Map<string, number | null>> {
@@ -136,7 +120,7 @@ export async function fetchCurrentPrices(
   for (let i = 0; i < symbols.length; i += 50) {
     const batch = symbols.slice(i, i + 50);
     try {
-      const quotes = await withTimeout(yf.quote(batch), YF_TIMEOUT_MS);
+      const quotes = await withYahooTimeout(yahooFinance.quote(batch));
       const list = Array.isArray(quotes) ? quotes : [quotes];
       for (const q of list) {
         if (q.symbol) priceMap.set(q.symbol, q.regularMarketPrice ?? null);
@@ -157,7 +141,7 @@ export async function fetchCurrentPrice(
   symbol: string
 ): Promise<number | null> {
   try {
-    const q = await withTimeout(yf.quote(symbol), YF_TIMEOUT_MS);
+    const q = await withYahooTimeout(yahooFinance.quote(symbol));
     return q.regularMarketPrice ?? null;
   } catch {
     return null;

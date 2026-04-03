@@ -1,4 +1,4 @@
-import YahooFinance from "yahoo-finance2";
+import { yahooFinance } from "@/lib/yahoo-finance";
 import type { RawSignal } from "../types";
 import { SCAN_SYMBOLS } from "./ticker-utils";
 
@@ -19,8 +19,6 @@ interface OptionsChainResult {
   options: { calls: OptionsContract[]; puts: OptionsContract[] }[];
   [key: string]: unknown;
 }
-
-const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
 // Thresholds
 const VOL_OI_RATIO_THRESHOLD = 3.0;
@@ -46,7 +44,7 @@ async function fetchOptionsChain(symbol: string): Promise<OptionsChainResult | n
     // No date param — Yahoo returns the nearest expiry by default.
     // Passing a calculated date (e.g. next Friday) often misses the actual
     // expiry timestamp Yahoo expects, returning 0 contracts.
-    return await yf.options(symbol) as OptionsChainResult;
+    return await yahooFinance.options(symbol) as OptionsChainResult;
   } catch (err) {
     console.warn(
       `[options-flow] Failed to fetch ${symbol}:`,
