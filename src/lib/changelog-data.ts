@@ -9,13 +9,32 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-04-03",
+    title: "Paper Trading & SPY Benchmark",
+    changes: [
+      {
+        category: "new",
+        items: [
+          "Paper Trading — a new dashboard page simulates a $1,000 position in every distinct high-scoring ticker detected in the last 30 days (pick a minimum AI score: 60, 70, 80, or 90). Open positions mark to market using the same snapshot horizons as live performance tracking; after seven days each leg rolls to closed with its realized return. See per-trade P&L, win rate, average hold, and total simulated P&L at a glance.",
+          "SPY benchmark — the page compares your simulated basket’s aggregate return to a buy-and-hold in SPY over the same calendar window, so you can see whether the signal book is beating the market over the period.",
+        ],
+      },
+      {
+        category: "improved",
+        items: [
+          "The guided onboarding tour now spotlights Paper Trading in the sidebar so new users can find the simulated book alongside Signals, Trending, and Performance.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-04-02",
     title: "Guided Onboarding Tour",
     changes: [
       {
         category: "new",
         items: [
-          "First-time visitors now get an 8-step guided tour — spotlight bubbles walk through the Signal Feed, Trending, Connections, Performance pages, the signal card, and the ticker search bar. Skip anytime; it never shows again once dismissed.",
+          "First-time visitors now get an 8-step guided tour — spotlight bubbles walk through the Signal Feed, Trending, Performance, Paper Trading, the signal card, and the ticker search bar. Skip anytime; it never shows again once dismissed.",
         ],
       },
       {

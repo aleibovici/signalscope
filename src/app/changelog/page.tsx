@@ -89,8 +89,8 @@ export default function ChangelogPage() {
             </h2>
 
             <div className="mt-4 space-y-4">
-              {entry.changes.map((group) => (
-                <div key={group.category}>
+              {entry.changes.map((group, groupIndex) => (
+                <div key={groupIndex}>
                   <span
                     className={`inline-block rounded border px-2 py-0.5 text-xs font-semibold ${categoryColor[group.category]}`}
                   >
