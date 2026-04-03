@@ -22,12 +22,6 @@ const NavIcons = {
       <polyline points="16 7 22 7 22 13" />
     </svg>
   ),
-  Connections: (
-    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="18" cy="5" r="2" /><circle cx="6" cy="12" r="2" /><circle cx="18" cy="19" r="2" />
-      <line x1="8" y1="11" x2="16" y2="6" /><line x1="8" y1="13" x2="16" y2="18" />
-    </svg>
-  ),
   Performance: (
     <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
       <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
@@ -75,7 +69,6 @@ const NavIcons = {
 const publicNavItems = [
   { href: "/dashboard", label: "Signals", icon: NavIcons.Signals, tourId: "tour-signals" },
   { href: "/trending", label: "Trending", icon: NavIcons.Trending, tourId: "tour-trending" },
-  { href: "/connections", label: "Connections", icon: NavIcons.Connections, tourId: "tour-connections" },
   { href: "/performance", label: "Performance", icon: NavIcons.Performance, tourId: "tour-performance" },
   { href: "/paper-trading", label: "Paper Trading", icon: NavIcons.PaperTrading, tourId: "tour-paper-trading" },
 ];

@@ -37,13 +37,6 @@ const STEPS: Step[] = [
     requiresSidebar: true,
   },
   {
-    targetId: "tour-connections",
-    title: "Ticker Connections",
-    body: "A network graph showing which tickers move together. Useful for spotting sector momentum and correlated plays.",
-    placement: "right",
-    requiresSidebar: true,
-  },
-  {
     targetId: "tour-performance",
     title: "Performance Tracker",
     body: "Real returns for every AI-scored pick — tracked at 1-day, 3-day, 7-day, and 30-day intervals from the moment of detection.",
