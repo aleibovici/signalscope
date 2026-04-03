@@ -48,9 +48,8 @@ const SEED_ACCOUNTS: { username: string; keep: boolean }[] = [
 
 let cachedMyUserId: string | null = null;
 
-/** Throttle follower-list fetches to at most once every 12 hours (reduces Read API calls from 20/day to 2/day). */
+/** Throttle follower-list fetches to at most once every 12 hours. */
 const FOLLOWER_CHECK_INTERVAL_MS = 12 * 60 * 60 * 1000;
-let lastFollowerCheckAt: number | null = null;
 
 /** GET /2/users/me — returns our authenticated user's numeric ID. */
 async function getMyUserId(
@@ -290,8 +289,28 @@ async function ensureSeedAccounts(): Promise<number> {
   return added;
 }
 
-/** Discover follow targets from recent Twitter harvest signals. */
+/**
+ * Discover follow targets from recent Twitter harvest signals.
+ * Only runs when a new scan has completed since the last discovery —
+ * avoids redundant Bearer-token lookups across the 10 daily runs.
+ */
 async function discoverFromHarvest(): Promise<number> {
+  // Gate on new scan: skip if no scan has completed since our last discovery run
+  const lastDiscoverySignal = await prisma.twitterFollow.findFirst({
+    where: { source: "harvest" },
+    orderBy: { createdAt: "desc" },
+    select: { createdAt: true },
+  });
+  const latestScan = await prisma.scan.findFirst({
+    where: { status: "COMPLETED" },
+    orderBy: { startedAt: "desc" },
+    select: { startedAt: true },
+  });
+  if (lastDiscoverySignal && latestScan && latestScan.startedAt <= lastDiscoverySignal.createdAt) {
+    console.log("[twitter/follow] No new scan since last discovery, skipping");
+    return 0;
+  }
+
   const since = new Date(Date.now() - DISCOVER_LOOKBACK_HOURS * 60 * 60 * 1000);
 
   // Get unique Twitter signal authors from recent scans
@@ -307,7 +326,7 @@ async function discoverFromHarvest(): Promise<number> {
 
   if (signals.length === 0) return 0;
 
-  // Filter out authors we already track
+  // Filter out authors we already track (including "unresolvable" placeholders)
   const existingUsernames = new Set(
     (
       await prisma.twitterFollow.findMany({
@@ -329,7 +348,24 @@ async function discoverFromHarvest(): Promise<number> {
   for (const signal of newAuthors) {
     const handle = signal.author!.toLowerCase();
     const resolved = idMap.get(handle);
-    if (!resolved) continue;
+
+    if (!resolved) {
+      // Mark unresolvable so we don't re-lookup on subsequent runs
+      try {
+        await prisma.twitterFollow.create({
+          data: {
+            twitterId: `unresolvable_${handle}`,
+            username: handle,
+            source: "unresolvable",
+            reason: "Username could not be resolved via X API",
+            priority: 0,
+          },
+        });
+      } catch {
+        // unique constraint — already marked
+      }
+      continue;
+    }
 
     // Higher priority for accounts with more followers
     const followers = signal.followerCount ?? 0;
@@ -367,7 +403,7 @@ async function processFollows(
 
   // Get unfollowed accounts, highest priority first, oldest first within same priority
   const queue = await prisma.twitterFollow.findMany({
-    where: { followedAt: null, unfollowedAt: null },
+    where: { followedAt: null, unfollowedAt: null, source: { not: "unresolvable" } },
     orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
     take: limit,
   });
@@ -451,12 +487,17 @@ async function processUnfollows(
 
 /** Check which of our followed accounts have followed us back. */
 async function updateFollowBacks(myId: string): Promise<number> {
-  const now = Date.now();
-  if (lastFollowerCheckAt !== null && now - lastFollowerCheckAt < FOLLOWER_CHECK_INTERVAL_MS) {
-    console.log(`[twitter/follow] Skipping follower check (last ran ${Math.round((now - lastFollowerCheckAt) / 60_000)} min ago, interval: 12h)`);
+  // Persist throttle in DB via XApiLog — survives Cloud Run cold starts
+  const lastCheck = await prisma.xApiLog.findFirst({
+    where: { action: "followers" },
+    orderBy: { createdAt: "desc" },
+    select: { createdAt: true },
+  });
+  if (lastCheck && Date.now() - lastCheck.createdAt.getTime() < FOLLOWER_CHECK_INTERVAL_MS) {
+    const minAgo = Math.round((Date.now() - lastCheck.createdAt.getTime()) / 60_000);
+    console.log(`[twitter/follow] Skipping follower check (last ran ${minAgo} min ago, interval: 12h)`);
     return 0;
   }
-  lastFollowerCheckAt = now;
 
   const followerIds = await fetchMyFollowerIds(myId);
   if (followerIds.size === 0) return 0;
@@ -535,9 +576,9 @@ export async function runFollowJob(): Promise<FollowJobResult> {
   // 5. Update follow-backs
   const followBacksUpdated = await updateFollowBacks(myId);
 
-  // 6. Current queue size
+  // 6. Current queue size (exclude unresolvable placeholders)
   const queueSize = await prisma.twitterFollow.count({
-    where: { followedAt: null, unfollowedAt: null },
+    where: { followedAt: null, unfollowedAt: null, source: { not: "unresolvable" } },
   });
 
   const result: FollowJobResult = {
