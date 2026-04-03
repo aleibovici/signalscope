@@ -9,6 +9,22 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-04-04",
+    title: "SEO & Analytics Improvements",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "Sitemap now dynamically includes up to 200 recent ticker signal pages (EARLY/FORMING/CONFIRMED, last 30 days, ranked by Opportunity Score) — Google can discover and index individual ticker signal pages.",
+          "Blog post pages now include full Open Graph images and Twitter Card metadata, so shares on social media render rich previews with the SignalScope branded image.",
+          "Methodology and FAQ pages include Twitter Card metadata.",
+          "Landing page now has a semantic <main> landmark, fixing the skip-to-content link and improving accessibility scores.",
+          "Improved text contrast on the How It Works section for WCAG AA compliance.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-04-03",
     title: "Paper Trading & SPY Benchmark",
     changes: [

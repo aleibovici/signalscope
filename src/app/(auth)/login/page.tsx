@@ -116,6 +116,7 @@ export default function LoginPage() {
         </div>
       </nav>
 
+      <main id="main-scroll">
       {/* -- Hero + Login ------------------------------------------- */}
       <section className="relative overflow-hidden bg-zinc-950 pt-20 pb-10 md:pt-24 md:pb-20">
         <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-zinc-950 via-zinc-950 to-blue-950/40" />
@@ -300,7 +301,7 @@ export default function LoginPage() {
             href="/skill/SKILL.md"
             target="_blank"
             rel="noopener noreferrer"
-            className="shrink-0 self-start rounded-lg bg-violet-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-400 transition-colors touch-manipulation sm:self-auto"
+            className="shrink-0 self-start rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 transition-colors touch-manipulation sm:self-auto"
           >
             View API docs →
           </a>
@@ -398,7 +399,7 @@ export default function LoginPage() {
                 </span>
                 <div className="pt-1.5">
                   <h3 className="text-sm font-semibold text-white">{label}</h3>
-                  <p className="text-xs leading-relaxed text-zinc-500">{desc}</p>
+                  <p className="text-xs leading-relaxed text-zinc-400">{desc}</p>
                 </div>
               </div>
             ))}
@@ -414,7 +415,7 @@ export default function LoginPage() {
                   {step}
                 </span>
                 <h3 className="mb-1 text-sm font-semibold text-white">{label}</h3>
-                <p className="text-xs leading-relaxed text-zinc-500">{desc}</p>
+                <p className="text-xs leading-relaxed text-zinc-400">{desc}</p>
               </div>
             ))}
           </div>
@@ -671,6 +672,8 @@ export default function LoginPage() {
           </Link>
         </div>
       </section>
+
+      </main>
 
       {/* -- Footer ------------------------------------------------- */}
       <footer className="border-t border-white/10 bg-black py-8">

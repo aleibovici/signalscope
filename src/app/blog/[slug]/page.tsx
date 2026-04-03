@@ -26,6 +26,23 @@ export async function generateMetadata({
       description: post.description,
       type: "article",
       publishedTime: post.date,
+      modifiedTime: post.date,
+      authors: ["SignalScope"],
+      images: [
+        {
+          url: "/opengraph-image",
+          width: 1200,
+          height: 630,
+          alt: `${post.title} — SignalScope`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      site: "@signalscopes",
+      title: `${post.title} — SignalScope`,
+      description: post.description,
+      images: ["/opengraph-image"],
     },
   };
 }
