@@ -77,7 +77,7 @@ const publicNavItems = [
   { href: "/trending", label: "Trending", icon: NavIcons.Trending, tourId: "tour-trending" },
   { href: "/connections", label: "Connections", icon: NavIcons.Connections, tourId: "tour-connections" },
   { href: "/performance", label: "Performance", icon: NavIcons.Performance, tourId: "tour-performance" },
-  { href: "/paper-trading", label: "Paper Trading", icon: NavIcons.PaperTrading },
+  { href: "/paper-trading", label: "Paper Trading", icon: NavIcons.PaperTrading, tourId: "tour-paper-trading" },
 ];
 const authNavItems = [
   { href: "/portfolio", label: "Portfolio", icon: NavIcons.Portfolio },
