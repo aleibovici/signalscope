@@ -8,6 +8,7 @@ import { useAdminStats } from "@/hooks/use-admin-stats";
 import { useAdminUsers } from "@/hooks/use-admin-users";
 import { useAdminPayments } from "@/hooks/use-admin-payments";
 import { useAdminCosts } from "@/hooks/use-admin-costs";
+import { useAdminXUsage } from "@/hooks/use-admin-x-usage";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { stageLabel } from "@/lib/stage-labels";
@@ -81,6 +82,7 @@ export default function AdminPage() {
   const { data: usersData, isLoading: usersLoading } = useAdminUsers();
   const { data: paymentsData } = useAdminPayments();
   const { data: costsData } = useAdminCosts();
+  const { data: xUsageData } = useAdminXUsage();
 
   // Redirect non-admins once session loads
   useEffect(() => {
@@ -115,6 +117,7 @@ export default function AdminPage() {
             queryClient.invalidateQueries({ queryKey: ["admin-users"] });
             queryClient.invalidateQueries({ queryKey: ["admin-payments"] });
             queryClient.invalidateQueries({ queryKey: ["admin-costs"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-x-usage"] });
           }}
           className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:active:bg-zinc-800"
         >
@@ -429,6 +432,112 @@ export default function AdminPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* X API Usage */}
+      {xUsageData && (
+        <Card>
+          <div className="border-b border-gray-100 px-3 py-2 dark:border-zinc-800">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">X / Twitter API Usage</h2>
+          </div>
+
+          {/* Period totals */}
+          <div className="grid grid-cols-4 divide-x divide-gray-100 dark:divide-zinc-800">
+            {[
+              { label: "All time", ...xUsageData.totals.allTime },
+              { label: "Last 30d", ...xUsageData.totals.last30d },
+              { label: "Last 7d", ...xUsageData.totals.last7d },
+              { label: "Last 24h", ...xUsageData.totals.last24h },
+            ].map(({ label, calls }) => (
+              <div key={label} className="px-3 py-2">
+                <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-zinc-500">{label}</p>
+                <p className="mt-0.5 text-sm font-semibold text-sky-600 dark:text-sky-400">{calls}</p>
+                <p className="text-[10px] text-gray-400 dark:text-zinc-500">API calls</p>
+              </div>
+            ))}
+          </div>
+
+          {xUsageData.errors7d > 0 && (
+            <div className="border-t border-gray-100 px-3 py-1.5 dark:border-zinc-800">
+              <p className="text-xs text-red-600 dark:text-red-400">
+                {xUsageData.errors7d} errors in last 7d
+              </p>
+            </div>
+          )}
+
+          {/* By action + by endpoint */}
+          <div className="grid grid-cols-2 divide-x divide-gray-100 border-t border-gray-100 dark:divide-zinc-800 dark:border-zinc-800">
+            <div>
+              <p className="border-b border-gray-50 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:border-zinc-800/60 dark:text-zinc-500">
+                By action
+              </p>
+              <div className="divide-y divide-gray-50 px-3 py-1 dark:divide-zinc-800/60">
+                {xUsageData.byAction.length === 0 ? (
+                  <p className="py-2 text-[10px] text-gray-400 dark:text-zinc-500">No data yet</p>
+                ) : xUsageData.byAction.map((r) => (
+                  <div key={r.action} className="flex items-center justify-between py-0.5 text-xs">
+                    <span className="text-gray-600 dark:text-zinc-300">{r.action}</span>
+                    <span className="font-semibold text-sky-600 dark:text-sky-400">{r.calls}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="border-b border-gray-50 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:border-zinc-800/60 dark:text-zinc-500">
+                By endpoint
+              </p>
+              <div className="divide-y divide-gray-50 px-3 py-1 dark:divide-zinc-800/60">
+                {xUsageData.byEndpoint.length === 0 ? (
+                  <p className="py-2 text-[10px] text-gray-400 dark:text-zinc-500">No data yet</p>
+                ) : xUsageData.byEndpoint.map((r) => (
+                  <div key={r.endpoint} className="flex items-center justify-between py-0.5 text-xs">
+                    <span className="text-gray-600 dark:text-zinc-300">{r.endpoint}</span>
+                    <span className="font-semibold text-sky-600 dark:text-sky-400">{r.calls}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Recent logs */}
+          {xUsageData.recentLogs.length > 0 && (
+            <div className="border-t border-gray-100 dark:border-zinc-800">
+              <p className="border-b border-gray-50 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:border-zinc-800/60 dark:text-zinc-500">
+                Recent API calls
+              </p>
+              <div className="max-h-[200px] overflow-y-auto overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-gray-50 bg-gray-50 text-left font-medium uppercase tracking-wide text-gray-400 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-500">
+                      <th className="px-3 py-1">Time</th>
+                      <th className="px-3 py-1">Action</th>
+                      <th className="px-3 py-1">Endpoint</th>
+                      <th className="px-3 py-1 text-right">Calls</th>
+                      <th className="px-3 py-1 text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50 dark:divide-zinc-800/60">
+                    {xUsageData.recentLogs.map((l) => (
+                      <tr key={l.id} className="hover:bg-gray-50 dark:hover:bg-zinc-900/40">
+                        <td className="whitespace-nowrap px-3 py-1 text-gray-500 dark:text-zinc-400">{formatRelative(l.createdAt)}</td>
+                        <td className="px-3 py-1 font-medium text-gray-900 dark:text-zinc-100">{l.action}</td>
+                        <td className="px-3 py-1 text-gray-500 dark:text-zinc-400">{l.method} {l.endpoint}</td>
+                        <td className="px-3 py-1 text-right text-gray-700 dark:text-zinc-300">{l.count}</td>
+                        <td className={`px-3 py-1 text-right font-medium ${
+                          l.statusCode && l.statusCode >= 400
+                            ? "text-red-600 dark:text-red-400"
+                            : "text-green-600 dark:text-green-400"
+                        }`}>
+                          {l.statusCode ?? "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </Card>

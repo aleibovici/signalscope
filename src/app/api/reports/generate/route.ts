@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-error";
 import { generateTickerReportReACT } from "@/lib/harvester/report";
 import { reconstructAggregatedSymbol } from "@/lib/reconstruct-aggregated";
-import { tweetTickerBatch, selectDiversifiedTickers, type TickerDetail } from "@/lib/twitter/post";
 import type { SignalType } from "@/lib/harvester/types";
 
 const BATCH_SIZE = 10;
@@ -56,7 +55,8 @@ export async function POST(req: NextRequest) {
     let generated = 0;
     let skipped = 0;
     const errors: { symbol: string; error: string }[] = [];
-    const tweetCandidates: TickerDetail[] = [];
+    // Tweeting is handled by the separate POST /api/tweets/post endpoint
+    // (avoids duplicate tweets when both run on the same schedule)
 
     for (const ticker of tickers) {
       try {
@@ -100,23 +100,6 @@ export async function POST(req: NextRequest) {
         console.log(`[reports/generate] ✓ ${ticker.symbol} — ${tickerReport.recommendation}`);
         generated++;
 
-        // Collect tickers for tweeting (exclude Avoid, top 5 by opportunityScore)
-        if (tickerReport.recommendation !== "Avoid") {
-          tweetCandidates.push({
-          symbol: ticker.symbol,
-          recommendation: tickerReport.recommendation,
-          catalyst: tickerReport.catalyst,
-          risks: tickerReport.risks,
-          aiReasoning: ticker.aiReasoning,
-          stage: ticker.stage,
-          opportunityScore: ticker.opportunityScore,
-          aiScore: ticker.aiScore,
-          price: ticker.price ? Number(ticker.price) : null,
-          marketCap: ticker.marketCap ? Number(ticker.marketCap) : null,
-          sector: ticker.sector,
-          sourceCount: ticker.sourceCount,
-        });
-        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error(`[reports/generate] ✗ ${ticker.symbol} — ${msg}`);
@@ -127,34 +110,12 @@ export async function POST(req: NextRequest) {
     const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
     console.log(`[reports/generate] Completed in ${elapsed}s — ${generated} generated, ${skipped} skipped, ${errors.length} errors`);
 
-    // Tweet individual tickers (best-effort, doesn't affect response)
-    let tweetResult = null;
-    if (tweetCandidates.length > 0) {
-      try {
-        const diversified = selectDiversifiedTickers(tweetCandidates, 10);
-        console.log(`[reports/generate] Tweeting ${diversified.length} tickers: ${diversified.map((t) => t.symbol).join(", ")}`);
-        const result = await tweetTickerBatch(diversified);
-        tweetResult = { posted: result.posted, failed: result.failed, replies: result.replies, replyFailed: result.replyFailed };
-        if (result.failed.length > 0) {
-          console.warn(`[reports/generate] Tweet failures: ${result.failed.map((f) => `${f.symbol}: ${f.error}`).join(", ")}`);
-        }
-        if (result.replyFailed.length > 0) {
-          console.warn(`[reports/generate] Reply failures: ${result.replyFailed.map((f) => `${f.symbol}: ${f.error}`).join(", ")}`);
-        }
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.warn(`[reports/generate] Tweet error (non-fatal): ${msg}`);
-        tweetResult = { posted: [], failed: [{ symbol: "batch", error: msg }] };
-      }
-    }
-
     return NextResponse.json({
       status: "completed",
       scanId: latestScan.id,
       generated,
       skipped,
       errors,
-      tweet: tweetResult,
     });
   } catch (err) {
     return handleApiError(err, "reports/generate");

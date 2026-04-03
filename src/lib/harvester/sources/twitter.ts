@@ -1,5 +1,6 @@
 import type { RawSignal } from "../types";
 import { extractTickers, extractCashtagTickers } from "./ticker-utils";
+import { logXApiCall } from "@/lib/twitter/log";
 
 // Single combined query — pay-per-use tier has limited search rate
 // Operators like has:cashtags and lang: require Pro tier ($5000/mo)
@@ -77,6 +78,8 @@ async function searchTweets(
       headers: { Authorization: `Bearer ${bearerToken}` },
       signal: AbortSignal.timeout(15000),
     });
+
+    logXApiCall({ endpoint: "search/recent", method: "GET", action: "harvest", statusCode: res.status });
 
     if (res.status === 429) {
       console.warn("Twitter: rate limited (429), returning partial results");

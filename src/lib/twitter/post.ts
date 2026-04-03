@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { logXApiCall } from "./log";
 
 /* ------------------------------------------------------------------ */
 /*  OAuth 1.0a helpers (Node built-in crypto, no extra deps)          */
@@ -123,6 +124,8 @@ export async function findCashtagReplyTarget(symbol: string): Promise<CashtagRep
       signal: AbortSignal.timeout(10_000),
     });
 
+    logXApiCall({ endpoint: "search/recent", method: "GET", action: "cashtag-search", statusCode: res.status });
+
     if (!res.ok) {
       console.warn(`[twitter/post] findCashtagReplyTarget $${symbol}: ${res.status}`);
       return null;
@@ -198,6 +201,8 @@ export async function postTweet(text: string, replyToTweetId?: string): Promise<
       body,
       signal: AbortSignal.timeout(15_000),
     });
+
+    logXApiCall({ endpoint: "tweets", method: "POST", action: "tweet", statusCode: res.status });
 
     if (!res.ok) {
       const errBody = await res.text();

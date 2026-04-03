@@ -4,6 +4,7 @@ import {
   getCredentials,
   type TwitterCredentials,
 } from "./post";
+import { logXApiCall } from "./log";
 
 /* ------------------------------------------------------------------ */
 /*  Config                                                             */
@@ -65,6 +66,7 @@ async function getMyUserId(
       headers: { Authorization: auth },
       signal: AbortSignal.timeout(10_000),
     });
+    logXApiCall({ endpoint: "users/me", method: "GET", action: "lookup", statusCode: res.status });
     if (!res.ok) {
       console.error(`[twitter/follow] GET /users/me ${res.status}: ${await res.text()}`);
       return null;
@@ -114,6 +116,7 @@ async function lookupUserIds(
         headers: { Authorization: `Bearer ${bearer}` },
         signal: AbortSignal.timeout(15_000),
       });
+      logXApiCall({ endpoint: "users/by", method: "GET", action: "lookup", count: batch.length, statusCode: res.status });
       if (!res.ok) {
         console.warn(`[twitter/follow] lookupUserIds ${res.status}: ${await res.text()}`);
         continue;
@@ -153,6 +156,7 @@ async function apiFollow(
       body,
       signal: AbortSignal.timeout(10_000),
     });
+    logXApiCall({ endpoint: "following", method: "POST", action: "follow", statusCode: res.status });
     if (!res.ok) {
       const text = await res.text();
       return { ok: false, error: `${res.status}: ${text}` };
@@ -179,6 +183,7 @@ async function apiUnfollow(
       headers: { Authorization: auth },
       signal: AbortSignal.timeout(10_000),
     });
+    logXApiCall({ endpoint: "following", method: "DELETE", action: "unfollow", statusCode: res.status });
     if (!res.ok) {
       const text = await res.text();
       return { ok: false, error: `${res.status}: ${text}` };
@@ -212,6 +217,7 @@ async function fetchMyFollowerIds(myId: string): Promise<Set<string>> {
         headers: { Authorization: `Bearer ${bearer}` },
         signal: AbortSignal.timeout(15_000),
       });
+      logXApiCall({ endpoint: "followers", method: "GET", action: "followers", statusCode: res.status });
       if (!res.ok) {
         console.warn(`[twitter/follow] fetchFollowers ${res.status}`);
         break;
