@@ -5,8 +5,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/login", "/register", "/blog", "/blog/feed.xml", "/faq", "/how-it-works", "/changelog", "/privacy", "/skill/", "/api/search", "/api/methodology", "/api/health", "/dashboard", "/trending", "/connections", "/performance", "/methodology", "/ticker/"],
-        disallow: ["/portfolio", "/profile", "/subscription", "/admin", "/api/"],
+        allow: ["/", "/login", "/register", "/blog", "/blog/feed.xml", "/faq", "/how-it-works", "/changelog", "/privacy", "/skill/", "/api/search", "/api/methodology", "/api/health", "/ticker/"],
+        disallow: ["/dashboard", "/trending", "/connections", "/performance", "/portfolio", "/profile", "/subscription", "/admin", "/paper-trading", "/api/"],
       },
     ],
     sitemap: "https://signalscopes.com/sitemap.xml",

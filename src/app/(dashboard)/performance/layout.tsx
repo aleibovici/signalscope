@@ -10,6 +10,7 @@ export const metadata: Metadata = {
     title: "Signal Performance — SignalScope",
     description:
       "Track how SignalScope's AI-scored breakout signals perform over time. 1d through 30d return data by stage and score range.",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
   },
 };
 
