@@ -32,14 +32,6 @@ Docker (production harvester — fetches locally, processes on Cloud Run):
 docker compose -f docker-compose.harvest.yml --env-file .env.production run --rm harvester
 ```
 
-Snapshots (price tracking — runs via Cloud Scheduler on Cloud Run):
-```bash
-# Manual trigger:
-curl -X POST https://signalscopes.com/api/snapshots/collect -H "x-snapshot-key: <SNAPSHOT_API_KEY>"
-# Or via Cloud Scheduler:
-gcloud scheduler jobs run signalscope-snapshots --location=us-central1
-```
-
 ## Tech Stack
 
 - **Next.js 16** (App Router, standalone output) + **React 19** + **TypeScript 5**
@@ -47,7 +39,7 @@ gcloud scheduler jobs run signalscope-snapshots --location=us-central1
 - **TanStack React Query** for data fetching (60s staleTime, refetchOnWindowFocus disabled)
 - **Zod 4** for validation
 - **Tailwind CSS 4**
-- **Auth.js v5** (next-auth@beta) with Credentials provider, JWT session strategy, bcryptjs for password hashing
+- **Auth.js v5** (next-auth@beta) with Credentials provider, JWT session strategy, bcryptjs
 - **Dual AI providers**: OpenAI (GPT-4o) and Anthropic (Claude 3.5 Sonnet) with per-call-point override and fallback
 
 ## Architecture
@@ -64,7 +56,7 @@ Sources (8 in parallel) → Aggregate by symbol → Fetch fundamentals for ALL s
   (or batch pre-generated for top 10 EARLY/FORMING tickers via POST /api/reports/generate)
 ```
 
-- `index.ts` — `fetchSignals()` (source fetching), `processSignals()` (AI scoring, P&D filter, DB writes — no report generation); includes `extractTxIdsFromUrls()` and `deduplicateCongressSignals()` for Congress dedup
+- `index.ts` — `fetchSignals()` (source fetching), `processSignals()` (AI scoring, P&D filter, DB writes); includes `extractTxIdsFromUrls()` and `deduplicateCongressSignals()` for Congress dedup
 - `sources/` — reddit, twitter, stocktwits, sec-insider, congress, volume-spike, options-flow, polymarket
 - `sources/ticker-utils.ts` — Shared ticker regex, blacklist, mega-caps, extraction functions
 - `scoring.ts` — AI batch scoring with hard-rule overrides
@@ -74,56 +66,27 @@ Sources (8 in parallel) → Aggregate by symbol → Fetch fundamentals for ALL s
 
 Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs to Cloud Run (`/api/harvest/ingest`) for processing
 
-### Twitter/X Auto-Posting (`src/lib/twitter/`)
+### Twitter/X (`src/lib/twitter/`)
 
-- `post.ts` — OAuth 1.0a tweet posting via X API v2 free tier (1,500 tweets/month). `composeTweet()` formats top emerging tickers into a 280-char tweet. `tweetEmergingTickers()` composes and posts.
-- Integrated into `POST /api/reports/generate` — after AI reports are generated, automatically tweets the top 5 Buy/Strong Buy/Watch tickers (best-effort, non-fatal on failure)
-- Standalone endpoint: `POST /api/tweets/post` — tweets top 5 emerging tickers with reports (x-snapshot-key auth)
-- Requires `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_TOKEN_SECRET` env vars; silently skipped if absent
-- Uses Node.js built-in `crypto` for OAuth 1.0a HMAC-SHA1 signing (no extra dependencies)
-
-### Twitter/X Performance Tweets (`src/lib/twitter/performance.ts`)
-
-Proof-based tweets showing past successful calls with actual returns. Builds trust by showing "We flagged $XYZ 7 days ago — up 23%".
-
-- `performance.ts` — `findTopPerformers()` queries TickerPerformance for tickers exceeding return thresholds (5% 1d, 8% 3d, 10% 7d, 15% 30d); `composePerformanceTweet()` formats individual ticker proof tweet; `composePerformanceSummary()` formats multi-ticker summary; `tweetPerformanceBatch()` posts summary + detail thread
-- Endpoint: `POST /api/tweets/performance` (x-snapshot-key auth, Cloud Scheduler)
-- Skips tickers with `corporateActionDetected = true`
-- Deduplicates by symbol (picks highest return)
-
-### Twitter/X Auto-Follow (`src/lib/twitter/follow.ts`)
-
-Automated follow/unfollow growth strategy. Discovers relevant accounts from harvest signals and a curated seed list, follows ~30/day, unfollows stale accounts after 30 days.
-
-- `follow.ts` — `runFollowJob()` orchestrates: seed accounts → discover from harvest → follow batch (5/run) → unfollow stale (3/run) → update follow-backs
-- Discovery: extracts unique authors from recent `TWITTER` signals, prioritizes by follower count
-- Seed list: ~16 curated finance/market accounts (unusual_whales, DeItaone, OptionsHawk, etc.), `keep: true` prevents auto-unfollow
-- Unfollow logic: accounts followed 30+ days with no follow-back and `keep=false` are unfollowed
-- Follow-back check: fetches our followers list each run, updates `followBack` flag
-- Endpoint: `POST /api/twitter/follow` (x-snapshot-key auth, Cloud Scheduler)
-- Schedule: 20 runs/day every 30 min 9AM–6:30PM ET → ~100 follows/day, ~60 unfollows/day
-- Requires both OAuth 1.0a credentials (follow/unfollow) and `X_BEARER_TOKEN` (user lookups, follower checks)
-- X API rate limit: 5 follows per 15-min window per user — each run stays within this limit
-- DB model: `TwitterFollow` tracks queue state, follow/unfollow timestamps, follow-back status
+- **`post.ts`** — OAuth 1.0a tweet posting (X API v2 free tier). `composeTweet()` formats top emerging tickers into 280-char tweet. Integrated into `POST /api/reports/generate` — tweets top 5 Buy/Strong Buy/Watch tickers after report generation.
+- **`performance.ts`** — Proof-based tweets ("We flagged $XYZ 7 days ago — up 23%"). `findTopPerformers()` queries TickerPerformance for tickers exceeding return thresholds (5% 1d, 8% 3d, 10% 7d, 15% 30d). Skips `corporateActionDetected = true`. Endpoint: `POST /api/tweets/performance`.
+- **`follow.ts`** — Automated follow/unfollow: seed accounts + harvest signal authors → follow 5/run, unfollow 3 stale (30+ days, no follow-back). `keep: true` prevents auto-unfollow. Rate limit: 5 follows per 15-min window. DB: `TwitterFollow` model. Endpoint: `POST /api/twitter/follow`.
 
 ### Email Alerts (`src/lib/email/`)
 
-- `index.ts` — `sendTickerAlerts()` sends a digest of CONFIRMED tickers via Resend. Requires `RESEND_API_KEY` env var; silently skipped if absent. Only sends to users with active subscriptions.
-- Triggered by `POST /api/alerts/send` (authenticated via `x-snapshot-key` header, same as snapshots)
-- Users can opt out via `User.emailAlerts = false` (set in profile); email alerts require Pro subscription
-- `weekly-digest.ts` — `sendWeeklyDigest()` sends a free weekly email to ALL users with `emailAlerts=true` (not just subscribers). Shows top 3 tickers + recent winners with performance data. Free users get an upgrade CTA, subscribers get a dashboard link.
-- Triggered by `POST /api/alerts/weekly-digest` (x-snapshot-key auth, Cloud Scheduler, Sundays 10 AM ET)
+- `index.ts` — `sendTickerAlerts()` sends CONFIRMED tickers digest via Resend. Only to users with active subscriptions. Triggered by `POST /api/alerts/send`.
+- `weekly-digest.ts` — `sendWeeklyDigest()` free weekly email to ALL users with `emailAlerts=true`. Top 3 tickers + recent winners. Free users get upgrade CTA. Triggered by `POST /api/alerts/weekly-digest`.
 
-### Utility Libs
+### Key Utility Libs
 
-- `src/lib/reconstruct-aggregated.ts` — Reconstructs `AggregatedSymbol`, `FundamentalData`, `NoveltyContext` from DB records (shared by on-demand and batch report endpoints)
+- `src/lib/reconstruct-aggregated.ts` — Reconstructs `AggregatedSymbol`, `FundamentalData`, `NoveltyContext` from DB records (shared by report endpoints)
 - `src/lib/cache.ts` — `TTLCache<T>` in-memory cache with max-entries eviction
-- `src/lib/rate-limit.ts` — IP-based rate limiting for auth endpoints; `getClientIP()` handles `X-Forwarded-For` for Cloud Run
-- `src/lib/price-verification.ts` — `verifyPriceAgainstSnapshot()` validates user-reported prices against latest `PriceSnapshot` (5% deviation threshold)
-- `src/lib/co-occurrence.ts` — `getCoOccurringSymbols()`, `getPairwiseEdges()`, `jaccardScore()` — co-occurrence queries and Jaccard similarity for ticker connections
-- `src/lib/paper-trading-returns.ts` — Paper-trading mark model: `computePaperTradeMark()` uses `TickerPerformance` snapshot horizons (prefers 7d → 3d → 1d) with the same min-age rules as live returns; positions are **OPEN** until age ≥ 7 days then **CLOSED**; `closingSnapshotDate()` for exit date display
-- `src/lib/spy-benchmark.ts` — `fetchSpyTotalReturnDecimal()` loads SPY daily bars from Yahoo Finance for a date window (adj. close total return), cached ~45m via `TTLCache`; used by paper trading API as a buy-and-hold benchmark over the same detection window
-- `src/lib/analytics.ts` — `trackEvent(event, params?)` pushes to GTM dataLayer; `trackConversion(event, params?)` does the same but returns a Promise that resolves after 300ms — **use `trackConversion` (with `await`) whenever the next line navigates away** (`window.location.href`, Stripe redirect, etc.) so pixel HTTP requests complete before the page unloads
+- `src/lib/rate-limit.ts` — IP-based rate limiting; `getClientIP()` handles `X-Forwarded-For` for Cloud Run
+- `src/lib/price-verification.ts` — `verifyPriceAgainstSnapshot()` validates prices against latest `PriceSnapshot` (5% deviation threshold)
+- `src/lib/co-occurrence.ts` — `getCoOccurringSymbols()`, `getPairwiseEdges()`, `jaccardScore()` for ticker connections
+- `src/lib/paper-trading-returns.ts` — `computePaperTradeMark()` uses `TickerPerformance` horizons (prefers 7d → 3d → 1d); positions **OPEN** until age ≥ 7 days then **CLOSED**
+- `src/lib/spy-benchmark.ts` — `fetchSpyTotalReturnDecimal()` loads SPY adj. close bars from Yahoo Finance; cached ~45m via `TTLCache`
+- `src/lib/analytics.ts` — `trackEvent()` pushes to GTM dataLayer; **use `trackConversion` (with `await`) whenever the next line navigates away** so pixel requests complete before page unloads
 
 ### AI Provider System (`src/lib/ai/`)
 
@@ -138,119 +101,94 @@ Automated follow/unfollow growth strategy. Discovers relevant accounts from harv
 | `/api/scans` | GET | List scans (paginated) |
 | `/api/scans/[scanId]` | GET | Scan detail with validated tickers |
 | `/api/signals` | GET | Signals filtered by scanId and stage |
-| `/api/tickers/trending` | GET | Cross-scan trending tickers (query: `minAppearances`, `stage`, `trend`) — **x402: $0.01** |
+| `/api/tickers/trending` | GET | Cross-scan trending tickers — **x402: $0.01** |
 | `/api/tickers/[symbol]` | GET | Latest ticker + raw signals — **x402: $0.005** |
-| `/api/tickers/[symbol]/history` | GET | Historical appearances for a ticker — **x402: $0.005** |
-| `/api/tickers/[symbol]/performance` | GET | Performance data for a ticker — **x402: $0.005** |
-| `/api/tickers/[symbol]/related` | GET | Co-occurring tickers with Jaccard correlation scores — **x402: $0.005** |
-| `/api/tickers/network` | GET | Network graph nodes and edges for ticker co-occurrence — **x402: $0.01** |
-| `/api/tickers/[symbol]/report` | POST | Generate AI report + trade setup on-demand (cached after first generation) — **x402: $0.05** |
+| `/api/tickers/[symbol]/history` | GET | Historical appearances — **x402: $0.005** |
+| `/api/tickers/[symbol]/performance` | GET | Performance data — **x402: $0.005** |
+| `/api/tickers/[symbol]/related` | GET | Co-occurring tickers with Jaccard scores — **x402: $0.005** |
+| `/api/tickers/network` | GET | Network graph nodes/edges — **x402: $0.01** |
+| `/api/tickers/[symbol]/report` | POST | Generate AI report + trade setup on-demand — **x402: $0.05** |
 | `/api/portfolio` | GET/POST | List or add positions |
 | `/api/portfolio/[id]` | PATCH/DELETE | Update or delete position |
 | `/api/watchlist` | GET/POST | List or add watchlist items |
 | `/api/watchlist/tickers` | GET | Watchlist symbols with latest ticker data and sources |
 | `/api/watchlist/[symbol]` | DELETE | Remove from watchlist |
-| `/api/prices` | GET | Current prices for given symbols (query: `symbols`) |
-| `/api/search` | GET | Search tickers by symbol/name (public, no auth) |
-| `/api/stats` | GET | Platform-wide stats (scan counts, ticker counts) |
-| `/api/performance` | GET | Portfolio performance over time (query: `days`) |
-| `/api/paper-trading` | GET | Simulated paper portfolio: one $1k notional leg per distinct high-scoring ticker detected in the last 30d (query: `minScore` ∈ {60,70,80,90}, default 70); returns `summary`, `trades`, and SPY `benchmark` — **authenticated** (session, Bearer, or API key) |
-| `/api/user/profile` | GET/PATCH | Get or update current user profile |
-| `/api/user/api-key` | GET/POST/DELETE | Manage API key (get metadata, generate, revoke) |
+| `/api/prices` | GET | Current prices for given symbols |
+| `/api/search` | GET | Search tickers (public, no auth) |
+| `/api/stats` | GET | Platform-wide stats |
+| `/api/performance` | GET | Portfolio performance over time |
+| `/api/paper-trading` | GET | Simulated paper portfolio — one $1k leg per high-scoring ticker in last 30d; returns `summary`, `trades`, SPY `benchmark` — **authenticated** |
+| `/api/user/profile` | GET/PATCH | Get or update user profile |
+| `/api/user/api-key` | GET/POST/DELETE | Manage API key |
 | `/api/health` | GET | Health check |
-| `/api/indexnow` | GET | IndexNow SEO submission endpoint |
-| `/api/auth/[...nextauth]` | GET/POST | Auth.js handlers (login/logout/session) |
+| `/api/indexnow` | GET | IndexNow SEO submission |
+| `/api/auth/[...nextauth]` | GET/POST | Auth.js handlers |
 | `/api/auth/login` | POST | Mobile login — returns access + refresh tokens |
-| `/api/auth/refresh` | POST | Rotate refresh token, issue new access token |
-| `/api/auth/logout` | POST | Revoke refresh tokens (all or by deviceId) |
-| `/api/auth/register` | POST | User registration — returns user + tokens |
-| `/api/methodology` | GET | Methodology data (public, structured JSON) |
-| `/api/alerts/send` | POST | Send email alerts for CONFIRMED tickers via Resend (x-snapshot-key auth) |
+| `/api/auth/refresh` | POST | Rotate refresh token |
+| `/api/auth/logout` | POST | Revoke refresh tokens |
+| `/api/auth/register` | POST | User registration — returns tokens |
+| `/api/methodology` | GET | Methodology data (public) |
+| `/api/alerts/send` | POST | Send email alerts (x-snapshot-key auth) |
 | `/api/harvest/ingest` | POST | Receive raw signals for cloud processing (x-harvest-key auth) |
-| `/api/reports/generate` | POST | Batch pre-generate AI reports for top 10 emerging tickers (x-snapshot-key auth) |
-| `/api/snapshots/collect` | POST | Collect price snapshots for validated tickers (x-snapshot-key auth) |
-| `/api/tweets/post` | POST | Tweet top emerging tickers with reports (x-snapshot-key auth) |
-| `/api/tweets/performance` | POST | Tweet performance proof thread — top performers with actual returns (x-snapshot-key auth) |
-| `/api/twitter/follow` | POST | Automated follow/unfollow job — discovers, follows 5, unfollows 3 stale (x-snapshot-key auth) |
-| `/api/alerts/weekly-digest` | POST | Free weekly email digest to all users — top 3 tickers + recent winners (x-snapshot-key auth) |
-| `/api/stripe/checkout` | POST | Create Stripe Checkout session for subscription (authenticated) |
+| `/api/reports/generate` | POST | Batch pre-generate AI reports (x-snapshot-key auth) |
+| `/api/snapshots/collect` | POST | Collect price snapshots (x-snapshot-key auth) |
+| `/api/tweets/post` | POST | Tweet top emerging tickers (x-snapshot-key auth) |
+| `/api/tweets/performance` | POST | Tweet performance proof thread (x-snapshot-key auth) |
+| `/api/twitter/follow` | POST | Automated follow/unfollow job (x-snapshot-key auth) |
+| `/api/alerts/weekly-digest` | POST | Free weekly email digest (x-snapshot-key auth) |
+| `/api/stripe/checkout` | POST | Create Stripe Checkout session (authenticated) |
 | `/api/stripe/portal` | POST | Create Stripe Customer Portal session (authenticated) |
-| `/api/stripe/webhook` | POST | Stripe webhook handler (public, signature-verified) |
+| `/api/stripe/webhook` | POST | Stripe webhook handler (signature-verified) |
 
 ### Frontend (`src/app/(dashboard)/`)
 
-Dashboard pages: signals (main), trending, connections, portfolio, paper trading (`/paper-trading` — table + aggregates vs SPY), ticker detail, performance, methodology, subscription, profile. Uses route group `(dashboard)` with shared sidebar layout.
+Dashboard pages: signals (main), trending, connections, portfolio, paper trading (`/paper-trading` — table + aggregates vs SPY), ticker detail, performance, methodology, subscription, profile. Route group `(dashboard)` with shared sidebar layout.
 
-Public pages (no auth): `/changelog` — statically rendered changelog page (`src/app/changelog/page.tsx`). Data in `src/lib/changelog-data.ts` (same pattern as `methodology-data.ts`). Linked from dashboard sidebar (with "NEW" badge for 14 days after latest entry) and landing page footer.
+Public pages: `/changelog` — statically rendered (`src/app/changelog/page.tsx`), data in `src/lib/changelog-data.ts`. Linked from sidebar with "NEW" badge for 14 days after latest entry.
 
-Methodology page data is in `src/lib/methodology-data.ts` (shared between the page component and `GET /api/methodology`). Includes ML backtesting description and pipeline data (`backtestDescription`, `backtestPipeline`).
+Methodology page data in `src/lib/methodology-data.ts` (shared with `GET /api/methodology`). Landing page (`src/app/(auth)/login/page.tsx`) doubles as marketing page with embedded login form.
 
-Landing page (`src/app/(auth)/login/page.tsx`) doubles as the public marketing page with hero, features grid, "How It Works" pipeline, signal sources, ML backtesting section, Agent Skill / API section, and footer. The login form is embedded in the hero section.
-
-All data fetching hooks are in `src/hooks/` using TanStack Query mutations/queries.
+All data fetching hooks in `src/hooks/` using TanStack Query.
 
 ### Auth (`src/lib/auth.ts`, `src/lib/auth.config.ts`)
 
-Multi-user email/password auth via Auth.js v5 (Credentials provider, JWT sessions). Mobile clients use Bearer token auth.
+Multi-user email/password auth via Auth.js v5. Mobile clients use Bearer token auth.
 
-- `auth.config.ts` — Edge-safe config (no Node.js deps), imported by middleware; `trustHost: true` required for Cloud Run reverse proxy
-- `auth.ts` — Full NextAuth instance with Prisma + bcrypt `authorize()`, exports `auth`, `handlers`, `getCurrentUserId()`
-- `getCurrentUserId()` is **async** — all callers must `await` it; checks `Authorization: Bearer` header first (mobile JWT), then `x-api-key` header (API key auth), falls back to Auth.js cookie session
-- `mobile-jwt.ts` — HS256 JWT sign/verify via `jose`, signing key `"mobile:" + AUTH_SECRET` (cryptographically separate from Auth.js), 15min access token expiry, opaque 64-hex-char refresh tokens (DB-backed, 30-day expiry, rotation on use)
-- `src/proxy.ts` (middleware) — Protects dashboard routes (redirect to `/login`) and `/api/portfolio/**`, `/api/watchlist/**`, `/api/user/**` (401 JSON); requests with `Authorization: Bearer` or `x-api-key` headers bypass middleware auth (verified in route handlers); matcher allows `.txt`/`.xml` static files through
+- `auth.config.ts` — Edge-safe config; `trustHost: true` required for Cloud Run reverse proxy
+- `auth.ts` — Full NextAuth instance; exports `auth`, `handlers`, `getCurrentUserId()`
+- `getCurrentUserId()` is **async** — all callers must `await` it; checks `Authorization: Bearer` (mobile JWT) → `x-api-key` → Auth.js cookie session
+- `mobile-jwt.ts` — HS256 JWT via `jose`, signing key `"mobile:" + AUTH_SECRET`, 15min access tokens, 30-day refresh tokens (DB-backed, rotation on use)
+- `src/proxy.ts` (middleware) — Protects dashboard routes and `/api/portfolio/**`, `/api/watchlist/**`, `/api/user/**`; Bearer/x-api-key bypass middleware (verified in route handlers)
 - Public routes: `/login`, `/register`, `/changelog`, `/api/auth/**`, `/api/health`, `/api/alerts/**`, `/api/harvest/**`, `/api/snapshots/**`, `/api/reports/**`
-- Auth pages use route group `(auth)` with centered layout (no sidebar)
-- `SessionProvider` wrapped in `src/lib/session-provider.tsx`, added to root layout
-- Type augmentations in `src/types/next-auth.d.ts` (adds `id` and `role` to Session/JWT)
 - Seed user: `user@signalscope.dev` / `password123`
-
-#### Mobile Auth Flow
-
-1. `POST /api/auth/login` with `{ email, password, deviceId? }` → returns `{ accessToken, refreshToken, expiresIn, user }`
-2. Use `Authorization: Bearer <accessToken>` on all protected routes
-3. When access token expires (15min), call `POST /api/auth/refresh` with `{ refreshToken }` → returns new token pair (rotation)
-4. `POST /api/auth/logout` revokes refresh tokens (requires Bearer auth)
-5. `POST /api/auth/register` also returns tokens for seamless register-and-go
 
 ### x402 Payment Protocol (`src/lib/x402.ts`)
 
-Anonymous pay-per-call access for AI agents via the [x402 protocol](https://www.x402.org). Agents pay in USDC on Base (L2) — no registration or API key needed. Coexists with existing auth: if request has session/Bearer/API key, normal auth is used; otherwise x402 validates payment or returns HTTP 402 with payment requirements.
+Anonymous pay-per-call access for AI agents via USDC on Base (L2). Coexists with auth: session/Bearer/API key uses normal auth; otherwise x402 validates or returns HTTP 402.
 
-- `src/lib/x402.ts` — Shared x402 server config, route configs, `hasAuthCredentials()` helper
-- Monetized endpoints: `GET /api/tickers/trending` ($0.01), `GET /api/tickers/network` ($0.01), `GET /api/tickers/[symbol]` ($0.005), `GET /api/tickers/[symbol]/related` ($0.005), `GET /api/tickers/[symbol]/history` ($0.005), `GET /api/tickers/[symbol]/performance` ($0.005), `POST /api/tickers/[symbol]/report` ($0.05)
-- Public (no auth, no payment): `GET /api/search` — free discovery endpoint to drive agents toward paid ticker endpoints
-- Middleware (`src/proxy.ts`) bypasses auth for x402 paths so route handlers can return 402 payment details
-- Enabled when `X402_WALLET_ADDRESS` env var is set; disabled (normal auth only) when absent
-- Facilitator: `https://facilitator.x402.org` (Coinbase-hosted, testnet-only for Base Sepolia; production facilitators at x402.org/ecosystem)
-- Payment settles to wallet on Base mainnet (`eip155:8453`), scheme: `exact` (EIP-3009 USDC `transferWithAuthorization`)
+- Enabled when `X402_WALLET_ADDRESS` env var is set
+- Payment settles on Base mainnet (`eip155:8453`), scheme: `exact` (EIP-3009 USDC)
 - Packages: `@x402/next`, `@x402/core`, `@x402/evm`, `viem`
 
 ### Stripe Subscriptions (`src/lib/stripe.ts`, `src/lib/subscription.ts`)
 
-Paid subscription ($10/mo or $100/yr) gates three features: API key access, on-demand AI report generation, and email alerts. The dashboard is free for all authenticated users.
+$10/mo or $100/yr gates: API key access, on-demand AI report generation, email alerts. Dashboard free for all users.
 
-- `src/lib/stripe.ts` — Lazy Stripe client singleton, price ID constants
-- `src/lib/subscription.ts` — `hasActiveSubscription(userId)`, `getSubscriptionForApi(userId)`, `API_KEY_DAILY_LIMIT`
-- `src/app/api/stripe/checkout/route.ts` — Creates Stripe Checkout session (accepts `{ period: "monthly" | "yearly" }`)
-- `src/app/api/stripe/portal/route.ts` — Creates Stripe Customer Portal session
-- `src/app/api/stripe/webhook/route.ts` — Handles subscription lifecycle events (checkout completed, updated, deleted, payment failed/succeeded)
-- Subscription page at `/subscription` — plan cards with monthly/yearly toggle, manage button for subscribers
-- Enforcement points: API key generation (403 if no subscription), on-demand report generation (403 if no existing report and no subscription), email alerts (filtered to subscribers only), API key rate limiting (1,000 req/day)
-- `PAST_DUE` status still allows access (gives users time to fix payment); `CANCELED`/`UNPAID` blocks access
-- Stripe Customer created lazily on first checkout attempt, stored as `User.stripeCustomerId`
-- Coexists with x402: x402 is for anonymous agent access, subscriptions are for authenticated users
+- Enforcement: API key generation (403), on-demand reports (403 if no existing report), email alerts (subscribers only), API key rate limiting (1,000 req/day)
+- `PAST_DUE` still allows access; `CANCELED`/`UNPAID` blocks
+- Stripe Customer created lazily on first checkout, stored as `User.stripeCustomerId`
 
 ### Database Models
 
-Key models in `prisma/schema.prisma`: **User** (with `emailAlerts: Boolean`, `stripeCustomerId`), **Subscription** (Stripe subscription state: status, period dates, cancelAtPeriodEnd), **Scan** (harvest run), **Signal** (raw from sources), **ValidatedTicker** (scored candidates with fundamentals/report), **TickerPerformance** (post-scan price performance tracking), **PriceSnapshot** (continuous price time-series for return computation), **UserPosition** (portfolio), **UserWatchlist** (bookmarked tickers), **RefreshToken** (mobile auth token rotation, indexed on token/userId/expiresAt), **ApiKey** (SHA-256 hashed API keys for programmatic access, single key per user, `sk_sig_` prefix), **TwitterFollow** (auto-follow queue: twitterId, username, source, priority, followedAt/unfollowedAt, followBack, keep).
+Key models in `prisma/schema.prisma`: **User** (`emailAlerts`, `stripeCustomerId`), **Subscription** (Stripe state), **Scan** (harvest run), **Signal** (raw), **ValidatedTicker** (scored candidates), **TickerPerformance** (post-scan returns), **PriceSnapshot** (price time-series), **UserPosition** (portfolio), **UserWatchlist**, **RefreshToken** (mobile auth), **ApiKey** (`sk_sig_` prefix, SHA-256 hashed), **TwitterFollow** (auto-follow queue).
 
-`ValidatedTicker` notable fields: `wk52Lo/wk52Hi` (52-week range), `firstSeenDaysAgo` (null = truly novel, 0 = first seen today, N = days ago), `priorAppearances` (count of prior appearances in 30d window), `exchange`, `aiReasoning`, `pndFlagged/pndFlags/pndScore/pndAiConfidence/pndAiReasoning`, `tradeSetupEntryLo/EntryHi/StopLoss/Target1/Target2/Timeframe/RiskReward/Confidence` (AI trade setup, generated on-demand for Buy/Strong Buy recommendations).
+`ValidatedTicker` notable fields: `wk52Lo/wk52Hi`, `firstSeenDaysAgo` (null = truly novel), `priorAppearances`, `exchange`, `aiReasoning`, `pndFlagged/pndFlags/pndScore/pndAiConfidence/pndAiReasoning`, `tradeSetupEntryLo/EntryHi/StopLoss/Target1/Target2/Timeframe/RiskReward/Confidence`.
 
 `SignalSource` enum: `REDDIT | TWITTER | STOCKTWITS | SEC_INSIDER | SEC_FILING | CONGRESS | OPTIONS_FLOW | VOLUME_SPIKE | POLYMARKET`
 
 Signal stages: `EARLY | FORMING | CONFIRMED | FILTERED | UNSCORED`
 
-`UNSCORED` — non-candidate symbols (single mention, low weight) that have a Yahoo Finance price. Heuristic-scored only (no AI calls). Used for backtesting negative examples. Excluded from dashboard and trending queries.
+`UNSCORED` — single-mention symbols with a YF price. Heuristic-scored only. Excluded from dashboard and trending queries.
 
 ## Environment Variables
 
@@ -260,7 +198,7 @@ OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 AUTH_SECRET=<openssl rand -base64 32>
 
-# Optional: X/Twitter API (skipped if not set, ~$9/day at 6 runs/day)
+# Optional: X/Twitter API search (requires Basic tier $200/mo)
 X_BEARER_TOKEN=...
 X_MAX_TWEETS_PER_RUN=300
 
@@ -273,33 +211,33 @@ AI_PROVIDER_SCORING=anthropic
 AI_PROVIDER_PND=anthropic
 AI_PROVIDER_REPORT=anthropic
 
-# Harvester (fetches locally, processes on Cloud Run)
+# Harvester
 HARVEST_ENDPOINT_URL=https://signalscopes.com/api/harvest/ingest
 HARVEST_API_KEY=<openssl rand -base64 32>
 
-# Snapshots (Cloud Scheduler → Cloud Run)
+# Snapshots
 SNAPSHOT_API_KEY=<openssl rand -base64 32>
 
-# Optional: Email alerts via Resend (no emails sent if absent)
+# Optional: Email alerts via Resend
 RESEND_API_KEY=re_...
 
-# Optional: Stripe subscriptions (subscription features disabled if absent)
+# Optional: Stripe subscriptions
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_PUBLISHABLE_KEY=pk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 STRIPE_PRICE_MONTHLY=price_...
 STRIPE_PRICE_YEARLY=price_...
 
-# Optional: X/Twitter auto-posting (free tier, disabled if absent)
+# Optional: X/Twitter auto-posting
 X_API_KEY=...
 X_API_SECRET=...
 X_ACCESS_TOKEN=...
 X_ACCESS_TOKEN_SECRET=...
 
-# Optional: x402 payment protocol (USDC on Base, disabled if absent)
+# Optional: x402 payment protocol (USDC on Base)
 X402_WALLET_ADDRESS=0x...
 
-# Optional: SEO site verification meta tags
+# Optional: SEO site verification
 GOOGLE_SITE_VERIFICATION=...
 BING_SITE_VERIFICATION=...
 ```
@@ -308,202 +246,50 @@ BING_SITE_VERIFICATION=...
 
 ### Architecture
 
-- **Cloud Run** — web app (`signalscope-web`) serving Next.js standalone on port 3000
-- **Cloud SQL** — PostgreSQL 16 (`signalscope-db`, db-f1-micro), connected via Unix socket
-- **Cloud Scheduler** — 6 weekday jobs (ET, Mon–Fri): email alerts (9:10 AM), portfolio alerts (9:12 AM), reports (9:15 AM), snapshots open (9:45 AM), snapshots midday (12:30 PM), snapshots close (4:05 PM); 1 daily follow job (every 60 min 9AM–6PM ET, 10 runs/day → ~50 follows/day); 3 daily promo tweet jobs; 1 daily performance tweet (10 AM ET Mon–Fri); 1 weekly digest email (Sundays 10 AM ET)
-- **Secret Manager** — stores `DATABASE_URL`, `AUTH_SECRET`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `SNAPSHOT_API_KEY`, `RESEND_API_KEY`
+- **Cloud Run** — web app (`signalscope-web`), Next.js standalone, port 3000
+- **Cloud SQL** — PostgreSQL 16 (`signalscope-db`, db-f1-micro), Unix socket
+- **Cloud Scheduler** — 6 weekday ET jobs: email alerts (9:10 AM), portfolio alerts (9:12 AM), reports (9:15 AM), snapshots open (9:45 AM), midday (12:30 PM), close (4:05 PM); follow job hourly 9AM–6PM; performance tweet daily (10 AM ET Mon–Fri); weekly digest (Sundays 10 AM ET)
+- **Secret Manager** — `DATABASE_URL`, `AUTH_SECRET`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `SNAPSHOT_API_KEY`, `RESEND_API_KEY`
 - **Artifact Registry** — Docker images (`signalscope` repo)
-- **GitHub Actions** — CI/CD on push to `main` (`.github/workflows/deploy.yml`)
-- **Workload Identity Federation** — keyless GitHub Actions → GCP auth
+- **GitHub Actions** — CI/CD on push to `main`; Workload Identity Federation for keyless auth
 
 ### Harvester
 
-Reddit blocks cloud IPs, so signal **fetching** runs locally. Processing (AI scoring, P&D filter, DB writes) runs on Cloud Run via `POST /api/harvest/ingest`. Reports and trade setups are generated on-demand when users view tickers.
+Reddit blocks cloud IPs, so signal **fetching** runs locally. Processing runs on Cloud Run via `POST /api/harvest/ingest`.
 
-- **Dockerfile**: `Dockerfile.harvester` (lightweight, no Cloud SQL proxy)
-- **Compose file**: `docker-compose.harvest.yml`
-- **Cron schedule**: DST-safe wrapper script (`scripts/harvest-cron.sh`) — cron runs at `30 0,1,2 * * *` local time, script checks `TZ=America/New_York` and only executes at 8:30 AM ET Mon–Fri (1 hour before market open)
-- **Auth**: `x-harvest-key` header checked against `HARVEST_API_KEY` env var (stored in Secret Manager on Cloud Run)
-- **Retry**: one automatic retry on failure; on total failure, saves signals to `/tmp/signalscope-harvest-{timestamp}.json` for manual replay
-
-```bash
-docker compose -f docker-compose.harvest.yml --env-file .env.production run --rm harvester
-```
+- **Cron**: `scripts/harvest-cron.sh` — runs at 8:30 AM ET Mon–Fri (1 hour before market open)
+- **Auth**: `x-harvest-key` header checked against `HARVEST_API_KEY`
+- **Retry**: one automatic retry; on failure saves to `/tmp/signalscope-harvest-{timestamp}.json`
 
 ### Snapshots (`src/lib/snapshots/`)
 
-Continuous price tracking for all validated tickers, runs on Cloud Run triggered by Cloud Scheduler (no local Docker needed).
-
-- **How it works**: Every run creates a `PriceSnapshot` row for every ticker within 30 days of detection. Returns (1d, 3d, 7d, 30d) are computed from the snapshot time-series by finding the closest snapshot to each target period within tolerance windows. This ensures all tickers eventually have data for all return periods.
-- **Return computation**: `returns.ts` — pure function `computeReturnsFromSnapshots()` with tolerance windows (1d: 18–48h, 3d: 54–120h, 7d: 120–264h, 30d: 600–888h) to handle weekends/holidays. Always picks the snapshot closest to target time. Returns improve as more snapshots accumulate.
-- **Collector**: `index.ts` — `collectSnapshots()` fetches prices via Yahoo Finance in batches of 50, creates `PriceSnapshot` rows, recomputes returns, and upserts `TickerPerformance`.
-- **Endpoint**: `POST /api/snapshots/collect` (auth via `x-snapshot-key` header)
-- **Cloud Scheduler jobs** (all ET, Mon–Fri):
-  - `signalscope-email-alerts` — `10 9 * * 1-5` (9:10 AM ET, 40 min after harvest)
-  - `signalscope-portfolio-alerts` — `12 9 * * 1-5` (9:12 AM ET, 42 min after harvest)
-  - `signalscope-reports` — `15 9 * * 1-5` (9:15 AM ET, 45 min after harvest)
-  - `signalscope-snapshots` — `45 9 * * 1-5` (9:45 AM ET, 15 min after open — avoids auction volatility)
-  - `signalscope-snapshots-midday` — `30 12 * * 1-5` (12:30 PM ET, midday price level)
-  - `signalscope-snapshots-close` — `5 16 * * 1-5` (4:05 PM ET, 5 min after close)
-- **Auth**: `x-snapshot-key` header checked against `SNAPSHOT_API_KEY` env var (stored in Secret Manager)
-
-```bash
-# Create Cloud Scheduler jobs (all America/New_York, Mon-Fri):
-gcloud scheduler jobs create http signalscope-snapshots \
-  --location=us-central1 \
-  --schedule="45 9 * * 1-5" \
-  --time-zone="America/New_York" \
-  --uri="https://signalscopes.com/api/snapshots/collect" \
-  --http-method=POST \
-  --headers="x-snapshot-key=<SNAPSHOT_API_KEY_VALUE>" \
-  --attempt-deadline=300s \
-  --description="Collect opening price snapshots (15 min after open, avoids auction volatility)"
-
-gcloud scheduler jobs create http signalscope-snapshots-midday \
-  --location=us-central1 \
-  --schedule="30 12 * * 1-5" \
-  --time-zone="America/New_York" \
-  --uri="https://signalscopes.com/api/snapshots/collect" \
-  --http-method=POST \
-  --headers="x-snapshot-key=<SNAPSHOT_API_KEY_VALUE>" \
-  --attempt-deadline=300s \
-  --description="Collect midday price snapshots (12:30 PM ET, midpoint between open and close)"
-
-gcloud scheduler jobs create http signalscope-snapshots-close \
-  --location=us-central1 \
-  --schedule="5 16 * * 1-5" \
-  --time-zone="America/New_York" \
-  --uri="https://signalscopes.com/api/snapshots/collect" \
-  --http-method=POST \
-  --headers="x-snapshot-key=<SNAPSHOT_API_KEY_VALUE>" \
-  --attempt-deadline=300s \
-  --description="Collect closing price snapshots for validated tickers"
-
-gcloud scheduler jobs create http signalscope-reports \
-  --location=us-central1 \
-  --schedule="15 9 * * 1-5" \
-  --time-zone="America/New_York" \
-  --uri="https://signalscopes.com/api/reports/generate" \
-  --http-method=POST \
-  --headers="x-snapshot-key=<SNAPSHOT_API_KEY_VALUE>" \
-  --attempt-deadline=600s \
-  --description="Pre-generate AI reports for top 10 emerging tickers (45 min after harvest)"
-
-# Twitter auto-follow: 20 runs/day (every 30 min 9AM–6:30PM ET, every day)
-# Each run: discovers from harvest, follows 5, unfollows 1 stale → ~50 follows/day
-# First, delete old per-hour jobs if upgrading from 6-job setup:
-# for hour in 9 10 11 12 13 14; do gcloud scheduler jobs delete "signalscope-follow-${hour}" --location=us-central1 -q; done
-gcloud scheduler jobs create http signalscope-follow \
-  --location=us-central1 \
-  --schedule="0 9-18 * * *" \
-  --time-zone="America/New_York" \
-  --uri="https://signalscopes.com/api/twitter/follow" \
-  --http-method=POST \
-  --headers="x-snapshot-key=<SNAPSHOT_API_KEY_VALUE>" \
-  --attempt-deadline=120s \
-  --description="Twitter auto-follow batch (every 60 min 9AM-6PM ET, 10 runs/day → ~50 follows)"
-
-# Performance proof tweets: daily Mon-Fri 10 AM ET (after reports + ticker tweets)
-gcloud scheduler jobs create http signalscope-performance-tweet \
-  --location=us-central1 \
-  --schedule="0 10 * * 1-5" \
-  --time-zone="America/New_York" \
-  --uri="https://signalscopes.com/api/tweets/performance" \
-  --http-method=POST \
-  --headers="x-snapshot-key=<SNAPSHOT_API_KEY_VALUE>" \
-  --attempt-deadline=120s \
-  --description="Tweet performance proof thread — top performers with actual returns (10 AM ET Mon-Fri)"
-
-# Free weekly digest email: Sundays 10 AM ET
-gcloud scheduler jobs create http signalscope-weekly-digest \
-  --location=us-central1 \
-  --schedule="0 10 * * 0" \
-  --time-zone="America/New_York" \
-  --uri="https://signalscopes.com/api/alerts/weekly-digest" \
-  --http-method=POST \
-  --headers="x-snapshot-key=<SNAPSHOT_API_KEY_VALUE>" \
-  --attempt-deadline=300s \
-  --description="Free weekly email digest to all users — top 3 tickers + recent winners (Sundays 10 AM ET)"
-```
+Every run creates a `PriceSnapshot` row for all tickers within 30 days of detection. Returns (1d, 3d, 7d, 30d) computed from time-series with tolerance windows (1d: 18–48h, 3d: 54–120h, 7d: 120–264h, 30d: 600–888h) to handle weekends/holidays.
 
 ### Source Status
 
 | Source | Status | Notes |
 |--------|--------|-------|
-| Reddit | Active | Uses `old.reddit.com` JSON, sequential with 1.5s delay, browser UA |
-| X/Twitter | Active | X API v2 Recent Search (api.x.com), single keyword query, requires Basic tier ($200/mo) — Free tier returns 403, requires `X_BEARER_TOKEN` |
-| SEC Insider | Active | OpenInsider HTML + EDGAR RSS, filters C-suite $50K+ purchases |
-| Congress | Active | CapitolTrades.com — congressional stock trades; deduplicates by transaction ID across runs |
+| Reddit | Active | `old.reddit.com` JSON, sequential 1.5s delay, browser UA |
+| X/Twitter | Active | X API v2 Recent Search, requires Basic tier ($200/mo) |
+| SEC Insider | Active | OpenInsider HTML + EDGAR RSS, C-suite $50K+ purchases |
+| Congress | Active | CapitolTrades.com, deduplicates by transaction ID |
 | Volume Spike | Active | Yahoo Finance, 89 symbols, 2x avg volume threshold |
-| StockTwits | Active | Uses TrendSpider mirror (server-side rendered); direct StockTwits access is Cloudflare-blocked |
-| Options Flow | Active | Yahoo Finance options chain API, scans SCAN_SYMBOLS for unusual call volume, OTM activity, and call sweeps |
-| Polymarket | Active | Gamma API (`gamma-api.polymarket.com`), scans SCAN_SYMBOLS for stock price prediction markets with volume spikes (24h vol > $5K and > 10% of total) |
-
-### Initial Setup
-
-```bash
-# 1. Fill in .env.production with GCP project ID, API keys, etc.
-# 2. Run provisioning (creates Cloud SQL, Cloud Run, secrets, WIF, sets GitHub vars)
-bash scripts/gcp-setup.sh
-
-# 3. Run Prisma migrations via Cloud SQL Auth Proxy
-cloud_sql_proxy -instances=PROJECT:REGION:signalscope-db=tcp:5433 &
-DATABASE_URL="postgresql://signalscope:PASS@localhost:5433/signalscope" npx prisma migrate deploy
-DATABASE_URL="postgresql://signalscope:PASS@localhost:5433/signalscope" npm run db:seed
-
-# 4. Push to main to trigger first CI/CD deploy
-git push origin main
-```
+| StockTwits | Active | TrendSpider mirror (direct access is Cloudflare-blocked) |
+| Options Flow | Active | Yahoo Finance options chain, unusual call volume/OTM/sweeps |
+| Polymarket | Active | Gamma API, stock price prediction markets with volume spikes |
 
 ### CI/CD
 
-Push to `main` → GitHub Actions builds web image and pushes to Artifact Registry (`CI — Build & Push` workflow). To deploy to Cloud Run, manually trigger the `Deploy to Cloud Run` workflow.
-
-**IMPORTANT**: Always wait for the `CI — Build & Push` workflow to complete successfully before triggering `Deploy to Cloud Run`. The deploy pulls the latest image from Artifact Registry, so deploying before the build finishes will deploy the previous image. Use `gh run list --workflow="CI — Build & Push" --limit 1` to check build status.
+**IMPORTANT**: Always wait for `CI — Build & Push` to complete before triggering `Deploy to Cloud Run`. Deploying before build finishes deploys the previous image.
 
 ```bash
-# 1. Wait for build to finish
 gh run list --workflow="CI — Build & Push" --limit 1
-# 2. Then deploy
 gh workflow run "Deploy to Cloud Run" --ref main
 ```
 
 ## Tests
 
-**Vitest** (v4.1.x) with `@vitest/coverage-v8`. Config: `vitest.config.ts` at project root. Tests in `src/__tests__/`.
-
-| File | Coverage |
-|------|---------|
-| `ticker-utils.test.ts` | `extractTickers`, `extractCashtagTickers`, BLACKLIST, MEGA_CAPS |
-| `pnd-filter.test.ts` | `checkPndFlags` — all 11 flag types + threshold logic |
-| `ai-config.test.ts` | `resolveProviderOrder` — env var overrides, fallback logic |
-| `ai-chatjson.test.ts` | `chatJSON` — primary/fallback, cost tracking |
-| `cost-tracker.test.ts` | Cost accumulation and reporting |
-| `aggregate-signals.test.ts` | `aggregateSignals` — velocity, momentum, sorting |
-| `api-error.test.ts` | `handleApiError` — status code mapping |
-| `validators.test.ts` | Zod schemas — pagination, portfolio, watchlist, symbols |
-| `scoring.test.ts` | `scoreSymbolBatch` heuristic fallback (chatJSON mocked to fail) |
-| `scoring-cap.test.ts` | Post-AI social-only score cap enforcement (chatJSON mocked to return inflated scores) |
-| `twitter-cashtags.test.ts` | Twitter cashtag entity extraction + regex merging + deduplication |
-| `fundamentals.test.ts` | Yahoo Finance data extraction — sector, earningsDate, floatShares, graceful handling |
-| `mobile-jwt.test.ts` | `signAccessToken`/`verifyAccessToken` — sign, verify, expired, tampered, payload preservation |
-| `login-endpoint.test.ts` | `POST /api/auth/login` — happy path, wrong password (401), rate limiting (429), validation (400), deviceId passthrough |
-| `refresh-endpoint.test.ts` | `POST /api/auth/refresh` — token rotation, expired (401), revoked (401), non-existent (401), rate limiting (429) |
-| `snapshot-returns.test.ts` | `computeReturnsFromSnapshots` — all 4 periods, tolerance windows, weekend gaps, closest-match selection, progressive improvement, penny stocks, non-overlapping windows |
-| `trending-endpoint.test.ts` | `GET /api/tickers/trending` — empty results, response shape, trend computation (rising/falling/stable), trend filter, validation (minAppearances/stage/trend), sorting, pagination, summary before pagination, error handling |
-| `congress-dedup.test.ts` | `extractTxIdsFromUrls()` and `deduplicateCongressSignals()` — URL parsing, dedup logic |
-| `fetch-signals.test.ts` | `fetchSignals()` with all 7 sources including Congress |
-| `harvest-ingest-endpoint.test.ts` | `POST /api/harvest/ingest` — auth, signal ingestion |
-| `price-verification.test.ts` | `verifyPriceAgainstSnapshot()` — 5% deviation threshold, snapshot lookup |
-| `stage-logic.test.ts` | `determineStage()` — novel/recurring tickers, Reddit subreddit consensus, novelty boost |
-| `co-occurrence.test.ts` | `jaccardScore` pure function — identical sets, disjoint sets, partial overlap, symmetry |
-| `related-endpoint.test.ts` | `GET /api/tickers/[symbol]/related` — empty results, co-occurrence counts, Jaccard computation, stage filtering, pagination, auth (401), validation (400) |
-| `network-endpoint.test.ts` | `GET /api/tickers/network` — node/edge structure, symbol-centered vs trending-based, minWeight filtering, maxNodes cap, auth (401) |
-| `tweet-compose.test.ts` | `composeTweet` — empty input, header/footer, ticker formatting, emoji per recommendation, 280-char limit, truncation, ordering |
-| `performance-tweet.test.ts` | `composePerformanceTweet` — 280-char limit, return formatting, price formatting, scores, hashtags, penny stocks, null catalyst; `composePerformanceSummary` — multi-ticker formatting, truncation, hashtags |
-| `weekly-digest.test.ts` | `buildWeeklyDigestHtml` — valid HTML, ticker links/scores/catalyst, stage labels, upgrade CTA for free users, dashboard link for subscribers, performers section, unsubscribe link, source mentions, positive/negative return colors |
-| `paper-trading-returns.test.ts` | `computePaperTradeMark`, `pickHorizon`, `closingSnapshotDate` — open/closed rules, horizon selection, exit dates |
-| `spy-benchmark.test.ts` | `totalReturnDecimalFromBars` — sorted bars, adjClose vs close, edge cases |
+**Vitest** (v4.1.x). Config: `vitest.config.ts`. Tests in `src/__tests__/`.
 
 Key gotchas:
 - `BUY` is NOT in BLACKLIST (but `SELL`, `HOLD` are)
@@ -513,76 +299,65 @@ Key gotchas:
 
 ## Agent Skill
 
-Claude Agent Skill files are served from `public/skill/` (accessible at `https://signalscopes.com/skill/`):
+Skill files served from `public/skill/`:
+- `SKILL.md` — overview, auth, key concepts, workflow examples
+- `api-public.md` — 9 public endpoints; `opportunityScore` = early-mover rank, `aiScore` = evidence strength
+- `api-authenticated.md` — 12 authenticated endpoints
 
-- `SKILL.md` — Main skill file with overview, auth, key concepts, workflow examples, error handling
-- `api-public.md` — Signal & scan API reference (9 endpoints); includes **Opportunity score vs signal confidence (AI)** — `opportunityScore` = early-mover rank, `aiScore` = evidence strength (not expected upside)
-- `api-authenticated.md` — Account API reference (12 endpoints: portfolio, watchlist, performance, profile); performance aggregates include `byScoreRange` (AI) and `byOpportunityScoreRange` (Opportunity)
-
-`GET /api/methodology` returns `scoreComparison` with the same explanations for programmatic use.
-
-API key auth uses SHA-256 hashed keys stored in the `ApiKey` model. Key format: `sk_sig_<48 hex chars>`. Single key per user with revoke-and-replace flow. Profile page UI at `/profile` allows generating, viewing metadata, and revoking keys.
+API key format: `sk_sig_<48 hex chars>`, SHA-256 hashed in DB. Single key per user. Profile page at `/profile`.
 
 ## SEO
 
-All SEO metadata lives in Next.js metadata exports. When adding features, update descriptions across all files to stay consistent:
-
-- `src/app/layout.tsx` — Root metadata (title, description, keywords, openGraph, twitter, JSON-LD structured data)
-- `src/app/(auth)/login/layout.tsx` — Login page meta (description, OG)
-- `src/app/(auth)/register/layout.tsx` — Register page meta (description, OG)
-- `src/app/opengraph-image.tsx` — Dynamic OG image (rendered at build time)
-- `src/app/manifest.ts` — PWA manifest (name, description)
+Update descriptions across all SEO files when adding features:
+- `src/app/layout.tsx` — Root metadata (title, description, keywords, OG, JSON-LD)
+- `src/app/(auth)/login/layout.tsx` — Login page meta
+- `src/app/(auth)/register/layout.tsx` — Register page meta
+- `src/app/opengraph-image.tsx` — Dynamic OG image
+- `src/app/manifest.ts` — PWA manifest
 - `src/app/sitemap.ts` — XML sitemap (public pages only)
-- `src/app/robots.ts` — robots.txt (allows `/`, `/login`, `/register`, `/skill/`; disallows dashboard/API)
-- `src/lib/changelog-data.ts` — Changelog entries (array of `ChangelogEntry`). Add new entries at the top; `latestChangelogDate` export drives the sidebar "NEW" badge automatically. **One entry per date** — if today already has an entry, merge new changes into it instead of creating a duplicate.
+- `src/app/robots.ts` — robots.txt
+- `src/lib/changelog-data.ts` — Add new entries at the top; **one entry per date** — merge into existing date entry, never duplicate.
 
 ## API Error Handling
 
-All authenticated API routes use `handleApiError()` from `src/lib/api-error.ts` (or try/catch with proper status codes):
-- 401 for auth failures (`getCurrentUserId()` throws "Not authenticated")
-- 400 for Zod validation errors (with `details` containing issues)
-- 500 for unexpected errors (logged via `console.error` for Cloud Run log inspection)
+All authenticated routes use `handleApiError()` from `src/lib/api-error.ts`:
+- 401 for auth failures
+- 400 for Zod validation errors (with `details`)
+- 500 for unexpected errors (logged via `console.error`)
 
 ## DB Extract Script (`scripts/extract.py`)
 
-Python script that dumps every `public` base table from production PostgreSQL with `SELECT *` (no row or column filtering): one parquet per table under `scripts/output/`, plus `manifest.json` row counts. Used by the external ML harness.
-
-After parquet export, runs `pg_dump` from production (via the proxy) and `pg_restore` into your **local** dev database. Restore target: **`DATABASE_URL_DEV`** by default, or explicit `--restore-url` for one-off runs. It no longer falls back to `DATABASE_URL` to avoid accidentally restoring through local production tunnels. Requires PostgreSQL client tools (`pg_dump`, `pg_restore` on `PATH`, e.g. `brew install libpq`). Use `python scripts/extract.py --no-restore` to skip the dev overwrite.
+Dumps every `public` table from production PostgreSQL to parquet under `scripts/output/`. Then `pg_dump`/`pg_restore` into local dev DB (`DATABASE_URL_DEV`). Used by external ML harness.
 
 ```bash
 # Requires: pip install psycopg2-binary pandas pyarrow python-dotenv
-# Reads DB_PASSWORD from .env.production; local DATABASE_URL_DEV for pg_restore
-python scripts/extract.py
-# Output: scripts/output/<TableName>.parquet (one file per table), scripts/output/manifest.json
-# Dev DB: overwritten via pg_restore to match production
+python scripts/extract.py          # full run
+python scripts/extract.py --no-restore  # skip dev DB overwrite
 ```
 
-- **Why one parquet per table:** the database has many related tables; one file would require denormalizing joins or losing structure. Per-table files mirror the schema for ML tooling.
 - Auto-starts/stops Cloud SQL Auth Proxy on port 5434
-- Production access is read-only for parquet + `pg_dump`; local dev database is **written** by `pg_restore`
-- Refuses restore targets on port 5434 (Cloud SQL proxy) and Cloud SQL socket URLs
-- Output may include sensitive columns (password hashes, API keys, refresh tokens); treat `scripts/output/` accordingly
+- Refuses restore targets on port 5434 or Cloud SQL socket URLs
+- Output may include sensitive columns; treat `scripts/output/` accordingly
 
 ## Backtesting Experiment Log (`scripts/backtesting-experiments.md`)
 
-Tracks ML model runs from the external backtesting harness. Each row is one experiment with its commit hash, date, performance metrics, and a description of what changed. The purpose is to track research progress over time — as the dataset grows and the model improves, this log shows which changes moved the needle and informs fine-tuning of the pipeline filters (score thresholds, stage logic, P&D flags, etc.).
+Tracks ML model runs. Each row: commit hash, date, metrics, description.
 
-**Rules when adding entries:**
-- **Never add a duplicate** — if a commit hash already exists in the table, skip it. The commit hash is the unique identifier.
-- Add new rows at the bottom (chronological order).
-- `status: keep` = this experiment improved or matched the best result and is worth building on. `status: discard` = regression or noise, reverted.
-- The `features` column in the source data can be long — summarize to top features only in `top_features`.
+- **Never add a duplicate** — commit hash is the unique identifier
+- Add new rows at the bottom (chronological)
+- `status: keep` = improved/matched best; `status: discard` = regression
+- Summarize long `features` columns to top features only
 
 ## Deploy Workflow
 
-When the user says "deploy" or "deploy to production", execute these steps in order:
+When the user says "deploy" or "deploy to production":
 
-1. **Update changelog** — Add major new features/improvements to `src/lib/changelog-data.ts`
-2. **Lint** — Run `npm run lint` and fix any issues
-3. **Test** — Run `npm test` and ensure all tests pass
+1. **Update changelog** — Add to `src/lib/changelog-data.ts`
+2. **Lint** — `npm run lint`
+3. **Test** — `npm test`
 4. **Commit** — Stage and commit all changes
-5. **Push** — `git push origin main` (always push the commits to remote)
-6. **Deploy** — Wait for `CI — Build & Push` workflow to complete, then trigger `Deploy to Cloud Run` workflow
+5. **Push** — `git push origin main`
+6. **Deploy** — Wait for `CI — Build & Push`, then trigger `Deploy to Cloud Run`
 
 ## Path Alias
 
