@@ -43,26 +43,24 @@ export function buildEmailHtml(tickers: AlertTicker[], totalAvailable?: number):
       .map((t) => {
         const summary = t.aiReasoning || t.catalyst || null;
         const summaryRow = summary
-          ? `<tr><td colspan="3" style="padding:2px 12px 8px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#6b7280;">${escapeHtml(truncateSummary(summary))}</td></tr>`
+          ? `<tr><td colspan="2" style="padding:2px 12px 8px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#6b7280;">${escapeHtml(truncateSummary(summary))}</td></tr>`
           : "";
-        const catalystCell = t.catalyst ? escapeHtml(t.catalyst) : "—";
         return `
       <tr>
         <td style="padding:8px 12px;${summary ? "" : "border-bottom:1px solid #e5e7eb;"}">
           <a href="https://signalscopes.com/ticker/${t.symbol}" style="color:#2563eb;font-weight:600;text-decoration:none;">${t.symbol}</a>
         </td>
         <td style="padding:8px 12px;${summary ? "" : "border-bottom:1px solid #e5e7eb;"}">${t.aiScore}/100</td>
-        <td style="padding:8px 12px;${summary ? "" : "border-bottom:1px solid #e5e7eb;"}">${catalystCell}</td>
       </tr>${summaryRow}`;
       })
       .join("");
 
     const moreLink = remaining > 0
-      ? `<tr><td colspan="3" style="padding:8px 12px;border-bottom:1px solid #e5e7eb;"><a href="https://signalscopes.com/dashboard" style="color:#2563eb;font-size:13px;text-decoration:none;">+${remaining} more emerging signal${remaining !== 1 ? "s" : ""} — view on dashboard →</a></td></tr>`
+      ? `<tr><td colspan="2" style="padding:8px 12px;border-bottom:1px solid #e5e7eb;"><a href="https://signalscopes.com/dashboard" style="color:#2563eb;font-size:13px;text-decoration:none;">+${remaining} more emerging signal${remaining !== 1 ? "s" : ""} — view on dashboard →</a></td></tr>`
       : "";
 
     return `
-      <tr><td colspan="3" style="padding:12px 12px 4px;font-weight:700;font-size:13px;color:${color};text-transform:uppercase;letter-spacing:0.5px;">${label} (${items.length})</td></tr>
+      <tr><td colspan="2" style="padding:12px 12px 4px;font-weight:700;font-size:13px;color:${color};text-transform:uppercase;letter-spacing:0.5px;">${label} (${items.length})</td></tr>
       ${rows}${moreLink}`;
   }
 
@@ -88,7 +86,6 @@ export function buildEmailHtml(tickers: AlertTicker[], totalAvailable?: number):
           <tr style="text-align:left;color:#6b7280;">
             <th style="padding:8px 12px;border-bottom:2px solid #e5e7eb;">Symbol</th>
             <th style="padding:8px 12px;border-bottom:2px solid #e5e7eb;">Score</th>
-            <th style="padding:8px 12px;border-bottom:2px solid #e5e7eb;">Catalyst</th>
           </tr>
         </thead>
         <tbody>${renderSection(STAGE_LABELS.EARLY, early, "#16a34a", 3)}${renderSection(STAGE_LABELS.FORMING, forming, "#ca8a04")}${renderSection(STAGE_LABELS.CONFIRMED, confirmed, "#6b7280")}</tbody>
@@ -196,13 +193,12 @@ export function buildPortfolioAlertHtml(tickers: PortfolioAlertTicker[]): string
         </td>
         <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${t.aiScore}/100</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">$${t.entryPrice.toFixed(2)}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${t.catalyst ? escapeHtml(t.catalyst) : "—"}</td>
       </tr>`
       )
       .join("");
 
     return `
-      <tr><td colspan="4" style="padding:12px 12px 4px;font-weight:700;font-size:13px;color:${color};text-transform:uppercase;letter-spacing:0.5px;">${label} (${items.length})</td></tr>
+      <tr><td colspan="3" style="padding:12px 12px 4px;font-weight:700;font-size:13px;color:${color};text-transform:uppercase;letter-spacing:0.5px;">${label} (${items.length})</td></tr>
       ${rows}`;
   }
 
@@ -226,7 +222,6 @@ export function buildPortfolioAlertHtml(tickers: PortfolioAlertTicker[]): string
             <th style="padding:8px 12px;border-bottom:2px solid #e5e7eb;">Symbol</th>
             <th style="padding:8px 12px;border-bottom:2px solid #e5e7eb;">Score</th>
             <th style="padding:8px 12px;border-bottom:2px solid #e5e7eb;">Entry</th>
-            <th style="padding:8px 12px;border-bottom:2px solid #e5e7eb;">Catalyst</th>
           </tr>
         </thead>
         <tbody>${renderSection(STAGE_LABELS.CONFIRMED, confirmed, "#6b7280")}${renderSection(STAGE_LABELS.FORMING, forming, "#ca8a04")}</tbody>
