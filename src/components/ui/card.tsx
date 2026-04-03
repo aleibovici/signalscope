@@ -3,12 +3,15 @@ import { type ReactNode } from "react";
 export function Card({
   children,
   className = "",
+  title,
 }: {
   children: ReactNode;
   className?: string;
+  title?: string;
 }) {
   return (
     <div
+      title={title}
       className={`rounded-lg border border-gray-200 bg-white shadow-sm dark:border-zinc-800/90 dark:bg-[#12181f] dark:shadow-[0_1px_3px_rgba(0,0,0,0.35)] ${className}`}
     >
       {children}
