@@ -41,6 +41,10 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@remotion/cli": "^4.0.443",
+    "@remotion/eslint-plugin": "^4.0.443",
+    "@remotion/player": "^4.0.443",
+    "@remotion/renderer": "^4.0.443",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^3.0.0",
     "@types/node": "^25",
@@ -51,6 +55,7 @@
     "dotenv": "^17.3.1",
     "eslint": "^10",
     "eslint-config-next": "16.2.1",
+    "remotion": "^4.0.443",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "5.9.3",
