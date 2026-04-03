@@ -107,8 +107,8 @@ export const scoringBands: ScoringBand[] = [
 
 export const pndFlags: PndFlag[] = [
   // Effective flags — count toward PnD threshold (ML-validated bearish predictors)
-  { flag: "micro_cap_no_catalyst", desc: "Market cap < $40 M with no news — strongest bearish flag (−5.2% avg 7d)" },
-  { flag: "sudden_spike", desc: "≥3 Reddit signals all <3 h old AND avg upvotes <10 (−3.5% avg 7d)" },
+  { flag: "micro_cap_no_catalyst", desc: "Market cap < $40 M with no news — strongest bearish flag (−5.1% avg 7d)" },
+  { flag: "sudden_spike", desc: "≥3 Reddit signals all <3 h old AND avg upvotes <10 (−4.8% avg 7d)" },
   { flag: "no_news_catalyst", desc: "Multiple signals with no verifiable news (−0.5% avg 7d)" },
   { flag: "only_penny_subs", desc: "Only in r/pennystocks or r/smallstreetbets (−0.7% avg 7d)" },
   { flag: "sub_dime_52wk_floor", desc: "52-week low below $0.09 — shell/zombie stock risk" },
@@ -116,8 +116,8 @@ export const pndFlags: PndFlag[] = [
   { flag: "hyperbolic_language", desc: '≥3 hype phrases ("moon", "100×", "can\'t lose"…)' },
   { flag: "twitter_bot_promoters", desc: "Coordinated low-credibility accounts on X" },
   // Informational flags — detected but NOT counted toward threshold (ML shows neutral/positive returns)
-  { flag: "penny_price", desc: "Price below $0.50 — informational only (ML: +3.3% avg 7d)" },
-  { flag: "otc_listing", desc: "Listed on OTC / Pink Sheets — informational only (ML: +1.7% avg 7d)" },
+  { flag: "penny_price", desc: "Price below $0.50 — informational only (ML: +2.2% avg 7d)" },
+  { flag: "otc_listing", desc: "Listed on OTC / Pink Sheets — informational only (ML: +1.2% avg 7d)" },
   { flag: "single_source", desc: "Only one signal source — informational only (negligible impact)" },
   { flag: "coordinated_posts", desc: "≥50% near-identical post titles — informational only (negligible impact)" },
   { flag: "twitter_coordinated_pump", desc: "≥3 tweets with ≥40% near-identical text — informational only (ML: +2.0% avg 7d)" },
@@ -172,7 +172,7 @@ export const recommendationLevels: RecommendationLevel[] = [
 export const methodologyDescription =
   "SignalScope monitors public ticker mentions across eight signal sources — from social media and SEC filings " +
   "to congressional trades and Polymarket prediction markets — aggregates them by symbol, scores each candidate with AI, runs a " +
-  "13-flag pump-and-dump filter, and validates signal quality against an XGBoost ML backtesting pipeline trained on historical breakout outcomes. " +
+  "13-flag pump-and-dump filter, and validates signal quality against a per-horizon RidgeCV ML backtesting pipeline with EWMA features trained on historical breakout outcomes. " +
   "The result is a prioritised watchlist of tickers with the strongest multi-source backing, " +
   "verifiable catalysts, and machine-learning-confirmed signal patterns — surfaced before the crowd.";
 
@@ -204,17 +204,18 @@ export const backtestDescription =
   "measure nominal returns at 1, 3, 7, and 30 days after detection. Tickers that undergo corporate actions " +
   "(reverse splits, forward splits, mergers) during the tracking window are automatically detected via " +
   "consecutive-snapshot analysis and excluded from performance statistics. This growing dataset feeds into an " +
-  "XGBoost gradient boosted machine learning model. The model analyzes dozens of features per ticker and uses " +
-  "SHAP (SHapley Additive exPlanations) to understand which factors drive accuracy. These insights are used " +
-  "to continuously refine AI score thresholds, stage assignments, and pump-and-dump detection — so the " +
-  "platform gets smarter with every scan.";
+  "per-horizon RidgeCV ensemble with EWMA (exponentially weighted) historical features. Three separate models " +
+  "predict 1-day, 3-day, and 7-day returns using IC-weighted blending. The model analyzes 281 features per ticker " +
+  "including cross-sectional ranks, P&D flag history, and autocorrelation patterns. Feature importance analysis " +
+  "identifies which factors drive accuracy. These insights are used to continuously refine AI score thresholds, " +
+  "stage assignments, and pump-and-dump detection — so the platform gets smarter with every scan.";
 
 export const backtestPipeline = [
   "Price snapshots (open & close)",
   "Return computation (1d, 3d, 7d, 30d)",
-  "Feature engineering",
-  "XGBoost training + SHAP analysis",
-  "Threshold optimization",
+  "Feature engineering (281 features, EWMA + cross-sectional)",
+  "Per-horizon RidgeCV training + importance analysis",
+  "IC-weighted ensemble blending + threshold optimization",
 ] as const;
 
 export const disclaimer =
