@@ -1,9 +1,32 @@
 import type { MetadataRoute } from "next";
 import { blogPosts } from "@/lib/blog-data";
+import { prisma } from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
 
 const BASE_URL = "http://localhost:3000";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // Top non-filtered tickers detected in the last 30 days
+  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const tickers = await prisma.validatedTicker.findMany({
+    where: {
+      createdAt: { gte: cutoff },
+      stage: { notIn: ["FILTERED", "UNSCORED"] },
+    },
+    orderBy: { opportunityScore: "desc" },
+    select: { symbol: true, createdAt: true },
+    distinct: ["symbol"],
+    take: 200,
+  });
+
+  const tickerEntries: MetadataRoute.Sitemap = tickers.map((t) => ({
+    url: `${BASE_URL}/ticker/${t.symbol}`,
+    lastModified: t.createdAt,
+    changeFrequency: "daily",
+    priority: 0.6,
+  }));
+
   const blogEntries: MetadataRoute.Sitemap = blogPosts.map((post) => ({
     url: `${BASE_URL}/blog/${post.slug}`,
     lastModified: new Date(post.date),
@@ -34,6 +57,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     ...blogEntries,
+    ...tickerEntries,
     {
       url: `${BASE_URL}/faq`,
       lastModified: SITE_CONTENT_DATE,
