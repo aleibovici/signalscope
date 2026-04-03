@@ -51,6 +51,13 @@ const STEPS: Step[] = [
     requiresSidebar: true,
   },
   {
+    targetId: "tour-paper-trading",
+    title: "Paper Trading",
+    body: "Practice with simulated positions tied to live prices — open and close trades, track P&L, and compare your results to the S&P 500 without risking real capital.",
+    placement: "right",
+    requiresSidebar: true,
+  },
+  {
     targetId: "tour-ticker-card",
     title: "Signal Card",
     body: "Each card shows AI Confidence (evidence strength) and Opportunity score (early-mover rank). Click any card for the full AI report, thesis, risks, and trade setup.",
