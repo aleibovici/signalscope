@@ -10,6 +10,7 @@ export const metadata: Metadata = {
     title: "Trending Tickers — SignalScope",
     description:
       "Cross-scan trending stocks ranked by momentum and AI score. Spot recurring breakout candidates building consensus across multiple scans.",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
   },
 };
 

@@ -10,6 +10,7 @@ export const metadata: Metadata = {
     title: "Live Signals — SignalScope",
     description:
       "Real-time AI-scored stock breakout signals from 7 sources. Filter by stage, track your watchlist, and spot breakouts before market consensus.",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
   },
 };
 

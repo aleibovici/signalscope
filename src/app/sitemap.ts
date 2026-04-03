@@ -12,7 +12,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }));
 
   // Static last-modified dates (update when content actually changes)
-  const SITE_CONTENT_DATE = new Date("2026-03-29");
+  const SITE_CONTENT_DATE = new Date("2026-04-04");
 
   return [
     {
@@ -44,30 +44,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${BASE_URL}/how-it-works`,
       lastModified: SITE_CONTENT_DATE,
       changeFrequency: "monthly",
-      priority: 0.7,
-    },
-    {
-      url: `${BASE_URL}/dashboard`,
-      lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 0.9,
-    },
-    {
-      url: `${BASE_URL}/trending`,
-      lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 0.9,
-    },
-    {
-      url: `${BASE_URL}/connections`,
-      lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 0.7,
-    },
-    {
-      url: `${BASE_URL}/performance`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
       priority: 0.7,
     },
     {

@@ -10,6 +10,7 @@ export const metadata: Metadata = {
     title: "Ticker Connections — SignalScope",
     description:
       "Network graph of co-occurring stock tickers. Discover which stocks appear together across signal sources and find correlated breakout candidates.",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
   },
 };
 
