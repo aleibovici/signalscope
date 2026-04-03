@@ -12,7 +12,7 @@ SignalScope is a stock breakout signal detection platform. It harvests signals f
 npm run dev              # Next.js dev server (port 3000)
 npm run build            # Production build
 npm run lint             # ESLint
-npm test                 # Run Vitest unit tests (499 tests, 31 files)
+npm test                 # Run Vitest unit tests (~930 tests, 55 files)
 npm run test:watch       # Vitest watch mode
 npm run db:generate      # Generate Prisma client (run after schema changes)
 npm run db:migrate       # Run Prisma migrations (dev)
@@ -121,6 +121,8 @@ Automated follow/unfollow growth strategy. Discovers relevant accounts from harv
 - `src/lib/rate-limit.ts` — IP-based rate limiting for auth endpoints; `getClientIP()` handles `X-Forwarded-For` for Cloud Run
 - `src/lib/price-verification.ts` — `verifyPriceAgainstSnapshot()` validates user-reported prices against latest `PriceSnapshot` (5% deviation threshold)
 - `src/lib/co-occurrence.ts` — `getCoOccurringSymbols()`, `getPairwiseEdges()`, `jaccardScore()` — co-occurrence queries and Jaccard similarity for ticker connections
+- `src/lib/paper-trading-returns.ts` — Paper-trading mark model: `computePaperTradeMark()` uses `TickerPerformance` snapshot horizons (prefers 7d → 3d → 1d) with the same min-age rules as live returns; positions are **OPEN** until age ≥ 7 days then **CLOSED**; `closingSnapshotDate()` for exit date display
+- `src/lib/spy-benchmark.ts` — `fetchSpyTotalReturnDecimal()` loads SPY daily bars from Yahoo Finance for a date window (adj. close total return), cached ~45m via `TTLCache`; used by paper trading API as a buy-and-hold benchmark over the same detection window
 - `src/lib/analytics.ts` — `trackEvent(event, params?)` pushes to GTM dataLayer; `trackConversion(event, params?)` does the same but returns a Promise that resolves after 300ms — **use `trackConversion` (with `await`) whenever the next line navigates away** (`window.location.href`, Stripe redirect, etc.) so pixel HTTP requests complete before the page unloads
 
 ### AI Provider System (`src/lib/ai/`)
@@ -152,6 +154,7 @@ Automated follow/unfollow growth strategy. Discovers relevant accounts from harv
 | `/api/search` | GET | Search tickers by symbol/name (public, no auth) |
 | `/api/stats` | GET | Platform-wide stats (scan counts, ticker counts) |
 | `/api/performance` | GET | Portfolio performance over time (query: `days`) |
+| `/api/paper-trading` | GET | Simulated paper portfolio: one $1k notional leg per distinct high-scoring ticker detected in the last 30d (query: `minScore` ∈ {60,70,80,90}, default 70); returns `summary`, `trades`, and SPY `benchmark` — **authenticated** (session, Bearer, or API key) |
 | `/api/user/profile` | GET/PATCH | Get or update current user profile |
 | `/api/user/api-key` | GET/POST/DELETE | Manage API key (get metadata, generate, revoke) |
 | `/api/health` | GET | Health check |
@@ -176,7 +179,7 @@ Automated follow/unfollow growth strategy. Discovers relevant accounts from harv
 
 ### Frontend (`src/app/(dashboard)/`)
 
-Dashboard pages: signals (main), trending, connections, portfolio, ticker detail, performance, methodology, subscription, profile. Uses route group `(dashboard)` with shared sidebar layout.
+Dashboard pages: signals (main), trending, connections, portfolio, paper trading (`/paper-trading` — table + aggregates vs SPY), ticker detail, performance, methodology, subscription, profile. Uses route group `(dashboard)` with shared sidebar layout.
 
 Public pages (no auth): `/changelog` — statically rendered changelog page (`src/app/changelog/page.tsx`). Data in `src/lib/changelog-data.ts` (same pattern as `methodology-data.ts`). Linked from dashboard sidebar (with "NEW" badge for 14 days after latest entry) and landing page footer.
 
@@ -467,7 +470,7 @@ gh workflow run "Deploy to Cloud Run" --ref main
 
 ## Tests
 
-**Vitest** (v4.0.18) with `@vitest/coverage-v8`. Config: `vitest.config.ts` at project root. Tests in `src/__tests__/`.
+**Vitest** (v4.1.x) with `@vitest/coverage-v8`. Config: `vitest.config.ts` at project root. Tests in `src/__tests__/`.
 
 | File | Coverage |
 |------|---------|
@@ -499,6 +502,8 @@ gh workflow run "Deploy to Cloud Run" --ref main
 | `tweet-compose.test.ts` | `composeTweet` — empty input, header/footer, ticker formatting, emoji per recommendation, 280-char limit, truncation, ordering |
 | `performance-tweet.test.ts` | `composePerformanceTweet` — 280-char limit, return formatting, price formatting, scores, hashtags, penny stocks, null catalyst; `composePerformanceSummary` — multi-ticker formatting, truncation, hashtags |
 | `weekly-digest.test.ts` | `buildWeeklyDigestHtml` — valid HTML, ticker links/scores/catalyst, stage labels, upgrade CTA for free users, dashboard link for subscribers, performers section, unsubscribe link, source mentions, positive/negative return colors |
+| `paper-trading-returns.test.ts` | `computePaperTradeMark`, `pickHorizon`, `closingSnapshotDate` — open/closed rules, horizon selection, exit dates |
+| `spy-benchmark.test.ts` | `totalReturnDecimalFromBars` — sorted bars, adjClose vs close, edge cases |
 
 Key gotchas:
 - `BUY` is NOT in BLACKLIST (but `SELL`, `HOLD` are)

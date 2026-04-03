@@ -13,8 +13,9 @@ SignalScope is a stock breakout signal detection platform. It ingests multi-sour
 
 - `src/lib/harvester/` - signal collection, aggregation, AI scoring, and P&D filtering
 - `src/app/api/` - API routes used by web UI, mobile clients, and scheduler jobs
-- `src/app/(dashboard)/` - authenticated product UI (signals, ticker detail, portfolio, watchlist)
+- `src/app/(dashboard)/` - authenticated product UI (signals, ticker detail, portfolio, watchlist, paper trading)
 - `src/hooks/` - frontend data-access hooks (React Query)
+- `src/lib/paper-trading-returns.ts` + `src/lib/spy-benchmark.ts` - simulated P&L marks and SPY benchmark for `GET /api/paper-trading`
 - `public/skill/` - API docs used by agent clients ([Opportunity vs AI confidence](public/skill/api-public.md#opportunity-score-vs-signal-confidence-ai); `GET /api/methodology` returns `scoreComparison` JSON for the same)
 
 ## Local Development Setup
@@ -60,6 +61,11 @@ SignalScope is a stock breakout signal detection platform. It ingests multi-sour
 - Portfolio page refresh button (`src/app/(dashboard)/portfolio/page.tsx`) triggers React Query `refetch()` of `GET /api/portfolio`.
 - `GET /api/portfolio` fetches current prices for open symbols and computes `gainPct` server-side.
 - Ticker detail card refresh button calls `GET /api/prices?symbols=...` and shows a `live` badge when refreshed data is present.
+
+### Paper trading (simulated book)
+
+- UI: `src/app/(dashboard)/paper-trading/page.tsx`; data: `src/hooks/use-paper-trading.ts` → `GET /api/paper-trading?minScore=…` (allowed: 60, 70, 80, 90; default 70).
+- API: `src/app/api/paper-trading/route.ts` builds one synthetic $1,000 leg per distinct symbol from recent `TickerPerformance` (validated ticker AI score ≥ threshold, stage not FILTERED/UNSCORED, no corporate-action flag). Marks use `src/lib/paper-trading-returns.ts` (7d hold / snapshot horizons); aggregate return is compared to SPY over the same calendar window via `src/lib/spy-benchmark.ts`.
 
 ## API Constraints Worth Remembering
 
