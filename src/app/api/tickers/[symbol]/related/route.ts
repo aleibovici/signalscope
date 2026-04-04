@@ -65,6 +65,17 @@ async function handleRelated(request: NextRequest, upperSymbol: string) {
     },
     distinct: ["symbol"],
     orderBy: { createdAt: "desc" },
+    select: {
+      symbol: true,
+      name: true,
+      aiScore: true,
+      stage: true,
+      sector: true,
+      price: true,
+      marketCap: true,
+      recommendation: true,
+      scanId: true,
+    },
   });
 
   const latestBySymbol = new Map(latestRecords.map((r) => [r.symbol, r]));

@@ -77,6 +77,17 @@ async function handleNetwork(request: NextRequest) {
     },
     distinct: ["symbol"],
     orderBy: { createdAt: "desc" },
+    select: {
+      symbol: true,
+      name: true,
+      aiScore: true,
+      opportunityScore: true,
+      stage: true,
+      price: true,
+      marketCap: true,
+      sector: true,
+      recommendation: true,
+    },
   });
 
   const latestBySymbol = new Map(latestRecords.map((r) => [r.symbol, r]));

@@ -18,6 +18,7 @@ export const changelog: ChangelogEntry[] = [
           "P&D detection and AI scoring updated from April 2026 backtest research. Rising signal fraction is now the strongest positive predictor (#1 feature); stale signal count is the strongest negative predictor (#2). sudden_spike flag strength revised to −4.8% avg 7-day return (up from −3.5%).",
           "Backtesting model upgraded from XGBoost to a per-horizon RidgeCV ensemble with EWMA features — three separate models predict 1-day, 3-day, and 7-day returns using IC-weighted blending across 281 features.",
           "Low float shares added as a scoring penalty signal: very low float stocks underperform across all horizons per latest feature importance analysis.",
+          "Database query performance improvements: scan detail, trending, network, and related ticker endpoints now use column projection to avoid fetching large AI-generated report fields unnecessarily, reducing latency on the main dashboard queries.",
         ],
       },
     ],

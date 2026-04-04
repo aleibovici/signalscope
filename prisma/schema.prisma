@@ -269,7 +269,6 @@ model RefreshToken {
   createdAt DateTime  @default(now())
 
   @@index([userId])
-  @@index([token])
   @@index([expiresAt])
 }
 
@@ -283,7 +282,6 @@ model ApiKey {
   createdAt  DateTime  @default(now())
   revokedAt  DateTime?
 
-  @@index([key])
   @@index([userId])
 }
 
@@ -382,6 +380,5 @@ model PasswordResetToken {
   usedAt    DateTime?
   createdAt DateTime  @default(now())
 
-  @@index([token])
   @@index([expiresAt])
 }
