@@ -135,7 +135,7 @@ async function handleTrending(request: NextRequest) {
     filteredSymbols = filteredSymbols.filter((s) => trendMap.get(s) === trend);
   }
 
-  // 3. Fetch latest full record per symbol
+  // 3. Fetch latest record per symbol (only fields used in response)
   const latestRecords = await prisma.validatedTicker.findMany({
     where: {
       symbol: { in: filteredSymbols },
@@ -146,7 +146,34 @@ async function handleTrending(request: NextRequest) {
     },
     distinct: ["symbol"],
     orderBy: { createdAt: "desc" },
-    include: {
+    select: {
+      id: true,
+      scanId: true,
+      symbol: true,
+      name: true,
+      price: true,
+      marketCap: true,
+      sector: true,
+      catalyst: true,
+      risks: true,
+      recommendation: true,
+      aiScore: true,
+      opportunityScore: true,
+      stage: true,
+      signalCount: true,
+      sourceCount: true,
+      shortFloat: true,
+      avgSentiment: true,
+      firstSeenDaysAgo: true,
+      priorAppearances: true,
+      exchange: true,
+      wk52Lo: true,
+      wk52Hi: true,
+      pndFlagged: true,
+      pndScore: true,
+      pndFlags: true,
+      subredditCount: true,
+      createdAt: true,
       performance: { select: { return1d: true, return3d: true, return7d: true, return30d: true } },
     },
   });

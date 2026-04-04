@@ -1,0 +1,1 @@
+-- No schema changes required for this migration
