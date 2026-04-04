@@ -156,6 +156,7 @@ async function handleTrending(request: NextRequest) {
       sector: true,
       catalyst: true,
       risks: true,
+      report: true,
       recommendation: true,
       aiScore: true,
       opportunityScore: true,
