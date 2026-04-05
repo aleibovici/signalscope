@@ -85,8 +85,8 @@ describe("buildEmailHtml — ticker row", () => {
 describe("buildEmailHtml — summary row (aiReasoning)", () => {
   it("renders a summary row when aiReasoning is provided", () => {
     const html = buildEmailHtml([makeTicker({ aiReasoning: "Strong insider conviction." })]);
-    // Summary row: colspan=3 cell with the reasoning text
-    expect(html).toContain('colspan="3"');
+    // Summary row: colspan=2 cell (table has Symbol + Score columns)
+    expect(html).toContain('colspan="2"');
     expect(html).toContain("Strong insider conviction.");
   });
 
@@ -95,17 +95,17 @@ describe("buildEmailHtml — summary row (aiReasoning)", () => {
       makeTicker({ aiReasoning: "AI says strong.", catalyst: "Insider buy $5M" }),
     ]);
     expect(html).toContain("AI says strong.");
-    // Catalyst still appears in the main row
-    expect(html).toContain("Insider buy $5M");
+    // Catalyst is not shown when aiReasoning is present (no separate catalyst column)
+    expect(html).not.toContain("Insider buy $5M");
   });
 
   it("falls back to catalyst in summary row when aiReasoning is null", () => {
     const html = buildEmailHtml([
       makeTicker({ aiReasoning: null, catalyst: "Insider buy $5M" }),
     ]);
-    // The catalyst text will appear twice: once in the main cell, once as the summary
+    // The catalyst text appears once: in the summary row
     const matches = (html.match(/Insider buy \$5M/g) ?? []).length;
-    expect(matches).toBe(2);
+    expect(matches).toBe(1);
   });
 
   it("renders no summary row when both aiReasoning and catalyst are null", () => {
