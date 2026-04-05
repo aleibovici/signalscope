@@ -248,7 +248,7 @@ BING_SITE_VERIFICATION=...
 
 - **Cloud Run** — web app (`signalscope-web`), Next.js standalone, port 3000
 - **Cloud SQL** — PostgreSQL 16 (`signalscope-db`, db-f1-micro), Unix socket
-- **Cloud Scheduler** — 6 weekday ET jobs: email alerts (9:10 AM), portfolio alerts (9:12 AM), reports (9:15 AM), snapshots open (9:45 AM), midday (12:30 PM), close (4:05 PM); follow job hourly 9AM–6PM; performance tweet daily (10 AM ET Mon–Fri); weekly digest (Sundays 10 AM ET)
+- **Cloud Scheduler** — 6 weekday ET jobs: email alerts (9:10 AM), portfolio alerts (9:12 AM), reports (9:15 AM), snapshots open (9:45 AM), midday (12:30 PM), close (4:05 PM); follow job 3x/day weekdays (9AM, 1PM, 5PM); performance tweet daily (10 AM ET Mon–Fri); weekly digest (Sundays 10 AM ET)
 - **Secret Manager** — `DATABASE_URL`, `AUTH_SECRET`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `SNAPSHOT_API_KEY`, `RESEND_API_KEY`
 - **Artifact Registry** — Docker images (`signalscope` repo)
 - **GitHub Actions** — CI/CD on push to `main`; Workload Identity Federation for keyless auth

@@ -359,13 +359,14 @@ model AiCostLog {
 }
 
 model XApiLog {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  endpoint  String   // "search/recent" | "tweets" | "follow" | "unfollow" | "users/me" | "users/by" | "followers"
-  method    String   // "GET" | "POST" | "DELETE"
-  action    String   // "harvest" | "ticker-tweet" | "perf-tweet" | "promo-tweet" | "follow" | "unfollow" | "lookup" | "followers" | "cashtag-search"
-  count     Int      @default(1) // number of API calls in this batch
-  statusCode Int?    // HTTP response status
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
+  endpoint     String   // "search/recent" | "tweets" | "follow" | "unfollow" | "users/me" | "users/by" | "followers"
+  method       String   // "GET" | "POST" | "DELETE"
+  action       String   // "harvest" | "ticker-tweet" | "perf-tweet" | "promo-tweet" | "follow" | "unfollow" | "lookup" | "followers" | "cashtag-search"
+  count        Int      @default(1) // number of API calls in this batch
+  statusCode   Int?     // HTTP response status
+  responseBody String?  // optional: cached response value (e.g. resolved user ID)
 
   @@index([createdAt])
   @@index([action, createdAt])
