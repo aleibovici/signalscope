@@ -10,6 +10,7 @@ export function logXApiCall(params: {
   action: string;
   count?: number;
   statusCode?: number;
+  responseBody?: string;
 }): void {
   prisma.xApiLog
     .create({
@@ -19,6 +20,7 @@ export function logXApiCall(params: {
         action: params.action,
         count: params.count ?? 1,
         statusCode: params.statusCode ?? undefined,
+        responseBody: params.responseBody ?? undefined,
       },
     })
     .catch((err) => {

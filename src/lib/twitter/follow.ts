@@ -10,8 +10,8 @@ import { logXApiCall } from "./log";
 /*  Config                                                             */
 /* ------------------------------------------------------------------ */
 
-const FOLLOW_BATCH = 5; // X rate limit: 5 follows per 15-min window; 10 runs/day → ~50 follows/day
-const UNFOLLOW_BATCH = 1;
+const FOLLOW_BATCH = 5; // X rate limit: 5 follows per 15-min window; 3 runs/day → ~15 follows/day
+const UNFOLLOW_BATCH = 3; // batch unfollows to compensate for fewer runs
 const STALE_DAYS = 30;
 const DISCOVER_LOOKBACK_HOURS = 72;
 
@@ -51,11 +51,26 @@ let cachedMyUserId: string | null = null;
 /** Throttle follower-list fetches to at most once every 12 hours. */
 const FOLLOWER_CHECK_INTERVAL_MS = 12 * 60 * 60 * 1000;
 
-/** GET /2/users/me — returns our authenticated user's numeric ID. */
+/**
+ * GET /2/users/me — returns our authenticated user's numeric ID.
+ * Persists to XApiLog so the resolved ID survives Cloud Run cold starts.
+ */
 async function getMyUserId(
   creds: TwitterCredentials
 ): Promise<string | null> {
   if (cachedMyUserId) return cachedMyUserId;
+
+  // Check DB for a recently resolved ID (avoids API call on cold start)
+  const cached = await prisma.xApiLog.findFirst({
+    where: { endpoint: "users/me", action: "lookup", statusCode: 200 },
+    orderBy: { createdAt: "desc" },
+    select: { responseBody: true },
+  });
+  if (cached?.responseBody) {
+    cachedMyUserId = cached.responseBody;
+    console.log(`[twitter/follow] Authenticated user ID (from DB cache): ${cachedMyUserId}`);
+    return cachedMyUserId;
+  }
 
   const url = "https://api.x.com/2/users/me";
   const auth = buildOAuthHeader("GET", url, {}, creds);
@@ -65,13 +80,14 @@ async function getMyUserId(
       headers: { Authorization: auth },
       signal: AbortSignal.timeout(10_000),
     });
-    logXApiCall({ endpoint: "users/me", method: "GET", action: "lookup", statusCode: res.status });
     if (!res.ok) {
+      logXApiCall({ endpoint: "users/me", method: "GET", action: "lookup", statusCode: res.status });
       console.error(`[twitter/follow] GET /users/me ${res.status}: ${await res.text()}`);
       return null;
     }
     const data = (await res.json()) as { data?: { id: string } };
     cachedMyUserId = data.data?.id ?? null;
+    logXApiCall({ endpoint: "users/me", method: "GET", action: "lookup", statusCode: res.status, responseBody: cachedMyUserId ?? undefined });
     if (cachedMyUserId) {
       console.log(`[twitter/follow] Authenticated user ID: ${cachedMyUserId}`);
     }
@@ -292,7 +308,7 @@ async function ensureSeedAccounts(): Promise<number> {
 /**
  * Discover follow targets from recent Twitter harvest signals.
  * Only runs when a new scan has completed since the last discovery —
- * avoids redundant Bearer-token lookups across the 10 daily runs.
+ * avoids redundant Bearer-token lookups across the 3 daily runs.
  */
 async function discoverFromHarvest(): Promise<number> {
   // Gate on new scan: skip if no scan has completed since our last discovery run
