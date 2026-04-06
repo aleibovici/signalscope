@@ -90,7 +90,7 @@ Network graph of ticker price-correlation relationships.
 
 Latest validated ticker data plus raw signals.
 
-**Response:** `{ ticker: { id, symbol, aiScore, opportunityScore, stage, price, marketCap, catalyst, risks, recommendation, report, signalCount, sourceCount, sources, shortFloat, avgSentiment, firstSeenDaysAgo, priorAppearances, return7d, createdAt, ... }, signals: [...] }` — includes both scores on `ticker` (see [Opportunity score vs signal confidence](#opportunity-score-vs-signal-confidence-ai)).
+**Response:** `{ ticker: { id, symbol, aiScore, opportunityScore, stage, price, marketCap, catalyst, risks, recommendation, report, signalCount, sourceCount, sources, shortFloat, avgSentiment, firstSeenDaysAgo, priorAppearances, return7d, netPremium, callPremiumRatio, createdAt, ... }, signals: [...] }` — includes both scores on `ticker` (see [Opportunity score vs signal confidence](#opportunity-score-vs-signal-confidence-ai)). `netPremium` (call − put premium in $; positive = bullish) and `callPremiumRatio` (0–1) are sourced from Options Flow when available.
 
 Returns 404 if the symbol has never been validated.
 
@@ -179,7 +179,7 @@ Get raw signals for a scan. No authentication required.
 | scanId | string | required | Scan ID |
 | stage | string | — | Filter: `Emerging`, `Building`, `Consensus`, `Filtered` |
 
-**Response:** `{ signals: [{ id, scanId, symbol, source, title, url, velocityScore, createdAt }] }`
+**Response:** `{ signals: [{ id, scanId, symbol, source, title, url, velocityScore, netPremium, callPremiumRatio, createdAt }] }` — `netPremium` (call − put premium in dollars; positive = bullish) and `callPremiumRatio` (0–1; proportion of total premium on the call side) are present on `OPTIONS_FLOW` signals only.
 
 Max 200 results, sorted by sourceCount then velocityScore descending.
 

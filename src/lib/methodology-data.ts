@@ -62,8 +62,8 @@ export const signalSources: SignalSource[] = [
   {
     icon: "💎",
     name: "Options Flow",
-    description: "Detects unusual call volume, heavy OTM call activity, and call sweeps across a watchlist of liquid stocks.",
-    params: "89 symbols · Vol/OI ≥3× · OTM 10%+ · nearest expiry",
+    description: "Detects unusual call volume, heavy OTM call activity, call sweeps, and net premium flow (call vs put dollar volume) across a watchlist of liquid stocks.",
+    params: "89 symbols · Vol/OI ≥3× · OTM 10%+ · nearest expiry · net premium & call/put ratio",
   },
   {
     icon: "📣",

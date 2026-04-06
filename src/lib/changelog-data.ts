@@ -9,6 +9,24 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-04-07",
+    title: "Net Premium Flow & Options Signal Upgrade",
+    changes: [
+      {
+        category: "new",
+        items: [
+          "Options Flow signals now include net premium flow (call premium minus put premium in dollars) and call premium ratio — quantifying the directional dollar bias behind unusual options activity. Positive net premium = bullish institutional positioning; ratio near 1.0 = heavy call-side conviction.",
+        ],
+      },
+      {
+        category: "improved",
+        items: [
+          "Net premium and call premium ratio propagated through the full pipeline: raw signals, aggregation, validated tickers, and database — available in AI scoring context and ticker detail views.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-04-04",
     title: "ML Model Update & SEO Improvements",
     changes: [

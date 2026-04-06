@@ -33,14 +33,14 @@ function chain(calls: MockContract[], puts: MockContract[]) {
   return {
     quote: { regularMarketPrice: 100 },
     options: [{ calls, puts }],
-  } as any;
+  } as unknown as Parameters<typeof computeNetPremium>[0];
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 describe("computeNetPremium", () => {
   it("returns null when options array is empty", () => {
-    const result = computeNetPremium({ quote: {}, options: [] } as any);
+    const result = computeNetPremium({ quote: {}, options: [] } as unknown as Parameters<typeof computeNetPremium>[0]);
     expect(result).toBeNull();
   });
 

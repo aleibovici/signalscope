@@ -57,7 +57,7 @@ Sources (8 in parallel) → Aggregate by symbol → Fetch fundamentals for ALL s
 ```
 
 - `index.ts` — `fetchSignals()` (source fetching), `processSignals()` (AI scoring, P&D filter, DB writes); includes `extractTxIdsFromUrls()` and `deduplicateCongressSignals()` for Congress dedup
-- `sources/` — reddit, twitter, stocktwits, sec-insider, congress, volume-spike, options-flow, polymarket
+- `sources/` — reddit, twitter, stocktwits, sec-insider, congress, volume-spike, options-flow (includes `computeNetPremium()` for call/put dollar flow), polymarket
 - `sources/ticker-utils.ts` — Shared ticker regex, blacklist, mega-caps, extraction functions
 - `scoring.ts` — AI batch scoring with hard-rule overrides
 - `pnd-filter.ts` — Pump & dump detection (statistical flags + AI fallback)
@@ -182,7 +182,7 @@ $10/mo or $100/yr gates: API key access, on-demand AI report generation, email a
 
 Key models in `prisma/schema.prisma`: **User** (`emailAlerts`, `stripeCustomerId`), **Subscription** (Stripe state), **Scan** (harvest run), **Signal** (raw), **ValidatedTicker** (scored candidates), **TickerPerformance** (post-scan returns), **PriceSnapshot** (price time-series), **UserPosition** (portfolio), **UserWatchlist**, **RefreshToken** (mobile auth), **ApiKey** (`sk_sig_` prefix, SHA-256 hashed), **TwitterFollow** (auto-follow queue).
 
-`ValidatedTicker` notable fields: `wk52Lo/wk52Hi`, `firstSeenDaysAgo` (null = truly novel), `priorAppearances`, `exchange`, `aiReasoning`, `pndFlagged/pndFlags/pndScore/pndAiConfidence/pndAiReasoning`, `tradeSetupEntryLo/EntryHi/StopLoss/Target1/Target2/Timeframe/RiskReward/Confidence`.
+`ValidatedTicker` notable fields: `wk52Lo/wk52Hi`, `firstSeenDaysAgo` (null = truly novel), `priorAppearances`, `exchange`, `aiReasoning`, `pndFlagged/pndFlags/pndScore/pndAiConfidence/pndAiReasoning`, `netPremium` (call−put premium $), `callPremiumRatio` (0–1), `tradeSetupEntryLo/EntryHi/StopLoss/Target1/Target2/Timeframe/RiskReward/Confidence`.
 
 `SignalSource` enum: `REDDIT | TWITTER | STOCKTWITS | SEC_INSIDER | SEC_FILING | CONGRESS | OPTIONS_FLOW | VOLUME_SPIKE | POLYMARKET`
 
