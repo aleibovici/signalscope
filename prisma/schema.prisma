@@ -85,6 +85,8 @@ model Signal {
   marketVolume24hr  Float?
   marketLiquidity   Float?
   marketEndDate     String?
+  netPremium        Float?
+  callPremiumRatio  Float?
   createdAt     DateTime     @default(now())
 
   @@index([scanId, symbol])
@@ -151,6 +153,8 @@ model ValidatedTicker {
   pndAiConfidence     Int?
   pndAiReasoning      String?     @db.Text
   medianSignalAgeHrs  Float?      // median post age (hours) of social signals at harvest time
+  netPremium          Float?      // call premium - put premium in $ (positive = bullish)
+  callPremiumRatio    Float?      // call premium / (call + put premium), 0-1
   tradeSetupEntryLo    Float?     // Entry range low price
   tradeSetupEntryHi    Float?     // Entry range high price
   tradeSetupStopLoss   Float?     // Stop loss price
