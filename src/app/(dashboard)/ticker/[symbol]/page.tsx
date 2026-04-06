@@ -141,6 +141,15 @@ function formatMarketCapCompact(mc: number | null): string {
   return `${Math.round(mc / 1e3)}K`;
 }
 
+function formatNetPremiumCompact(np: number): string {
+  const abs = Math.abs(np);
+  const sign = np >= 0 ? "+" : "-";
+  if (abs >= 1e9) return `${sign}$${(abs / 1e9).toFixed(1)}B`;
+  if (abs >= 1e6) return `${sign}$${(abs / 1e6).toFixed(1)}M`;
+  if (abs >= 1e3) return `${sign}$${(abs / 1e3).toFixed(0)}K`;
+  return `${sign}$${abs}`;
+}
+
 function InfoHint({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
@@ -642,6 +651,20 @@ export default function TickerDetailPage({
           <span className="text-xl font-black text-gray-900 dark:text-white">{ticker.signalCount}</span>
           <p className="text-[10px] text-slate-500 dark:text-zinc-500">In this scan</p>
         </div>
+        {ticker.netPremium != null && ticker.netPremium !== 0 && (
+          <div className="flex flex-col gap-0.5 px-2.5 py-2 sm:px-3 sm:py-2.5">
+            <div className="flex items-start justify-between gap-1.5">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">Net premium</p>
+              <InfoHint text="Net options premium flow: call dollar volume minus put dollar volume. Positive = bullish institutional positioning. Call ratio shows what % of total premium is calls." />
+            </div>
+            <span className={`text-xl font-black ${ticker.netPremium > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+              {formatNetPremiumCompact(ticker.netPremium)}
+            </span>
+            <p className="text-[10px] text-slate-500 dark:text-zinc-500">
+              {ticker.callPremiumRatio != null ? `${Math.round(ticker.callPremiumRatio * 100)}% calls` : "Options flow"}
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="grid min-w-0 w-full grid-cols-3 border-b border-slate-200 dark:border-[#1e262f] md:flex md:overflow-x-auto">
@@ -728,6 +751,18 @@ export default function TickerDetailPage({
                   hint="Velocity score from the harvest pipeline (social signal activity), when computed."
                   value={ticker.avgVelocity != null ? `${ticker.avgVelocity.toFixed(1)}×` : "—"}
                 />
+                {ticker.netPremium != null && ticker.netPremium !== 0 && (
+                  <ScoreRow
+                    label="Net premium flow"
+                    hint="Call dollar volume minus put dollar volume from options chains. Positive = bullish institutional positioning. Shows call premium ratio as a percentage."
+                    value={`${formatNetPremiumCompact(ticker.netPremium)}${ticker.callPremiumRatio != null ? ` (${Math.round(ticker.callPremiumRatio * 100)}% calls)` : ""}`}
+                    valueClassName={
+                      ticker.netPremium > 0
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-rose-600 dark:text-rose-400"
+                    }
+                  />
+                )}
               </div>
             </div>
 

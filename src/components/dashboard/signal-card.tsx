@@ -62,6 +62,8 @@ function collectTags(ticker: ValidatedTickerData): string[] {
   ) tags.push("Recovery");
   if (ticker.subredditCount != null && ticker.subredditCount >= 3) tags.push("Multi-Reddit");
   if (ticker.pndFlagged) tags.push("P&D Risk");
+  if (ticker.netPremium != null && ticker.netPremium > 0) tags.push("Bullish Flow");
+  if (ticker.netPremium != null && ticker.netPremium < 0) tags.push("Bearish Flow");
 
   // Stage tag
   const stage = stageLabel(ticker.stage);
@@ -300,6 +302,18 @@ export function SignalCard({
               <span className="tabular-nums font-medium text-gray-500 dark:text-zinc-400">{ticker.signalCount}</span>
               <span>signals</span>
             </span>
+            {ticker.netPremium != null && ticker.netPremium !== 0 && (
+              <span
+                className={`flex items-center gap-1 text-[10px] font-semibold tabular-nums ${
+                  ticker.netPremium > 0
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-rose-600 dark:text-rose-400"
+                }`}
+                title={`Net premium flow: ${ticker.netPremium > 0 ? "+" : ""}$${(Math.abs(ticker.netPremium) / 1e6).toFixed(1)}M${ticker.callPremiumRatio != null ? ` · ${Math.round(ticker.callPremiumRatio * 100)}% calls` : ""}`}
+              >
+                {ticker.netPremium > 0 ? "+" : ""}${(Math.abs(ticker.netPremium) / 1e6).toFixed(1)}M
+              </span>
+            )}
           </div>
 
           {/* Bookmark + chevron */}

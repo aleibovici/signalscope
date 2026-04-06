@@ -72,6 +72,8 @@ export async function GET(
           tradeSetupTimeframe: true,
           tradeSetupRiskReward: true,
           tradeSetupConfidence: true,
+          netPremium: true,
+          callPremiumRatio: true,
           createdAt: true,
           performance: { select: { return7d: true } },
         },
