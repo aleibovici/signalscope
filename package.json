@@ -41,7 +41,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@remotion/cli": "^4.0.443",
+    "@remotion/cli": "^4.0.445",
     "@remotion/eslint-plugin": "^4.0.443",
     "@remotion/player": "^4.0.443",
     "@remotion/renderer": "^4.0.443",
