@@ -22,6 +22,8 @@ export interface RawSignal {
   optionVolume?: number;    // total option volume
   openInterest?: number;    // open interest
   volOiRatio?: number;      // volume / open interest ratio
+  netPremium?: number;       // call_premium - put_premium in $ (positive = bullish)
+  callPremiumRatio?: number; // call_premium / (call + put premium), 0-1
   volumeRatio?: number;     // current volume / 10-day avg volume
   // X/Twitter-specific fields
   retweetCount?: number;
@@ -130,4 +132,6 @@ export interface AggregatedSymbol {
   avgVelocity: number;
   momentum: MomentumBreakdown;
   medianSignalAgeHrs: number | null; // median postAge across social signals (hours)
+  netPremium?: number;
+  callPremiumRatio?: number;
 }

@@ -510,3 +510,32 @@ describe("aggregateSignals — flair velocity weighting", () => {
     expect(agg.avgVelocity).toBe(2.5); // (4.5 + 0.5) / 2
   });
 });
+
+// ── Net premium ──────────────────────────────────────────────────────────────
+
+describe("aggregateSignals — net premium", () => {
+  it("surfaces netPremium from OPTIONS_FLOW signal", () => {
+    const signals = [sig("PTON", { source: "OPTIONS_FLOW", netPremium: 500000, callPremiumRatio: 0.72 })];
+    const [agg] = aggregateSignals(signals);
+    expect(agg.netPremium).toBe(500000);
+    expect(agg.callPremiumRatio).toBe(0.72);
+  });
+
+  it("returns undefined netPremium when no OPTIONS_FLOW signal", () => {
+    const signals = [sig("PTON", { source: "REDDIT" })];
+    const [agg] = aggregateSignals(signals);
+    expect(agg.netPremium).toBeUndefined();
+    expect(agg.callPremiumRatio).toBeUndefined();
+  });
+
+  it("picks OPTIONS_FLOW netPremium even among mixed sources", () => {
+    const signals = [
+      sig("PTON", { source: "REDDIT" }),
+      sig("PTON", { source: "OPTIONS_FLOW", netPremium: -200000, callPremiumRatio: 0.35 }),
+      sig("PTON", { source: "VOLUME_SPIKE" }),
+    ];
+    const [agg] = aggregateSignals(signals);
+    expect(agg.netPremium).toBe(-200000);
+    expect(agg.callPremiumRatio).toBe(0.35);
+  });
+});

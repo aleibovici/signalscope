@@ -11,6 +11,9 @@ interface OptionsContract {
   expiration: Date;
   impliedVolatility: number;
   inTheMoney: boolean;
+  bid?: number;
+  ask?: number;
+  lastPrice?: number;
   [key: string]: unknown;
 }
 
@@ -94,6 +97,46 @@ function analyzeChain(
   }
 
   return unusual;
+}
+
+export function computeNetPremium(
+  result: OptionsChainResult,
+): { netPremium: number; callPremiumRatio: number } | null {
+  const opts = result.options[0];
+  if (!opts) return null;
+
+  let callPrem = 0;
+  let putPrem = 0;
+
+  for (const c of opts.calls ?? []) {
+    const vol = c.volume ?? 0;
+    if (vol === 0) continue;
+    const mid =
+      c.bid != null && c.ask != null && c.bid > 0 && c.ask > 0
+        ? (c.bid + c.ask) / 2
+        : (c.lastPrice ?? 0);
+    if (mid <= 0) continue;
+    callPrem += vol * mid * 100;
+  }
+
+  for (const p of opts.puts ?? []) {
+    const vol = p.volume ?? 0;
+    if (vol === 0) continue;
+    const mid =
+      p.bid != null && p.ask != null && p.bid > 0 && p.ask > 0
+        ? (p.bid + p.ask) / 2
+        : (p.lastPrice ?? 0);
+    if (mid <= 0) continue;
+    putPrem += vol * mid * 100;
+  }
+
+  const total = callPrem + putPrem;
+  if (total === 0) return null;
+
+  return {
+    netPremium: Math.round(callPrem - putPrem),
+    callPremiumRatio: Math.round((callPrem / total) * 10000) / 10000,
+  };
 }
 
 function generateSignals(
@@ -190,6 +233,11 @@ export async function fetchOptionsFlowSignals(): Promise<RawSignal[]> {
       const symbol = batch[j];
       const unusual = analyzeChain(symbol, result.value);
       const symbolSignals = generateSignals(symbol, unusual);
+      const premium = computeNetPremium(result.value);
+      if (premium && symbolSignals.length > 0) {
+        symbolSignals[0].netPremium = premium.netPremium;
+        symbolSignals[0].callPremiumRatio = premium.callPremiumRatio;
+      }
       signals.push(...symbolSignals);
     }
 

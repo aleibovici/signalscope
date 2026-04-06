@@ -115,6 +115,8 @@ export function aggregateSignals(signals: RawSignal[]): AggregatedSymbol[] {
             ? (ages[mid - 1] + ages[mid]) / 2
             : ages[mid];
         })(),
+        netPremium: sigs.find((s) => s.source === "OPTIONS_FLOW" && s.netPremium != null)?.netPremium,
+        callPremiumRatio: sigs.find((s) => s.source === "OPTIONS_FLOW" && s.callPremiumRatio != null)?.callPremiumRatio,
       };
     })
     .sort((a, b) => b.sourceCount - a.sourceCount || b.signals.length - a.signals.length);
@@ -716,6 +718,8 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
       marketVolume24hr: signal.marketVolume24hr,
       marketLiquidity: signal.marketLiquidity,
       marketEndDate: signal.marketEndDate,
+      netPremium: signal.netPremium,
+      callPremiumRatio: signal.callPremiumRatio,
       sentiment: "neutral", // Default for single-mention symbols
       pndFlagged: false,    // Default for single-mention symbols
       pndFlags: [],         // Default for single-mention symbols
@@ -783,6 +787,8 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
         pndAiConfidence: result.pndAiConfidence,
         pndAiReasoning: result.pndAiReasoning,
         medianSignalAgeHrs: result.agg.medianSignalAgeHrs,
+        netPremium: result.agg.netPremium,
+        callPremiumRatio: result.agg.callPremiumRatio,
       };
     });
 
