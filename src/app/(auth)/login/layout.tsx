@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   openGraph: {
     url: "http://localhost:3000",
     title: "SignalScope — Stock Breakout Signal Detection",
-    description: "Find breakout stock candidates before market consensus. AI-scored signals from Reddit, X/Twitter, SEC filings, and volume spikes — with cross-scan trending, ML backtesting, and an AI Agent Skill.",
+    description: "Find breakout stock candidates before market consensus. AI-scored signals from Reddit, X/Twitter, SEC filings, options flow with net premium tracking, and volume spikes — with cross-scan trending, ML backtesting, and an AI Agent Skill.",
     images: [
       {
         url: "/opengraph-image",
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "SignalScope — Stock Breakout Signal Detection",
-    description: "Find breakout stock candidates before market consensus. AI-scored signals from Reddit, X/Twitter, SEC filings, and volume spikes.",
+    description: "Find breakout stock candidates before market consensus. AI-scored signals from Reddit, X/Twitter, SEC filings, options flow with net premium tracking, and volume spikes.",
     images: ["/opengraph-image"],
   },
 };

@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     default: "SignalScope — Stock Breakout Signal Detection",
     template: "%s — SignalScope",
   },
-  description: "Find breakout stock candidates before market consensus. SignalScope monitors Reddit, X/Twitter, SEC insider filings, and volume spikes — scored by AI, filtered for pump-and-dumps, with cross-scan trending analysis, ML backtesting, and an AI Agent Skill. Pay-per-call API access via x402 micropayments — no account required.",
+  description: "Find breakout stock candidates before market consensus. SignalScope monitors Reddit, X/Twitter, SEC insider filings, options flow with net premium tracking, and volume spikes — scored by AI, filtered for pump-and-dumps, with cross-scan trending analysis, ML backtesting, and an AI Agent Skill. Pay-per-call API access via x402 micropayments — no account required.",
   keywords: [
     "stock breakout",
     "stock signals",
@@ -41,6 +41,8 @@ export const metadata: Metadata = {
     "pump and dump filter",
     "SEC insider trading",
     "volume spike stocks",
+    "options flow signals",
+    "net premium flow",
     "AI stock analysis",
     "stock market signals",
     "machine learning stocks",
@@ -73,7 +75,7 @@ export const metadata: Metadata = {
     url: "http://localhost:3000",
     siteName: "SignalScope",
     title: "SignalScope — Stock Breakout Signal Detection",
-    description: "Find breakout stock candidates before market consensus. AI-scored signals from Reddit, X/Twitter, SEC filings, and volume spikes — with cross-scan trending, ML backtesting, and an AI Agent Skill. x402 pay-per-call API access, no account required.",
+    description: "Find breakout stock candidates before market consensus. AI-scored signals from Reddit, X/Twitter, SEC filings, options flow with net premium tracking, and volume spikes — with cross-scan trending, ML backtesting, and an AI Agent Skill. x402 pay-per-call API access, no account required.",
     images: [
       {
         url: "/opengraph-image",
@@ -88,7 +90,7 @@ export const metadata: Metadata = {
     site: "@signalscopes",
     creator: "@signalscopes",
     title: "SignalScope — Stock Breakout Signal Detection",
-    description: "Find breakout stock candidates before market consensus. AI-scored signals from Reddit, X/Twitter, SEC filings, and volume spikes — with cross-scan trending, ML backtesting, and an AI Agent Skill. x402 pay-per-call API access, no account required.",
+    description: "Find breakout stock candidates before market consensus. AI-scored signals from Reddit, X/Twitter, SEC filings, options flow with net premium tracking, and volume spikes — with cross-scan trending, ML backtesting, and an AI Agent Skill. x402 pay-per-call API access, no account required.",
     images: ["/opengraph-image"],
   },
   verification: {
@@ -154,7 +156,7 @@ const jsonLd = {
       "applicationCategory": "FinanceApplication",
       "operatingSystem": "Web",
       "description":
-        "Find breakout stock candidates before market consensus. SignalScope monitors public market signals from Reddit, X/Twitter, SEC insider filings, congressional trades, options flow, and volume spikes — scored by AI, filtered for pump-and-dumps, with cross-scan trending analysis, ML backtesting, an AI Agent Skill, and x402 pay-per-call API access.",
+        "Find breakout stock candidates before market consensus. SignalScope monitors public market signals from Reddit, X/Twitter, SEC insider filings, congressional trades, options flow with net premium tracking, and volume spikes — scored by AI, filtered for pump-and-dumps, with cross-scan trending analysis, ML backtesting, an AI Agent Skill, and x402 pay-per-call API access.",
       "offers": {
         "@type": "AggregateOffer",
         "lowPrice": "0",
