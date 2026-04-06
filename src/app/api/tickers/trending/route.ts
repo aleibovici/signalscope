@@ -174,6 +174,8 @@ async function handleTrending(request: NextRequest) {
       pndScore: true,
       pndFlags: true,
       subredditCount: true,
+      netPremium: true,
+      callPremiumRatio: true,
       createdAt: true,
       performance: { select: { return1d: true, return3d: true, return7d: true, return30d: true } },
     },

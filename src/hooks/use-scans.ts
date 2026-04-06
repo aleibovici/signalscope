@@ -64,6 +64,8 @@ export interface ValidatedTickerData {
   tradeSetupTimeframe?: string | null;
   tradeSetupRiskReward?: string | null;
   tradeSetupConfidence?: string | null;
+  netPremium?: number | null;
+  callPremiumRatio?: number | null;
   createdAt: string;
 }
 
