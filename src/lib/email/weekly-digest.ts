@@ -153,7 +153,7 @@ export async function sendWeeklyDigest(): Promise<{
       aiScore: { gte: 50 },
       recommendation: { in: ["Strong Buy", "Buy", "Watch"] },
     },
-    orderBy: [{ stage: "asc" }, { opportunityScore: "desc" }],
+    orderBy: [{ stage: "desc" }, { opportunityScore: "desc" }],
     take: 3,
     select: {
       symbol: true,
