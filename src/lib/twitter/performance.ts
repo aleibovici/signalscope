@@ -310,17 +310,19 @@ export async function tweetPerformanceBatch(): Promise<PerformanceTweetResult> {
     }
   }
 
-  // Mark only actually tweeted tickers so they don't repeat within the cooldown window
+  // Mark only tickers whose detail tweets actually succeeded
   if (summaryResult.success) {
     const now = new Date();
-    // Only mark tickers that were actually featured in detail tweets (first 3),
-    // not hits 4-5 which only appeared in the summary list.
-    const tweetedSymbols = hits.slice(0, Math.min(hits.length, 3)).map((h) => h.symbol);
-    await prisma.tickerPerformance.updateMany({
-      where: { symbol: { in: tweetedSymbols } },
-      data: { performanceTweetedAt: now },
-    });
-    console.log(`[twitter/performance] Marked ${tweetedSymbols.length} tickers as tweeted: ${tweetedSymbols.join(", ")}`);
+    const succeededSymbols = details
+      .filter((d) => d.result.success)
+      .map((d) => d.symbol);
+    if (succeededSymbols.length > 0) {
+      await prisma.tickerPerformance.updateMany({
+        where: { symbol: { in: succeededSymbols } },
+        data: { performanceTweetedAt: now },
+      });
+      console.log(`[twitter/performance] Marked ${succeededSymbols.length} tickers as tweeted: ${succeededSymbols.join(", ")}`);
+    }
   }
 
   return { summary: summaryResult, details, hits };
