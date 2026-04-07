@@ -24,6 +24,18 @@ export const changelog: ChangelogEntry[] = [
           "Net premium and call premium ratio propagated through the full pipeline: raw signals, aggregation, validated tickers, and database — available in AI scoring context and ticker detail views.",
         ],
       },
+      {
+        category: "fixed",
+        items: [
+          "Stripe checkout/portal redirect URLs now use the configured server URL instead of the client Origin header, closing a redirect manipulation vector.",
+          "Portfolio position updates now enforce user ownership on writes (consistent with deletes).",
+          "P&D borderline-tier selection now uses effective flag count (excluding informational flags) rather than raw score, reducing false positives.",
+          "Performance tweet job now correctly marks only the 3 tweeted tickers as sent, preventing cooldown tokens from burning on untweeted tickers.",
+          "Weekly digest ticker sort fixed — early-stage signals (EARLY/FORMING) now correctly rank above CONFIRMED.",
+          "NetworkGraph no longer crashes on detached or hidden SVG elements.",
+          "Paper trading table fixed to use composite keys, eliminating duplicate React key warnings.",
+        ],
+      },
     ],
   },
   {
