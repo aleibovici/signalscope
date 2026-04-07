@@ -104,7 +104,7 @@ export async function collectSnapshots(): Promise<{ filled: number; errors: numb
       if (currentPrice == null) continue;
 
       try {
-        const snapshotId = snapshotIdByTickerId.get(ticker.id)!;
+        const snapshotId = snapshotIdByTickerId.get(ticker.id);
         const existingSnapshots = snapshotsByTickerId.get(ticker.id) ?? [];
         const allSnapshots = [...existingSnapshots, { price: currentPrice, createdAt: now }];
         const detectionPrice = ticker.price!;
@@ -200,7 +200,7 @@ export async function collectSnapshots(): Promise<{ filled: number; errors: numb
         }
 
         // Mirror to dev DB
-        if (devPrisma) {
+        if (devPrisma && snapshotId) {
           try {
             await devPrisma.priceSnapshot.create({
               data: {

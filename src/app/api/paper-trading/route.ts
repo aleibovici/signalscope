@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getOptionalUserId } from "@/lib/auth";
+import { getCurrentUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
 import { stageLabel } from "@/lib/stage-labels";
 import {
@@ -18,7 +18,7 @@ const THIRTY_DAYS_MS = 30 * 86400000;
 
 export async function GET(request: NextRequest) {
   try {
-    await getOptionalUserId();
+    await getCurrentUserId();
     const params = request.nextUrl.searchParams;
 
     const minScoreParam = params.get("minScore");
