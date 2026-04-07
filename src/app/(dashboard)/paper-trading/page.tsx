@@ -431,7 +431,7 @@ function TradesTable({
         <div className="space-y-3 px-3 pb-4 md:hidden">
           {sorted.map((t) => (
             <TradeMobileCard
-              key={t.symbol}
+              key={`${t.symbol}-${t.detectedAt}`}
               trade={t}
               positionSize={positionSize}
               priceLabel={priceLabel}
@@ -502,7 +502,7 @@ function TradesTable({
             <tbody>
               {sorted.map((t) => (
                 <TradeRow
-                  key={t.symbol}
+                  key={`${t.symbol}-${t.detectedAt}`}
                   trade={t}
                   positionSize={positionSize}
                   showExitDate={showExitDate}

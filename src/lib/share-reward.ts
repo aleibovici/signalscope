@@ -151,7 +151,7 @@ export async function claimShareReward(
     throw new ClaimError("Reward already claimed", 400);
   }
 
-  // 2. Extract + verify tweet
+  // 2. Extract + verify tweet (fast, no external calls beyond tweet lookup)
   const tweetId = extractTweetId(tweetUrl);
   if (!tweetId) {
     throw new ClaimError("Invalid tweet URL. Please paste a link like https://x.com/you/status/123", 400);
@@ -162,7 +162,13 @@ export async function claimShareReward(
     throw new ClaimError("Tweet not found or doesn't mention SignalScope. Please check the URL and try again.", 400);
   }
 
-  // 3. Apply reward
+  // 3. Mark as claimed BEFORE slow Stripe operations to narrow the TOCTOU window
+  await prisma.user.update({
+    where: { id: userId },
+    data: { shareRewardClaimedAt: new Date() },
+  });
+
+  // 4. Apply reward
   const isSubscriber = await hasActiveSubscription(userId);
   const rewardType: RewardType = isSubscriber ? "credit" : "trial";
 
@@ -171,12 +177,6 @@ export async function claimShareReward(
   } else {
     await grantTrialSubscription(userId);
   }
-
-  // 4. Mark as claimed
-  await prisma.user.update({
-    where: { id: userId },
-    data: { shareRewardClaimedAt: new Date() },
-  });
 
   return { rewardType };
 }

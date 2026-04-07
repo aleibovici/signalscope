@@ -45,7 +45,7 @@ export async function PATCH(
     }
 
     const position = await prisma.userPosition.update({
-      where: { id },
+      where: { id, userId },
       data: updateData,
     });
 

@@ -4,7 +4,7 @@ import { getCurrentUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
 import { stripe } from "@/lib/stripe";
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     const userId = await getCurrentUserId();
 
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const origin = request.headers.get("origin") || process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const origin = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
     const session = await stripe.billingPortal.sessions.create({
       customer: user.stripeCustomerId,

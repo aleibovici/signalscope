@@ -181,7 +181,9 @@ export function NetworkGraph({ nodes, edges, centerSymbol, colorMode = "stage", 
     const pt = svg.createSVGPoint();
     pt.x = e.clientX;
     pt.y = e.clientY;
-    const svgPt = pt.matrixTransform(svg.getScreenCTM()!.inverse());
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return;
+    const svgPt = pt.matrixTransform(ctm.inverse());
 
     setViewBox((prev) => {
       const newW = Math.max(100, Math.min(dimensions.width * 3, prev.w * scaleFactor));
@@ -207,14 +209,17 @@ export function NetworkGraph({ nodes, edges, centerSymbol, colorMode = "stage", 
       const svg = svgRef.current;
       const pt = svg.createSVGPoint();
       pt.x = e.clientX; pt.y = e.clientY;
-      const svgPt = pt.matrixTransform(svg.getScreenCTM()!.inverse());
+      const ctmDrag = svg.getScreenCTM();
+      if (!ctmDrag) return;
+      const svgPt = pt.matrixTransform(ctmDrag.inverse());
       setDragPos({ symbol: dragRef.current, x: svgPt.x, y: svgPt.y });
       return;
     }
     // Pan
     if (panRef.current && svgRef.current) {
       const svg = svgRef.current;
-      const ctm = svg.getScreenCTM()!;
+      const ctm = svg.getScreenCTM();
+      if (!ctm) return;
       const scale = viewBox.w / (dimensions.width || 1);
       const dx = (e.clientX - panRef.current.startX) * scale / (ctm.a || 1) * ctm.a;
       const dy = (e.clientY - panRef.current.startY) * scale / (ctm.d || 1) * ctm.d;
