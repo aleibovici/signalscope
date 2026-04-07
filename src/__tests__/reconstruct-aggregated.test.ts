@@ -133,3 +133,38 @@ describe("reconstructAggregatedSymbol — fundamentals", () => {
     expect(fundamentals?.price).toBe(150);
   });
 });
+
+// ============================================================
+// netPremium / callPremiumRatio passthrough — bug fix: 2453e7b
+// ============================================================
+describe("reconstructAggregatedSymbol — netPremium passthrough", () => {
+  it("exposes netPremium and callPremiumRatio from the ticker record", async () => {
+    const { agg: aggregated } = await reconstructAggregatedSymbol({
+      ...makeTicker(),
+      netPremium: 750_000,
+      callPremiumRatio: 0.68,
+    });
+    expect(aggregated.netPremium).toBe(750_000);
+    expect(aggregated.callPremiumRatio).toBe(0.68);
+  });
+
+  it("returns undefined for both when ticker has no options data", async () => {
+    const { agg: aggregated } = await reconstructAggregatedSymbol({
+      ...makeTicker(),
+      netPremium: null,
+      callPremiumRatio: null,
+    });
+    expect(aggregated.netPremium).toBeUndefined();
+    expect(aggregated.callPremiumRatio).toBeUndefined();
+  });
+
+  it("handles negative netPremium (put-dominated flow)", async () => {
+    const { agg: aggregated } = await reconstructAggregatedSymbol({
+      ...makeTicker(),
+      netPremium: -500_000,
+      callPremiumRatio: 0.2,
+    });
+    expect(aggregated.netPremium).toBe(-500_000);
+    expect(aggregated.callPremiumRatio).toBe(0.2);
+  });
+});

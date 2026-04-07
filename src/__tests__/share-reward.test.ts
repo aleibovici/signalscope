@@ -321,6 +321,46 @@ describe("claimShareReward", () => {
       metadata: { userId: "user_new" },
     });
   });
+
+  it("marks claim in DB before calling Stripe (TOCTOU fix)", async () => {
+    // Verifies the order: DB claim marker must be written before slow Stripe
+    // calls so concurrent requests see the marker and abort instead of double-granting.
+    mockUserFindUniqueOrThrow
+      .mockResolvedValueOnce({ shareRewardClaimedAt: null })
+      .mockResolvedValueOnce({ email: "free@example.com", stripeCustomerId: "cus_existing" });
+    mockVerifiedTweet();
+    mockHasActiveSubscription.mockResolvedValue(false);
+
+    const callOrder: string[] = [];
+    mockUserUpdate.mockImplementation(async () => {
+      callOrder.push("db:claimMarker");
+      return {};
+    });
+    mockStripeSubscriptionsCreate.mockImplementation(async () => {
+      callOrder.push("stripe:createSubscription");
+      return {
+        id: "sub_trial",
+        items: {
+          data: [
+            {
+              price: { id: "price_monthly" },
+              current_period_start: 1700000000,
+              current_period_end: 1702592000,
+            },
+          ],
+        },
+      };
+    });
+    mockSubscriptionUpsert.mockResolvedValue({});
+
+    await claimShareReward("user_free2", validTweetUrl);
+
+    const dbIdx = callOrder.indexOf("db:claimMarker");
+    const stripeIdx = callOrder.indexOf("stripe:createSubscription");
+    expect(dbIdx).toBeGreaterThanOrEqual(0);
+    expect(stripeIdx).toBeGreaterThanOrEqual(0);
+    expect(dbIdx).toBeLessThan(stripeIdx);
+  });
 });
 
 // ── GET /api/user/share-reward ─────────────────────────────────────────────
