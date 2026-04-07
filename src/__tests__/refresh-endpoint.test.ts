@@ -6,6 +6,7 @@ vi.stubEnv("AUTH_SECRET", "test-secret-for-refresh-endpoint");
 // Mock prisma
 const mockFindUnique = vi.fn();
 const mockUpdate = vi.fn();
+const mockUpdateMany = vi.fn();
 const mockCreateToken = vi.fn();
 const mockTransaction = vi.fn((fns: unknown[]) => Promise.all(fns));
 vi.mock("@/lib/prisma", () => ({
@@ -13,6 +14,7 @@ vi.mock("@/lib/prisma", () => ({
     refreshToken: {
       findUnique: (...args: unknown[]) => mockFindUnique(...args),
       update: (...args: unknown[]) => mockUpdate(...args),
+      updateMany: (...args: unknown[]) => mockUpdateMany(...args),
       create: (...args: unknown[]) => mockCreateToken(...args),
     },
     $transaction: (fns: unknown[]) => mockTransaction(fns),
@@ -61,7 +63,7 @@ describe("POST /api/auth/refresh", () => {
 
   it("rotates tokens on valid refresh token", async () => {
     mockFindUnique.mockResolvedValue(validToken);
-    mockUpdate.mockResolvedValue({});
+    mockUpdateMany.mockResolvedValue({ count: 1 });
     mockCreateToken.mockResolvedValue({});
 
     const res = await POST(makeRequest({ refreshToken: "old-refresh-token" }));

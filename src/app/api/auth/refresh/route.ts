@@ -51,23 +51,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid or expired refresh token" }, { status: 401 });
     }
 
-    // Token rotation: revoke old token and issue new pair
+    // Token rotation: atomically revoke old token (only if still active) and issue new pair
     const newRefreshTokenValue = generateRefreshToken();
 
-    await prisma.$transaction([
-      prisma.refreshToken.update({
-        where: { id: existing.id },
-        data: { revokedAt: new Date() },
-      }),
-      prisma.refreshToken.create({
-        data: {
-          token: newRefreshTokenValue,
-          userId: existing.userId,
-          expiresAt: getRefreshTokenExpiry(),
-          deviceId: existing.deviceId,
-        },
-      }),
-    ]);
+    const revoked = await prisma.refreshToken.updateMany({
+      where: { id: existing.id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+
+    if (revoked.count === 0) {
+      // Token was already revoked by a concurrent request — reject replay
+      return NextResponse.json({ error: "Invalid or expired refresh token" }, { status: 401 });
+    }
+
+    await prisma.refreshToken.create({
+      data: {
+        token: newRefreshTokenValue,
+        userId: existing.userId,
+        expiresAt: getRefreshTokenExpiry(),
+        deviceId: existing.deviceId,
+      },
+    });
 
     const accessToken = await signAccessToken({
       sub: existing.user.id,
