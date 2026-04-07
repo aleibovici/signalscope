@@ -38,6 +38,8 @@ export async function reconstructAggregatedSymbol(
     exchange: string | null;
     firstSeenDaysAgo: number | null;
     priorAppearances: number;
+    netPremium?: number | null;
+    callPremiumRatio?: number | null;
   }
 ): Promise<{
   agg: AggregatedSymbol;
@@ -89,6 +91,8 @@ export async function reconstructAggregatedSymbol(
       staleCount: ticker.staleCount ?? 0,
     },
     medianSignalAgeHrs: null,
+    netPremium: ticker.netPremium ?? undefined,
+    callPremiumRatio: ticker.callPremiumRatio ?? undefined,
   };
 
   const fundamentals: FundamentalData | null =

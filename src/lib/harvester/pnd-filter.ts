@@ -14,11 +14,11 @@ const REPUTABLE_SUBREDDITS = new Set([
   "wallstreetbets",
 ]);
 
-const PND_THRESHOLD = 3;
+export const PND_THRESHOLD = 3;
 
 // Flags that predict positive returns per ML backtesting — detected for data purposes
 // but excluded from the PnD threshold count
-const INFORMATIONAL_FLAGS = new Set([
+export const INFORMATIONAL_FLAGS = new Set([
   "penny_price",        // +2.2% avg 7d return — bullish, not bearish (Apr 2026 dataset)
   "otc_listing",        // +1.2% avg 7d return — bullish, not bearish (Apr 2026 dataset)
   "twitter_coordinated_pump", // +2.0% avg 7d return — bullish, not bearish

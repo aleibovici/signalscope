@@ -11,7 +11,7 @@ import { fetchCongressSignals } from "./sources/congress";
 import { fetchPolymarketSignals } from "./sources/polymarket";
 import { SCAN_SYMBOLS } from "./sources/ticker-utils";
 import { scoreSymbolBatch, defaultScore } from "./scoring";
-import { checkPndFlags, aiPndAssessment } from "./pnd-filter";
+import { checkPndFlags, aiPndAssessment, INFORMATIONAL_FLAGS, PND_THRESHOLD } from "./pnd-filter";
 import { fetchFundamentals } from "./fundamentals";
 
 import { computeOpportunityScore } from "./opportunity-score";
@@ -584,10 +584,12 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
       ])
     );
 
-    // Resolve all borderline cases (score === 2) in parallel
-    const borderlineCandidates = validCandidates.filter(
-      (agg) => pndResultsMap.get(agg.symbol)!.score === 2
-    );
+    // Resolve all borderline cases (effective flag count === PND_THRESHOLD - 1) in parallel
+    const borderlineCandidates = validCandidates.filter((agg) => {
+      const pnd = pndResultsMap.get(agg.symbol)!;
+      const effectiveCount = pnd.flags.filter((f) => !INFORMATIONAL_FLAGS.has(f)).length;
+      return effectiveCount === PND_THRESHOLD - 1;
+    });
     const aiPndResultsMap = new Map(
       await Promise.all(
         borderlineCandidates.map(async (agg) => {
