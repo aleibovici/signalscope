@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     const priceId = PRICE_IDS[period as BillingPeriod];
-    const origin = request.headers.get("origin") || process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const origin = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,

@@ -48,6 +48,11 @@ vi.mock("@/lib/harvester/scoring", () => ({
 vi.mock("@/lib/harvester/pnd-filter", () => ({
   checkPndFlags: vi.fn().mockReturnValue({ flagged: false, flags: [], score: 0 }),
   aiPndAssessment: vi.fn(),
+  PND_THRESHOLD: 3,
+  INFORMATIONAL_FLAGS: new Set([
+    "penny_price", "otc_listing", "twitter_coordinated_pump",
+    "coordinated_posts", "single_source",
+  ]),
 }));
 
 vi.mock("@/lib/harvester/fundamentals", () => ({

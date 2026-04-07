@@ -38,7 +38,7 @@ vi.mock("@/lib/harvester/sources/polymarket", () => ({
   fetchPolymarketSignals: (...args: unknown[]) => mockFetchPolymarket(...args),
 }));
 vi.mock("@/lib/harvester/scoring", () => ({ scoreSymbolBatch: vi.fn() }));
-vi.mock("@/lib/harvester/pnd-filter", () => ({ checkPndFlags: vi.fn(), aiPndAssessment: vi.fn() }));
+vi.mock("@/lib/harvester/pnd-filter", () => ({ checkPndFlags: vi.fn(), aiPndAssessment: vi.fn(), PND_THRESHOLD: 3, INFORMATIONAL_FLAGS: new Set(["penny_price", "otc_listing", "twitter_coordinated_pump", "coordinated_posts", "single_source"]) }));
 vi.mock("@/lib/harvester/fundamentals", () => ({ fetchFundamentals: vi.fn() }));
 vi.mock("@/lib/harvester/report", () => ({ generateTickerReport: vi.fn() }));
 vi.mock("@/lib/ai", () => ({
