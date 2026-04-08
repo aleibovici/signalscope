@@ -113,4 +113,36 @@ describe("POST /api/auth/refresh", () => {
     const res = await POST(makeRequest({ refreshToken: "old-refresh-token" }));
     expect(res.status).toBe(429);
   });
+
+  it("returns 401 when concurrent request already revoked the token (count=0)", async () => {
+    // Simulates a token-replay attack or concurrent rotation: the token exists
+    // and passes the initial checks, but updateMany finds it already revoked
+    // (revokedAt was set by a concurrent request between findUnique and updateMany).
+    mockFindUnique.mockResolvedValue(validToken);
+    mockUpdateMany.mockResolvedValue({ count: 0 }); // token was revoked between find and update
+
+    const res = await POST(makeRequest({ refreshToken: "old-refresh-token" }));
+    const json = await res.json();
+
+    expect(res.status).toBe(401);
+    expect(json.error).toContain("expired");
+    // New tokens must NOT be issued when the revocation was lost
+    expect(mockCreateToken).not.toHaveBeenCalled();
+  });
+
+  it("uses updateMany with revokedAt=null guard, not bare update", async () => {
+    mockFindUnique.mockResolvedValue(validToken);
+    mockUpdateMany.mockResolvedValue({ count: 1 });
+    mockCreateToken.mockResolvedValue({});
+
+    await POST(makeRequest({ refreshToken: "old-refresh-token" }));
+
+    expect(mockUpdateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ id: "rt_1", revokedAt: null }),
+      })
+    );
+    // The non-conditional update() must never be used for revocation
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
 });
