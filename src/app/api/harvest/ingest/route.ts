@@ -36,6 +36,8 @@ const signalSchema = z.object({
   marketVolume24hr: z.number().nullable().optional().transform((v) => v ?? undefined),
   marketLiquidity: z.number().nullable().optional().transform((v) => v ?? undefined),
   marketEndDate: z.string().nullable().optional().transform((v) => v ?? undefined),
+  netPremium: z.number().nullable().optional().transform((v) => v ?? undefined),
+  callPremiumRatio: z.number().nullable().optional().transform((v) => v ?? undefined),
 });
 
 const ingestPayloadSchema = z.object({
