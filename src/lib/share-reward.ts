@@ -168,14 +168,23 @@ export async function claimShareReward(
     data: { shareRewardClaimedAt: new Date() },
   });
 
-  // 4. Apply reward
+  // 4. Apply reward — reset the claim mark if Stripe fails so the user can retry
   const isSubscriber = await hasActiveSubscription(userId);
   const rewardType: RewardType = isSubscriber ? "credit" : "trial";
 
-  if (rewardType === "credit") {
-    await grantSubscriptionCoupon(userId);
-  } else {
-    await grantTrialSubscription(userId);
+  try {
+    if (rewardType === "credit") {
+      await grantSubscriptionCoupon(userId);
+    } else {
+      await grantTrialSubscription(userId);
+    }
+  } catch (err) {
+    // Best-effort reset so the user isn't permanently locked out
+    await prisma.user.update({
+      where: { id: userId },
+      data: { shareRewardClaimedAt: null },
+    }).catch(() => {});
+    throw err;
   }
 
   return { rewardType };
