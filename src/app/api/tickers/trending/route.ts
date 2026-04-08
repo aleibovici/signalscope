@@ -6,7 +6,7 @@ import { handleApiError } from "@/lib/api-error";
 import { paginationSchema } from "@/lib/validators";
 import { TTLCache } from "@/lib/cache";
 import { withX402Logged, x402RouteConfigs, hasAuthCredentials, X402_ENABLED } from "@/lib/x402";
-import { stageLabel, stageToDb, API_STAGE_VALUES } from "@/lib/stage-labels";
+import { stageLabel, stageToDb } from "@/lib/stage-labels";
 
 export const trendingCache = new TTLCache<unknown>(5 * 60 * 1000);
 
@@ -21,7 +21,7 @@ const MARKET_CAP_RANGES: Record<string, { min: number; max: number }> = {
 
 const trendingSchema = paginationSchema.extend({
   minAppearances: z.coerce.number().int().min(2).default(2),
-  stage: z.string().transform((v) => v.split(",").map((s) => stageToDb(s.trim())).filter((s): s is string => s != null)).optional(),
+  stage: z.string().transform((v) => v.split(",").map((s) => stageToDb(s.trim())).filter((s): s is NonNullable<ReturnType<typeof stageToDb>> => s != null)).optional(),
   trend: z.string().transform((v) => v.split(",").filter((s): s is "rising" | "falling" | "stable" => ["rising", "falling", "stable"].includes(s))).optional(),
   sector: z.string().transform((v) => v.split(",").map((s) => s.trim()).filter(Boolean)).optional(),
   marketCap: z.string().transform((v) => v.split(",").filter((x): x is "micro" | "small" | "mid" | "large" => ["micro", "small", "mid", "large"].includes(x))).optional(),
