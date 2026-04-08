@@ -318,6 +318,8 @@ async function handleTrending(request: NextRequest) {
       pndScore: record.pndScore,
       pndFlags: record.pndFlags,
       subredditCount: record.subredditCount,
+      netPremium: record.netPremium,
+      callPremiumRatio: record.callPremiumRatio,
       return1d: record.performance?.return1d ?? null,
       return3d: record.performance?.return3d ?? null,
       return7d: record.performance?.return7d ?? null,

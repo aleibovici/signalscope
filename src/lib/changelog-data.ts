@@ -22,6 +22,8 @@ export const changelog: ChangelogEntry[] = [
         category: "fixed",
         items: [
           "Seed accounts that can't be resolved on X are now marked as unresolvable in the database, preventing repeated API lookups on every follow job run.",
+          "Net premium flow data now correctly passes through the harvest ingest pipeline — previously stripped by schema validation during local-to-cloud handoff.",
+          "Trending API now includes net premium and call premium ratio in responses.",
         ],
       },
     ],
