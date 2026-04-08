@@ -67,7 +67,7 @@ const NavIcons = {
 };
 
 const publicNavItems = [
-  { href: "/dashboard", label: "Signals", icon: NavIcons.Signals, tourId: "tour-signals" },
+  { href: "/dashboard", label: "Daily Signals", icon: NavIcons.Signals, tourId: "tour-signals" },
   { href: "/trending", label: "Trending", icon: NavIcons.Trending, tourId: "tour-trending" },
   { href: "/performance", label: "Performance", icon: NavIcons.Performance, tourId: "tour-performance" },
   { href: "/paper-trading", label: "Paper Trading", icon: NavIcons.PaperTrading, tourId: "tour-paper-trading" },

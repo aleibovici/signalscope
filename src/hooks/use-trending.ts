@@ -27,12 +27,12 @@ export interface TrendingSummary {
 
 export interface TrendingFilters {
   minAppearances?: number;
-  stage?: string;
-  trend?: string;
-  sector?: string;
-  marketCap?: "micro" | "small" | "mid" | "large";
+  stage?: string[];
+  trend?: string[];
+  sector?: string[];
+  marketCap?: Array<"micro" | "small" | "mid" | "large">;
   sortBy?: "appearances" | "aiScore" | "price" | "return" | "marketCap";
-  source?: string;
+  source?: string[];
   hidePnd?: boolean;
   returnPeriod?: "1d" | "3d" | "7d" | "30d";
   near52wLow?: boolean;
@@ -44,12 +44,12 @@ export function useTrendingTickers(page = 1, limit = 12, filters?: TrendingFilte
     queryFn: async () => {
       const params = new URLSearchParams({ page: String(page), limit: String(limit) });
       if (filters?.minAppearances) params.set("minAppearances", String(filters.minAppearances));
-      if (filters?.stage) params.set("stage", filters.stage);
-      if (filters?.trend) params.set("trend", filters.trend);
-      if (filters?.sector) params.set("sector", filters.sector);
-      if (filters?.marketCap) params.set("marketCap", filters.marketCap);
+      if (filters?.stage?.length) params.set("stage", filters.stage.join(","));
+      if (filters?.trend?.length) params.set("trend", filters.trend.join(","));
+      if (filters?.sector?.length) params.set("sector", filters.sector.join(","));
+      if (filters?.marketCap?.length) params.set("marketCap", filters.marketCap.join(","));
       if (filters?.sortBy) params.set("sortBy", filters.sortBy);
-      if (filters?.source) params.set("source", filters.source);
+      if (filters?.source?.length) params.set("source", filters.source.join(","));
       if (filters?.hidePnd) params.set("hidePnd", "true");
       if (filters?.returnPeriod) params.set("returnPeriod", filters.returnPeriod);
       if (filters?.near52wLow) params.set("near52wLow", "true");

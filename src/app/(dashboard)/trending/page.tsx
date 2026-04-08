@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useTrendingTickers, type TrendingFilters } from "@/hooks/use-trending";
 import { useWatchlist, useToggleWatchlist } from "@/hooks/use-watchlist";
@@ -64,28 +64,97 @@ const RETURN_PERIODS = [
 ];
 
 const hasActiveFilters = (f: TrendingFilters) =>
-  f.minAppearances || f.stage || f.trend || f.sector || f.marketCap ||
-  f.sortBy || f.source || f.hidePnd || f.returnPeriod || f.near52wLow;
+  f.minAppearances || f.stage?.length || f.trend?.length || f.sector?.length || f.marketCap?.length ||
+  (f.sortBy && f.sortBy !== "aiScore") || f.source?.length || f.hidePnd || f.returnPeriod || f.near52wLow;
 
 const countActiveFilters = (f: TrendingFilters) => {
   let n = 0;
   if (f.minAppearances) n++;
-  if (f.stage) n++;
-  if (f.trend) n++;
-  if (f.sector) n++;
-  if (f.marketCap) n++;
-  if (f.sortBy) n++;
-  if (f.source) n++;
+  if (f.stage?.length) n++;
+  if (f.trend?.length) n++;
+  if (f.sector?.length) n++;
+  if (f.marketCap?.length) n++;
+  if (f.sortBy && f.sortBy !== "aiScore") n++;
+  if (f.source?.length) n++;
   if (f.hidePnd) n++;
   if (f.returnPeriod) n++;
   if (f.near52wLow) n++;
   return n;
 };
 
+function MultiSelectDropdown({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: { value: string; label: string; sub?: string }[];
+  value: string[];
+  onChange: (v: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
+
+  const displayLabel = value.length === 0 ? "All" : value.map((v) => options.find((o) => o.value === v)?.label ?? v).join(", ");
+
+  return (
+    <div ref={ref} className="relative">
+      <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-zinc-400">{label}</label>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex h-10 w-full items-center justify-between rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+      >
+        <span className="truncate">{displayLabel}</span>
+        <svg className="ml-2 h-4 w-4 shrink-0 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute z-20 mt-1 w-full rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
+          {options.map((opt) => {
+            const checked = value.includes(opt.value);
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  const next = checked ? value.filter((v) => v !== opt.value) : [...value, opt.value];
+                  onChange(next);
+                }}
+                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-zinc-800"
+              >
+                <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${checked ? "border-blue-500 bg-blue-600 dark:border-blue-400 dark:bg-blue-500" : "border-gray-300 dark:border-zinc-600"}`}>
+                  {checked && (
+                    <svg className="h-3 w-3 text-white" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </span>
+                <span className="text-gray-700 dark:text-zinc-200">{opt.label}</span>
+                {opt.sub && <span className="ml-auto text-xs text-gray-400 dark:text-zinc-500">{opt.sub}</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function TrendingPage() {
   const { data: session } = useSession();
   const [page, setPage] = useState(1);
-  const [filters, setFilters] = useState<TrendingFilters>({});
+  const [filters, setFilters] = useState<TrendingFilters>({ sortBy: "aiScore" });
   const [filtersOpen, setFiltersOpen] = useState(false);
   const { data, isLoading, isError, dataUpdatedAt } = useTrendingTickers(page, PAGE_SIZE, filters);
   const { data: bookmarkedSymbols = new Set<string>() } = useWatchlist();
@@ -175,7 +244,7 @@ export default function TrendingPage() {
 
         {hasActiveFilters(filters) && (
           <button
-            onClick={() => { setFilters({}); setPage(1); }}
+            onClick={() => { setFilters({ sortBy: "aiScore" }); setPage(1); }}
             className="shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 active:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-950/50 dark:active:bg-blue-950/70"
           >
             Clear all
@@ -201,90 +270,54 @@ export default function TrendingPage() {
               </select>
             </div>
 
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-zinc-400">Stage</label>
-              <select
-                value={filters.stage || ""}
-                onChange={(e) => updateFilter({ stage: e.target.value || undefined })}
-                className={selectClass}
-              >
-                <option value="">All</option>
-                <option value="Emerging">{STAGE_LABELS.EARLY}</option>
-                <option value="Building">{STAGE_LABELS.FORMING}</option>
-                <option value="Consensus">{STAGE_LABELS.CONFIRMED}</option>
-              </select>
-            </div>
+            <MultiSelectDropdown
+              label="Stage"
+              options={[
+                { value: "Emerging", label: STAGE_LABELS.EARLY },
+                { value: "Building", label: STAGE_LABELS.FORMING },
+                { value: "Consensus", label: STAGE_LABELS.CONFIRMED },
+              ]}
+              value={filters.stage ?? []}
+              onChange={(next) => updateFilter({ stage: next.length ? next : undefined })}
+            />
 
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-zinc-400">Trend</label>
-              <select
-                value={filters.trend || ""}
-                onChange={(e) => updateFilter({ trend: e.target.value || undefined })}
-                className={selectClass}
-              >
-                <option value="">All</option>
-                <option value="rising">Rising</option>
-                <option value="falling">Falling</option>
-                <option value="stable">Stable</option>
-              </select>
-            </div>
+            <MultiSelectDropdown
+              label="Trend"
+              options={[
+                { value: "rising", label: "Rising" },
+                { value: "falling", label: "Falling" },
+                { value: "stable", label: "Stable" },
+              ]}
+              value={filters.trend ?? []}
+              onChange={(next) => updateFilter({ trend: next.length ? next : undefined })}
+            />
 
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-zinc-400">Sector</label>
-              <select
-                value={filters.sector || ""}
-                onChange={(e) => updateFilter({ sector: e.target.value || undefined })}
-                className={selectClass}
-              >
-                <option value="">All</option>
-                {SECTORS.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </div>
+            <MultiSelectDropdown
+              label="Sector"
+              options={SECTORS.map((s) => ({ value: s, label: s }))}
+              value={filters.sector ?? []}
+              onChange={(next) => updateFilter({ sector: next.length ? next : undefined })}
+            />
 
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-zinc-400">Market Cap</label>
-              <select
-                value={filters.marketCap || ""}
-                onChange={(e) => updateFilter({ marketCap: (e.target.value || undefined) as TrendingFilters["marketCap"] })}
-                className={selectClass}
-              >
-                <option value="">All</option>
-                <option value="micro">Micro (&lt;$300M)</option>
-                <option value="small">Small ($300M–$2B)</option>
-                <option value="mid">Mid ($2B–$10B)</option>
-                <option value="large">Large ($10B+)</option>
-              </select>
-            </div>
+            <MultiSelectDropdown
+              label="Market Cap"
+              options={[
+                { value: "micro", label: "Micro", sub: "<$300M" },
+                { value: "small", label: "Small", sub: "$300M–$2B" },
+                { value: "mid", label: "Mid", sub: "$2B–$10B" },
+                { value: "large", label: "Large", sub: "$10B+" },
+              ]}
+              value={filters.marketCap ?? []}
+              onChange={(next) => updateFilter({ marketCap: next.length ? (next as Array<"micro" | "small" | "mid" | "large">) : undefined })}
+            />
 
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-zinc-400">Source</label>
-              <select
-                value={filters.source || ""}
-                onChange={(e) => updateFilter({ source: e.target.value || undefined })}
-                className={selectClass}
-              >
-                <option value="">All</option>
-                {SOURCES.map((s) => (
-                  <option key={s.value} value={s.value}>{s.label}</option>
-                ))}
-              </select>
-            </div>
+            <MultiSelectDropdown
+              label="Source"
+              options={SOURCES}
+              value={filters.source ?? []}
+              onChange={(next) => updateFilter({ source: next.length ? next : undefined })}
+            />
 
-            {/* Sort dropdown — desktop only, already in quick bar on mobile */}
-            <div className="hidden lg:block">
-              <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-zinc-400">Sort By</label>
-              <select
-                value={filters.sortBy || ""}
-                onChange={(e) => updateFilter({ sortBy: (e.target.value || undefined) as TrendingFilters["sortBy"] })}
-                className={selectClass}
-              >
-                {SORT_OPTIONS.map((s) => (
-                  <option key={s.value} value={s.value}>{s.label}</option>
-                ))}
-              </select>
-            </div>
           </div>
 
           {/* Toggles row */}

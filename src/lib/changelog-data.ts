@@ -9,6 +9,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-04-09",
+    title: "Trending Filters Upgrade",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "Sidebar nav item renamed from 'Signals' to 'Daily Signals'.",
+          "Trending tickers now default to sorting by AI Confidence.",
+          "Stage, Trend, Sector, Market Cap, and Source filters now support multi-select via a checkmark dropdown — select multiple values to broaden results.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-04-08",
     title: "X API Cost Optimization",
     changes: [
