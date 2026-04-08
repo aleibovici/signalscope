@@ -261,19 +261,15 @@ describe("GET /api/tickers/trending", () => {
   });
 
   it("validates stage enum", async () => {
+    // Invalid stage values are silently filtered out (multi-select schema)
     const res = await GET(makeRequest({ stage: "INVALID" }));
-    const body = await res.json();
-
-    expect(res.status).toBe(400);
-    expect(body.error).toBe("Invalid parameters");
+    expect(res.status).toBe(200);
   });
 
   it("validates trend enum", async () => {
+    // Invalid trend values are silently filtered out (multi-select schema)
     const res = await GET(makeRequest({ trend: "sideways" }));
-    const body = await res.json();
-
-    expect(res.status).toBe(400);
-    expect(body.error).toBe("Invalid parameters");
+    expect(res.status).toBe(200);
   });
 
   it("sorts by appearance count desc, then aiScore desc", async () => {
@@ -432,15 +428,18 @@ describe("GET /api/tickers/trending", () => {
       { symbol: "HLTH", cnt: BigInt(2) },
     ]);
 
-    mockFindManyTicker.mockImplementation((args: { distinct?: string[]; where?: { sector?: string } }) => {
+    mockFindManyTicker.mockImplementation((args: { distinct?: string[]; where?: { sector?: string | { in?: string[] } } }) => {
       if (args.distinct) {
-        // When sector filter is applied, Prisma only returns matching records
-        const sector = args.where?.sector;
+        // When sector filter is applied, Prisma receives { in: [...] }
+        const sectorFilter = args.where?.sector;
+        const sectors = typeof sectorFilter === "object" && sectorFilter !== null && "in" in sectorFilter
+          ? sectorFilter.in
+          : sectorFilter ? [sectorFilter] : null;
         const records = [
           makeTicker("TECH", 70, "CONFIRMED", daysAgo(1), "scan_1", { sector: "Technology" }),
           makeTicker("HLTH", 60, "FORMING", daysAgo(1), "scan_1", { sector: "Healthcare" }),
         ];
-        return sector ? records.filter((r) => r.sector === sector) : records;
+        return sectors ? records.filter((r) => sectors.includes(r.sector)) : records;
       }
       return [
         { symbol: "TECH", aiScore: 70, stage: "CONFIRMED", createdAt: daysAgo(1) },
@@ -794,17 +793,19 @@ describe("GET /api/tickers/trending", () => {
   });
 
   it("validates new enum parameters", async () => {
+    // sortBy and returnPeriod are strict enums — invalid values return 400
     const res1 = await GET(makeRequest({ sortBy: "invalid" }));
     expect(res1.status).toBe(400);
 
-    const res2 = await GET(makeRequest({ marketCap: "huge" }));
-    expect(res2.status).toBe(400);
-
-    const res3 = await GET(makeRequest({ source: "FACEBOOK" }));
-    expect(res3.status).toBe(400);
-
     const res4 = await GET(makeRequest({ returnPeriod: "2w" }));
     expect(res4.status).toBe(400);
+
+    // marketCap and source use multi-select — invalid values are silently filtered out
+    const res2 = await GET(makeRequest({ marketCap: "huge" }));
+    expect(res2.status).toBe(200);
+
+    const res3 = await GET(makeRequest({ source: "FACEBOOK" }));
+    expect(res3.status).toBe(200);
   });
 
   it("accepts POLYMARKET as a valid source filter (regression: was missing from enum)", async () => {

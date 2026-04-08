@@ -21,12 +21,12 @@ const MARKET_CAP_RANGES: Record<string, { min: number; max: number }> = {
 
 const trendingSchema = paginationSchema.extend({
   minAppearances: z.coerce.number().int().min(2).default(2),
-  stage: z.enum([...API_STAGE_VALUES, "EARLY", "FORMING", "CONFIRMED"]).transform((v) => stageToDb(v)!).optional(),
-  trend: z.enum(["rising", "falling", "stable"]).optional(),
-  sector: z.string().optional(),
-  marketCap: z.enum(["micro", "small", "mid", "large"]).optional(),
+  stage: z.string().transform((v) => v.split(",").map((s) => stageToDb(s.trim())).filter((s): s is string => s != null)).optional(),
+  trend: z.string().transform((v) => v.split(",").filter((s): s is "rising" | "falling" | "stable" => ["rising", "falling", "stable"].includes(s))).optional(),
+  sector: z.string().transform((v) => v.split(",").map((s) => s.trim()).filter(Boolean)).optional(),
+  marketCap: z.string().transform((v) => v.split(",").filter((x): x is "micro" | "small" | "mid" | "large" => ["micro", "small", "mid", "large"].includes(x))).optional(),
   sortBy: z.enum(["appearances", "aiScore", "opportunityScore", "price", "return", "marketCap"]).default("appearances"),
-  source: z.enum(SOURCES).optional(),
+  source: z.string().transform((v) => v.split(",").filter((s): s is typeof SOURCES[number] => (SOURCES as readonly string[]).includes(s))).optional(),
   hidePnd: z.coerce.boolean().default(false),
   returnPeriod: z.enum(["1d", "3d", "7d", "30d"]).default("7d"),
   near52wLow: z.coerce.boolean().default(false),
@@ -64,7 +64,7 @@ async function handleTrending(request: NextRequest) {
 
   const { page, limit, minAppearances, stage, trend, sector, marketCap, sortBy, source, hidePnd, returnPeriod, near52wLow } = parsed.data;
 
-  const cacheKey = `trending:${page}:${limit}:${minAppearances}:${stage ?? ""}:${trend ?? ""}:${sector ?? ""}:${marketCap ?? ""}:${sortBy}:${source ?? ""}:${hidePnd}:${returnPeriod}:${near52wLow}`;
+  const cacheKey = `trending:${page}:${limit}:${minAppearances}:${(stage ?? []).join(",")}:${(trend ?? []).join(",")}:${(sector ?? []).join(",")}:${(marketCap ?? []).join(",")}:${sortBy}:${(source ?? []).join(",")}:${hidePnd}:${returnPeriod}:${near52wLow}`;
   const cached = trendingCache.get(cacheKey);
   if (cached) {
     return NextResponse.json(cached, {
@@ -131,8 +131,8 @@ async function handleTrending(request: NextRequest) {
 
   // Apply trend filter before pagination
   let filteredSymbols = qualifyingSymbols;
-  if (trend) {
-    filteredSymbols = filteredSymbols.filter((s) => trendMap.get(s) === trend);
+  if (trend?.length) {
+    filteredSymbols = filteredSymbols.filter((s) => trend.includes(trendMap.get(s) as "rising" | "falling" | "stable"));
   }
 
   // 3. Fetch latest record per symbol (only fields used in response)
@@ -140,8 +140,8 @@ async function handleTrending(request: NextRequest) {
     where: {
       symbol: { in: filteredSymbols },
       scan: { status: "COMPLETED" },
-      stage: stage ? stage : { notIn: ["FILTERED", "UNSCORED"] },
-      ...(sector ? { sector } : {}),
+      stage: stage?.length ? { in: stage } : { notIn: ["FILTERED", "UNSCORED"] },
+      ...(sector?.length ? { sector: { in: sector } } : {}),
       ...(hidePnd ? { pndFlagged: false } : {}),
     },
     distinct: ["symbol"],
@@ -183,16 +183,19 @@ async function handleTrending(request: NextRequest) {
 
   // Apply stage/sector/pnd filter — only keep symbols that have a matching latest record
   const latestBySymbol = new Map(latestRecords.map((r) => [r.symbol, r]));
-  if (stage || sector || hidePnd) {
+  if (stage?.length || sector?.length || hidePnd) {
     filteredSymbols = filteredSymbols.filter((s) => latestBySymbol.has(s));
   }
 
   // Apply market cap bucket filter
-  if (marketCap) {
-    const range = MARKET_CAP_RANGES[marketCap];
+  if (marketCap?.length) {
     filteredSymbols = filteredSymbols.filter((s) => {
       const mc = latestBySymbol.get(s)?.marketCap;
-      return mc != null && mc >= range.min && mc < range.max;
+      if (mc == null) return false;
+      return marketCap.some((bucket) => {
+        const range = MARKET_CAP_RANGES[bucket];
+        return mc >= range.min && mc < range.max;
+      });
     });
   }
 
@@ -234,8 +237,8 @@ async function handleTrending(request: NextRequest) {
   }
 
   // Apply source filter
-  if (source) {
-    filteredSymbols = filteredSymbols.filter((s) => sourcesBySymbol.get(s)?.has(source));
+  if (source?.length) {
+    filteredSymbols = filteredSymbols.filter((s) => source.some((src) => sourcesBySymbol.get(s)?.has(src)));
   }
 
   // Build sorted results
