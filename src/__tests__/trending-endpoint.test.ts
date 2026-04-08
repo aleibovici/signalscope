@@ -74,6 +74,9 @@ function makeTicker(
     pndFlagged: overrides.pndFlagged ?? false,
     pndScore: overrides.pndScore ?? 0,
     pndFlags: overrides.pndFlags ?? [],
+    netPremium: overrides.netPremium !== undefined ? overrides.netPremium : null,
+    callPremiumRatio: overrides.callPremiumRatio !== undefined ? overrides.callPremiumRatio : null,
+    subredditCount: overrides.subredditCount ?? null,
     createdAt,
     performance: overrides.performance ?? { return1d: 0.01, return3d: 0.03, return7d: 0.05, return30d: 0.10 },
   };
@@ -159,6 +162,33 @@ describe("GET /api/tickers/trending", () => {
     expect(body.summary.totalTrending).toBe(1);
     expect(body.summary.risingCount).toBe(1);
     expect(body.summary.avgScore).toBe(65);
+  });
+
+  it("includes netPremium and callPremiumRatio in response when populated", async () => {
+    mockQueryRaw.mockResolvedValue([{ symbol: "MSTR", cnt: BigInt(2) }]);
+
+    mockFindManyTicker.mockImplementation((args: { distinct?: string[] }) => {
+      if (args.distinct) {
+        return [makeTicker("MSTR", 72, "CONFIRMED", daysAgo(1), "scan_1", {
+          netPremium: 180000,
+          callPremiumRatio: 0.68,
+        })];
+      }
+      return [
+        { symbol: "MSTR", aiScore: 65, stage: "FORMING", createdAt: daysAgo(5) },
+        { symbol: "MSTR", aiScore: 72, stage: "CONFIRMED", createdAt: daysAgo(1) },
+      ];
+    });
+    mockFindManySignal.mockResolvedValue([{ symbol: "MSTR", source: "OPTIONS_FLOW" }]);
+
+    const res = await GET(makeRequest());
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    const ticker = body.tickers[0];
+    expect(ticker.symbol).toBe("MSTR");
+    expect(ticker.netPremium).toBe(180000);
+    expect(ticker.callPremiumRatio).toBe(0.68);
   });
 
   it("computes rising trend when second half scores are 5+ higher", async () => {
