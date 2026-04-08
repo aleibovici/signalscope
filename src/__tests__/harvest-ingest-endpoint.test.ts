@@ -144,4 +144,42 @@ describe("POST /api/harvest/ingest", () => {
     expect(res.status).toBe(200);
     expect(mockProcessSignals).toHaveBeenCalledWith([fullSignal]);
   });
+
+  it("passes netPremium and callPremiumRatio from OPTIONS_FLOW signal to processSignals", async () => {
+    mockProcessSignals.mockResolvedValue("scan_789");
+
+    const res = await POST(
+      makeRequest(
+        {
+          signals: [{ symbol: "SPY", source: "OPTIONS_FLOW", netPremium: 250000, callPremiumRatio: 0.72 }],
+          harvestedAt: "2026-03-05T03:00:00.000Z",
+        },
+        { "x-harvest-key": "test-harvest-key" }
+      )
+    );
+
+    expect(res.status).toBe(200);
+    const forwarded = mockProcessSignals.mock.calls[0][0] as { netPremium: number; callPremiumRatio: number }[];
+    expect(forwarded[0].netPremium).toBe(250000);
+    expect(forwarded[0].callPremiumRatio).toBe(0.72);
+  });
+
+  it("transforms null netPremium and callPremiumRatio to undefined before forwarding to processSignals", async () => {
+    mockProcessSignals.mockResolvedValue("scan_790");
+
+    const res = await POST(
+      makeRequest(
+        {
+          signals: [{ symbol: "SPY", source: "OPTIONS_FLOW", netPremium: null, callPremiumRatio: null }],
+          harvestedAt: "2026-03-05T03:00:00.000Z",
+        },
+        { "x-harvest-key": "test-harvest-key" }
+      )
+    );
+
+    expect(res.status).toBe(200);
+    const forwarded = mockProcessSignals.mock.calls[0][0] as Record<string, unknown>[];
+    expect(forwarded[0].netPremium).toBeUndefined();
+    expect(forwarded[0].callPremiumRatio).toBeUndefined();
+  });
 });
