@@ -27,19 +27,14 @@ const SEED_ACCOUNTS: { username: string; keep: boolean }[] = [
   { username: "FirstSquawk", keep: true },
   { username: "Newsquawk", keep: true },
   // Congress & insider tracking
-  { username: "quaborofficial", keep: true },
   { username: "QuiverQuant", keep: true },
   // Trading / fintech community
-  { username: "ripaborofficial", keep: false },
   { username: "TradeAlgoBot", keep: false },
   // Options flow
   { username: "OptionsHawk", keep: true },
-  { username: "unusual_option", keep: true },
   // Market data & research
   { username: "Barchart", keep: true },
-  { username: "ABOROFFICIAL", keep: true },
   { username: "StockMKTNewz", keep: false },
-  { username: "MarketBeat", keep: false },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -260,9 +255,11 @@ async function fetchMyFollowerIds(myId: string): Promise<Set<string>> {
 
 /** Ensure seed accounts exist in the queue (idempotent). */
 async function ensureSeedAccounts(): Promise<number> {
-  // Find which seeds are already in DB
+  // Find which seeds are already in DB (any source — includes unresolvable)
   const existing = await prisma.twitterFollow.findMany({
-    where: { source: "seed" },
+    where: {
+      username: { in: SEED_ACCOUNTS.map((s) => s.username.toLowerCase()) },
+    },
     select: { username: true },
   });
   const existingSet = new Set(existing.map((r) => r.username.toLowerCase()));
@@ -277,9 +274,24 @@ async function ensureSeedAccounts(): Promise<number> {
 
   let added = 0;
   for (const seed of missing) {
-    const resolved = idMap.get(seed.username.toLowerCase());
+    const handle = seed.username.toLowerCase();
+    const resolved = idMap.get(handle);
     if (!resolved) {
-      console.warn(`[twitter/follow] Seed @${seed.username} not found on X, skipping`);
+      // Mark unresolvable so we never re-lookup this username
+      console.warn(`[twitter/follow] Seed @${seed.username} not found on X, marking unresolvable`);
+      try {
+        await prisma.twitterFollow.create({
+          data: {
+            twitterId: `unresolvable_${handle}`,
+            username: handle,
+            source: "unresolvable",
+            reason: "Seed account — username could not be resolved via X API",
+            priority: 0,
+          },
+        });
+      } catch {
+        // unique constraint — already marked
+      }
       continue;
     }
     try {
