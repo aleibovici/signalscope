@@ -9,6 +9,24 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-04-08",
+    title: "X API Cost Optimization",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "Reduced X API usage by ~52%: removed 5 unresolvable seed accounts that were re-looked-up every run, reduced follow job from 3x/day to 1x/day, and limited promo tweets to weekdays only.",
+        ],
+      },
+      {
+        category: "fixed",
+        items: [
+          "Seed accounts that can't be resolved on X are now marked as unresolvable in the database, preventing repeated API lookups on every follow job run.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-04-07",
     title: "Net Premium Flow & Options Signal Upgrade",
     changes: [
