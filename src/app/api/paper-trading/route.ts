@@ -9,12 +9,13 @@ import {
 } from "@/lib/paper-trading-returns";
 import {
   fetchSpyTotalReturnDecimal,
+  fetchSpyDailyBars,
+  spyReturnForTrade,
   SPY_BENCHMARK_SYMBOL,
 } from "@/lib/spy-benchmark";
 
 const VALID_MIN_SCORES = new Set([60, 70, 80, 90]);
-
-const THIRTY_DAYS_MS = 30 * 86400000;
+const VALID_LOOKBACK_DAYS = new Set([3, 7, 14, 30]);
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,11 +31,23 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const now = Date.now();
-    const detectionCutoff = new Date(now - THIRTY_DAYS_MS);
-    const windowEnd = new Date(now);
+    const lookbackParam = params.get("lookbackDays");
+    const lookbackDays = lookbackParam ? Number(lookbackParam) : 14;
+    if (!Number.isInteger(lookbackDays) || !VALID_LOOKBACK_DAYS.has(lookbackDays)) {
+      return NextResponse.json(
+        { error: "Invalid lookbackDays. Valid values: 3, 7, 14, 30" },
+        { status: 400 },
+      );
+    }
 
-    const [records, spyReturnPct] = await Promise.all([
+    const now = Date.now();
+    const windowStart = new Date(now - lookbackDays * 86400000);
+    const windowEnd = new Date(now);
+    // Extend detection query by 7 days (max hold) so trades that closed
+    // within the lookback window but were detected earlier are included.
+    const detectionCutoff = new Date(now - (lookbackDays + 7) * 86400000);
+
+    const [records, spyReturnPct, spyBars] = await Promise.all([
       prisma.tickerPerformance.findMany({
         where: {
           detectionPrice: { gt: 0.01 },
@@ -61,7 +74,8 @@ export async function GET(request: NextRequest) {
         },
         orderBy: { createdAt: "desc" },
       }),
-      fetchSpyTotalReturnDecimal(detectionCutoff, windowEnd),
+      fetchSpyTotalReturnDecimal(windowStart, windowEnd),
+      fetchSpyDailyBars(detectionCutoff, windowEnd),
     ]);
 
     const positionSize = 1000;
@@ -90,6 +104,8 @@ export async function GET(request: NextRequest) {
           ? new Date(closingAtMs).toISOString().slice(0, 10)
           : null;
 
+      const spyRet = spyReturnForTrade(spyBars, vt.createdAt, holdDays);
+
       return {
         symbol: vt.symbol,
         name: vt.name,
@@ -107,11 +123,19 @@ export async function GET(request: NextRequest) {
         detectedAtMs,
         closingAt,
         closingAtMs: status === "CLOSED" ? closingAtMs : null,
+        spyReturnPct: spyRet,
       };
     });
 
-    const closedTrades = trades.filter((t) => t.status === "CLOSED");
-    const tradesWithReturn = trades.filter((t) => t.returnPct !== null);
+    // Drop closed trades that exited before the lookback window started
+    const windowStartMs = windowStart.getTime();
+    const filteredTrades = trades.filter((t) => {
+      if (t.status === "OPEN") return true;
+      return t.closingAtMs !== null && t.closingAtMs >= windowStartMs;
+    });
+
+    const closedTrades = filteredTrades.filter((t) => t.status === "CLOSED");
+    const tradesWithReturn = filteredTrades.filter((t) => t.returnPct !== null);
     const wins = tradesWithReturn.filter((t) => t.returnPct! > 0);
     const totalReturn = tradesWithReturn.reduce(
       (sum, t) => sum + (t.returnPct ?? 0),
@@ -128,9 +152,9 @@ export async function GET(request: NextRequest) {
         : null;
 
     const summary = {
-      totalTrades: trades.length,
+      totalTrades: filteredTrades.length,
       closedTrades: closedTrades.length,
-      openTrades: trades.length - closedTrades.length,
+      openTrades: filteredTrades.length - closedTrades.length,
       tradesWithMark: tradesWithReturn.length,
       winRate: tradesWithReturn.length > 0 ? wins.length / tradesWithReturn.length : 0,
       avgReturn:
@@ -140,14 +164,26 @@ export async function GET(request: NextRequest) {
       positionSize,
     };
 
+    const tradesWithSpyReturn = filteredTrades.filter(
+      (t) => t.spyReturnPct !== null && t.returnPct !== null,
+    );
+    const matchedSpyAvg =
+      tradesWithSpyReturn.length > 0
+        ? tradesWithSpyReturn.reduce(
+            (sum, t) => sum + (t.spyReturnPct ?? 0),
+            0,
+          ) / tradesWithSpyReturn.length
+        : null;
+
     const benchmark = {
       symbol: SPY_BENCHMARK_SYMBOL,
       returnPct: spyReturnPct,
-      windowStart: detectionCutoff.toISOString().slice(0, 10),
+      matchedReturnPct: matchedSpyAvg,
+      windowStart: windowStart.toISOString().slice(0, 10),
       windowEnd: windowEnd.toISOString().slice(0, 10),
     };
 
-    return NextResponse.json({ summary, trades, benchmark });
+    return NextResponse.json({ summary, trades: filteredTrades, benchmark });
   } catch (err) {
     return handleApiError(err, "paper-trading");
   }

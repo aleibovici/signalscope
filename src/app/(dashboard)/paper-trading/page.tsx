@@ -2,17 +2,26 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { usePaperTrades, type PaperTrade } from "@/hooks/use-paper-trading";
+import { useTheme } from "next-themes";
+import { usePaperTrades, useAlphaCurve, type PaperTrade, type AlphaPoint } from "@/hooks/use-paper-trading";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 
+const LOOKBACK_OPTIONS = [
+  { value: 3, label: "3 days" },
+  { value: 7, label: "7 days" },
+  { value: 14, label: "14 days" },
+  { value: 30, label: "30 days" },
+];
 const SCORE_OPTIONS = [60, 70, 80, 90];
 
 const selectClass =
   "h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-blue-400 dark:focus:ring-blue-400";
 
-function formatPct(value: number): string {
-  return `${value > 0 ? "+" : ""}${(value * 100).toFixed(1)}%`;
+function formatPct(value: number, minDecimals = 1): string {
+  const pct = value * 100;
+  const decimals = Math.abs(pct) < 0.05 && pct !== 0 ? Math.max(minDecimals, 2) : minDecimals;
+  return `${value > 0 ? "+" : ""}${pct.toFixed(decimals)}%`;
 }
 
 function formatPp(pp: number): string {
@@ -101,10 +110,12 @@ function sortTrades(list: PaperTrade[], sortBy: SortKey, sortDir: "asc" | "desc"
 }
 
 export default function PaperTradingPage() {
+  const [lookbackDays, setLookbackDays] = useState(14);
   const [minScore, setMinScore] = useState(70);
   const [positionSize, setPositionSize] = useState(1000);
 
-  const { data, isLoading, error } = usePaperTrades({ minScore });
+  const { data, isLoading, error } = usePaperTrades({ minScore, lookbackDays });
+  const alphaCurve = useAlphaCurve(minScore);
 
   const { openTrades, closedTrades } = useMemo(() => {
     if (!data) return { openTrades: [], closedTrades: [] };
@@ -132,15 +143,34 @@ export default function PaperTradingPage() {
     );
   }, [data, positionSize]);
 
+  const peakCapital = useMemo(() => {
+    if (!data?.trades.length) return { amount: 0, legs: 0 };
+    // For open trades, use detection + 7d as a stable stand-in for "still open"
+    const events: { ms: number; delta: number }[] = [];
+    for (const t of data.trades) {
+      events.push({ ms: t.detectedAtMs, delta: 1 });
+      const closeMs = t.closingAtMs ?? t.detectedAtMs + 7 * 86400000;
+      events.push({ ms: closeMs, delta: -1 });
+    }
+    events.sort((a, b) => a.ms - b.ms || a.delta - b.delta);
+    let cur = 0;
+    let max = 0;
+    for (const e of events) {
+      cur += e.delta;
+      if (cur > max) max = cur;
+    }
+    return { amount: max * positionSize, legs: max };
+  }, [data, positionSize]);
+
   const spyBenchmarkSub = useMemo(() => {
     if (!data?.benchmark) return "";
     const b = data.benchmark;
-    if (b.returnPct === null) return "Unavailable";
-    if (scaledSummary && scaledSummary.tradesWithMark > 0) {
-      const pp = (scaledSummary.avgReturn - b.returnPct) * 100;
+    if (b.matchedReturnPct === null && b.returnPct === null) return "Unavailable";
+    if (scaledSummary && scaledSummary.tradesWithMark > 0 && b.matchedReturnPct !== null) {
+      const pp = (scaledSummary.avgReturn - b.matchedReturnPct) * 100;
       return `${formatPp(pp)} vs avg`;
     }
-    return "SPY, adj. close";
+    return "SPY, hold-matched avg";
   }, [data, scaledSummary]);
 
   return (
@@ -150,12 +180,29 @@ export default function PaperTradingPage() {
           Paper Trading
         </h1>
         <p className="text-pretty text-sm leading-relaxed text-gray-500 dark:text-zinc-400">
-          Simulated trades from signals detected in the last 30 days — see what would happen if you followed
+          Simulated trades from signals detected in the last {lookbackDays} day{lookbackDays !== 1 ? "s" : ""} — see what would happen if you followed
           every call
         </p>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+        <div className="min-w-0 w-full sm:w-auto">
+          <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">
+            Lookback
+          </label>
+          <select
+            value={lookbackDays}
+            onChange={(e) => setLookbackDays(Number(e.target.value))}
+            className={`${selectClass} h-11 w-full min-w-0 touch-manipulation sm:h-10 sm:w-auto sm:min-w-36`}
+          >
+            {LOOKBACK_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="min-w-0 w-full sm:w-auto">
           <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">
             Min AI Score
@@ -253,21 +300,23 @@ export default function PaperTradingPage() {
               <SummaryCard
                 label="S&P 500"
                 value={
-                  data.benchmark.returnPct !== null
-                    ? formatPct(data.benchmark.returnPct)
-                    : "--"
+                  data.benchmark.matchedReturnPct !== null
+                    ? formatPct(data.benchmark.matchedReturnPct)
+                    : data.benchmark.returnPct !== null
+                      ? formatPct(data.benchmark.returnPct)
+                      : "--"
                 }
                 valueColor={
-                  data.benchmark.returnPct === null
+                  (data.benchmark.matchedReturnPct ?? data.benchmark.returnPct) === null
                     ? undefined
-                    : data.benchmark.returnPct > 0
+                    : (data.benchmark.matchedReturnPct ?? data.benchmark.returnPct)! > 0
                       ? "green"
-                      : data.benchmark.returnPct < 0
+                      : (data.benchmark.matchedReturnPct ?? data.benchmark.returnPct)! < 0
                         ? "red"
                         : undefined
                 }
                 sub={spyBenchmarkSub}
-                subHint="SPY total return, same 30d window as signals"
+                subHint="SPY avg return, matched to each trade's hold period"
               />
               <SummaryCard
                 label="Total P&L"
@@ -292,16 +341,15 @@ export default function PaperTradingPage() {
                 }
               />
               <SummaryCard
-                label="Capital"
-                value={`$${(scaledSummary.openTrades * positionSize).toLocaleString()}`}
-                sub={
-                  scaledSummary.openTrades > 0
-                    ? `${scaledSummary.openTrades} × ${formatLegNotional(positionSize)}`
-                    : "no open legs"
-                }
+                label="Peak Capital"
+                value={`$${peakCapital.amount.toLocaleString()}`}
+                sub={`${peakCapital.legs} × ${formatLegNotional(positionSize)} max`}
+                subHint="Most positions open at the same time"
               />
             </div>
           </section>
+
+          <AlphaCurveChart points={alphaCurve.points} isLoading={alphaCurve.isLoading} positionSize={positionSize} />
 
           <TradesTable
             title="Open Positions"
@@ -595,6 +643,320 @@ function SummaryCard({
       </CardContent>
     </Card>
   );
+}
+
+/* ── Capital growth curve: strategy vs S&P 500 across all lookback periods ── */
+
+const CHART_W = 520;
+const CHART_H = 105;
+const PAD = { top: 12, right: 20, bottom: 20, left: 42 };
+const PLOT_W = CHART_W - PAD.left - PAD.right;
+const PLOT_H = CHART_H - PAD.top - PAD.bottom;
+
+const BASE_CAPITAL = 10_000;
+const STRATEGY_COLOR = { light: "#2563eb", dark: "#60a5fa" };
+const SPY_COLOR = { light: "#9ca3af", dark: "#71717a" };
+
+function fmtDollarAxis(v: number): string {
+  if (v >= 1000) return `$${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}k`;
+  return `$${v.toFixed(0)}`;
+}
+
+function fmtDollarLabel(v: number): string {
+  if (Math.abs(v) >= 1000) return `$${(v / 1000).toFixed(1)}k`;
+  return `$${v.toFixed(0)}`;
+}
+
+function AlphaCurveChart({ points, isLoading, positionSize }: { points: AlphaPoint[]; isLoading: boolean; positionSize: number }) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+
+  const scale = positionSize / 1000; // API uses $1k default
+  const ready = points.filter((p) => p.trades > 0);
+  if (isLoading || ready.length < 2) {
+    return (
+      <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6 dark:border-zinc-800/90 dark:bg-[#12181f] dark:shadow-[0_1px_3px_rgba(0,0,0,0.35)]">
+        <div className="flex items-center justify-center py-12">
+          {isLoading ? (
+            <Spinner className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+          ) : (
+            <p className="text-sm text-gray-400 dark:text-zinc-500">Not enough data for chart</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Build data: starting capital + cumulative P&L at each period
+  const strategyVals = [BASE_CAPITAL, ...ready.map((p) => BASE_CAPITAL + p.totalPnl * scale)];
+  const spyVals = [BASE_CAPITAL, ...ready.map((p) => BASE_CAPITAL + p.spyTotalPnl * scale)];
+  const xLabels = ["0", ...ready.map((p) => p.label)];
+  const n = strategyVals.length;
+
+  const allVals = [...strategyVals, ...spyVals];
+  const minV = Math.min(...allVals);
+  const maxV = Math.max(...allVals);
+  const range = maxV - minV || 100;
+  const padV = range * 0.15;
+  const yMin = minV - padV;
+  const yMax = maxV + padV;
+
+  const stratColor = isDark ? STRATEGY_COLOR.dark : STRATEGY_COLOR.light;
+  const spyColor = isDark ? SPY_COLOR.dark : SPY_COLOR.light;
+  const gridColor = isDark ? "#3f3f46" : "#f3f4f6";
+  const labelColor = isDark ? "#a1a1aa" : "#9ca3af";
+  const xLabelColor = isDark ? "#a1a1aa" : "#6b7280";
+
+  function xPos(i: number) {
+    return PAD.left + (i / (n - 1)) * PLOT_W;
+  }
+  function yPos(v: number) {
+    return PAD.top + PLOT_H - ((v - yMin) / (yMax - yMin)) * PLOT_H;
+  }
+
+  // Smooth cubic bezier path (matching sparkline style)
+  function buildCurve(vals: number[]): string {
+    if (vals.length < 2) return "";
+    const pts = vals.map((v, i) => ({ x: xPos(i), y: yPos(v) }));
+    let d = `M ${pts[0].x},${pts[0].y}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const dx = pts[i + 1].x - pts[i].x;
+      const cp1x = pts[i].x + dx * 0.4;
+      const cp2x = pts[i + 1].x - dx * 0.4;
+      d += ` C ${cp1x},${pts[i].y} ${cp2x},${pts[i + 1].y} ${pts[i + 1].x},${pts[i + 1].y}`;
+    }
+    return d;
+  }
+
+  const stratCurve = buildCurve(strategyVals);
+  const spyCurve = buildCurve(spyVals);
+
+  // Area fill under strategy line
+  const stratAreaPath = stratCurve
+    ? `${stratCurve} L ${xPos(n - 1)},${PAD.top + PLOT_H} L ${xPos(0)},${PAD.top + PLOT_H} Z`
+    : "";
+
+  // Y-axis ticks
+  const yTicks: number[] = [];
+  const step = niceStep(yMax - yMin, 5);
+  for (let v = Math.ceil(yMin / step) * step; v <= yMax + 1e-9; v += step) {
+    yTicks.push(v);
+  }
+
+  return (
+    <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6 dark:border-zinc-800/90 dark:bg-[#12181f] dark:shadow-[0_1px_3px_rgba(0,0,0,0.35)]">
+      <div className="mb-4">
+        <div className="flex items-baseline justify-between gap-3">
+          <h3 className="font-semibold text-gray-900 dark:text-zinc-100">
+            Capital Growth vs S&P 500
+          </h3>
+          <div className="flex items-center gap-4 text-[10px] sm:text-[11px]">
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-0.5 w-3.5 rounded-full" style={{ background: stratColor }} />
+              <span className="text-gray-500 dark:text-zinc-400">SignalScope</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-0.5 w-3.5 rounded-full" style={{ background: spyColor }} />
+              <span className="text-gray-500 dark:text-zinc-400">S&P 500</span>
+            </span>
+          </div>
+        </div>
+        <p className="text-xs text-gray-400 dark:text-zinc-500">
+          Cumulative P&L from {fmtDollarAxis(BASE_CAPITAL)} base — same trades deployed to SPY for comparison
+        </p>
+      </div>
+
+      <svg
+        viewBox={`0 0 ${CHART_W} ${CHART_H}`}
+        className="w-full"
+        style={{ overflow: "visible" }}
+        role="img"
+        aria-label="Capital growth chart: strategy vs S&P 500"
+      >
+        <defs>
+          <linearGradient id="alpha-strat-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={stratColor} stopOpacity={isDark ? "0.22" : "0.12"} />
+            <stop offset="100%" stopColor={stratColor} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {/* Grid lines */}
+        {yTicks.map((v) => (
+          <line
+            key={v}
+            x1={PAD.left}
+            x2={PAD.left + PLOT_W}
+            y1={yPos(v)}
+            y2={yPos(v)}
+            stroke={gridColor}
+            strokeWidth={0.5}
+          />
+        ))}
+
+        {/* Y-axis labels */}
+        {yTicks.map((v) => (
+          <text
+            key={v}
+            x={PAD.left - 8}
+            y={yPos(v)}
+            textAnchor="end"
+            dominantBaseline="central"
+            fill={labelColor}
+            fontSize="5"
+          >
+            {fmtDollarAxis(v)}
+          </text>
+        ))}
+
+        {/* X-axis labels */}
+        {xLabels.map((label, i) => (
+          <text
+            key={label}
+            x={xPos(i)}
+            y={CHART_H - 5}
+            textAnchor="middle"
+            fill={xLabelColor}
+            fontSize="5.5"
+            fontWeight="500"
+          >
+            {label}
+          </text>
+        ))}
+
+        {/* Strategy area fill */}
+        {stratAreaPath && <path d={stratAreaPath} fill="url(#alpha-strat-fill)" />}
+
+        {/* SPY line — smooth bezier, dashed */}
+        <path
+          d={spyCurve}
+          fill="none"
+          stroke={spyColor}
+          strokeWidth={0.6}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeDasharray="3,2.5"
+        />
+
+        {/* Strategy line — smooth bezier, solid */}
+        <path
+          d={stratCurve}
+          fill="none"
+          stroke={stratColor}
+          strokeWidth={0.9}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        {/* Interactive data points (skip index 0 = starting point) */}
+        {strategyVals.map((sv, i) => {
+          const isHovered = hoveredIdx === i;
+          const isLast = i === n - 1;
+          const isStart = i === 0;
+          const showLabel = isHovered || isLast;
+          const stratY = yPos(sv);
+          const spyY = yPos(spyVals[i]);
+          const xP = xPos(i);
+          const labelGap = Math.abs(stratY - spyY);
+          const stratAbove = sv >= spyVals[i];
+          const stratLabelY = stratAbove ? stratY - 9 : stratY + 14;
+          const spyLabelY = stratAbove
+            ? (labelGap < 16 ? spyY + 14 : spyY + 12)
+            : (labelGap < 16 ? spyY - 9 : spyY - 9);
+
+          return (
+            <g key={`pt-${i}`}>
+              {/* Hover column */}
+              {isHovered && (
+                <line
+                  x1={xP}
+                  x2={xP}
+                  y1={PAD.top}
+                  y2={PAD.top + PLOT_H}
+                  stroke={isDark ? "#3f3f46" : "#e5e7eb"}
+                  strokeWidth={1}
+                />
+              )}
+
+              {/* Strategy dot */}
+              {showLabel && (
+                <circle cx={xP} cy={stratY} r={isHovered ? 4 : 2.5} fill={stratColor} fillOpacity="0.15" />
+              )}
+              <circle
+                cx={xP}
+                cy={stratY}
+                r={showLabel ? 2 : 1.5}
+                fill={stratColor}
+                stroke={isDark ? "#12181f" : "white"}
+                strokeWidth="0.75"
+              />
+
+              {/* SPY dot */}
+              {showLabel && (
+                <circle cx={xP} cy={spyY} r={isHovered ? 4 : 2.5} fill={spyColor} fillOpacity="0.15" />
+              )}
+              <circle
+                cx={xP}
+                cy={spyY}
+                r={showLabel ? 2 : 1.5}
+                fill={spyColor}
+                stroke={isDark ? "#12181f" : "white"}
+                strokeWidth="0.75"
+              />
+
+              {/* Value labels */}
+              {showLabel && !isStart && (
+                <>
+                  <text
+                    x={xP}
+                    y={stratLabelY}
+                    textAnchor={isLast ? "end" : "middle"}
+                    fill={stratColor}
+                    fontSize="5.5"
+                    fontWeight="600"
+                    letterSpacing="0.02em"
+                  >
+                    {fmtDollarLabel(sv)}
+                  </text>
+                  <text
+                    x={xP}
+                    y={spyLabelY}
+                    textAnchor={isLast ? "end" : "middle"}
+                    fill={spyColor}
+                    fontSize="5.5"
+                    fontWeight="500"
+                    letterSpacing="0.02em"
+                  >
+                    {fmtDollarLabel(spyVals[i])}
+                  </text>
+                </>
+              )}
+
+              {/* Hit area for hover */}
+              <rect
+                x={i === 0 ? xP : xP - PLOT_W / (n * 2)}
+                y={PAD.top}
+                width={i === 0 ? PLOT_W / (n * 2) : PLOT_W / n}
+                height={PLOT_H}
+                fill="transparent"
+                style={{ cursor: "pointer" }}
+                onMouseEnter={() => setHoveredIdx(i)}
+                onMouseLeave={() => setHoveredIdx(null)}
+              />
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+function niceStep(range: number, maxTicks: number): number {
+  const rough = range / maxTicks;
+  const mag = 10 ** Math.floor(Math.log10(rough));
+  const norm = rough / mag;
+  const nice = norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10;
+  return nice * mag;
 }
 
 function TradeMobileCard({

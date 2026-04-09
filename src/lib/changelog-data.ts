@@ -10,6 +10,27 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-04-09",
+    title: "Paper Trading Upgrades",
+    changes: [
+      {
+        category: "new",
+        items: [
+          "Capital Growth chart — compare cumulative P&L vs S&P 500 across 3d, 7d, 14d, and 30d lookback periods in a single view.",
+          "Lookback period selector (3d, 7d, 14d, 30d) — filter trades by detection window, not just min AI score.",
+        ],
+      },
+      {
+        category: "fixed",
+        items: [
+          "S&P 500 benchmark now uses hold-matched returns (per-trade SPY return over the same hold period) instead of the full 14-day window return — apples-to-apples comparison.",
+          "Closed positions now appear correctly on shorter lookback windows (7d, 3d) by extending the detection query to include trades that closed within the window.",
+          "Peak Capital card shows the maximum simultaneous capital deployed instead of current open positions only.",
+        ],
+      },
+    ],
+  },
+  {
+    date: "2026-04-09",
     title: "Trending Filters Upgrade",
     changes: [
       {
