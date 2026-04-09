@@ -256,7 +256,7 @@ export default function PaperTradingPage() {
             aria-label="Paper trading summary"
             className="rounded-2xl border border-gray-200/90 bg-linear-to-b from-gray-50/95 to-white p-2 shadow-sm sm:p-3 dark:border-zinc-800 dark:from-zinc-900/80 dark:to-[#12181f]"
           >
-            <div className="grid grid-cols-2 gap-2 *:min-w-0 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-7 lg:gap-2">
+            <div className="grid grid-cols-2 gap-2 *:min-w-0 [&>:last-child]:col-span-2 sm:[&>:last-child]:col-span-1 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-7 lg:gap-2">
               <SummaryCard
                 label="Total trades"
                 value={String(scaledSummary.totalTrades)}

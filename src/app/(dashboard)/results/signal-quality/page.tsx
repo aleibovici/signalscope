@@ -71,7 +71,7 @@ function SummaryCards({
       : null;
 
   return (
-    <div className="grid gap-4 sm:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-4">
       <Card>
         <CardContent className="pt-6 text-center">
           <p className="text-sm text-gray-500 dark:text-zinc-400">High-Score Picks<InfoTip text="Unique tickers that scored 70+ on AI signal confidence with return data for the selected period." /></p>
@@ -189,7 +189,7 @@ function CohortTable({ cohorts, days }: { cohorts: CohortEntry[]; days: number }
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="min-w-[520px] w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 text-left text-xs text-gray-500 dark:border-zinc-800 dark:text-zinc-400">
                 <th className="pb-2 pr-4 font-medium">Week</th>
@@ -292,7 +292,7 @@ function StatsTable({
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="min-w-[420px] w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 text-left text-xs text-gray-500 dark:border-zinc-800 dark:text-zinc-400">
                 <th className="pb-2 pr-4 font-medium">Category</th>
