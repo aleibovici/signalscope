@@ -3,7 +3,7 @@ import YahooFinance from "yahoo-finance2";
 /** Default timeout for Yahoo Finance API calls (quote, quoteSummary, historical, options, etc.) */
 export const YAHOO_FINANCE_TIMEOUT_MS = 10_000;
 
-export const yahooFinance = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
+export const yahooFinance = new YahooFinance({ suppressNotices: ["yahooSurvey", "ripHistorical"] });
 
 export function withYahooTimeout<T>(
   promise: Promise<T>,

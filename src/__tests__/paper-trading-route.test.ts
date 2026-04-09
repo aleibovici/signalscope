@@ -19,6 +19,8 @@ vi.mock("@/lib/prisma", () => ({
 
 vi.mock("@/lib/spy-benchmark", () => ({
   fetchSpyTotalReturnDecimal: vi.fn().mockResolvedValue(0.05),
+  fetchSpyDailyBars: vi.fn().mockResolvedValue([]),
+  spyReturnForTrade: vi.fn().mockReturnValue(null),
   SPY_BENCHMARK_SYMBOL: "SPY",
 }));
 
