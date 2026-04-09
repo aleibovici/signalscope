@@ -886,4 +886,228 @@ describe("GET /api/tickers/trending", () => {
     expect(ticker.return7d).toBe(0.07);
     expect(ticker.return30d).toBe(0.15);
   });
+
+  // ── Multi-select filter OR logic (feat: fe5f8f2) ─────────────────────────
+  // Previously each filter was a single-value enum; it was changed to a
+  // comma-separated string that maps to an array with OR semantics.
+
+  it("multi-select stage: returns tickers from any selected stage", async () => {
+    mockQueryRaw.mockResolvedValue([
+      { symbol: "EARLY_T", cnt: BigInt(2) },
+      { symbol: "CONF_T", cnt: BigInt(2) },
+    ]);
+
+    mockFindManyTicker.mockImplementation((args: { distinct?: string[]; where?: { stage?: { in?: string[]; notIn?: string[] } } }) => {
+      if (args.distinct) {
+        const stageFilter = args.where?.stage;
+        const allowed = stageFilter && "in" in stageFilter ? stageFilter.in! : null;
+        const records = [
+          makeTicker("EARLY_T", 70, "EARLY", daysAgo(1)),
+          makeTicker("CONF_T", 80, "CONFIRMED", daysAgo(1)),
+        ];
+        return allowed ? records.filter((r) => allowed.includes(r.stage)) : records;
+      }
+      return [
+        { symbol: "EARLY_T", aiScore: 70, stage: "EARLY", createdAt: daysAgo(1) },
+        { symbol: "EARLY_T", aiScore: 65, stage: "EARLY", createdAt: daysAgo(5) },
+        { symbol: "CONF_T", aiScore: 80, stage: "CONFIRMED", createdAt: daysAgo(1) },
+        { symbol: "CONF_T", aiScore: 75, stage: "CONFIRMED", createdAt: daysAgo(5) },
+      ];
+    });
+    mockFindManySignal.mockResolvedValue([]);
+
+    // "Emerging" → EARLY, "Consensus" → CONFIRMED (both DB values should be returned)
+    const res = await GET(makeRequest({ stage: "Emerging,Consensus" }));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    const symbols = body.tickers.map((t: { symbol: string }) => t.symbol).sort();
+    expect(symbols).toEqual(["CONF_T", "EARLY_T"]);
+  });
+
+  it("multi-select stage: excludes tickers not in the selected stages", async () => {
+    mockQueryRaw.mockResolvedValue([
+      { symbol: "EARLY_T", cnt: BigInt(2) },
+      { symbol: "CONF_T", cnt: BigInt(2) },
+    ]);
+
+    mockFindManyTicker.mockImplementation((args: { distinct?: string[]; where?: { stage?: { in?: string[] } } }) => {
+      if (args.distinct) {
+        const stageFilter = args.where?.stage;
+        const allowed = stageFilter && "in" in stageFilter ? stageFilter.in! : null;
+        const records = [
+          makeTicker("EARLY_T", 70, "EARLY", daysAgo(1)),
+          makeTicker("CONF_T", 80, "CONFIRMED", daysAgo(1)),
+        ];
+        return allowed ? records.filter((r) => allowed.includes(r.stage)) : records;
+      }
+      return [
+        { symbol: "EARLY_T", aiScore: 70, stage: "EARLY", createdAt: daysAgo(1) },
+        { symbol: "EARLY_T", aiScore: 65, stage: "EARLY", createdAt: daysAgo(5) },
+        { symbol: "CONF_T", aiScore: 80, stage: "CONFIRMED", createdAt: daysAgo(1) },
+        { symbol: "CONF_T", aiScore: 75, stage: "CONFIRMED", createdAt: daysAgo(5) },
+      ];
+    });
+    mockFindManySignal.mockResolvedValue([]);
+
+    // Only "Emerging" (EARLY) — CONFIRMED ticker should be excluded
+    const res = await GET(makeRequest({ stage: "Emerging" }));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    const symbols = body.tickers.map((t: { symbol: string }) => t.symbol);
+    expect(symbols).toContain("EARLY_T");
+    expect(symbols).not.toContain("CONF_T");
+  });
+
+  it("multi-select trend: returns tickers from any selected trend (OR logic)", async () => {
+    mockQueryRaw.mockResolvedValue([
+      { symbol: "UP", cnt: BigInt(2) },
+      { symbol: "DOWN", cnt: BigInt(2) },
+      { symbol: "FLAT", cnt: BigInt(2) },
+    ]);
+
+    mockFindManyTicker.mockImplementation((args: { distinct?: string[] }) => {
+      if (args.distinct) {
+        return [
+          makeTicker("UP", 70, "CONFIRMED", daysAgo(1)),
+          makeTicker("DOWN", 60, "EARLY", daysAgo(1)),
+          makeTicker("FLAT", 50, "FORMING", daysAgo(1)),
+        ];
+      }
+      return [
+        // UP: rising (second half scores much higher)
+        { symbol: "UP", aiScore: 40, stage: "EARLY", createdAt: daysAgo(10) },
+        { symbol: "UP", aiScore: 70, stage: "CONFIRMED", createdAt: daysAgo(1) },
+        // DOWN: falling
+        { symbol: "DOWN", aiScore: 70, stage: "CONFIRMED", createdAt: daysAgo(10) },
+        { symbol: "DOWN", aiScore: 30, stage: "EARLY", createdAt: daysAgo(1) },
+        // FLAT: stable (delta < 5)
+        { symbol: "FLAT", aiScore: 50, stage: "FORMING", createdAt: daysAgo(10) },
+        { symbol: "FLAT", aiScore: 52, stage: "FORMING", createdAt: daysAgo(1) },
+      ];
+    });
+    mockFindManySignal.mockResolvedValue([]);
+
+    // rising + falling, not stable
+    const res = await GET(makeRequest({ trend: "rising,falling" }));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    const symbols = body.tickers.map((t: { symbol: string }) => t.symbol).sort();
+    expect(symbols).toEqual(["DOWN", "UP"]);
+    expect(symbols).not.toContain("FLAT");
+  });
+
+  it("multi-select marketCap: returns tickers in either selected bucket (OR logic)", async () => {
+    mockQueryRaw.mockResolvedValue([
+      { symbol: "MICRO", cnt: BigInt(2) },
+      { symbol: "SMALL", cnt: BigInt(2) },
+      { symbol: "LARGE", cnt: BigInt(2) },
+    ]);
+
+    mockFindManyTicker.mockImplementation((args: { distinct?: string[] }) => {
+      if (args.distinct) {
+        return [
+          makeTicker("MICRO", 70, "CONFIRMED", daysAgo(1), "scan_1", { marketCap: 100_000_000 }),  // micro < $300M
+          makeTicker("SMALL", 65, "FORMING",   daysAgo(1), "scan_1", { marketCap: 500_000_000 }),  // small $300M-$2B
+          makeTicker("LARGE", 60, "EARLY",     daysAgo(1), "scan_1", { marketCap: 15_000_000_000 }), // large > $10B
+        ];
+      }
+      return [
+        { symbol: "MICRO", aiScore: 70, stage: "CONFIRMED", createdAt: daysAgo(1) },
+        { symbol: "MICRO", aiScore: 65, stage: "FORMING",   createdAt: daysAgo(5) },
+        { symbol: "SMALL", aiScore: 65, stage: "FORMING",   createdAt: daysAgo(1) },
+        { symbol: "SMALL", aiScore: 60, stage: "EARLY",     createdAt: daysAgo(5) },
+        { symbol: "LARGE", aiScore: 60, stage: "EARLY",     createdAt: daysAgo(1) },
+        { symbol: "LARGE", aiScore: 55, stage: "EARLY",     createdAt: daysAgo(5) },
+      ];
+    });
+    mockFindManySignal.mockResolvedValue([]);
+
+    const res = await GET(makeRequest({ marketCap: "micro,small" }));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    const symbols = body.tickers.map((t: { symbol: string }) => t.symbol).sort();
+    expect(symbols).toEqual(["MICRO", "SMALL"]);
+    expect(symbols).not.toContain("LARGE");
+  });
+
+  it("multi-select source: returns tickers from any selected source (OR logic)", async () => {
+    mockQueryRaw.mockResolvedValue([
+      { symbol: "RDT", cnt: BigInt(2) },
+      { symbol: "TWI", cnt: BigInt(2) },
+      { symbol: "SEC", cnt: BigInt(2) },
+    ]);
+
+    mockFindManyTicker.mockImplementation((args: { distinct?: string[] }) => {
+      if (args.distinct) {
+        return [
+          makeTicker("RDT", 70, "CONFIRMED", daysAgo(1)),
+          makeTicker("TWI", 65, "FORMING",   daysAgo(1)),
+          makeTicker("SEC", 60, "EARLY",     daysAgo(1)),
+        ];
+      }
+      return [
+        { symbol: "RDT", aiScore: 70, stage: "CONFIRMED", createdAt: daysAgo(1) },
+        { symbol: "RDT", aiScore: 65, stage: "FORMING",   createdAt: daysAgo(5) },
+        { symbol: "TWI", aiScore: 65, stage: "FORMING",   createdAt: daysAgo(1) },
+        { symbol: "TWI", aiScore: 60, stage: "EARLY",     createdAt: daysAgo(5) },
+        { symbol: "SEC", aiScore: 60, stage: "EARLY",     createdAt: daysAgo(1) },
+        { symbol: "SEC", aiScore: 55, stage: "EARLY",     createdAt: daysAgo(5) },
+      ];
+    });
+    mockFindManySignal.mockResolvedValue([
+      { symbol: "RDT", source: "REDDIT" },
+      { symbol: "TWI", source: "TWITTER" },
+      { symbol: "SEC", source: "SEC_INSIDER" },
+    ]);
+
+    const res = await GET(makeRequest({ source: "REDDIT,TWITTER" }));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    const symbols = body.tickers.map((t: { symbol: string }) => t.symbol).sort();
+    expect(symbols).toEqual(["RDT", "TWI"]);
+    expect(symbols).not.toContain("SEC");
+  });
+
+  it("multi-select sector: returns tickers from any selected sector (OR logic)", async () => {
+    mockQueryRaw.mockResolvedValue([
+      { symbol: "TECH", cnt: BigInt(2) },
+      { symbol: "HLTH", cnt: BigInt(2) },
+      { symbol: "ENRG", cnt: BigInt(2) },
+    ]);
+
+    mockFindManyTicker.mockImplementation((args: { distinct?: string[]; where?: { sector?: { in?: string[] } } }) => {
+      if (args.distinct) {
+        const sectorFilter = args.where?.sector;
+        const sectors = sectorFilter && "in" in sectorFilter ? sectorFilter.in! : null;
+        const records = [
+          makeTicker("TECH", 70, "CONFIRMED", daysAgo(1), "scan_1", { sector: "Technology" }),
+          makeTicker("HLTH", 65, "FORMING",   daysAgo(1), "scan_1", { sector: "Healthcare" }),
+          makeTicker("ENRG", 60, "EARLY",     daysAgo(1), "scan_1", { sector: "Energy" }),
+        ];
+        return sectors ? records.filter((r) => sectors.includes(r.sector)) : records;
+      }
+      return [
+        { symbol: "TECH", aiScore: 70, stage: "CONFIRMED", createdAt: daysAgo(1) },
+        { symbol: "TECH", aiScore: 65, stage: "FORMING",   createdAt: daysAgo(5) },
+        { symbol: "HLTH", aiScore: 65, stage: "FORMING",   createdAt: daysAgo(1) },
+        { symbol: "HLTH", aiScore: 60, stage: "EARLY",     createdAt: daysAgo(5) },
+        { symbol: "ENRG", aiScore: 60, stage: "EARLY",     createdAt: daysAgo(1) },
+        { symbol: "ENRG", aiScore: 55, stage: "EARLY",     createdAt: daysAgo(5) },
+      ];
+    });
+    mockFindManySignal.mockResolvedValue([]);
+
+    const res = await GET(makeRequest({ sector: "Technology,Healthcare" }));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    const symbols = body.tickers.map((t: { symbol: string }) => t.symbol).sort();
+    expect(symbols).toEqual(["HLTH", "TECH"]);
+    expect(symbols).not.toContain("ENRG");
+  });
 });
