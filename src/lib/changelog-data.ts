@@ -9,6 +9,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-04-10",
+    title: "Unified Results Section",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "Performance and Paper Trading pages merged into a single Results section in the sidebar for a cleaner navigation experience.",
+          "Mobile layout improvements for the Results pages — better spacing, responsive tables, and touch-friendly controls.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-04-09",
     title: "Paper Trading Upgrades",
     changes: [
