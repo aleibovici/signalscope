@@ -66,11 +66,10 @@ const NavIcons = {
   ),
 };
 
-const publicNavItems = [
+const publicNavItems: { href: string; label: string; icon: React.ReactNode; tourId: string; matchPrefix?: string }[] = [
   { href: "/dashboard", label: "Daily Signals", icon: NavIcons.Signals, tourId: "tour-signals" },
   { href: "/trending", label: "Trending", icon: NavIcons.Trending, tourId: "tour-trending" },
-  { href: "/performance", label: "Performance", icon: NavIcons.Performance, tourId: "tour-performance" },
-  { href: "/paper-trading", label: "Paper Trading", icon: NavIcons.PaperTrading, tourId: "tour-paper-trading" },
+  { href: "/results/signal-quality", label: "Results", icon: NavIcons.Performance, tourId: "tour-results", matchPrefix: "/results" },
 ];
 const authNavItems = [
   { href: "/portfolio", label: "Portfolio", icon: NavIcons.Portfolio },
@@ -190,7 +189,9 @@ export function Sidebar({ revision }: { revision: string }) {
         <div className="flex-1 overflow-y-auto">
           <nav className="space-y-1 px-3 py-4">
             {publicNavItems.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive = item.matchPrefix
+                ? pathname.startsWith(item.matchPrefix)
+                : pathname === item.href;
               return (
                 <Link
                   key={item.href}

@@ -26,6 +26,20 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
+  async redirects() {
+    return [
+      {
+        source: "/performance",
+        destination: "/results/signal-quality",
+        permanent: true,
+      },
+      {
+        source: "/paper-trading",
+        destination: "/results/simulated-portfolio",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {
