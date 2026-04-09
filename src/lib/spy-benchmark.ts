@@ -16,6 +16,28 @@ function cacheKeyForWindow(windowStart: Date, windowEnd: Date): string {
 
 export type SpyHistoryBar = { date: Date; close: number; adjClose?: number };
 
+/** Fetch SPY daily bars via chart() API, filtering out rows with null close. */
+async function fetchChartBars(
+  windowStart: Date,
+  windowEnd: Date,
+): Promise<SpyHistoryBar[]> {
+  const result = await withYahooTimeout(
+    yahooFinance.chart(SPY_BENCHMARK_SYMBOL, {
+      period1: windowStart,
+      period2: windowEnd,
+      interval: "1d",
+    }),
+  );
+  if (!result?.quotes || !Array.isArray(result.quotes)) return [];
+  return result.quotes
+    .filter((q: { close?: number | null }) => q.close != null)
+    .map((q: { date: Date; close: number; adjclose?: number | null }) => ({
+      date: q.date,
+      close: q.close,
+      adjClose: q.adjclose ?? q.close,
+    }));
+}
+
 export function totalReturnDecimalFromBars(rows: SpyHistoryBar[]): number | null {
   if (rows.length < 2) return null;
   const sorted = [...rows].sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -36,15 +58,9 @@ export async function fetchSpyTotalReturnDecimal(
   if (hit !== undefined) return hit;
 
   try {
-    const rows = await withYahooTimeout(
-      yahooFinance.historical(SPY_BENCHMARK_SYMBOL, {
-        period1: windowStart,
-        period2: windowEnd,
-        interval: "1d",
-      }),
-    );
-    if (!Array.isArray(rows) || rows.length < 2) return null;
-    const pct = totalReturnDecimalFromBars(rows as SpyHistoryBar[]);
+    const rows = await fetchChartBars(windowStart, windowEnd);
+    if (rows.length < 2) return null;
+    const pct = totalReturnDecimalFromBars(rows);
     if (pct !== null) spyTotalReturnCache.set(key, pct);
     return pct;
   } catch {
@@ -66,19 +82,10 @@ export async function fetchSpyDailyBars(
   if (hit !== undefined) return hit;
 
   try {
-    const rows = await withYahooTimeout(
-      yahooFinance.historical(SPY_BENCHMARK_SYMBOL, {
-        period1: windowStart,
-        period2: windowEnd,
-        interval: "1d",
-      }),
-    );
-    if (!Array.isArray(rows)) return [];
-    const bars = (rows as SpyHistoryBar[]).sort(
-      (a, b) => a.date.getTime() - b.date.getTime(),
-    );
-    spyBarsCache.set(key, bars);
-    return bars;
+    const bars = await fetchChartBars(windowStart, windowEnd);
+    const sorted = bars.sort((a, b) => a.date.getTime() - b.date.getTime());
+    spyBarsCache.set(key, sorted);
+    return sorted;
   } catch {
     return [];
   }

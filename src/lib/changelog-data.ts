@@ -25,6 +25,7 @@ export const changelog: ChangelogEntry[] = [
           "S&P 500 benchmark now uses hold-matched returns (per-trade SPY return over the same hold period) instead of the full 14-day window return — apples-to-apples comparison.",
           "Closed positions now appear correctly on shorter lookback windows (7d, 3d) by extending the detection query to include trades that closed within the window.",
           "Peak Capital card shows the maximum simultaneous capital deployed instead of current open positions only.",
+          "Fixed S&P 500 benchmark showing 'Unavailable' — switched SPY data fetching from the deprecated Yahoo Finance historical API to the current chart API.",
         ],
       },
     ],
