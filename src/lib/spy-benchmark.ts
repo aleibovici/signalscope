@@ -29,9 +29,10 @@ async function fetchChartBars(
     }),
   );
   if (!result?.quotes || !Array.isArray(result.quotes)) return [];
-  return result.quotes
-    .filter((q: { close?: number | null }) => q.close != null)
-    .map((q: { date: Date; close: number; adjclose?: number | null }) => ({
+  type RawBar = { date: Date; close: number | null; adjclose?: number | null };
+  return (result.quotes as RawBar[])
+    .filter((q): q is RawBar & { close: number } => q.close != null)
+    .map((q) => ({
       date: q.date,
       close: q.close,
       adjClose: q.adjclose ?? q.close,
