@@ -10,8 +10,9 @@ import { logXApiCall } from "./log";
 /*  Config                                                             */
 /* ------------------------------------------------------------------ */
 
-const FOLLOW_BATCH = 5; // X rate limit: 5 follows per 15-min window; 3 runs/day → ~15 follows/day
-const UNFOLLOW_BATCH = 3; // batch unfollows to compensate for fewer runs
+const FOLLOW_BATCH = 5; // X rate limit: 5 follows per 15-min window
+const UNFOLLOW_BATCH = 3;
+const DISCOVER_LOOKUP_CAP = 10; // max usernames to resolve per run (API credit budget)
 const STALE_DAYS = 30;
 const DISCOVER_LOOKBACK_HOURS = 72;
 
@@ -368,12 +369,18 @@ async function discoverFromHarvest(): Promise<number> {
   );
   if (newAuthors.length === 0) return 0;
 
+  // Cap lookups to conserve X API credits — queue is already deep
+  const capped = newAuthors.slice(0, DISCOVER_LOOKUP_CAP);
+  if (capped.length < newAuthors.length) {
+    console.log(`[twitter/follow] Capping discovery lookup to ${DISCOVER_LOOKUP_CAP} of ${newAuthors.length} new authors`);
+  }
+
   // Batch lookup IDs
-  const usernames = newAuthors.map((s) => s.author!);
+  const usernames = capped.map((s) => s.author!);
   const idMap = await lookupUserIds(usernames);
 
   let added = 0;
-  for (const signal of newAuthors) {
+  for (const signal of capped) {
     const handle = signal.author!.toLowerCase();
     const resolved = idMap.get(handle);
 
@@ -416,7 +423,7 @@ async function discoverFromHarvest(): Promise<number> {
     }
   }
 
-  console.log(`[twitter/follow] Discovered ${added} new accounts from harvest (${newAuthors.length} candidates)`);
+  console.log(`[twitter/follow] Discovered ${added} new accounts from harvest (${capped.length}/${newAuthors.length} candidates, cap=${DISCOVER_LOOKUP_CAP})`);
   return added;
 }
 
