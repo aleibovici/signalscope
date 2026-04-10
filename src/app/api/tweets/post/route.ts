@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
       sourceCount: t.sourceCount,
     }));
 
-    const diversified = selectDiversifiedTickers(details, 10);
+    const diversified = selectDiversifiedTickers(details, 5);
     const result = await tweetTickerBatch(diversified);
 
     return NextResponse.json({

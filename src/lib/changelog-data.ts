@@ -9,6 +9,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-04-11",
+    title: "X API Credit Optimization",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "Capped Twitter/X discovery lookups to 10 usernames per harvest run, reducing API credit consumption by ~70%.",
+          "Reduced ticker batch tweet thread size from 10 to 5 for better credit efficiency.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-04-10",
     title: "Unified Results Section",
     changes: [
