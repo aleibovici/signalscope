@@ -23,7 +23,7 @@ function downloadWatchlistCSV(symbols: Set<string>) {
   URL.revokeObjectURL(url);
 }
 
-const VALID_STAGES = new Set(["ALL", "Emerging", "Building", "Consensus"]);
+const VALID_STAGES = new Set(["Emerging", "Building", "Consensus"]);
 
 function setCookieStage(stage: string) {
   document.cookie = `dashboard_stage=${encodeURIComponent(stage)}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
@@ -35,7 +35,7 @@ function DashboardContent() {
   const [selectedScanId, setSelectedScanId] = useState<string | null>(
     searchParams.get("scanId")
   );
-  const [selectedStage, setSelectedStage] = useState("ALL");
+  const [selectedStage, setSelectedStage] = useState("Emerging");
   const [calloutDismissed, setCalloutDismissed] = useState(false);
 
   // Restore stage from cookie after hydration to avoid SSR mismatch
@@ -73,10 +73,7 @@ function DashboardContent() {
   }, [scansData, selectedScanId]);
 
   const tickers = scanDetail?.tickers || [];
-  const filteredRaw =
-    selectedStage === "ALL"
-      ? tickers
-      : tickers.filter((t) => t.stage === selectedStage);
+  const filteredRaw = tickers.filter((t) => t.stage === selectedStage);
 
   // Bookmarked tickers float to top; within each group, API order (aiScore DESC, opportunityScore DESC) is preserved
   const filtered = [...filteredRaw].sort((a, b) => {
@@ -92,7 +89,6 @@ function DashboardContent() {
   );
 
   const counts: Record<string, number> = {
-    ALL: tickers.length,
     Emerging: tickers.filter((t) => t.stage === "Emerging").length,
     Building: tickers.filter((t) => t.stage === "Building").length,
     Consensus: tickers.filter((t) => t.stage === "Consensus").length,
