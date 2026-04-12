@@ -105,6 +105,18 @@ describe("POST /api/auth/login", () => {
     expect(res.status).toBe(429);
   });
 
+  it("returns 401 for soft-deleted user", async () => {
+    mockFindUnique.mockResolvedValue({ ...fakeUser, deletedAt: new Date("2026-01-01") });
+
+    const res = await POST(makeRequest({ email: "test@example.com", password: "password123" }));
+    expect(res.status).toBe(401);
+
+    const json = await res.json();
+    expect(json.error).toBe("Invalid credentials");
+    // Password comparison must not run — deletion is checked before bcrypt
+    expect(mockCompare).not.toHaveBeenCalled();
+  });
+
   it("passes deviceId to refresh token creation", async () => {
     mockFindUnique.mockResolvedValue(fakeUser);
     mockCompare.mockResolvedValue(true);
