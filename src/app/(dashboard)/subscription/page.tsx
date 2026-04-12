@@ -13,10 +13,11 @@ const MONTHLY_PRICE = 10;
 const YEARLY_PRICE = 100;
 
 const features = [
+  "On-demand AI reports",
+  "AI-powered trade setups",
+  "Email alerts for new signals",
   "API key with 1,000 requests/day",
   "All authenticated API endpoints",
-  "On-demand AI reports & trade setups",
-  "Email alerts for new signals",
 ];
 
 export default function SubscriptionPage() {
