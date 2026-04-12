@@ -9,6 +9,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-04-12",
+    title: "Account Deletion",
+    changes: [
+      {
+        category: "new",
+        items: [
+          "Account deletion is now available from your profile page — permanently removes personal data and cancels any active subscription.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-04-11",
     title: "X API Credit Optimization",
     changes: [

@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { signOut } from "next-auth/react";
 import { useUserProfile, useUpdateUsername, useUpdateEmailAlerts } from "@/hooks/use-user-profile";
 import { useApiKey, useGenerateApiKey, useRevokeApiKey } from "@/hooks/use-api-key";
 import { useShareReward, useClaimShareReward } from "@/hooks/use-share-reward";
@@ -141,6 +143,7 @@ export default function ProfilePage() {
       </div>
       <ShareRewardSection />
       <ApiKeySection hasSubscription={profile?.subscription?.isActive ?? false} />
+      <DeleteAccountSection />
     </div>
   );
 }
@@ -375,6 +378,81 @@ function ApiKeySection({ hasSubscription }: { hasSubscription: boolean }) {
            revoke.error instanceof Error ? revoke.error.message :
            "Something went wrong"}
         </p>
+      )}
+    </div>
+  );
+}
+
+function DeleteAccountSection() {
+  const router = useRouter();
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleDelete() {
+    setDeleting(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/user/account", { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Failed to delete account");
+      }
+      await signOut({ redirect: false });
+      router.push("/login");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <div className="mt-6 rounded-xl border border-red-200 bg-white p-6 dark:border-red-900/50 dark:bg-[#12181f]">
+      <h2 className="mb-2 text-base font-semibold text-red-600 dark:text-red-400">Delete Account</h2>
+      <p className="mb-4 text-sm text-gray-500 dark:text-zinc-400">
+        Permanently delete your account, cancel any active subscription, and remove all personal data. This cannot be undone.
+      </p>
+
+      {!showConfirm ? (
+        <button
+          type="button"
+          onClick={() => setShowConfirm(true)}
+          className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40"
+        >
+          Delete Account
+        </button>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-sm font-medium text-red-600 dark:text-red-400">
+            Type <code className="rounded bg-red-50 px-1.5 py-0.5 font-mono text-xs dark:bg-red-950/40">DELETE</code> to confirm:
+          </p>
+          <input
+            type="text"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder="DELETE"
+            className="w-full rounded-lg border border-red-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 dark:border-red-800 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-red-400 dark:focus:ring-red-400"
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={confirmText !== "DELETE" || deleting}
+              onClick={handleDelete}
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 dark:bg-red-500 dark:hover:bg-red-600"
+            >
+              {deleting ? "Deleting…" : "Permanently Delete"}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowConfirm(false); setConfirmText(""); setError(null); }}
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              Cancel
+            </button>
+          </div>
+          {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+        </div>
       )}
     </div>
   );

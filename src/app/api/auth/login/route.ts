@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user || !user.passwordHash) {
+    if (!user || !user.passwordHash || user.deletedAt) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 

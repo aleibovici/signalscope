@@ -65,7 +65,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         const user = await prisma.user.findUnique({ where: { email } });
-        if (!user || !user.passwordHash) return null;
+        if (!user || !user.passwordHash || user.deletedAt) return null;
 
         const valid = await bcrypt.compare(password, user.passwordHash);
         if (!valid) return null;
@@ -76,6 +76,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
 });
 
+async function assertNotDeleted(userId: string): Promise<void> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { deletedAt: true },
+  });
+  if (!user || user.deletedAt) throw new Error("Not authenticated");
+}
+
 export async function getCurrentUserId(): Promise<string> {
   const headerStore = await headers();
 
@@ -85,6 +93,7 @@ export async function getCurrentUserId(): Promise<string> {
     const token = authHeader.slice(7);
     const payload = await verifyAccessToken(token);
     if (payload?.sub) {
+      await assertNotDeleted(payload.sub);
       trackUserActivity(payload.sub);
       return payload.sub;
     }
@@ -100,6 +109,7 @@ export async function getCurrentUserId(): Promise<string> {
       if (isApiKeyRateLimited(record.userId)) {
         throw new Error("API key rate limit exceeded (1,000 requests/day)");
       }
+      await assertNotDeleted(record.userId);
       trackApiKeyUsage(record.id);
       trackUserActivity(record.userId);
       return record.userId;
@@ -112,6 +122,7 @@ export async function getCurrentUserId(): Promise<string> {
   if (!session?.user?.id) {
     throw new Error("Not authenticated");
   }
+  await assertNotDeleted(session.user.id);
   trackUserActivity(session.user.id);
   return session.user.id;
 }
