@@ -19,6 +19,7 @@ model User {
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
   lastActiveAt         DateTime?
+  deletedAt            DateTime?
   stripeCustomerId String?        @unique
   positions      UserPosition[]
   watchlist      UserWatchlist[]
