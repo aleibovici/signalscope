@@ -3,7 +3,6 @@
 import { STAGE_LABELS } from "@/lib/stage-labels";
 
 const stages = [
-  { key: "ALL", label: "All" },
   { key: STAGE_LABELS.EARLY, label: STAGE_LABELS.EARLY },
   { key: STAGE_LABELS.FORMING, label: STAGE_LABELS.FORMING },
   { key: STAGE_LABELS.CONFIRMED, label: STAGE_LABELS.CONFIRMED },
