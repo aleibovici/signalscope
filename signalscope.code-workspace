@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "../autoresearch-macos"
+		},
+		{
+			"path": "../../Developer/signalscope-ios"
 		}
 	],
 	"settings": {}
