@@ -144,10 +144,7 @@ export async function sendWeeklyDigest(): Promise<{
     return { sent: 0, skipped: 0, tickerCount: 0, performerCount: 0 };
   }
 
-  // 2. Top 3 tickers by opportunity score (EARLY/FORMING preferred)
-  // NOTE: orderBy stage alphabetically gives CONFIRMED < EARLY < FORMING (wrong order).
-  // Sort in JS with explicit priority: EARLY=0, FORMING=1, CONFIRMED=2.
-  const STAGE_PRIORITY: Record<string, number> = { EARLY: 0, FORMING: 1, CONFIRMED: 2 };
+  // 2. Top 3 tickers by combined ai+opportunity score (highest conviction first)
   const topTickersRaw = await prisma.validatedTicker.findMany({
     where: {
       scanId: scan.id,
@@ -156,7 +153,7 @@ export async function sendWeeklyDigest(): Promise<{
       aiScore: { gte: 50 },
       recommendation: { in: ["Strong Buy", "Buy", "Watch"] },
     },
-    orderBy: [{ opportunityScore: "desc" }],
+    orderBy: [{ aiScore: "desc" }, { opportunityScore: "desc" }],
     take: 20,
     select: {
       symbol: true,
@@ -166,13 +163,7 @@ export async function sendWeeklyDigest(): Promise<{
       stage: true,
     },
   });
-  const topTickers = topTickersRaw
-    .sort((a, b) => {
-      const stageDiff = (STAGE_PRIORITY[a.stage] ?? 9) - (STAGE_PRIORITY[b.stage] ?? 9);
-      if (stageDiff !== 0) return stageDiff;
-      return (b.opportunityScore ?? 0) - (a.opportunityScore ?? 0);
-    })
-    .slice(0, 3);
+  const topTickers = topTickersRaw.slice(0, 3);
 
   if (topTickers.length === 0) {
     console.log("[email/weekly] No qualifying tickers — skipping");
