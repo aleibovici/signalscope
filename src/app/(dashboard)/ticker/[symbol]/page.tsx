@@ -538,7 +538,7 @@ export default function TickerDetailPage({
                   className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${
                     flag === "micro_cap_no_catalyst" || flag === "sudden_spike"
                       ? "border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-300"
-                      : flag === "no_news_catalyst" || flag === "only_penny_subs"
+                      : flag === "only_penny_subs"
                         ? "border-amber-500/25 bg-amber-500/10 text-amber-800 dark:text-amber-300"
                         : flag === "penny_price" || flag === "otc_listing" || flag === "twitter_coordinated_pump"
                           ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"

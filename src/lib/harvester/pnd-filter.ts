@@ -16,14 +16,15 @@ const REPUTABLE_SUBREDDITS = new Set([
 
 export const PND_THRESHOLD = 3;
 
-// Flags that predict positive returns per ML backtesting — detected for data purposes
-// but excluded from the PnD threshold count
+// Flags that predict positive or non-significant returns per ML backtesting — detected
+// for data purposes but excluded from the PnD threshold count
 export const INFORMATIONAL_FLAGS = new Set([
-  "penny_price",        // +2.2% avg 7d return — bullish, not bearish (Apr 2026 dataset)
-  "otc_listing",        // +1.2% avg 7d return — bullish, not bearish (Apr 2026 dataset)
-  "twitter_coordinated_pump", // +2.0% avg 7d return — bullish, not bearish
-  "coordinated_posts",  // -0.4% avg 7d — negligible impact, fires too broadly (n=1275)
-  "single_source",      // -0.4% avg 7d — negligible impact, fires too broadly (n=2632)
+  "penny_price",        // +1.4% avg 7d return — bullish, not bearish (Apr 10 high-vol dataset)
+  "otc_listing",        // +0.5% avg 7d return — bullish, not bearish (Apr 10 high-vol dataset)
+  "twitter_coordinated_pump", // not significant in high-vol dataset (Apr 10)
+  "coordinated_posts",  // not significant in high-vol dataset (Apr 10)
+  "single_source",      // not significant in high-vol dataset (Apr 10)
+  "no_news_catalyst",   // not significant in high-vol dataset (Apr 10) — moved from effective
 ]);
 
 const HYPE_PHRASES = [
