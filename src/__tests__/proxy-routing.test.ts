@@ -93,6 +93,27 @@ describe("isPublicPath", () => {
     expect(isPublicPath("/api/statsmore")).toBe(false);
   });
 
+  // ── /results section (merged Performance + Paper Trading) ─────────────
+  it("treats /results as public (redirect page)", () => {
+    expect(isPublicPath("/results")).toBe(true);
+  });
+
+  it("treats /results/signal-quality as public (replaces /performance)", () => {
+    expect(isPublicPath("/results/signal-quality")).toBe(true);
+  });
+
+  it("does NOT treat /results/simulated-portfolio as public (replaces /paper-trading, requires auth)", () => {
+    expect(isPublicPath("/results/simulated-portfolio")).toBe(false);
+  });
+
+  it("does NOT treat /results/signal-quality/subpath as public (only exact match, no prefix expansion)", () => {
+    expect(isPublicPath("/results/signal-quality/extra")).toBe(false);
+  });
+
+  it("does NOT treat /results/other as public (unrecognised sub-path)", () => {
+    expect(isPublicPath("/results/other")).toBe(false);
+  });
+
   // ── Protected routes — must NOT be public ──────────────────────────────
   it.each([
     "/api/portfolio",
