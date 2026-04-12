@@ -200,6 +200,148 @@ describe("ensureSeedAccounts — unresolvable seeding regression", () => {
   });
 });
 
+describe("discoverFromHarvest — DISCOVER_LOOKUP_CAP enforcement", () => {
+  /**
+   * Fix: cap discovery lookups to 10 usernames/run to limit X API credit
+   * consumption. Without the cap a run with 40+ harvest signal authors would
+   * make 40+ API calls; with the cap it makes at most 10.
+   *
+   * Test strategy: provide more than 10 new Twitter signal authors, then spy
+   * on fetch to count the usernames forwarded to /2/users/by. The total must
+   * not exceed 10 regardless of how many new authors are available.
+   */
+
+  it("forwards at most 10 usernames to lookupUserIds when more than 10 new authors are found", async () => {
+    setupBaseMocks();
+
+    // 20 distinct Twitter signal authors — exceeds DISCOVER_LOOKUP_CAP (10)
+    const twentyAuthors = Array.from({ length: 20 }, (_, i) => `trader${i + 1}`);
+    mockSignal.findMany.mockResolvedValue(
+      twentyAuthors.map((author) => ({ author, followerCount: 5000 }))
+    );
+
+    // Return all seed accounts as already present so ensureSeedAccounts makes
+    // no lookupUserIds call, keeping fetch spy results uncontaminated.
+    // Everything else (existing tracking, follow queue) returns [].
+    mockTwitterFollow.findMany.mockImplementation(
+      (args: { where?: { username?: { in?: string[] } } }) => {
+        if (args?.where?.username?.in) {
+          return Promise.resolve(
+            args.where.username.in.map((u: string) => ({ username: u }))
+          );
+        }
+        return Promise.resolve([]);
+      }
+    );
+
+    vi.stubEnv("X_BEARER_TOKEN", "test-bearer");
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((url) => {
+      if (String(url).includes("/2/users/by")) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ data: [] }), { status: 200 })
+        );
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+
+    await runFollowJob();
+
+    const lookupCalls = fetchSpy.mock.calls.filter(([url]) =>
+      String(url).includes("/2/users/by")
+    );
+
+    // At least one lookup call must have been made (discovery ran)
+    expect(lookupCalls.length).toBeGreaterThan(0);
+
+    // Sum all usernames passed across all batches — must not exceed cap
+    const totalLooked = lookupCalls.reduce((sum, [url]) => {
+      const usernamesParam = new URL(String(url)).searchParams.get("usernames");
+      return sum + (usernamesParam ? usernamesParam.split(",").filter(Boolean).length : 0);
+    }, 0);
+
+    expect(totalLooked).toBeLessThanOrEqual(10);
+
+    fetchSpy.mockRestore();
+    vi.unstubAllEnvs();
+  });
+
+  it("forwards all authors when fewer than 10 new authors are found", async () => {
+    setupBaseMocks();
+
+    // 5 authors — well within DISCOVER_LOOKUP_CAP
+    const fiveAuthors = Array.from({ length: 5 }, (_, i) => `smalltrader${i + 1}`);
+    mockSignal.findMany.mockResolvedValue(
+      fiveAuthors.map((author) => ({ author, followerCount: 2000 }))
+    );
+
+    mockTwitterFollow.findMany.mockImplementation(
+      (args: { where?: { username?: { in?: string[] } } }) => {
+        if (args?.where?.username?.in) {
+          return Promise.resolve(
+            args.where.username.in.map((u: string) => ({ username: u }))
+          );
+        }
+        return Promise.resolve([]);
+      }
+    );
+
+    vi.stubEnv("X_BEARER_TOKEN", "test-bearer");
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((url) => {
+      if (String(url).includes("/2/users/by")) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ data: [] }), { status: 200 })
+        );
+      }
+      return Promise.resolve(new Response("{}", { status: 200 }));
+    });
+
+    await runFollowJob();
+
+    const lookupCalls = fetchSpy.mock.calls.filter(([url]) =>
+      String(url).includes("/2/users/by")
+    );
+
+    const totalLooked = lookupCalls.reduce((sum, [url]) => {
+      const usernamesParam = new URL(String(url)).searchParams.get("usernames");
+      return sum + (usernamesParam ? usernamesParam.split(",").filter(Boolean).length : 0);
+    }, 0);
+
+    // All 5 should be forwarded (no cap applied)
+    expect(totalLooked).toBe(5);
+
+    fetchSpy.mockRestore();
+    vi.unstubAllEnvs();
+  });
+
+  it("returns 0 when no new scan has completed since the last discovery run", async () => {
+    setupBaseMocks();
+
+    // Prior discovery exists AND latest scan is older than that discovery
+    const priorDiscovery = new Date("2026-04-11T08:00:00Z");
+    const olderScan = new Date("2026-04-11T07:00:00Z");
+
+    mockTwitterFollow.findFirst.mockResolvedValue({ createdAt: priorDiscovery });
+    mockScan.findFirst.mockResolvedValue({ startedAt: olderScan });
+
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response("{}", { status: 200 })
+    );
+
+    const result = await runFollowJob();
+
+    // discovered must be 0 — gate should have returned early
+    expect(result.discovered).toBe(0);
+
+    // No lookupUserIds calls should have been made for harvest discovery
+    const lookupCalls = fetchSpy.mock.calls.filter(([url]) =>
+      String(url).includes("/2/users/by")
+    );
+    expect(lookupCalls).toHaveLength(0);
+
+    fetchSpy.mockRestore();
+  });
+});
+
 describe("processFollows — excludes unresolvable records from follow queue", () => {
   it("passes source: { not: 'unresolvable' } filter when fetching the follow queue", async () => {
     setupBaseMocks();
