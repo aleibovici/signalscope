@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -544,36 +544,106 @@ export default function AdminPage() {
       )}
 
       {/* Users Table */}
-      <Card>
-        <div className="border-b border-gray-100 px-3 py-2 dark:border-zinc-800">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
-            Registered Users
-          </h2>
+      <UsersTable users={usersData?.users} loading={usersLoading} formatDate={formatDate} />
+    </div>
+  );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function UsersTable({ users, loading, formatDate }: { users: any[] | undefined; loading: boolean; formatDate: (d: string) => string }) {
+  const [search, setSearch] = useState("");
+  const [filterPlan, setFilterPlan] = useState<"all" | "pro" | "free">("all");
+
+  const filtered = useMemo(() => {
+    if (!users) return [];
+    let list = users;
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (u) =>
+          u.email.toLowerCase().includes(q) ||
+          (u.username && u.username.toLowerCase().includes(q))
+      );
+    }
+    if (filterPlan === "pro") {
+      list = list.filter(
+        (u) => u.subscription && (u.subscription.status === "ACTIVE" || u.subscription.status === "PAST_DUE")
+      );
+    } else if (filterPlan === "free") {
+      list = list.filter(
+        (u) => !u.subscription || (u.subscription.status !== "ACTIVE" && u.subscription.status !== "PAST_DUE")
+      );
+    }
+    return list;
+  }, [users, search, filterPlan]);
+
+  const activeCount = users?.filter((u) => {
+    if (!u.lastActiveAt) return false;
+    return Date.now() - new Date(u.lastActiveAt).getTime() < 7 * 86_400_000;
+  }).length ?? 0;
+
+  return (
+    <Card>
+      <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 px-3 py-2 dark:border-zinc-800">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+          Registered Users
+        </h2>
+        {users && (
+          <span className="text-[10px] text-gray-400 dark:text-zinc-500">
+            {users.length} total · {activeCount} active 7d
+          </span>
+        )}
+        <div className="ml-auto flex items-center gap-2">
+          <select
+            value={filterPlan}
+            onChange={(e) => setFilterPlan(e.target.value as "all" | "pro" | "free")}
+            className="rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+          >
+            <option value="all">All plans</option>
+            <option value="pro">Pro only</option>
+            <option value="free">Free only</option>
+          </select>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search email or username…"
+            className="w-48 rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 placeholder-gray-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:placeholder-zinc-500"
+          />
         </div>
-        {usersLoading ? (
-          <div className="flex justify-center py-6">
-            <Spinner className="text-blue-600 dark:text-blue-400" />
-          </div>
-        ) : usersData && usersData.users.length > 0 ? (
-          <div className="max-h-[260px] overflow-y-auto overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50 text-left font-medium uppercase tracking-wide text-gray-400 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-500">
-                  <th className="px-3 py-1.5">Email</th>
-                  <th className="hidden sm:table-cell px-3 py-1.5">Username</th>
-                  <th className="px-3 py-1.5">Joined</th>
-                  <th className="px-3 py-1.5 text-center">Plan</th>
-                  <th className="hidden md:table-cell px-3 py-1.5 text-right">Pos</th>
-                  <th className="hidden md:table-cell px-3 py-1.5 text-right">Watch</th>
-                  <th className="hidden md:table-cell px-3 py-1.5 text-center">Alerts</th>
-                  <th className="hidden md:table-cell px-3 py-1.5 text-center">API Key</th>
-                  <th className="px-3 py-1.5 text-right">Last Active</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-zinc-800/80">
-                {usersData.users.map((u) => (
+      </div>
+      {loading ? (
+        <div className="flex justify-center py-6">
+          <Spinner className="text-blue-600 dark:text-blue-400" />
+        </div>
+      ) : filtered.length > 0 ? (
+        <div className="max-h-[480px] overflow-y-auto overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="sticky top-0 z-10">
+              <tr className="border-b border-gray-100 bg-gray-50 text-left font-medium uppercase tracking-wide text-gray-400 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-500">
+                <th className="px-3 py-1.5">Email</th>
+                <th className="hidden sm:table-cell px-3 py-1.5">Username</th>
+                <th className="px-3 py-1.5">Joined</th>
+                <th className="px-3 py-1.5 text-center">Plan</th>
+                <th className="hidden md:table-cell px-3 py-1.5 text-right">Pos</th>
+                <th className="hidden md:table-cell px-3 py-1.5 text-right">Watch</th>
+                <th className="hidden md:table-cell px-3 py-1.5 text-center">Alerts</th>
+                <th className="hidden md:table-cell px-3 py-1.5 text-center">API Key</th>
+                <th className="px-3 py-1.5 text-right">Last Active</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50 dark:divide-zinc-800/80">
+              {filtered.map((u) => {
+                const active7d = u.lastActiveAt && Date.now() - new Date(u.lastActiveAt).getTime() < 7 * 86_400_000;
+                const active24h = u.lastActiveAt && Date.now() - new Date(u.lastActiveAt).getTime() < 86_400_000;
+                return (
                   <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-zinc-900/50">
-                    <td className="max-w-[160px] truncate px-3 py-1 font-medium text-gray-900 dark:text-zinc-100">{u.email}</td>
+                    <td className="max-w-[160px] truncate px-3 py-1 font-medium text-gray-900 dark:text-zinc-100">
+                      <span className="flex items-center gap-1.5">
+                        <span className={`inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full ${active24h ? "bg-green-500" : active7d ? "bg-yellow-500" : "bg-gray-300 dark:bg-zinc-600"}`} />
+                        {u.email}
+                      </span>
+                    </td>
                     <td className="hidden px-3 py-1 text-gray-500 dark:text-zinc-400 sm:table-cell">{u.username ?? "—"}</td>
                     <td className="whitespace-nowrap px-3 py-1 text-gray-500 dark:text-zinc-400">{formatDate(u.createdAt)}</td>
                     <td className="px-3 py-1 text-center">
@@ -607,14 +677,16 @@ export default function AdminPage() {
                       {u.lastActiveAt ? formatRelative(u.lastActiveAt) : "—"}
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="px-3 py-4 text-xs text-gray-400 dark:text-zinc-500">No users found.</p>
-        )}
-      </Card>
-    </div>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="px-3 py-4 text-xs text-gray-400 dark:text-zinc-500">
+          {search || filterPlan !== "all" ? "No users match your filters." : "No users found."}
+        </p>
+      )}
+    </Card>
   );
 }
