@@ -329,7 +329,7 @@ export default function LoginPage() {
               },
               {
                 title: "AI scoring & ML backtesting",
-                desc: "Dual scores: Opportunity (timing / early alpha) and AI confidence (how strong the evidence is). RidgeCV ML backtesting continuously refines thresholds as data grows.",
+                desc: "Dual scores: Opportunity (timing / early alpha) and AI confidence (how strong the evidence is). Ridge+LightGBM ML backtesting continuously refines thresholds as data grows.",
                 icon: (
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456Z" />
                 ),
@@ -483,7 +483,7 @@ export default function LoginPage() {
               {[
                 { label: "Track prices", sub: "Automated snapshots 3× daily" },
                 { label: "Measure returns", sub: "1d, 3d, 7d, 30d after detection" },
-                { label: "Train model", sub: "RidgeCV ML with feature importance" },
+                { label: "Train model", sub: "Ridge+LightGBM ML with feature importance" },
                 { label: "Optimize", sub: "Refine thresholds & filters" },
               ].map(({ label, sub }, i) => (
                 <div key={label} className="flex flex-col items-center sm:flex-col sm:gap-0">

@@ -9,6 +9,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-04-13",
+    title: "ML Model Architecture Update",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "Backtest model upgraded to Ridge+LightGBM per-horizon ensemble (exp601) — crossed the 0.10 mean IC barrier with a contrarian 7-day component that converts inverted high-volatility predictions into positive signal.",
+          "Methodology, FAQ, and landing page updated to reflect Ridge+LightGBM architecture.",
+          "twitter_coordinated_pump flag badge reclassified from bullish (green) to neutral (gray) based on Apr 10 high-vol dataset — flag is no longer statistically significant.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-04-12",
     title: "Account Deletion",
     changes: [

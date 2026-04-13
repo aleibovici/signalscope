@@ -540,7 +540,7 @@ export default function TickerDetailPage({
                       ? "border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-300"
                       : flag === "only_penny_subs"
                         ? "border-amber-500/25 bg-amber-500/10 text-amber-800 dark:text-amber-300"
-                        : flag === "penny_price" || flag === "otc_listing" || flag === "twitter_coordinated_pump"
+                        : flag === "penny_price" || flag === "otc_listing"
                           ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
                           : "border-slate-200 bg-white text-slate-600 dark:border-[#2a3441] dark:bg-[#161d26] dark:text-zinc-400"
                   }`}
