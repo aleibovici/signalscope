@@ -16,7 +16,7 @@ export async function GET() {
     }
 
     const users = await prisma.user.findMany({
-      orderBy: { createdAt: "desc" },
+      orderBy: { lastActiveAt: { sort: "desc", nulls: "last" } },
       select: {
         id: true,
         email: true,
