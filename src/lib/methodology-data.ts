@@ -172,7 +172,7 @@ export const recommendationLevels: RecommendationLevel[] = [
 export const methodologyDescription =
   "SignalScope monitors public ticker mentions across eight signal sources — from social media and SEC filings " +
   "to congressional trades and Polymarket prediction markets — aggregates them by symbol, scores each candidate with AI, runs a " +
-  "13-flag pump-and-dump filter, and validates signal quality against a per-horizon RidgeCV ML backtesting pipeline with EWMA features trained on historical breakout outcomes. " +
+  "13-flag pump-and-dump filter, and validates signal quality against a Ridge+LightGBM per-horizon ensemble ML backtesting pipeline with EWMA features trained on historical breakout outcomes. " +
   "The result is a prioritised watchlist of tickers with the strongest multi-source backing, " +
   "verifiable catalysts, and machine-learning-confirmed signal patterns — surfaced before the crowd.";
 
@@ -203,9 +203,11 @@ export const backtestDescription =
   "SignalScope tracks the real-world performance of every signal it generates. Twice-daily price snapshots " +
   "measure nominal returns at 1, 3, 7, and 30 days after detection. Tickers that undergo corporate actions " +
   "(reverse splits, forward splits, mergers) during the tracking window are automatically detected via " +
-  "consecutive-snapshot analysis and excluded from performance statistics. This growing dataset feeds into an " +
-  "per-horizon RidgeCV ensemble with EWMA (exponentially weighted) historical features. Three separate models " +
-  "predict 1-day, 3-day, and 7-day returns using IC-weighted blending. The model analyzes 293 features per ticker " +
+  "consecutive-snapshot analysis and excluded from performance statistics. This growing dataset feeds into a " +
+  "Ridge+LightGBM per-horizon ensemble with EWMA (exponentially weighted) historical features. Three RidgeCV models " +
+  "predict 1-day, 3-day, and 7-day returns, blended with per-horizon LightGBM models using optimized weights — " +
+  "including a contrarian 7-day component that converts inverted high-volatility predictions into positive signal. " +
+  "The model analyzes 293 features per ticker " +
   "including cross-sectional ranks, P&D flag history, and autocorrelation patterns. Feature importance analysis " +
   "identifies which factors drive accuracy. These insights are used to continuously refine AI score thresholds, " +
   "stage assignments, and pump-and-dump detection — so the platform gets smarter with every scan.";
@@ -214,8 +216,8 @@ export const backtestPipeline = [
   "Price snapshots (open & close)",
   "Return computation (1d, 3d, 7d, 30d)",
   "Feature engineering (293 features, EWMA + cross-sectional)",
-  "Per-horizon RidgeCV training + importance analysis",
-  "IC-weighted ensemble blending + threshold optimization",
+  "Per-horizon Ridge+LightGBM training + importance analysis",
+  "Optimized ensemble blending (contrarian 7d) + threshold optimization",
 ] as const;
 
 export const disclaimer =
