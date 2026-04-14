@@ -9,6 +9,26 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-04-15",
+    title: "Dashboard & Ticker UI Polish",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "Signal cards replaced arc gauges with compact score badges — cleaner layout, less visual noise.",
+          "Ticker detail header actions and layout reorganized for better usability.",
+          "Paper trading returns now align with signal quality scores for consistent performance representation.",
+        ],
+      },
+      {
+        category: "fixed",
+        items: [
+          "Suppressed spurious ECONNREFUSED errors from X API log writes in the harvester.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-04-13",
     title: "ML Model Architecture Update",
     changes: [
