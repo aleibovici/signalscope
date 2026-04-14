@@ -45,7 +45,10 @@ export async function GET(request: NextRequest) {
     const windowEnd = new Date(now);
     // Extend detection query by 7 days (max hold) so trades that closed
     // within the lookback window but were detected earlier are included.
-    const detectionCutoff = new Date(now - (lookbackDays + 7) * 86400000);
+    const lookbackCutoff = new Date(now - (lookbackDays + 7) * 86400000);
+    // Align with performance API: exclude pre-overhaul scoring data
+    const SCORING_CUTOFF = new Date("2026-03-16T00:00:00Z");
+    const detectionCutoff = lookbackCutoff > SCORING_CUTOFF ? lookbackCutoff : SCORING_CUTOFF;
 
     const [records, spyReturnPct, spyBars] = await Promise.all([
       prisma.tickerPerformance.findMany({
@@ -72,7 +75,7 @@ export async function GET(request: NextRequest) {
             },
           },
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: "asc" },
       }),
       fetchSpyTotalReturnDecimal(windowStart, windowEnd),
       fetchSpyDailyBars(detectionCutoff, windowEnd),
