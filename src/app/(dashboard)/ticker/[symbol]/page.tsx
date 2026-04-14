@@ -80,34 +80,35 @@ function Week52PositionRow({
   const rs = relativeStrengthFrom52w(price, lo, hi);
   const dotTint =
     rs != null && rs >= 70 ? "bg-emerald-500 dark:bg-emerald-400" : "bg-blue-600 dark:bg-blue-400";
-  const label = "52-week range";
   return (
     <div
-      className="flex min-w-0 flex-nowrap items-center gap-2 py-2 sm:gap-3"
+      className="min-w-0 py-2"
       role="img"
       aria-label={`52-week range from ${formatPriceForRange(lo)} to ${formatPriceForRange(hi)}, price near ${formatPriceForRange(price)}`}
     >
-      <span className="flex shrink-0 items-center gap-1 text-sm text-slate-500 dark:text-zinc-500">
-        {label}
+      <span className="mb-1.5 flex items-center gap-1 text-sm text-slate-500 dark:text-zinc-500">
+        52-week range
         <InfoHint text={hint} />
       </span>
-      <span className="shrink-0 text-sm font-bold tabular-nums text-gray-900 dark:text-white">
-        {formatPriceForRange(lo)}
-      </span>
-      <div className="relative min-h-4 min-w-[48px] flex-1">
-        <div
-          className="absolute top-1/2 right-0 left-0 h-px -translate-y-1/2 bg-slate-300 dark:bg-zinc-600"
-          aria-hidden
-        />
-        <div
-          className={`absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-sm dark:border-[#12181f] ${dotTint}`}
-          style={{ left: `${pct}%` }}
-          aria-hidden
-        />
+      <div className="flex min-w-0 items-center gap-2">
+        <span className="shrink-0 text-xs font-bold tabular-nums text-gray-900 dark:text-white">
+          {formatPriceForRange(lo)}
+        </span>
+        <div className="relative min-h-4 min-w-0 flex-1">
+          <div
+            className="absolute top-1/2 right-0 left-0 h-px -translate-y-1/2 bg-slate-300 dark:bg-zinc-600"
+            aria-hidden
+          />
+          <div
+            className={`absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-sm dark:border-[#12181f] ${dotTint}`}
+            style={{ left: `${pct}%` }}
+            aria-hidden
+          />
+        </div>
+        <span className="shrink-0 text-xs font-bold tabular-nums text-gray-900 dark:text-white">
+          {formatPriceForRange(hi)}
+        </span>
       </div>
-      <span className="shrink-0 text-sm font-bold tabular-nums text-gray-900 dark:text-white">
-        {formatPriceForRange(hi)}
-      </span>
     </div>
   );
 }
@@ -405,21 +406,6 @@ export default function TickerDetailPage({
               <h1 className="text-2xl font-black leading-none tracking-tighter text-gray-900 sm:text-3xl dark:text-white">
                 {ticker.symbol}
               </h1>
-              <a
-                href={`https://finance.yahoo.com/quote/${ticker.symbol}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="View on Yahoo Finance"
-                className="inline-flex shrink-0 rounded-md opacity-70 ring-offset-2 ring-offset-gray-50 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:ring-offset-zinc-950"
-              >
-                <span className="sr-only">Yahoo Finance</span>
-                <svg className="h-6 w-6" viewBox="0 0 24 24" aria-hidden>
-                  <circle cx="12" cy="12" r="12" fill="#6001d2" />
-                  <text x="12" y="16" textAnchor="middle" fill="white" fontSize="13" fontWeight="bold" fontFamily="Arial, sans-serif">
-                    Y!
-                  </text>
-                </svg>
-              </a>
             </div>
             {subtitleParts.length > 0 ? (
               <p className="max-w-2xl text-sm leading-snug text-slate-600 dark:text-zinc-400">{subtitleParts.join(" · ")}</p>
@@ -427,6 +413,21 @@ export default function TickerDetailPage({
           </div>
 
           <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+            <a
+              href={`https://finance.yahoo.com/quote/${ticker.symbol}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="View on Yahoo Finance"
+              className="inline-flex h-9 w-9 items-center justify-center opacity-70 transition-opacity hover:opacity-100"
+            >
+              <span className="sr-only">Yahoo Finance</span>
+              <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden>
+                <circle cx="12" cy="12" r="12" fill="#6001d2" />
+                <text x="12" y="16" textAnchor="middle" fill="white" fontSize="13" fontWeight="bold" fontFamily="Arial, sans-serif">
+                  Y!
+                </text>
+              </svg>
+            </a>
             {session?.user ? (
               <>
                 <button
@@ -435,7 +436,7 @@ export default function TickerDetailPage({
                   onClick={() =>
                     toggleWatchlist({ symbol: ticker.symbol, isBookmarked: bookmarkedSymbols.has(ticker.symbol) })
                   }
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200/90 bg-white text-slate-500 transition-colors hover:border-amber-300/80 hover:text-amber-500 dark:border-[#1e262f] dark:bg-[#12181f] dark:text-zinc-400 dark:hover:border-amber-500/40 dark:hover:text-amber-400"
+                  className="inline-flex h-9 w-9 items-center justify-center text-slate-400 transition-colors hover:text-amber-500 dark:text-zinc-500 dark:hover:text-amber-400"
                 >
                   {bookmarkedSymbols.has(ticker.symbol) ? (
                     <svg className="h-5 w-5 text-amber-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -454,12 +455,13 @@ export default function TickerDetailPage({
                 <button
                   type="button"
                   onClick={() => setShowAddPosition(true)}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-blue-600 bg-blue-600/5 px-3 text-xs font-bold text-blue-700 transition-colors hover:bg-blue-600/10 dark:border-blue-500 dark:bg-blue-500/10 dark:text-blue-300 dark:hover:bg-blue-500/15"
+                  aria-label="Add position"
+                  className="inline-flex h-9 w-9 items-center justify-center text-slate-400 transition-colors hover:text-blue-500 dark:text-zinc-500 dark:hover:text-blue-400"
                 >
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
-                    <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 8v8M8 12h8" strokeLinecap="round" />
                   </svg>
-                  Add position
                 </button>
               </>
             ) : (
@@ -467,7 +469,7 @@ export default function TickerDetailPage({
                 <a
                   href="/login"
                   title="Sign in to bookmark"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-dashed border-slate-200 text-slate-400 transition-colors hover:border-slate-300 hover:text-slate-600 dark:border-zinc-600 dark:text-zinc-500 dark:hover:border-zinc-500 dark:hover:text-zinc-300"
+                  className="inline-flex h-9 w-9 items-center justify-center text-slate-400 transition-colors hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-300"
                 >
                   <span className="sr-only">Sign in to bookmark</span>
                   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
@@ -480,20 +482,20 @@ export default function TickerDetailPage({
                 </a>
                 <a
                   href="/login"
-                  className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 transition-colors hover:border-blue-400 hover:text-blue-600 dark:border-[#1e262f] dark:bg-[#12181f] dark:text-zinc-300 dark:hover:border-blue-500 dark:hover:text-blue-400"
+                  aria-label="Sign in to add position"
+                  className="inline-flex h-9 w-9 items-center justify-center text-slate-400 transition-colors hover:text-blue-500 dark:text-zinc-500 dark:hover:text-blue-400"
                 >
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
-                    <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 8v8M8 12h8" strokeLinecap="round" />
                   </svg>
-                  <span className="sm:hidden">Sign in</span>
-                  <span className="hidden sm:inline">Sign in to track</span>
                 </a>
               </>
             )}
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-1.5 rounded-xl border border-slate-200/90 bg-slate-50/80 p-2.5 dark:border-[#1e262f] dark:bg-[#12181f]/60">
+        <div className="flex flex-wrap gap-1.5">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-600/25 bg-blue-600/10 px-2.5 py-0.5 text-[11px] font-bold text-blue-700 dark:text-blue-300">
             <span className="font-semibold text-blue-600/80 dark:text-blue-400/90">Stage</span>
             {ticker.stage}
@@ -891,9 +893,9 @@ export default function TickerDetailPage({
                 id="ticker-ai-analysis"
                 className="rounded-xl border border-slate-200 bg-white p-6 dark:border-[#1e262f] dark:bg-[#12181f]"
               >
-                <h3 className="mb-4 flex items-center gap-2 font-bold text-gray-900 dark:text-zinc-100">
-                  <IconAiSparkles className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                  AI technical analysis
+                <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400">
+                  <IconAiSparkles className="h-4 w-4" />
+                  AI TECHNICAL ANALYSIS
                 </h3>
                 {reportGenerating ? (
                   <div className="flex items-center gap-2 py-4 text-sm text-slate-600 dark:text-zinc-400">
@@ -901,9 +903,9 @@ export default function TickerDetailPage({
                     Generating full report…
                   </div>
                 ) : (
-                  <div className="prose prose-sm max-w-none space-y-4 leading-relaxed text-slate-500 dark:prose-invert dark:text-zinc-400">
-                    {ticker.report!.split("\n").map((paragraph, i) => (
-                      <p key={i}>{paragraph}</p>
+                  <div className="space-y-3">
+                    {ticker.report!.split("\n").filter(Boolean).map((paragraph, i) => (
+                      <p key={i} className="text-sm leading-relaxed text-slate-700 dark:text-zinc-300">{paragraph}</p>
                     ))}
                   </div>
                 )}
