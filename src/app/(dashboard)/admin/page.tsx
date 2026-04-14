@@ -549,6 +549,8 @@ export default function AdminPage() {
   );
 }
 
+function getNow() { return Date.now(); }
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function UsersTable({ users, loading, formatDate }: { users: any[] | undefined; loading: boolean; formatDate: (d: string) => string }) {
   const [search, setSearch] = useState("");
@@ -577,9 +579,11 @@ function UsersTable({ users, loading, formatDate }: { users: any[] | undefined; 
     return list;
   }, [users, search, filterPlan]);
 
+  const now = getNow();
+
   const activeCount = users?.filter((u) => {
     if (!u.lastActiveAt) return false;
-    return Date.now() - new Date(u.lastActiveAt).getTime() < 7 * 86_400_000;
+    return now - new Date(u.lastActiveAt).getTime() < 7 * 86_400_000;
   }).length ?? 0;
 
   return (
@@ -634,8 +638,8 @@ function UsersTable({ users, loading, formatDate }: { users: any[] | undefined; 
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-zinc-800/80">
               {filtered.map((u) => {
-                const active7d = u.lastActiveAt && Date.now() - new Date(u.lastActiveAt).getTime() < 7 * 86_400_000;
-                const active24h = u.lastActiveAt && Date.now() - new Date(u.lastActiveAt).getTime() < 86_400_000;
+                const active7d = u.lastActiveAt && now - new Date(u.lastActiveAt).getTime() < 7 * 86_400_000;
+                const active24h = u.lastActiveAt && now - new Date(u.lastActiveAt).getTime() < 86_400_000;
                 return (
                   <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-zinc-900/50">
                     <td className="max-w-[160px] truncate px-3 py-1 font-medium text-gray-900 dark:text-zinc-100">
