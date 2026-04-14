@@ -3,7 +3,7 @@ import type { PrismaClient } from "@/generated/prisma/client";
 import { yahooFinance, withYahooTimeout } from "@/lib/yahoo-finance";
 import { computeReturnsFromSnapshots, detectCorporateAction } from "./returns";
 
-const TRACKING_DAYS = 30;
+const TRACKING_DAYS = 37;
 
 async function fetchPricesBatch(symbols: string[]): Promise<Map<string, number>> {
   const prices = new Map<string, number>();
