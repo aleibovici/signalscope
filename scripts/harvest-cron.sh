@@ -21,12 +21,10 @@ echo "=== Harvest started at $(date) ===" >> "$LOG_FILE"
 
 cd "$DIR"
 
-# Load production env vars
-set -a
-source "$DIR/.env.production"
-set +a
-
-npm run harvest >> "$LOG_FILE" 2>&1
+# Run harvester in Docker container — consistent Node 20-alpine environment,
+# no dependency on local nvm or node_modules state.
+# --env-file passes production secrets; --rm removes the container after exit.
+docker compose -f docker-compose.harvest.yml --env-file .env.production run --rm harvester >> "$LOG_FILE" 2>&1
 EXIT_CODE=$?
 
 if [ $EXIT_CODE -ne 0 ]; then
