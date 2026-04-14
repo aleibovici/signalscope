@@ -20,7 +20,7 @@
     "@anthropic-ai/sdk": "^0.80.0",
     "@prisma/adapter-pg": "^7.6.0",
     "@prisma/client": "^7.6.0",
-    "@tanstack/react-query": "^5.95.2",
+    "@tanstack/react-query": "^5.96.2",
     "@x402/core": "^2.8.0",
     "@x402/evm": "^2.8.0",
     "@x402/fetch": "^2.8.0",
