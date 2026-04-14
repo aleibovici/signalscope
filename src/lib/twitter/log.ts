@@ -24,6 +24,10 @@ export function logXApiCall(params: {
       },
     })
     .catch((err) => {
-      console.warn("[x-api-log] Failed to log:", err);
+      const code = (err as { code?: string }).code;
+      if (code !== "ECONNREFUSED") {
+        console.warn("[x-api-log] Failed to log:", err);
+      }
+      // Silently ignore ECONNREFUSED — expected when running in slim harvester without DB
     });
 }
