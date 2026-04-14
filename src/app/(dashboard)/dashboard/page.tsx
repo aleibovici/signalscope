@@ -10,7 +10,6 @@ import { ScanSelector } from "@/components/dashboard/scan-selector";
 import { StageTabs } from "@/components/dashboard/stage-tabs";
 import { SignalCard } from "@/components/dashboard/signal-card";
 import { Spinner } from "@/components/ui/spinner";
-import { scoreExplainerDashboardCallout } from "@/lib/score-explainer";
 
 function downloadWatchlistCSV(symbols: Set<string>) {
   const lines = ["Symbol", ...Array.from(symbols).sort()];
@@ -36,8 +35,6 @@ function DashboardContent() {
     searchParams.get("scanId")
   );
   const [selectedStage, setSelectedStage] = useState("Emerging");
-  const [calloutDismissed, setCalloutDismissed] = useState(false);
-
   // Restore stage from cookie after hydration to avoid SSR mismatch
   useEffect(() => {
     const match = document.cookie.match(/(?:^|; )dashboard_stage=([^;]*)/);
@@ -50,14 +47,7 @@ function DashboardContent() {
     }
   }, []);
 
-  // Restore callout dismissal from cookie
-  useEffect(() => {
-    if (document.cookie.includes("reading_cards_dismissed=1")) {
-      setCalloutDismissed(true);
-    }
-  }, []);
-
-  useScrollRestore("dashboard");
+useScrollRestore("dashboard");
 
   const { data: scansData } = useScans(1, 1);
   const { data: scanDetail, isLoading, isError } = useScanDetail(selectedScanId);
@@ -126,31 +116,7 @@ function DashboardContent() {
         counts={counts}
       />
 
-      {!calloutDismissed && (
-        <div className="flex items-start gap-3 border-l-[3px] border-gray-300 bg-gray-50/80 px-4 py-3 dark:border-zinc-600 dark:bg-zinc-900/40">
-          <svg className="mt-0.5 h-4 w-4 shrink-0 text-gray-400 dark:text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
-          </svg>
-          <p className="flex-1 text-sm leading-relaxed text-gray-500 dark:text-zinc-400">
-            <span className="font-semibold text-gray-700 dark:text-zinc-200">Reading the cards:</span>{" "}
-            {scoreExplainerDashboardCallout.replace(/^Reading the cards:\s*/i, "")}
-          </p>
-          <button
-            onClick={() => {
-              setCalloutDismissed(true);
-              document.cookie = "reading_cards_dismissed=1; path=/; max-age=31536000; SameSite=Lax";
-            }}
-            className="mt-0.5 shrink-0 text-gray-300 hover:text-gray-500 dark:text-zinc-600 dark:hover:text-zinc-400"
-            aria-label="Dismiss"
-          >
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-      )}
-
-      {session?.user && missingWatchlisted.length > 0 && !isLoading && (
+{session?.user && missingWatchlisted.length > 0 && !isLoading && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">

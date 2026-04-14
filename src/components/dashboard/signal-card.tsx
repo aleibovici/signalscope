@@ -72,10 +72,7 @@ function collectTags(ticker: ValidatedTickerData): string[] {
   return tags;
 }
 
-// Arc gauge: semicircle M 8 36 A 32 32 0 0 1 72 36 (cx=40, cy=36, r=32)
-const ARC_LENGTH = Math.PI * 32; // ≈100.5
-
-function ArcGauge({
+function ScoreBadge({
   value,
   type,
   title,
@@ -84,37 +81,27 @@ function ArcGauge({
   type: "opportunity" | "confidence";
   title?: string;
 }) {
-  const fill = (Math.min(Math.max(value, 0), 100) / 100) * ARC_LENGTH;
   const isOpp = type === "opportunity";
-  const fillColor = isOpp ? "#f59e0b" : "#3b82f6";
+  const label = isOpp ? "OPP" : "AI";
+  const bgClass = isOpp
+    ? "bg-amber-500/10 dark:bg-amber-500/10"
+    : "bg-blue-500/10 dark:bg-blue-500/10";
   const labelClass = isOpp
+    ? "text-amber-500/85 dark:text-amber-400/85"
+    : "text-blue-500/85 dark:text-blue-400/85";
+  const valueClass = isOpp
     ? "text-amber-500 dark:text-amber-400"
     : "text-blue-500 dark:text-blue-400";
 
   return (
-    <div className="flex flex-col items-center gap-0.5" title={title}>
-      <span className={`text-[9px] font-bold uppercase tracking-widest ${labelClass}`}>
-        {isOpp ? "Opportunity" : "AI Confidence"}
+    <div
+      className={`flex w-11 flex-col items-center rounded-md py-1.5 ${bgClass}`}
+      title={title}
+    >
+      <span className={`text-[7px] font-bold uppercase tracking-wide ${labelClass}`}>
+        {label}
       </span>
-      <svg width="80" height="38" viewBox="0 1 80 38" aria-hidden="true">
-        <path
-          d="M 8 36 A 32 32 0 0 1 72 36"
-          fill="none"
-          stroke="currentColor"
-          className="text-gray-200 dark:text-zinc-700"
-          strokeWidth={5}
-          strokeLinecap="round"
-        />
-        <path
-          d="M 8 36 A 32 32 0 0 1 72 36"
-          fill="none"
-          stroke={fillColor}
-          strokeWidth={5}
-          strokeLinecap="round"
-          strokeDasharray={`${fill} ${ARC_LENGTH}`}
-        />
-      </svg>
-      <span className="-mt-1 text-sm font-bold tabular-nums leading-none text-gray-900 dark:text-zinc-100">
+      <span className={`text-base font-black tabular-nums leading-tight ${valueClass}`}>
         {value}
       </span>
     </div>
@@ -160,21 +147,26 @@ export function SignalCard({
 
         {/* Row 1: symbol + rec badge | price + return */}
         <div className="flex items-start justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="text-2xl font-bold tracking-tight text-gray-900 group-hover:text-blue-600 dark:text-zinc-50 dark:group-hover:text-blue-400 sm:text-[1.65rem] sm:leading-none">
-              {ticker.symbol}
-            </span>
-            {recClass && (
-              <span
-                className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${recClass}`}
-              >
-                {ticker.recommendation}
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="text-xl font-semibold tracking-tight text-gray-900 group-hover:text-blue-600 dark:text-zinc-50 dark:group-hover:text-blue-400">
+                {ticker.symbol}
               </span>
+              {recClass && (
+                <span
+                  className={`shrink-0 rounded border-[0.75px] px-1 py-[3px] text-[10px] font-bold uppercase tracking-[0.3px] ${recClass}`}
+                >
+                  {ticker.recommendation}
+                </span>
+              )}
+            </div>
+            {ticker.name && (
+              <p className="line-clamp-1 text-xs text-gray-500 dark:text-zinc-400">{ticker.name}</p>
             )}
           </div>
           {ticker.price != null && (
             <div className="flex shrink-0 flex-col items-end gap-0.5 text-right">
-              <p className="text-lg font-semibold tabular-nums text-gray-900 dark:text-zinc-100 sm:text-xl">
+              <p className="text-base font-semibold tabular-nums text-gray-900 dark:text-zinc-100">
                 ${ticker.price.toFixed(2)}
               </p>
               {retVal != null && (
@@ -192,18 +184,14 @@ export function SignalCard({
           )}
         </div>
 
-        {ticker.name && (
-          <p className="line-clamp-1 text-xs text-gray-500 dark:text-zinc-400">{ticker.name}</p>
-        )}
-
-        {/* Score gauges — labels above arcs */}
-        <div className="flex items-start justify-center gap-6">
-          <ArcGauge
+        {/* Score badges */}
+        <div className="flex items-center gap-3">
+          <ScoreBadge
             value={ticker.opportunityScore}
             type="opportunity"
             title="Early-mover / opportunity rank — list order uses this (higher = earlier or more favorable setup)."
           />
-          <ArcGauge
+          <ScoreBadge
             value={ticker.aiScore}
             type="confidence"
             title="How strong the evidence is (sources, sentiment, corroboration). Not the same as expected upside."
@@ -216,14 +204,14 @@ export function SignalCard({
             {visibleTags.map((tag, i) => (
               <span
                 key={`${tag}-${i}`}
-                className="rounded border border-gray-300/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:border-zinc-600/60 dark:text-zinc-400"
+                className="rounded border-[0.75px] border-gray-300/70 px-1 py-[3px] text-[10px] font-bold uppercase tracking-[0.3px] text-gray-500 dark:border-zinc-600/60 dark:text-zinc-400"
               >
                 {tag}
               </span>
             ))}
             {overflow > 0 && (
               <span
-                className="rounded border border-gray-300/70 px-2 py-0.5 text-[10px] font-semibold text-gray-400 dark:border-zinc-600/60 dark:text-zinc-500"
+                className="rounded border-[0.75px] border-gray-300/70 px-1 py-[3px] text-[10px] font-bold text-gray-400 dark:border-zinc-600/60 dark:text-zinc-500"
                 title={overflowTitle}
               >
                 +{overflow}
@@ -284,7 +272,7 @@ export function SignalCard({
             {ticker.sources?.slice(0, 3).map((src) => (
               <span
                 key={src}
-                className="rounded border border-gray-200/90 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-gray-400 dark:border-zinc-700/60 dark:text-zinc-500"
+                className="rounded border-[0.75px] border-gray-200/90 px-1 py-[3px] text-[9px] font-bold uppercase tracking-[0.3px] text-gray-400 dark:border-zinc-700/60 dark:text-zinc-500"
               >
                 {src.replace(/_/g, " ")}
               </span>
