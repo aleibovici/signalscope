@@ -359,6 +359,12 @@ export default function TickerDetailPage({
     }
   }, [data?.ticker, generateReport, reportGenerating]);
 
+  // Auto-refresh live price on open / symbol change
+  useEffect(() => {
+    refreshPrice();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [symbol]);
+
   if (isLoading) {
     return (
       <div className="flex justify-center py-12">
