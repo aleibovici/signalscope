@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useScans, useScanDetail, type ValidatedTickerData } from "@/hooks/use-scans";
 import { useScrollRestore } from "@/hooks/use-scroll-restore";
-import { useWatchlist, useToggleWatchlist, useWatchlistTickers } from "@/hooks/use-watchlist";
+import { useWatchlist, useWatchlistTickers } from "@/hooks/use-watchlist";
 import { ScanSelector } from "@/components/dashboard/scan-selector";
 import { StageTabs } from "@/components/dashboard/stage-tabs";
 import { SignalCard } from "@/components/dashboard/signal-card";
@@ -52,7 +52,6 @@ useScrollRestore("dashboard");
   const { data: scansData } = useScans(1, 1);
   const { data: scanDetail, isLoading, isError } = useScanDetail(selectedScanId);
   const { data: bookmarkedSymbols = new Set<string>() } = useWatchlist();
-  const { mutate: toggleWatchlist } = useToggleWatchlist();
   const { data: watchlistTickersData } = useWatchlistTickers();
 
   // Auto-select the latest scan only if no scanId was provided via URL
@@ -129,8 +128,6 @@ useScrollRestore("dashboard");
               <div key={ticker.id} className="opacity-75">
                 <SignalCard
                   ticker={ticker}
-                  isBookmarked={true}
-                  onToggle={(symbol, isCurrent) => toggleWatchlist({ symbol, isBookmarked: isCurrent })}
                 />
               </div>
             ))}
@@ -160,8 +157,6 @@ useScrollRestore("dashboard");
             <div key={ticker.id} id={i === 0 ? "tour-ticker-card" : undefined}>
               <SignalCard
                 ticker={ticker}
-                isBookmarked={bookmarkedSymbols.has(ticker.symbol)}
-                onToggle={session?.user ? (symbol, isCurrent) => toggleWatchlist({ symbol, isBookmarked: isCurrent }) : undefined}
               />
             </div>
           ))}

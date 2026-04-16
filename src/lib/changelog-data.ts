@@ -10,12 +10,18 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-04-17",
-    title: "Blog Expansion",
+    title: "Blog Expansion & UI Cleanup",
     changes: [
       {
         category: "new",
         items: [
           "Three new blog posts targeting high-intent search queries: Pelosi Stock Tracker guide, Unusual Options Activity Today, and Quiver Quantitative Alternatives comparison.",
+        ],
+      },
+      {
+        category: "improved",
+        items: [
+          "Removed bookmark button from ticker list cards — bookmarking is now only available on the ticker detail page for a cleaner grid view.",
         ],
       },
     ],

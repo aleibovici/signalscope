@@ -19,13 +19,9 @@ const trendLabels: Record<string, string> = {
 
 export function TrendingCard({
   ticker,
-  isBookmarked = false,
-  onToggle,
   returnPeriod = "7d",
 }: {
   ticker: TrendingTicker;
-  isBookmarked?: boolean;
-  onToggle?: (symbol: string, currentlyBookmarked: boolean) => void;
   returnPeriod?: string;
 }) {
   return (
@@ -49,8 +45,6 @@ export function TrendingCard({
 
       <SignalCard
         ticker={ticker}
-        isBookmarked={isBookmarked}
-        onToggle={onToggle}
         returnPeriod={returnPeriod}
       />
     </div>

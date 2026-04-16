@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useSession } from "next-auth/react";
 import { useTrendingTickers, type TrendingFilters } from "@/hooks/use-trending";
-import { useWatchlist, useToggleWatchlist } from "@/hooks/use-watchlist";
 import { TrendingCard } from "@/components/dashboard/trending-card";
 import { Spinner } from "@/components/ui/spinner";
 import { STAGE_LABELS } from "@/lib/stage-labels";
@@ -152,13 +150,10 @@ function MultiSelectDropdown({
 }
 
 export default function TrendingPage() {
-  const { data: session } = useSession();
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<TrendingFilters>({ sortBy: "aiScore" });
   const [filtersOpen, setFiltersOpen] = useState(false);
   const { data, isLoading, isError, dataUpdatedAt } = useTrendingTickers(page, PAGE_SIZE, filters);
-  const { data: bookmarkedSymbols = new Set<string>() } = useWatchlist();
-  const { mutate: toggleWatchlist } = useToggleWatchlist();
 
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;
   const activeCount = countActiveFilters(filters);
@@ -172,10 +167,6 @@ export default function TrendingPage() {
       return next;
     });
     setPage(1);
-  }
-
-  function handleToggle(symbol: string, isBookmarked: boolean) {
-    toggleWatchlist({ symbol, isBookmarked });
   }
 
   return (
@@ -407,8 +398,6 @@ export default function TrendingPage() {
               <TrendingCard
                 key={ticker.id}
                 ticker={ticker}
-                isBookmarked={bookmarkedSymbols.has(ticker.symbol)}
-                onToggle={session?.user ? handleToggle : undefined}
                 returnPeriod={filters.returnPeriod || "7d"}
               />
             ))}
