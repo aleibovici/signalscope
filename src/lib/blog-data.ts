@@ -15,6 +15,120 @@ export interface BlogPost {
 
 const blogPostsUnsorted: BlogPost[] = [
   {
+    slug: "pelosi-stock-tracker",
+    title: "Pelosi Stock Tracker: How to See Congressional Trades in Real Time",
+    description:
+      "Nancy Pelosi's stock trades are public. Here's how to track her portfolio, why congressional trades matter as a signal, and the tools that surface them fastest.",
+    date: "2026-04-17",
+    readingTime: "6 min read",
+    tags: ["congress", "pelosi", "stock-tracker", "signals"],
+    sections: [
+      {
+        body: "Former House Speaker Nancy Pelosi's stock portfolio has become one of the most-watched on the internet, and for a simple reason: her trades have consistently outperformed the S&P 500 by double digits in multiple years. She's not alone — congressional portfolios as a group beat the market on average. The STOCK Act of 2012 requires every member of Congress to disclose their trades within 45 days, which means anyone can track what lawmakers are buying and selling. The only question is how fast you find out, and how you use that information.",
+      },
+      {
+        heading: "Where congressional trade data comes from",
+        body: "Every stock purchase or sale by a member of Congress, their spouse, or dependent children must be filed on a Periodic Transaction Report (PTR) within 45 days of the trade. These filings are published on the House Clerk's site and the Senate's eFD system. Raw PTR filings are PDFs, which is why third-party trackers like CapitolTrades, Quiver Quantitative, and Unusual Whales scrape and normalize them into searchable databases. SignalScope pulls from CapitolTrades, deduplicates by the unique transaction ID embedded in each disclosure URL, and treats each purchase as a weighted signal in its multi-source pipeline.",
+      },
+      {
+        heading: "How to track Pelosi's trades specifically",
+        body: "You have three practical options. First, you can subscribe to CapitolTrades' Nancy Pelosi profile page, which emails you when new filings appear. Second, you can use a broader tracker like Quiver Quantitative or Unusual Whales that lets you filter by lawmaker — useful if you want to watch several members, not just one. Third — and this is where SignalScope fits — you can treat congressional purchases as one input among many. Pelosi's purchase of a tech stock becomes more interesting when it coincides with an SEC insider buy from that company's CEO, a volume spike on the stock, and unusual call options activity. A congressional trade on its own is a data point; corroboration from other independent sources is a signal.",
+      },
+      {
+        heading: "The 45-day disclosure lag",
+        body: "The biggest limitation of congressional trade tracking is timing. By law, disclosure can take up to 45 days from the trade date. Many members file faster, but the lag means you're rarely seeing trades in real time — you're seeing them weeks after the fact. This is why treating congressional disclosures as a confirming signal (rather than a primary trigger) tends to work better. When a lawmaker's purchase shows up alongside fresh signals in the same ticker — a recent insider filing, options flow, or social momentum — the combination is actionable in a way the congressional trade alone is not.",
+      },
+      {
+        heading: "Why congressional purchases are a strong signal",
+        body: "Academic research consistently shows that congressional portfolios generate abnormal positive returns, particularly for senators. The reasons are debated: committee assignments give lawmakers early visibility into regulation, defense spending, healthcare policy, and infrastructure plans. Whether or not you believe these informational advantages should exist, the trades are public under federal law, and they represent real money being moved by people with unique access to policy direction. SignalScope weights congressional purchases at 2.5x — the second-highest source weight behind SEC insider filings — reflecting their historical predictive value.",
+      },
+      {
+        heading: "The push to ban congressional trading",
+        body: "As of 2026, multiple bipartisan bills are advancing in Congress to ban or heavily restrict stock trading by lawmakers. The Stop Insider Trading Act (Cassidy/Ricketts), the No Getting Rich in Congress Act (Pappas), and the End Congressional Stock Trading Act all have meaningful momentum, and public support sits at 86%. If any of these passes, the data pipeline changes: new congressional purchase signals would dry up, though existing disclosures would remain public and searchable. Read our full breakdown in the Congressional Trading Ban Reform post.",
+      },
+      {
+        heading: "Beyond Pelosi: the multi-source approach",
+        body: "Tracking a single lawmaker is a narrow strategy. A broader approach is to watch congressional trades as a category alongside SEC insider purchases, options flow, volume spikes, and social signals — and only act when multiple independent sources converge on the same ticker. This is the thesis behind SignalScope's pipeline: no single source is reliable, but convergence across sources with different incentive structures is powerful. Our blog posts on SEC insider filings, options flow as a breakout signal, and multi-source signal aggregation explain how the pieces fit together.",
+      },
+    ],
+  },
+  {
+    slug: "unusual-options-activity-today",
+    title: "Unusual Options Activity Today: How to Spot It for Free",
+    description:
+      "Unusual call volume, OTM concentration, and call sweeps precede major stock moves. Here's how to scan options flow for free — no Bloomberg terminal required.",
+    date: "2026-04-17",
+    readingTime: "7 min read",
+    tags: ["options-flow", "unusual-activity", "screener", "signals"],
+    sections: [
+      {
+        body: "Every trading day, a handful of stocks see options activity that is sharply out of line with their normal baseline. A stock that usually trades a few hundred call contracts suddenly trades 10,000. Most of the volume is in a single out-of-the-money strike expiring in three weeks. The orders hit the tape as sweeps, lifting multiple ask prices to get filled quickly. This kind of activity is a loud signal — someone with conviction is buying leveraged exposure to a near-term move. The challenge is that options flow is fragmented across strikes and expirations, making it hard to scan manually. Fortunately, you can spot most of what matters without a Bloomberg terminal.",
+      },
+      {
+        heading: "What makes options activity 'unusual'",
+        body: "Raw volume numbers are meaningless without context. Apple trades millions of option contracts per day; a micro-cap biotech might trade a few hundred. What matters is the ratio between today's volume and the stock's normal baseline. The simplest rule of thumb is a volume-to-open-interest ratio above 2.0 on a specific strike — meaning today's trading is adding more new positions than the existing open interest. Paired with concentration in a single out-of-the-money call or put, that combination tells you someone is making a directional bet, not hedging an existing position. Call sweeps — large orders that lift through multiple ask prices rather than sitting on the bid — add urgency to the picture.",
+      },
+      {
+        heading: "Free sources for unusual options activity",
+        body: "A handful of free tools publish daily unusual options reports. Barchart's Unusual Options Activity page, MarketChameleon's free tier, and CBOE's unusual options volume list all surface the largest volume-to-open-interest ratios across US-listed options. Yahoo Finance exposes the full option chain for any ticker — volumes, open interest, implied volatility — which you can scrape or read directly. Reddit's r/options and r/thetagang flag interesting flow throughout the day, though quality varies. SignalScope's scanner pulls Yahoo Finance option chains for a curated list of actively traded symbols, flags unusual call volume, OTM concentration, and call sweeps, and treats the results as a signal source alongside SEC filings, congressional trades, and social media.",
+      },
+      {
+        heading: "OTM calls: the institutional tell",
+        body: "Out-of-the-money call buying is the most informative type of options activity because it represents a bet on significant upside in a specific timeframe. If a trader buys 5,000 calls at a $50 strike when the stock is at $42 and the contracts expire in two weeks, they need a 20%+ move in 10 trading days for the position to be profitable. This is not hedging — it's a directional conviction trade. When this activity shows up on a stock that is simultaneously seeing SEC insider buying or volume spikes in the underlying, the convergence dramatically increases breakout probability. The March 25, 2026 Firefly Aerospace activity (7,674 calls at the $30 strike) is a textbook example.",
+      },
+      {
+        heading: "Net premium flow: who's paying more, calls or puts",
+        body: "Volume alone doesn't tell you direction — heavy volume on both calls and puts can cancel out. Net premium flow (call premium minus put premium in dollars) quantifies the directional bias. Positive net premium means dollars are flowing into calls more than puts, indicating bullish institutional positioning. A call premium ratio near 1.0 means nearly all the dollar flow is on the call side. SignalScope surfaces net premium flow and call premium ratio directly in the signal cards, giving you the directional read at a glance instead of asking you to calculate it from raw contract counts.",
+      },
+      {
+        heading: "Common traps to avoid",
+        body: "Not all unusual options activity is bullish or even informative. Earnings season creates volume spikes around announcement dates that are mostly hedging. Index rebalancing drives activity in component stocks for mechanical reasons. Market-maker hedging of large single trades can show up as unusual volume without any directional signal. And 'smart money' is not monolithic — institutions take the wrong side of trades all the time. The way to filter noise from signal is to require corroboration. An unusual options flag on its own is a lead. An unusual options flag plus an insider purchase plus a volume spike in the underlying stock is a thesis.",
+      },
+      {
+        heading: "Putting it into a daily workflow",
+        body: "A practical morning routine: check Barchart or CBOE for the biggest volume-to-open-interest ratios of the day; filter for OTM call concentration; cross-reference the tickers against your own watchlist or a multi-source screener like SignalScope to see if any other signals (insider, congressional, social, volume) line up. The goal is not to trade every unusual flow — it's to find the 1-3 tickers per day where multiple independent signals converge. For more context on how options flow fits into the broader signal pipeline, see our full Options Flow Detection post and the Multi-Source Signal Aggregation overview.",
+      },
+    ],
+  },
+  {
+    slug: "quiver-quantitative-alternatives",
+    title: "Quiver Quantitative Alternatives: Free and Paid Options Compared",
+    description:
+      "Quiver Quantitative tracks alternative data, but it's not the only option. Here's how it compares to Unusual Whales, CapitolTrades, and SignalScope — free and paid.",
+    date: "2026-04-17",
+    readingTime: "7 min read",
+    tags: ["alternatives", "quiver", "comparison", "tools"],
+    sections: [
+      {
+        body: "Quiver Quantitative built its audience by exposing alternative datasets that used to be locked away in expensive terminals: congressional trades, insider filings, government contracts, lobbying data, corporate flight tracking. If you've spent any time researching alt-data tools, you've hit Quiver. But it's not the only game anymore. Depending on what you actually want to do — track a specific dataset, run multi-source screens, or automate signals into a trading workflow — there are several alternatives that may fit better. This post compares the leading options on coverage, price, and use case.",
+      },
+      {
+        heading: "What Quiver does well",
+        body: "Quiver Quantitative's strength is breadth. In a single interface, you can see congressional trades, insider purchases, lobbying spend, government contracts, corporate aircraft movements, Reddit sentiment, off-exchange short volume, and more. The free tier gives you basic access to most datasets with some lag. Paid tiers unlock real-time alerts, API access, and deeper historical data. It's the most comprehensive alt-data dashboard available to retail, and the company has a track record of adding new datasets that genuinely move markets. If you want a one-stop shop for 'what's the institutional crowd doing?' it's hard to beat.",
+      },
+      {
+        heading: "Where Quiver falls short",
+        body: "Quiver is a dataset aggregator, not a signal pipeline. It shows you the raw data — which congress member bought what, which insiders filed Form 4s — but it doesn't tell you which signals are worth acting on. You have to build your own filters. It also doesn't score or rank tickers across datasets; you're left to correlate manually. And the price ramps quickly: the Premium tier runs around $100/month, with API access costing more. For power users that's fine, but for anyone wanting 'give me today's most interesting 5 tickers with the reasoning,' Quiver is more tool than answer.",
+      },
+      {
+        heading: "Unusual Whales: options flow specialist",
+        body: "Unusual Whales is the most popular alternative for traders focused specifically on options flow. Its real-time options scanner, flow alerts, and dark pool prints are more detailed than Quiver's options coverage. It also covers congressional trades, insider buys, and analyst ratings, making it a reasonably close substitute for Quiver with a sharper options angle. Pricing is tiered: a $50/month Basic plan covers most retail needs; Pro/Institutional runs significantly higher. Best fit if options flow is your primary signal source; weaker if you care about lobbying, contracts, or broader alt-data.",
+      },
+      {
+        heading: "CapitolTrades: congressional trades only",
+        body: "If the only dataset you want is congressional trades, CapitolTrades is the free, focused choice. It aggregates Periodic Transaction Report filings into a searchable database, lets you filter by lawmaker or ticker, and publishes a simple email digest. No options flow, no insider data, no scoring — just congressional trades, clean. SignalScope itself uses CapitolTrades as its congressional data source, which should tell you it's reliable and complete. If you're tracking Pelosi and a handful of other senators, this is the fastest way.",
+      },
+      {
+        heading: "SignalScope: multi-source with built-in scoring",
+        body: "SignalScope sits in a different category from Quiver and Unusual Whales. Instead of giving you raw datasets to filter yourself, it runs eight sources in parallel (Reddit, X/Twitter, StockTwits, SEC insider filings, congressional trades, volume spikes, options flow, Polymarket), aggregates by ticker, and scores each candidate with AI for breakout potential. The output is not a dataset browser — it's a ranked list of tickers with evidence, trade setups (entry, stop, targets, R:R), and an AI-written thesis. A 13-flag pump-and-dump filter removes the worst offenders. Pricing is $10/month or $100/year; the dashboard is free to view. Best fit if you want conclusions instead of raw data, and if you value multi-source corroboration over any single dataset's depth.",
+      },
+      {
+        heading: "How to choose",
+        body: "Pick Quiver if you want the broadest alt-data library and are comfortable running your own screens. Pick Unusual Whales if options flow is your main edge. Pick CapitolTrades if congressional trades are the only dataset you care about. Pick SignalScope if you want a scored, ranked watchlist that combines eight sources into a single prioritized list, with AI-generated trade setups and pump-and-dump filtering out of the box. For most retail traders, the right answer is a combination: CapitolTrades or Quiver for drilling into specific datasets, and a multi-source screener like SignalScope for daily 'what should I look at right now?' triage. Start with free tiers where available and add paid layers only when a specific signal type is driving your trades.",
+      },
+    ],
+  },
+  {
     slug: "how-breakout-signals-work",
     title: "How Breakout Signals Work: Multi-Source Stock Monitoring Explained",
     description:
