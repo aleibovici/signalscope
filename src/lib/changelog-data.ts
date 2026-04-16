@@ -9,6 +9,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-04-17",
+    title: "Blog Expansion",
+    changes: [
+      {
+        category: "new",
+        items: [
+          "Three new blog posts targeting high-intent search queries: Pelosi Stock Tracker guide, Unusual Options Activity Today, and Quiver Quantitative Alternatives comparison.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-04-15",
     title: "Dashboard & Ticker UI Polish",
     changes: [
