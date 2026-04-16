@@ -95,7 +95,7 @@ function ScoreBadge({
 
   return (
     <div
-      className={`flex w-11 flex-col items-center rounded-md py-1.5 ${bgClass}`}
+      className={`flex w-11 flex-col items-center rounded-md py-1 ${bgClass}`}
       title={title}
     >
       <span className={`text-[7px] font-bold uppercase tracking-wide ${labelClass}`}>
@@ -139,7 +139,7 @@ export function SignalCard({
         aria-label={`Open ${ticker.symbol} detail`}
         draggable={false}
       />
-      <CardContent className="pointer-events-none relative z-1 flex flex-1 flex-col gap-3 px-4 py-4 md:px-5 md:py-4">
+      <CardContent className="pointer-events-none relative z-1 flex flex-1 flex-col gap-2 px-4 py-3 md:px-5 md:py-3">
 
         {/* Row 1: symbol + rec badge | price + return */}
         <div className="flex items-start justify-between gap-2">
@@ -217,7 +217,7 @@ export function SignalCard({
         )}
 
         {/* Footer: sources + signals + bookmark */}
-        <div className="mt-auto flex items-center justify-between gap-2 border-t border-gray-100 pt-2.5 dark:border-zinc-800/60">
+        <div className="mt-auto flex items-center justify-between gap-2 border-t border-gray-100 pt-2 dark:border-zinc-800/60">
           {/* Source chips + signal count */}
           <div className="flex min-w-0 flex-wrap items-center gap-1">
             {ticker.sources?.slice(0, 3).map((src) => (
