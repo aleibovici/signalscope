@@ -588,7 +588,7 @@ function UsersTable({ users, loading, formatDate }: { users: any[] | undefined; 
 
   return (
     <Card>
-      <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 px-3 py-2 dark:border-zinc-800">
+      <div className="flex flex-col gap-2 border-b border-gray-100 px-3 py-2 dark:border-zinc-800 sm:flex-row sm:flex-wrap sm:items-center">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
           Registered Users
         </h2>
@@ -597,7 +597,7 @@ function UsersTable({ users, loading, formatDate }: { users: any[] | undefined; 
             {users.length} total · {activeCount} active 7d
           </span>
         )}
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex items-center gap-2 sm:ml-auto">
           <select
             value={filterPlan}
             onChange={(e) => setFilterPlan(e.target.value as "all" | "pro" | "free")}
@@ -612,7 +612,7 @@ function UsersTable({ users, loading, formatDate }: { users: any[] | undefined; 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search email or username…"
-            className="w-48 rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 placeholder-gray-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:placeholder-zinc-500"
+            className="min-w-0 flex-1 rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 placeholder-gray-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:placeholder-zinc-500 sm:w-48 sm:flex-none"
           />
         </div>
       </div>
