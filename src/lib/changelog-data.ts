@@ -22,6 +22,7 @@ export const changelog: ChangelogEntry[] = [
         category: "improved",
         items: [
           "Removed bookmark button from ticker list cards — bookmarking is now only available on the ticker detail page for a cleaner grid view.",
+          "Mobile polish: signal-quality tables now fit narrow screens without horizontal scroll, and the admin users panel stacks its filter controls below the heading on mobile.",
         ],
       },
     ],
