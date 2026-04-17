@@ -189,14 +189,14 @@ function CohortTable({ cohorts, days }: { cohorts: CohortEntry[]; days: number }
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <table className="min-w-[520px] w-full text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 text-left text-xs text-gray-500 dark:border-zinc-800 dark:text-zinc-400">
-                <th className="pb-2 pr-4 font-medium">Week</th>
+                <th className="pb-2 pr-3 font-medium">Week</th>
                 <th className="pb-2 pr-3 font-medium text-right">Signals</th>
                 <th className="pb-2 pr-3 font-medium text-right">{horizon} WR</th>
                 <th className="pb-2 pr-3 font-medium text-right">{horizon} Avg</th>
-                <th className="pb-2 pr-3 font-medium text-right">{horizon} Median</th>
+                <th className="hidden sm:table-cell pb-2 pr-3 font-medium text-right">{horizon} Median</th>
                 <th className="pb-2 font-medium text-right">Best Pick</th>
               </tr>
             </thead>
@@ -205,7 +205,7 @@ function CohortTable({ cohorts, days }: { cohorts: CohortEntry[]; days: number }
                 const s = c.stats[horizon];
                 return (
                   <tr key={c.weekStart} className="border-b border-gray-50 dark:border-zinc-800/80">
-                    <td className="py-2 pr-4 font-medium whitespace-nowrap text-gray-700 dark:text-zinc-200">
+                    <td className="py-2 pr-3 font-medium whitespace-nowrap text-gray-700 dark:text-zinc-200">
                       {c.weekLabel}
                     </td>
                     <td className="py-2 pr-3 text-right text-gray-600 dark:text-zinc-400">
@@ -226,7 +226,7 @@ function CohortTable({ cohorts, days }: { cohorts: CohortEntry[]; days: number }
                       {s ? formatPct(s.avgReturn) : "--"}
                     </td>
                     <td
-                      className={`py-2 pr-3 text-right font-medium ${
+                      className={`hidden sm:table-cell py-2 pr-3 text-right font-medium ${
                         s && s.medianReturn > 0
                           ? "text-green-600 dark:text-green-400"
                           : s && s.medianReturn < 0
@@ -292,30 +292,30 @@ function StatsTable({
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <table className="min-w-[420px] w-full text-sm">
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 text-left text-xs text-gray-500 dark:border-zinc-800 dark:text-zinc-400">
-                <th className="pb-2 pr-4 font-medium">Category</th>
-                <th className="pb-2 pr-4 font-medium text-right">Count</th>
-                <th className="pb-2 pr-4 font-medium text-right">Win Rate</th>
-                <th className="pb-2 pr-4 font-medium text-right">Avg Return</th>
-                <th className="pb-2 font-medium text-right">Median</th>
+                <th className="pb-2 pr-3 font-medium">Category</th>
+                <th className="pb-2 pr-3 font-medium text-right">Count</th>
+                <th className="pb-2 pr-3 font-medium text-right">Win Rate</th>
+                <th className="pb-2 pr-3 font-medium text-right">Avg Return</th>
+                <th className="hidden sm:table-cell pb-2 font-medium text-right">Median</th>
               </tr>
             </thead>
             <tbody>
               {entries.map(([key, stats]) => (
                 <tr key={key} className="border-b border-gray-50 dark:border-zinc-800/80">
-                  <td className="py-1.5 pr-4 font-medium text-gray-700 dark:text-zinc-200">
+                  <td className="py-1.5 pr-3 font-medium text-gray-700 dark:text-zinc-200">
                     {STAGE_LABELS[key] ?? key.replace(/_/g, " ")}
                   </td>
-                  <td className="py-1.5 pr-4 text-right text-gray-600 dark:text-zinc-400">
+                  <td className="py-1.5 pr-3 text-right text-gray-600 dark:text-zinc-400">
                     {stats.count}
                   </td>
-                  <td className="py-1.5 pr-4 text-right text-gray-600 dark:text-zinc-400">
+                  <td className="py-1.5 pr-3 text-right text-gray-600 dark:text-zinc-400">
                     {(stats.winRate * 100).toFixed(0)}%
                   </td>
                   <td
-                    className={`py-1.5 pr-4 text-right font-medium ${
+                    className={`py-1.5 pr-3 text-right font-medium ${
                       stats.avgReturn > 0
                         ? "text-green-600 dark:text-green-400"
                         : stats.avgReturn < 0
@@ -326,7 +326,7 @@ function StatsTable({
                     {formatPct(stats.avgReturn)}
                   </td>
                   <td
-                    className={`py-1.5 text-right font-medium ${
+                    className={`hidden sm:table-cell py-1.5 text-right font-medium ${
                       stats.medianReturn > 0
                         ? "text-green-600 dark:text-green-400"
                         : stats.medianReturn < 0
