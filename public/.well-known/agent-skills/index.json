@@ -1,0 +1,26 @@
+{
+  "$schema": "https://agentskills.io/schemas/v0.2.0/index.json",
+  "skills": [
+    {
+      "name": "signalscope-api",
+      "type": "skill",
+      "description": "Interact with the SignalScope stock breakout signal detection API — query scans, signals, trending tickers, and performance data.",
+      "url": "https://signalscopes.com/skill/SKILL.md",
+      "sha256": "f59ce93fb20fef4f0dc2f2b6168521e02c5ec09f0d204d2fd3fab168ff1339b1"
+    },
+    {
+      "name": "signalscope-api-public",
+      "type": "skill",
+      "description": "Reference for SignalScope public API endpoints (no authentication required).",
+      "url": "https://signalscopes.com/skill/api-public.md",
+      "sha256": "406f56c5754dfaab12e0c4c1b1f2664bae4b7e5b2656a7cc3621aaf034fc74ef"
+    },
+    {
+      "name": "signalscope-api-authenticated",
+      "type": "skill",
+      "description": "Reference for SignalScope authenticated API endpoints (portfolio, watchlist, reports, x402 payments).",
+      "url": "https://signalscopes.com/skill/api-authenticated.md",
+      "sha256": "ca609bdc3fe6a1925108cc6c2260bee7f72d0cd4ef9af1c77601c8da764f09fe"
+    }
+  ]
+}
