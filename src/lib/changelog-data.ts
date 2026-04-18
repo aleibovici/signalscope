@@ -19,6 +19,7 @@ export const changelog: ChangelogEntry[] = [
           "Added RFC 9727 API Catalog at /.well-known/api-catalog (application/linkset+json) advertising all public and authenticated endpoints with service documentation links.",
           "Homepage now emits RFC 8288 Link headers for api-catalog, service-doc, and agent-skills — enabling automated API discovery by AI agents.",
           "Added Content-Signal directives to robots.txt (search=yes, ai-input=yes, ai-train=no) declaring AI content usage preferences per contentsignals.org.",
+          "Published MCP Server Card at /.well-known/mcp/server-card.json (SEP-1649) describing the signalscope-mcp stdio server (npx -y signalscope-mcp).",
         ],
       },
     ],
