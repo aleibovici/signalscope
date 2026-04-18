@@ -37,6 +37,7 @@ export function isX402Path(pathname: string): boolean {
 
 export function isPublicPath(pathname: string): boolean {
   if (publicPages.has(pathname)) return true;
+  if (pathname.startsWith("/.well-known/")) return true;
   if (publicPagePrefixes.some((p) => pathname === p || pathname.startsWith(p + "/"))) return true;
   return publicApiPrefixes.some(
     (p) => pathname === p || pathname.startsWith(p + "/")

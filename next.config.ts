@@ -46,6 +46,16 @@ const nextConfig: NextConfig = {
         source: "/(.*)",
         headers: securityHeaders,
       },
+      {
+        source: "/",
+        headers: [
+          {
+            key: "Link",
+            value:
+              '</.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+json", </skill/SKILL.md>; rel="service-doc"; type="text/markdown", </.well-known/agent-skills/index.json>; rel="agent-skills"; type="application/json"',
+          },
+        ],
+      },
     ];
   },
 };

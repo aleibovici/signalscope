@@ -9,6 +9,21 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-04-19",
+    title: "AI Agent Discovery",
+    changes: [
+      {
+        category: "new",
+        items: [
+          "Published Agent Skills discovery index at /.well-known/agent-skills/index.json listing all three API skill files with SHA-256 digests.",
+          "Added RFC 9727 API Catalog at /.well-known/api-catalog (application/linkset+json) advertising all public and authenticated endpoints with service documentation links.",
+          "Homepage now emits RFC 8288 Link headers for api-catalog, service-doc, and agent-skills — enabling automated API discovery by AI agents.",
+          "Added Content-Signal directives to robots.txt (search=yes, ai-input=yes, ai-train=no) declaring AI content usage preferences per contentsignals.org.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-04-17",
     title: "Blog Expansion & UI Cleanup",
     changes: [
