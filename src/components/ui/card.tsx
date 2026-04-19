@@ -12,7 +12,7 @@ export function Card({
   return (
     <div
       title={title}
-      className={`rounded-lg border border-gray-200 bg-white shadow-sm dark:border-zinc-800/90 dark:bg-[#12181f] dark:shadow-[0_1px_3px_rgba(0,0,0,0.35)] ${className}`}
+      className={`rounded-card border border-border-default bg-surface-card shadow-card ${className}`}
     >
       {children}
     </div>
@@ -28,7 +28,7 @@ export function CardHeader({
 }) {
   return (
     <div
-      className={`border-b border-gray-200 px-4 py-3 md:px-6 md:py-4 dark:border-zinc-800 ${className}`}
+      className={`border-b border-border-default px-4 py-3 md:px-6 md:py-4 ${className}`}
     >
       {children}
     </div>
