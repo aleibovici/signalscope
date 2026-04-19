@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { useTrendingTickers, type TrendingFilters } from "@/hooks/use-trending";
 import { TrendingCard } from "@/components/dashboard/trending-card";
 import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { STAGE_LABELS } from "@/lib/stage-labels";
 
 const PAGE_SIZE = 12;
@@ -173,36 +175,31 @@ export default function TrendingPage() {
     <div className="space-y-4 md:space-y-5">
 
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900 md:text-2xl dark:text-zinc-100">Trending Tickers</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">
-            Tickers appearing across multiple scans, ranked by signal momentum
-          </p>
-          {dataUpdatedAt > 0 && (
-            <p className="mt-0.5 text-xs text-gray-400 dark:text-zinc-500">
-              Updated {formatTimeAgo(new Date(dataUpdatedAt))}
-            </p>
-          )}
-        </div>
-        {/* Mobile filter toggle */}
-        <button
-          onClick={() => setFiltersOpen((o) => !o)}
-          aria-expanded={filtersOpen}
-          aria-controls="trending-filters"
-          className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800 md:hidden"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
-          </svg>
-          Filters
-          {activeCount > 0 && (
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
-              {activeCount}
-            </span>
-          )}
-        </button>
-      </div>
+      <PageHeader
+        title="Trending Tickers"
+        subtitle="Tickers appearing across multiple scans, ranked by signal momentum"
+        meta={dataUpdatedAt > 0 ? `Updated ${formatTimeAgo(new Date(dataUpdatedAt))}` : undefined}
+        action={
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setFiltersOpen((o) => !o)}
+            aria-expanded={filtersOpen}
+            aria-controls="trending-filters"
+            className="md:hidden"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+            </svg>
+            Filters
+            {activeCount > 0 && (
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
+                {activeCount}
+              </span>
+            )}
+          </Button>
+        }
+      />
 
       {/* Quick bar: return period + sort (always visible) */}
       <div className="flex items-center gap-3 overflow-x-auto -mb-1 pb-1">
