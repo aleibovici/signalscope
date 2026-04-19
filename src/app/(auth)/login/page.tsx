@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { signIn, useSession } from "next-auth/react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { trackConversion } from "@/lib/analytics";
 /* ------------------------------------------------------------------ */
@@ -9,11 +10,11 @@ import { trackConversion } from "@/lib/analytics";
 /* ------------------------------------------------------------------ */
 
 const howItWorksSteps = [
-  { step: "1", label: "Discover", desc: "Monitor Reddit, X/Twitter, StockTwits, SEC insider filings, congressional trades, options flow, volume data, and Polymarket prediction markets for ticker mentions and catalyst signals." },
-  { step: "2", label: "Aggregate", desc: "Group signals by symbol, count sources, and calculate mention velocity." },
-  { step: "3", label: "Score", desc: "AI assigns signal confidence (evidence strength) and an Opportunity score (early-mover potential) — high confidence can mean the crowd already agrees." },
-  { step: "4", label: "Filter", desc: "13 statistical flags plus AI assessment catch pump-and-dump schemes." },
-  { step: "5", label: "Validate", desc: "Surviving tickers get fundamentals, a report, and enter the dashboard." },
+  { step: "1", label: "Listen", desc: "Scan Reddit, X, StockTwits, SEC filings, Congress trades, options flow, volume, and Polymarket for every ticker mention and catalyst." },
+  { step: "2", label: "Group", desc: "Cluster by symbol, count independent sources, and measure how fast mentions are accelerating." },
+  { step: "3", label: "Score", desc: "AI rates the evidence (confidence) and ranks how early you are (Opportunity score) — the earlier, the bigger the edge." },
+  { step: "4", label: "Filter", desc: "13 statistical flags plus an AI review strip out pump-and-dump patterns before anything reaches you." },
+  { step: "5", label: "Deliver", desc: "Survivors get fundamentals, a full report, and a clear trade setup on the dashboard." },
 ];
 
 interface PerfStats {
@@ -26,13 +27,30 @@ interface PerfStats {
   emergingCount: number;
 }
 
-export default function LoginPage() {
+const SOURCE_CARDS = [
+  { name: "Reddit", glyph: "🔥", tag: "Social", tagColor: "border-orange-500/25 bg-orange-500/15 text-orange-300", desc: "17 subreddits including r/wallstreetbets, r/stocks, and r/pennystocks." },
+  { name: "X / Twitter", glyph: "𝕏", tag: "Social", tagColor: "border-sky-500/25 bg-sky-500/15 text-sky-300", desc: "X API v2 searches for stock-related trending discussions." },
+  { name: "StockTwits", glyph: "💬", tag: "Social", tagColor: "border-amber-500/25 bg-amber-500/15 text-amber-300", desc: "Trending tickers for real-time retail sentiment." },
+  { name: "SEC Insider", glyph: "📄", tag: "Filings", tagColor: "border-emerald-500/25 bg-emerald-500/15 text-emerald-300", desc: "C-suite purchases over $50K from OpenInsider and EDGAR." },
+  { name: "Congress", glyph: "🏛️", tag: "Filings", tagColor: "border-emerald-500/25 bg-emerald-500/15 text-emerald-300", desc: "Congressional stock purchases from STOCK Act disclosures." },
+  { name: "Options Flow", glyph: "📈", tag: "Institutional", tagColor: "border-blue-500/25 bg-blue-500/15 text-blue-300", desc: "Unusual call volume, OTM activity, call sweeps, and net premium flow." },
+  { name: "Volume Spike", glyph: "⚡", tag: "Technical", tagColor: "border-violet-500/25 bg-violet-500/15 text-violet-300", desc: "Stocks trading at 2x+ average volume." },
+  { name: "Polymarket", glyph: "🎲", tag: "Prediction", tagColor: "border-purple-500/25 bg-purple-500/15 text-purple-300", desc: "Active prediction markets for price targets, earnings, mergers, FDA approvals, and S&P 500 inclusions." },
+];
+
+interface LoginPageProps {
+  heroPreview?: React.ReactNode;
+}
+
+export default function LoginPage({ heroPreview }: LoginPageProps = {}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [perfStats, setPerfStats] = useState<PerfStats | null>(null);
   const { status } = useSession();
+  const pathname = usePathname();
+  const isLoginRoute = pathname === "/login";
   const showGuestMobileBar = status !== "authenticated";
 
   useEffect(() => {
@@ -62,6 +80,111 @@ export default function LoginPage() {
     }
   }
 
+  const showPreview = !isLoginRoute && !!heroPreview;
+
+  const signInCard = (
+    <div id="sign-in" className="mx-auto w-full max-w-sm scroll-mt-24 lg:mx-0 lg:shrink-0">
+      <div className="rounded-2xl border border-white/15 bg-zinc-900/55 p-5 shadow-[0_0_48px_-12px_rgba(56,189,248,0.2)] backdrop-blur-xl ring-1 ring-white/10 sm:p-6">
+        <h2 className="sr-only">Sign in</h2>
+
+        {error && (
+          <div className="mb-4 rounded-lg border border-red-500/30 bg-red-950/40 p-3 text-sm text-red-100">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+          <div>
+            <label htmlFor="email" className="mb-1 block text-sm font-medium text-zinc-300">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full rounded-lg border border-zinc-600/50 bg-zinc-950/50 px-3 py-2.5 text-sm text-white placeholder-zinc-500 shadow-inner focus:border-sky-500/60 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
+              placeholder="you@example.com"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="mb-1 block text-sm font-medium text-zinc-300">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              required
+              minLength={8}
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-lg border border-zinc-600/50 bg-zinc-950/50 px-3 py-2.5 text-sm text-white placeholder-zinc-500 shadow-inner focus:border-sky-500/60 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
+              placeholder="Min. 8 characters"
+            />
+          </div>
+
+          <div className="flex items-center justify-end">
+            <Link href="/forgot-password" className="text-xs text-zinc-400 hover:text-white transition-colors">
+              Forgot password?
+            </Link>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-xl bg-linear-to-br from-sky-500 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:from-sky-400 hover:to-blue-500 disabled:opacity-50 transition-colors touch-manipulation"
+          >
+            {loading ? "Signing in..." : "Sign in"}
+          </button>
+        </form>
+
+        <p className="mt-4 text-center text-sm sm:mt-5">
+          <Link href="/register" className="font-semibold text-zinc-300 hover:text-white">
+            Create an account
+          </Link>
+        </p>
+      </div>
+    </div>
+  );
+
+  const perfChips = (
+    <div className="mb-5 min-h-[2.25rem] flex flex-wrap justify-center gap-2 sm:gap-3 md:mb-8 lg:justify-start">
+      {perfStats ? (
+        <>
+          {perfStats.emergingCount > 0 && (
+            <>
+              <span
+                className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 sm:text-sm"
+                title="High-confidence picks (AI score ≥70) from the last 30 days — same cohort shown on /results"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
+                {Math.round(perfStats.emergingWinRate * 100)}% 7d win rate
+              </span>
+              <span
+                className="inline-flex items-center gap-1.5 rounded-xl border border-sky-500/25 bg-sky-500/10 px-3 py-1.5 text-xs font-semibold text-sky-200 sm:text-sm"
+                title="Average return measured 7 days after detection, for high-confidence picks (AI ≥70) from the last 30 days"
+              >
+                {perfStats.emergingAvgReturn >= 0 ? "+" : ""}
+                {(perfStats.emergingAvgReturn * 100).toFixed(1)}% 7d avg return
+              </span>
+            </>
+          )}
+          <span className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/4 px-3 py-1.5 text-xs font-semibold text-zinc-200 sm:text-sm">
+            {perfStats.totalTracked.toLocaleString()} tickers tracked
+          </span>
+        </>
+      ) : (
+        <span className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/4 px-3 py-1.5 text-xs font-semibold text-zinc-500 sm:text-sm">
+          Loading live stats…
+        </span>
+      )}
+    </div>
+  );
+
   return (
     <div
       className={`min-h-screen overflow-x-hidden bg-zinc-950 text-zinc-100${showGuestMobileBar ? " pb-19 lg:pb-0" : ""}`}
@@ -69,9 +192,17 @@ export default function LoginPage() {
       {/* -- Nav ---------------------------------------------------- */}
       <nav className="fixed top-0 z-50 w-full border-b border-white/15 bg-zinc-950/85 backdrop-blur-md" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-          <span className="text-xl font-bold tracking-tight text-white">
-            Signal<span className="text-sky-400">Scope</span>
-          </span>
+          <div className="flex items-center gap-6">
+            <span className="text-xl font-bold tracking-tight text-white">
+              Signal<span className="text-sky-400">Scope</span>
+            </span>
+            <div className="hidden items-center gap-4 md:flex">
+              <Link href="/pricing" className="text-sm font-medium text-zinc-300 hover:text-white transition-colors">Pricing</Link>
+              <Link href="/blog" className="text-sm font-medium text-zinc-300 hover:text-white transition-colors">Blog</Link>
+              <Link href="/faq" className="text-sm font-medium text-zinc-300 hover:text-white transition-colors">FAQ</Link>
+              <Link href="/how-it-works" className="text-sm font-medium text-zinc-300 hover:text-white transition-colors">Methodology</Link>
+            </div>
+          </div>
           <div className="flex items-center gap-3">
             {status === "authenticated" ? (
               <>
@@ -99,7 +230,7 @@ export default function LoginPage() {
             ) : (
               <div className="flex items-center gap-2">
                 <Link
-                  href="#sign-in"
+                  href={showPreview ? "/login" : "#sign-in"}
                   className="rounded-lg border border-white/20 px-3.5 py-1.5 text-sm font-medium text-zinc-200 hover:border-white/30 hover:bg-white/5 transition-colors touch-manipulation"
                 >
                   Sign in
@@ -117,21 +248,11 @@ export default function LoginPage() {
       </nav>
 
       <main id="main-scroll">
-      {/* -- Hero + Login ------------------------------------------- */}
+      {/* -- Hero + Preview / Login -------------------------------- */}
       <section className="relative overflow-hidden bg-zinc-950 pt-20 pb-10 md:pt-24 md:pb-20">
         <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-zinc-950 via-zinc-950 to-blue-950/40" />
         <div className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-sky-500/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-40 -right-40 h-120 w-120 rounded-full bg-emerald-500/8 blur-3xl" />
         <div className="pointer-events-none absolute bottom-0 left-1/2 h-px w-[min(100%,72rem)] -translate-x-1/2 bg-linear-to-r from-transparent via-sky-500/25 to-transparent" />
-        <svg className="pointer-events-none absolute right-[8%] top-1/4 hidden h-32 w-48 opacity-[0.12] lg:block" viewBox="0 0 200 80" fill="none" aria-hidden>
-          <path d="M0 65 L35 52 L58 58 L88 28 L118 38 L145 12 L200 8" stroke="url(#heroSigGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          <defs>
-            <linearGradient id="heroSigGrad" x1="0" y1="0" x2="200" y2="0" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#38bdf8" />
-              <stop offset="1" stopColor="#34d399" />
-            </linearGradient>
-          </defs>
-        </svg>
 
         <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-8 px-4 sm:px-6 md:gap-12 lg:flex-row lg:items-start lg:gap-16">
           {/* Left -- copy */}
@@ -141,23 +262,23 @@ export default function LoginPage() {
               <span className="text-sky-400">before the crowd</span>
             </h1>
             <p className="mb-5 text-sm leading-relaxed text-zinc-300 sm:text-base md:mb-8 md:text-lg">
-              Identify institutional-grade opportunities with AI-filtered signals from eight disparate sources—then validate with fundamentals, reports, and ML backtesting as the dataset grows.
+              AI-scored signals from eight data sources — social, insider filings, Congress, options flow, and prediction markets — with pump-and-dump filtering and a public ML backtest.
             </p>
 
-            {perfStats && (
-              <div className="mb-5 flex flex-wrap justify-center gap-2 sm:gap-3 md:mb-8 lg:justify-start">
-                <span className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/4 px-3 py-1.5 text-xs font-semibold text-zinc-200 sm:text-sm">
-                  {perfStats.totalTracked} tickers tracked
-                </span>
-              </div>
-            )}
+            {perfChips}
 
-            <div className="flex flex-col items-center gap-3 sm:flex-row lg:justify-start">
+            <div className="hidden flex-col items-center gap-3 sm:flex-row lg:flex lg:justify-start">
               <Link
                 href="/dashboard"
                 className="w-full rounded-xl bg-linear-to-br from-sky-500 to-blue-600 px-6 py-2.5 text-center text-sm font-semibold text-white shadow-lg shadow-sky-950/40 hover:from-sky-400 hover:to-blue-500 transition-colors touch-manipulation sm:w-auto"
               >
-                Browse signals
+                See live signals
+              </Link>
+              <Link
+                href="/register"
+                className="w-full rounded-xl border border-white/15 bg-white/5 px-6 py-2.5 text-center text-sm font-semibold text-white hover:bg-white/10 transition-colors touch-manipulation sm:w-auto"
+              >
+                Create free account
               </Link>
             </div>
             <div className="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1.5 text-xs text-zinc-500 lg:justify-start">
@@ -170,124 +291,27 @@ export default function LoginPage() {
                 </span>
               ))}
             </div>
-            <p className="mt-1.5 text-[11px] text-zinc-600 text-center lg:text-left">
+            <p className="mt-1.5 text-center text-[11px] text-zinc-600 lg:text-left">
               Free — no credit card required.
             </p>
 
-            <div className="mt-6 grid max-w-md grid-cols-3 gap-2 sm:gap-3 md:mt-8 lg:max-w-none lg:justify-start">
-              {[
-                ["8", "Signal sources"],
-                ["13", "P&D flags"],
-                ["4", "Signal stages"],
-              ].map(([num, label]) => (
-                <div
-                  key={label}
-                  className="rounded-xl border border-white/10 bg-white/4 px-2 py-3 text-center shadow-[0_0_24px_-12px_rgba(56,189,248,0.25)] sm:px-3 lg:text-left"
-                >
-                  <p className="text-lg font-bold tabular-nums text-white sm:text-xl md:text-2xl">{num}</p>
-                  <p className="mt-1 text-[10px] font-medium uppercase tracking-wider text-zinc-400">{label}</p>
-                </div>
-              ))}
-            </div>
+            <Link
+              href="/register"
+              className="mt-5 inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1 text-xs font-semibold text-violet-200 transition-colors hover:border-violet-500/50 hover:bg-violet-500/20"
+            >
+              <span aria-hidden>🎁</span>
+              Tweet about us → 1 month Pro free
+              <span aria-hidden>→</span>
+            </Link>
           </div>
 
-          {/* Right -- login card */}
-          <div id="sign-in" className="mx-auto w-full max-w-sm scroll-mt-24 lg:mx-0 lg:shrink-0">
-            <div className="rounded-2xl border border-white/15 bg-zinc-900/55 p-5 shadow-[0_0_48px_-12px_rgba(56,189,248,0.2)] backdrop-blur-xl ring-1 ring-white/10 sm:p-6">
-              <h2 className="sr-only">Sign in</h2>
-
-              {error && (
-                <div className="mb-4 rounded-lg border border-red-500/30 bg-red-950/40 p-3 text-sm text-red-100">
-                  {error}
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
-                <div>
-                  <label htmlFor="email" className="mb-1 block text-sm font-medium text-zinc-300">
-                    Email
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    required
-                    autoComplete="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full rounded-lg border border-zinc-600/50 bg-zinc-950/50 px-3 py-2.5 text-sm text-white placeholder-zinc-500 shadow-inner focus:border-sky-500/60 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
-                    placeholder="you@example.com"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="password" className="mb-1 block text-sm font-medium text-zinc-300">
-                    Password
-                  </label>
-                  <input
-                    id="password"
-                    type="password"
-                    required
-                    minLength={8}
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-lg border border-zinc-600/50 bg-zinc-950/50 px-3 py-2.5 text-sm text-white placeholder-zinc-500 shadow-inner focus:border-sky-500/60 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
-                    placeholder="Min. 8 characters"
-                  />
-                </div>
-
-                <div className="flex items-center justify-end">
-                  <Link href="/forgot-password" className="text-xs text-zinc-400 hover:text-white transition-colors">
-                    Forgot password?
-                  </Link>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full rounded-xl bg-linear-to-br from-sky-500 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:from-sky-400 hover:to-blue-500 disabled:opacity-50 transition-colors touch-manipulation"
-                >
-                  {loading ? "Signing in..." : "Sign in"}
-                </button>
-              </form>
-
-              <p className="mt-4 text-center text-sm sm:mt-5">
-                <Link href="/register" className="font-semibold text-zinc-300 hover:text-white">
-                  Create an account
-                </Link>
-              </p>
-            </div>
-          </div>
+          {/* Right -- live preview (homepage) or sign-in (login route) */}
+          {showPreview ? heroPreview : signInCard}
         </div>
 
-        <div className="relative mx-auto mt-10 max-w-6xl border-t border-white/10 px-4 pt-8 sm:px-6 lg:mt-14 lg:pt-10">
-          <p className="text-center text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-            Built for traders who want the full picture
-          </p>
-          <ul className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-zinc-400 sm:text-sm">
-            <li className="inline-flex items-center gap-1.5">
-              <span className="h-1 w-1 rounded-full bg-emerald-500/90" aria-hidden />
-              Live multi-source scans
-            </li>
-            <li className="hidden text-zinc-600 sm:inline" aria-hidden>
-              ·
-            </li>
-            <li className="inline-flex items-center gap-1.5">
-              <span className="h-1 w-1 rounded-full bg-sky-500/90" aria-hidden />
-              AI scoring + pump filters
-            </li>
-            <li className="hidden text-zinc-600 sm:inline" aria-hidden>
-              ·
-            </li>
-            <li className="inline-flex items-center gap-1.5">
-              <span className="h-1 w-1 rounded-full bg-violet-500/80" aria-hidden />
-              Dashboard free to use
-            </li>
-          </ul>
-        </div>
       </section>
 
-      {/* -- Agent callout strip ------------------------------------ */}
+      {/* -- Agent callout strip (hoisted above features) ---------- */}
       <div className="border-y border-violet-900/50 bg-violet-950">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6">
           <div className="flex min-w-0 items-start gap-3 sm:items-center">
@@ -329,7 +353,7 @@ export default function LoginPage() {
               },
               {
                 title: "AI scoring & ML backtesting",
-                desc: "Dual scores: Opportunity (timing / early alpha) and AI confidence (how strong the evidence is). Ridge+LightGBM ML backtesting continuously refines thresholds as data grows.",
+                desc: "Two scores: AI confidence (how strong the evidence is) and Opportunity (how early you are). A public LightGBM backtest continuously refines thresholds as data grows.",
                 icon: (
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456Z" />
                 ),
@@ -343,7 +367,7 @@ export default function LoginPage() {
               },
               {
                 title: "Signal stages",
-                desc: "Signals progress through Emerging, Building, Consensus, and Filtered stages as conviction grows across sources.",
+                desc: "Signals progress through Emerging, Building, Consensus, and Filtered as conviction grows across sources.",
                 icon: (
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 7.5 7.5 3m0 0L12 7.5M7.5 3v13.5m13.5-6L16.5 16.5m0 0L12 10.5m4.5 6V3" />
                 ),
@@ -441,22 +465,16 @@ export default function LoginPage() {
           </p>
 
           <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 md:gap-6">
-            {[
-              { name: "Reddit", tag: "Social", tagColor: "border-orange-500/25 bg-orange-500/15 text-orange-300", desc: "17 subreddits including r/wallstreetbets, r/stocks, and r/pennystocks." },
-              { name: "X / Twitter", tag: "Social", tagColor: "border-sky-500/25 bg-sky-500/15 text-sky-300", desc: "X API v2 searches for stock-related trending discussions." },
-              { name: "StockTwits", tag: "Social", tagColor: "border-amber-500/25 bg-amber-500/15 text-amber-300", desc: "Trending tickers for real-time retail sentiment." },
-              { name: "SEC Insider", tag: "Filings", tagColor: "border-emerald-500/25 bg-emerald-500/15 text-emerald-300", desc: "C-suite purchases over $50K from OpenInsider and EDGAR." },
-              { name: "Congress", tag: "Filings", tagColor: "border-emerald-500/25 bg-emerald-500/15 text-emerald-300", desc: "Congressional stock purchases from STOCK Act disclosures." },
-              { name: "Options Flow", tag: "Institutional", tagColor: "border-blue-500/25 bg-blue-500/15 text-blue-300", desc: "Unusual call volume, OTM activity, call sweeps, and net premium flow." },
-              { name: "Volume Spike", tag: "Technical", tagColor: "border-violet-500/25 bg-violet-500/15 text-violet-300", desc: "Stocks trading at 2x+ average volume." },
-              { name: "Polymarket", tag: "Prediction", tagColor: "border-purple-500/25 bg-purple-500/15 text-purple-300", desc: "Active prediction markets for price targets, earnings, mergers, FDA approvals, and S&P 500 inclusions." },
-            ].map(({ name, desc, tag, tagColor }) => (
+            {SOURCE_CARDS.map(({ name, desc, tag, tagColor, glyph }) => (
               <div
                 key={name}
                 className="rounded-xl border border-white/10 bg-white/4 p-4 transition-all hover:border-sky-500/30 hover:shadow-[0_0_20px_-8px_rgba(56,189,248,0.2)] sm:p-5"
               >
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-semibold text-white sm:text-base">{name}</h3>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-lg leading-none shrink-0" aria-hidden>{glyph}</span>
+                    <h3 className="text-sm font-semibold text-white sm:text-base">{name}</h3>
+                  </div>
                   <span className={`hidden rounded-full border px-2 py-0.5 text-xs font-medium sm:inline ${tagColor}`}>
                     {tag}
                   </span>
@@ -465,6 +483,13 @@ export default function LoginPage() {
               </div>
             ))}
           </div>
+          <p className="mt-6 text-center text-sm text-zinc-500">
+            Source weights, scoring formulas, and per-source heuristics are explained on the{" "}
+            <a href="/methodology" className="font-medium text-sky-400 hover:text-sky-300 hover:underline">
+              methodology page
+            </a>
+            .
+          </p>
         </div>
       </section>
 
@@ -481,28 +506,43 @@ export default function LoginPage() {
           <div className="mx-auto max-w-4xl">
             <div className="mb-6 flex flex-col items-center gap-0 sm:flex-row sm:justify-center sm:gap-0 md:mb-12">
               {[
-                { label: "Track prices", sub: "Automated snapshots 3× daily" },
-                { label: "Measure returns", sub: "1d, 3d, 7d, 30d after detection" },
-                { label: "Train model", sub: "Ridge+LightGBM ML with feature importance" },
-                { label: "Optimize", sub: "Refine thresholds & filters" },
-              ].map(({ label, sub }, i) => (
+                { label: "Track prices", sub: "Automated snapshots 3× daily", accent: "bg-sky-500" },
+                { label: "Measure returns", sub: "1d, 3d, 7d, 30d after detection", accent: "bg-emerald-500" },
+                { label: "Train model", sub: "LightGBM with feature importance", accent: "bg-violet-500" },
+                { label: "Optimize", sub: "Refine thresholds & filters", accent: "bg-amber-500" },
+              ].map(({ label, sub, accent }, i, arr) => (
                 <div key={label} className="flex flex-col items-center sm:flex-col sm:gap-0">
                   {i > 0 && (
                     <>
-                      <span className="my-1 text-lg text-sky-500/80 sm:hidden">&#8595;</span>
-                      <span className="hidden text-sky-500/80 sm:mb-2 sm:block">&#8594;</span>
+                      <span className="my-1.5 text-sky-500/70 sm:hidden">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4"><path fillRule="evenodd" d="M10 3a.75.75 0 01.75.75v10.638l3.96-4.158a.75.75 0 111.08 1.04l-5.25 5.5a.75.75 0 01-1.08 0l-5.25-5.5a.75.75 0 111.08-1.04l3.96 4.158V3.75A.75.75 0 0110 3z" clipRule="evenodd" /></svg>
+                      </span>
+                      <span className="hidden text-sky-500/70 sm:mb-2 sm:flex sm:items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4"><path fillRule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clipRule="evenodd" /></svg>
+                      </span>
                     </>
                   )}
-                  <div className="w-56 rounded-xl border border-white/10 bg-zinc-900/80 px-4 py-3 text-center shadow-inner ring-1 ring-white/5 sm:mx-2 sm:w-40">
-                    <p className="text-sm font-semibold text-white">{label}</p>
-                    <p className="mt-0.5 text-xs text-zinc-500">{sub}</p>
+                  <div className="w-56 overflow-hidden rounded-xl border border-white/10 bg-zinc-900/80 text-center shadow-inner ring-1 ring-white/5 sm:mx-2 sm:w-40">
+                    <div className={`h-0.5 w-full ${accent}`} />
+                    <div className="px-4 py-3">
+                      <p className="text-sm font-semibold text-white">{label}</p>
+                      <p className="mt-0.5 text-xs text-zinc-500">{sub}</p>
+                    </div>
                   </div>
+                  {i === arr.length - 1 && (
+                    <p className="mt-3 text-[11px] text-zinc-600 sm:hidden">↺ cycle repeats each scan</p>
+                  )}
                 </div>
               ))}
             </div>
+            <p className="mb-2 hidden text-center text-[11px] text-zinc-600 sm:block">↺ cycle repeats each scan</p>
 
             <p className="text-center text-sm text-zinc-500">
-              Every signal&apos;s real-world outcome is tracked and fed back into the model — so scoring, filtering, and stage assignments get smarter over time.
+              Every signal&apos;s real-world outcome is tracked and fed back into the model. Read the full story in{" "}
+              <Link href="/blog/ml-model-evolution-xgboost-to-lightgbm" className="font-medium text-sky-400 hover:text-sky-300 hover:underline">
+                How our ML model evolved from Ridge to LightGBM
+              </Link>
+              .
             </p>
           </div>
         </div>
@@ -622,26 +662,14 @@ export default function LoginPage() {
             </div>
 
           </div>
-        </div>
-      </section>
 
-      {/* -- Share & Earn ------------------------------------------ */}
-      <section className="border-t border-white/6 bg-zinc-950 py-10 md:py-14">
-        <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
-          <div className="rounded-2xl border border-white/10 bg-white/4 px-6 py-8 ring-1 ring-white/5 md:px-10 md:py-10">
-            <h2 className="mb-2 text-xl font-bold text-white sm:text-2xl">
-              Tweet about us, get 1 month of Pro free
-            </h2>
-            <p className="mb-5 text-sm text-zinc-400 md:text-base">
-              Sign up, share a tweet about SignalScope, and unlock Pro features instantly — AI reports, API access, and email alerts. No credit card required.
-            </p>
-            <Link
-              href="/register"
-              className="inline-block rounded-xl bg-linear-to-br from-sky-500 to-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-950/40 hover:from-sky-400 hover:to-blue-500 transition-colors touch-manipulation sm:text-base"
-            >
-              Create account
+          <p className="mx-auto mt-8 max-w-2xl text-center text-sm text-zinc-500">
+            Compare plans side-by-side on the{" "}
+            <Link href="/pricing" className="font-medium text-sky-400 hover:text-sky-300 hover:underline">
+              pricing page
             </Link>
-          </div>
+            .
+          </p>
         </div>
       </section>
 
@@ -665,10 +693,10 @@ export default function LoginPage() {
             ))}
           </div>
           <Link
-            href="/dashboard"
+            href="/register"
             className="inline-block rounded-xl bg-linear-to-br from-sky-500 to-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-950/40 hover:from-sky-400 hover:to-blue-500 transition-colors touch-manipulation sm:text-base"
           >
-            Browse signals
+            Create free account
           </Link>
         </div>
       </section>
@@ -683,6 +711,7 @@ export default function LoginPage() {
               Signal<span className="text-sky-400">Scope</span>
             </span>
             <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-zinc-500">
+              <Link href="/pricing" className="hover:text-zinc-300 transition-colors touch-manipulation">Pricing</Link>
               <Link href="/blog" className="hover:text-zinc-300 transition-colors touch-manipulation">Blog</Link>
               <Link href="/faq" className="hover:text-zinc-300 transition-colors touch-manipulation">FAQ</Link>
               <Link href="/how-it-works" className="hover:text-zinc-300 transition-colors touch-manipulation">Methodology</Link>
@@ -712,13 +741,13 @@ export default function LoginPage() {
               href="/dashboard"
               className="flex-1 rounded-xl bg-linear-to-br from-sky-500 to-blue-600 py-2.5 text-center text-sm font-semibold text-white shadow-md shadow-sky-950/30 hover:from-sky-400 hover:to-blue-500 transition-colors touch-manipulation"
             >
-              Browse signals
+              See live signals
             </Link>
             <Link
-              href="#sign-in"
+              href="/register"
               className="flex-1 rounded-xl border border-white/20 py-2.5 text-center text-sm font-semibold text-zinc-100 hover:border-white/30 hover:bg-white/5 transition-colors touch-manipulation"
             >
-              Sign in
+              Create account
             </Link>
           </div>
         </div>

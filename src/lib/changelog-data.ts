@@ -27,6 +27,8 @@ export const changelog: ChangelogEntry[] = [
       {
         category: "improved",
         items: [
+          "Landing page overhaul: hero now surfaces live performance stats (7-day win rate, avg return, tickers tracked) alongside a server-rendered preview of the top 3 emerging breakouts. Desktop login form moves to /login; new visitors see the product on first scroll. Mobile CTA collision fixed, Share-&-Earn promoted to the hero, and the x402 agent strip is hoisted above the features grid.",
+          "New public /pricing page with Product + Offer JSON-LD schema — Free, Pro ($10/mo or $100/yr), and x402 pay-per-call laid out side by side. Pricing link added to the nav on every public page.",
           "Signal cards redesigned: AI confidence is now the hero metric, Opportunity score demoted to a compact rank, and the stage (Emerging/Building/Consensus) is shown as a pill visible in both themes instead of a dark-only accent border.",
           "Chip overflow is capped at two visible tags with a hover-to-see-all indicator, reducing visual noise on the grid.",
           "New type scale (display / h1 / h2 / h3 / body / caption / overline) with weights and tracking baked in — headings render with more deliberate hierarchy across the dashboard.",
@@ -136,7 +138,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     date: "2026-04-09",
-    title: "Paper Trading Upgrades",
+    title: "Paper Trading & Trending Filters",
     changes: [
       {
         category: "new",
@@ -146,26 +148,20 @@ export const changelog: ChangelogEntry[] = [
         ],
       },
       {
+        category: "improved",
+        items: [
+          "Sidebar nav item renamed from 'Signals' to 'Daily Signals'.",
+          "Trending tickers now default to sorting by AI Confidence.",
+          "Stage, Trend, Sector, Market Cap, and Source filters now support multi-select via a checkmark dropdown — select multiple values to broaden results.",
+        ],
+      },
+      {
         category: "fixed",
         items: [
           "S&P 500 benchmark now uses hold-matched returns (per-trade SPY return over the same hold period) instead of the full 14-day window return — apples-to-apples comparison.",
           "Closed positions now appear correctly on shorter lookback windows (7d, 3d) by extending the detection query to include trades that closed within the window.",
           "Peak Capital card shows the maximum simultaneous capital deployed instead of current open positions only.",
           "Fixed S&P 500 benchmark showing 'Unavailable' — switched SPY data fetching from the deprecated Yahoo Finance historical API to the current chart API.",
-        ],
-      },
-    ],
-  },
-  {
-    date: "2026-04-09",
-    title: "Trending Filters Upgrade",
-    changes: [
-      {
-        category: "improved",
-        items: [
-          "Sidebar nav item renamed from 'Signals' to 'Daily Signals'.",
-          "Trending tickers now default to sorting by AI Confidence.",
-          "Stage, Trend, Sector, Market Cap, and Source filters now support multi-select via a checkmark dropdown — select multiple values to broaden results.",
         ],
       },
     ],
@@ -231,17 +227,6 @@ export const changelog: ChangelogEntry[] = [
           "Backtesting model upgraded from XGBoost to a per-horizon RidgeCV ensemble with EWMA features — three separate models predict 1-day, 3-day, and 7-day returns using IC-weighted blending across 281 features.",
           "Low float shares added as a scoring penalty signal: very low float stocks underperform across all horizons per latest feature importance analysis.",
           "Database query performance improvements: scan detail, trending, network, and related ticker endpoints now use column projection to avoid fetching large AI-generated report fields unnecessarily, reducing latency on the main dashboard queries.",
-        ],
-      },
-    ],
-  },
-  {
-    date: "2026-04-04",
-    title: "SEO & Analytics Improvements",
-    changes: [
-      {
-        category: "improved",
-        items: [
           "Sitemap now dynamically includes up to 200 recent ticker signal pages (EARLY/FORMING/CONFIRMED, last 30 days, ranked by Opportunity Score) — Google can discover and index individual ticker signal pages.",
           "Blog post pages now include full Open Graph images and Twitter Card metadata, so shares on social media render rich previews with the SignalScope branded image.",
           "Methodology and FAQ pages include Twitter Card metadata.",

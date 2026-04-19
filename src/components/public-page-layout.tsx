@@ -9,7 +9,7 @@ export function PublicPageLayout({
   maxWidth?: string;
 }) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <PublicNav maxWidth="max-w-6xl" />
       <div className={`mx-auto px-4 pb-20 pt-28 sm:px-6 ${maxWidth}`}>
         {children}

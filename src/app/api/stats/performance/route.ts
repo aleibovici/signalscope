@@ -4,21 +4,14 @@ import { handleApiError } from "@/lib/api-error";
 
 /**
  * Public endpoint — returns aggregate performance stats for the landing page.
- * No auth required. Cached for 10 minutes.
+ * Matches the filter on /results/signal-quality (AI score ≥ 70, post scoring
+ * overhaul, last 30 days of detections). No auth required. Cached for 10 min.
  */
 
 type ReturnCol = "return1d" | "return3d" | "return7d" | "return30d";
 
-interface PerfRecord {
-  symbol: string;
-  detectionPrice: number;
-  return7d: number | null;
-  validatedTicker: {
-    aiScore: number;
-    stage: string;
-    createdAt: Date;
-  };
-}
+const AI_SCORE_THRESHOLD = 70;
+const SCORING_CUTOFF = new Date("2026-03-16T00:00:00Z");
 
 export async function GET() {
   try {
@@ -28,7 +21,9 @@ export async function GET() {
           detectionPrice: { gt: 0.01 },
           corporateActionDetected: false,
           validatedTicker: {
+            aiScore: { gte: AI_SCORE_THRESHOLD },
             stage: { notIn: ["FILTERED", "UNSCORED"] },
+            createdAt: { gte: SCORING_CUTOFF },
           },
         },
         distinct: ["symbol"],
@@ -56,27 +51,29 @@ export async function GET() {
 
     if (withReturn.length === 0) {
       return NextResponse.json(
-        { totalTracked, winRate: 0, avgReturn: 0, emergingWinRate: 0, emergingAvgReturn: 0, cumulativeReturns: [] },
+        { totalTracked, signalsWithReturns: 0, winRate: 0, avgReturn: 0, emergingWinRate: 0, emergingAvgReturn: 0, emergingCount: 0, cumulativeReturns: [] },
         { headers: { "Cache-Control": "public, max-age=600, s-maxage=600" } },
       );
     }
 
-    // Overall stats
+    // Overall stats (high-confidence cohort, post scoring overhaul)
     const returns = withReturn.map((r) => r[col] as number);
     const wins = returns.filter((r) => r > 0).length;
     const winRate = wins / returns.length;
     const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
 
-    // Emerging-stage stats (EARLY only)
-    const emergingRecords = withReturn.filter((r) => r.validatedTicker.stage === "EARLY");
-    const emergingReturns = emergingRecords.map((r) => r[col] as number);
-    const emergingWins = emergingReturns.filter((r) => r > 0).length;
-    const emergingWinRate = emergingReturns.length > 0 ? emergingWins / emergingReturns.length : 0;
+    // "Current window" stats — last 30 days of detections (matches /results page)
+    const thirtyDaysAgoMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const currentRecords = withReturn.filter(
+      (r) => r.validatedTicker.createdAt.getTime() >= thirtyDaysAgoMs,
+    );
+    const currentReturns = currentRecords.map((r) => r[col] as number);
+    const currentWins = currentReturns.filter((r) => r > 0).length;
+    const emergingWinRate = currentReturns.length > 0 ? currentWins / currentReturns.length : 0;
 
-    // 7-day rolling avg return by detection date — emerging signals only
-    const earlyWithReturn = withReturn.filter((r) => r.validatedTicker.stage === "EARLY");
+    // 7-day rolling avg return by detection date — current-window signals
     const byDateMap = new Map<string, { sum: number; count: number; wins: number }>();
-    for (const r of earlyWithReturn) {
+    for (const r of currentRecords) {
       const date = r.validatedTicker.createdAt.toISOString().slice(0, 10);
       if (!byDateMap.has(date)) byDateMap.set(date, { sum: 0, count: 0, wins: 0 });
       const entry = byDateMap.get(date)!;
@@ -102,10 +99,8 @@ export async function GET() {
       return { date, cumReturn: count > 0 ? sum / count : 0, tradeCount: count, winCount: wins };
     });
 
-    const recentWindow = cumulativeReturns.slice(-7);
-    const recentTotal = recentWindow.reduce((s, p) => s + p.tradeCount, 0);
-    const emergingAvgReturn = recentTotal > 0
-      ? recentWindow.reduce((s, p) => s + p.cumReturn * p.tradeCount, 0) / recentTotal
+    const emergingAvgReturn = currentReturns.length > 0
+      ? currentReturns.reduce((a, b) => a + b, 0) / currentReturns.length
       : 0;
 
     return NextResponse.json(
@@ -116,7 +111,7 @@ export async function GET() {
         avgReturn,
         emergingWinRate,
         emergingAvgReturn,
-        emergingCount: emergingRecords.length,
+        emergingCount: currentRecords.length,
         cumulativeReturns,
       },
       { headers: { "Cache-Control": "public, max-age=600, s-maxage=600" } },

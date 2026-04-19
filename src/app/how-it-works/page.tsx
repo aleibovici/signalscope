@@ -22,7 +22,7 @@ import {
 } from "@/lib/score-explainer";
 
 export const metadata: Metadata = {
-  title: "Methodology — SignalScope",
+  title: "Methodology",
   description: methodologyDescription,
   alternates: { canonical: "https://signalscopes.com/how-it-works" },
   openGraph: {
@@ -60,7 +60,7 @@ function PipelineStrip({ steps, pillClass }: { steps: readonly string[]; pillCla
       {steps.map((step, i) => (
         <div key={step} className="flex items-center gap-2">
           <span className={`rounded-full px-3 py-1 ${pillClass}`}>{step}</span>
-          {i < steps.length - 1 && <span className="text-gray-400">→</span>}
+          {i < steps.length - 1 && <span className="text-zinc-500">→</span>}
         </div>
       ))}
     </div>
@@ -69,8 +69,8 @@ function PipelineStrip({ steps, pillClass }: { steps: readonly string[]; pillCla
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 sm:p-6">
-      <h2 className="mb-3 text-base font-semibold text-gray-900">{title}</h2>
+    <div className="rounded-xl border border-white/10 bg-white/4 p-5 sm:p-6">
+      <h2 className="mb-3 text-base font-semibold text-white">{title}</h2>
       {children}
     </div>
   );
@@ -115,32 +115,32 @@ export default function PublicMethodologyPage() {
       />
 
       <div className="mb-10">
-        <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">How It Works</h1>
-        <p className="mt-2 text-gray-500">{methodologyDescription}</p>
+        <h1 className="text-3xl font-bold text-white sm:text-4xl">How It Works</h1>
+        <p className="mt-2 text-zinc-400">{methodologyDescription}</p>
       </div>
 
       <div className="space-y-6">
         {/* Pipeline */}
-        <div className="rounded-xl border border-gray-200 bg-white p-5 sm:p-6">
-          <PipelineStrip steps={pipelineSteps} pillClass="bg-blue-100 text-blue-800" />
+        <div className="rounded-xl border border-white/10 bg-white/4 p-5 sm:p-6">
+          <PipelineStrip steps={pipelineSteps} pillClass="bg-sky-500/15 text-sky-200" />
         </div>
 
         {/* Score explainer */}
         <Section title={scoreExplainerMethodologyTitle}>
-          <p className="text-sm leading-relaxed text-gray-600">{scoreExplainerMethodologyBody}</p>
+          <p className="text-sm leading-relaxed text-zinc-300">{scoreExplainerMethodologyBody}</p>
         </Section>
 
         {/* Signal Sources */}
         <Section title="Signal Sources">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {signalSources.map((src) => (
-              <div key={src.name} className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+              <div key={src.name} className="rounded-lg border border-white/10 bg-white/4 p-4">
                 <div className="mb-1 flex items-center gap-2">
                   <span>{src.icon}</span>
-                  <span className="font-medium text-gray-900">{src.name}</span>
+                  <span className="font-medium text-white">{src.name}</span>
                 </div>
-                <p className="text-sm text-gray-600">{src.description}</p>
-                <p className="mt-1 text-xs text-gray-400">{src.params}</p>
+                <p className="text-sm text-zinc-300">{src.description}</p>
+                <p className="mt-1 text-xs text-zinc-500">{src.params}</p>
               </div>
             ))}
           </div>
@@ -148,20 +148,20 @@ export default function PublicMethodologyPage() {
 
         {/* Aggregation */}
         <Section title="Signal Aggregation & Source Weights">
-          <p className="mb-4 text-sm leading-relaxed text-gray-600">{aggregationDescription}</p>
+          <p className="mb-4 text-sm leading-relaxed text-zinc-300">{aggregationDescription}</p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 text-left text-xs font-semibold uppercase text-gray-500">
+                <tr className="border-b border-white/10 text-left text-xs font-semibold uppercase text-zinc-400">
                   <th className="pb-2 pr-4">Source</th>
                   <th className="pb-2">Weight</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-white/10">
                 {sourceWeights.map((row) => (
                   <tr key={row.source}>
-                    <td className="py-1.5 pr-4 text-gray-700">{row.source}</td>
-                    <td className="py-1.5 font-mono text-gray-900">{row.weight}</td>
+                    <td className="py-1.5 pr-4 text-zinc-300">{row.source}</td>
+                    <td className="py-1.5 font-mono text-white">{row.weight}</td>
                   </tr>
                 ))}
               </tbody>
@@ -171,20 +171,20 @@ export default function PublicMethodologyPage() {
 
         {/* AI Scoring */}
         <Section title="AI Scoring (0-100)">
-          <p className="mb-4 text-sm leading-relaxed text-gray-600">{scoringDescription}</p>
+          <p className="mb-4 text-sm leading-relaxed text-zinc-300">{scoringDescription}</p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 text-left text-xs font-semibold uppercase text-gray-500">
+                <tr className="border-b border-white/10 text-left text-xs font-semibold uppercase text-zinc-400">
                   <th className="pb-2 pr-4">Band</th>
                   <th className="pb-2">Meaning</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-white/10">
                 {scoringBands.map((row) => (
                   <tr key={row.band}>
-                    <td className="py-1.5 pr-4 font-mono text-gray-900">{row.band}</td>
-                    <td className="py-1.5 text-gray-600">{row.meaning}</td>
+                    <td className="py-1.5 pr-4 font-mono text-white">{row.band}</td>
+                    <td className="py-1.5 text-zinc-300">{row.meaning}</td>
                   </tr>
                 ))}
               </tbody>
@@ -194,14 +194,14 @@ export default function PublicMethodologyPage() {
 
         {/* P&D */}
         <Section title="Pump & Dump Detection">
-          <p className="mb-4 text-sm leading-relaxed text-gray-600">{pndDescription}</p>
+          <p className="mb-4 text-sm leading-relaxed text-zinc-300">{pndDescription}</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {pndFlags.map((item) => (
               <div key={item.flag} className="flex items-start gap-2">
-                <span className="mt-0.5 whitespace-nowrap rounded bg-red-50 px-1.5 py-0.5 font-mono text-xs font-medium text-red-700">
+                <span className="mt-0.5 whitespace-nowrap rounded bg-red-500/10 px-1.5 py-0.5 font-mono text-xs font-medium text-red-300">
                   {item.flag}
                 </span>
-                <span className="text-sm text-gray-600">{item.desc}</span>
+                <span className="text-sm text-zinc-300">{item.desc}</span>
               </div>
             ))}
           </div>
@@ -211,11 +211,11 @@ export default function PublicMethodologyPage() {
         <Section title="Signal Stages">
           <div className="grid gap-3 sm:grid-cols-2">
             {signalStages.map((item) => (
-              <div key={item.stage} className="flex items-start gap-3 rounded-lg border border-gray-100 bg-gray-50 p-3">
-                <span className={`rounded px-2 py-0.5 text-xs font-semibold ${item.color.replace(/dark:[^\s]+/g, "").trim()}`}>
+              <div key={item.stage} className="flex items-start gap-3 rounded-lg border border-white/10 bg-white/4 p-3">
+                <span className={`rounded px-2 py-0.5 text-xs font-semibold ${item.color}`}>
                   {stageLabels[item.stage] ?? item.stage}
                 </span>
-                <p className="text-sm text-gray-600">{item.desc}</p>
+                <p className="text-sm text-zinc-300">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -225,11 +225,11 @@ export default function PublicMethodologyPage() {
         <Section title="Recommendation Levels">
           <div className="grid gap-3 sm:grid-cols-2">
             {recommendationLevels.map((item) => (
-              <div key={item.level} className="flex items-start gap-3 rounded-lg border border-gray-100 bg-gray-50 p-3">
-                <span className={`whitespace-nowrap rounded px-2 py-0.5 text-xs font-semibold ${item.color.replace(/dark:[^\s]+/g, "").trim()}`}>
+              <div key={item.level} className="flex items-start gap-3 rounded-lg border border-white/10 bg-white/4 p-3">
+                <span className={`whitespace-nowrap rounded px-2 py-0.5 text-xs font-semibold ${item.color}`}>
                   {item.level}
                 </span>
-                <p className="text-sm text-gray-600">{item.desc}</p>
+                <p className="text-sm text-zinc-300">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -237,12 +237,12 @@ export default function PublicMethodologyPage() {
 
         {/* ML Backtesting */}
         <Section title="ML Backtesting & Continuous Improvement">
-          <p className="mb-4 text-sm leading-relaxed text-gray-600">{backtestDescription}</p>
-          <PipelineStrip steps={backtestPipeline} pillClass="bg-indigo-100 text-indigo-800" />
+          <p className="mb-4 text-sm leading-relaxed text-zinc-300">{backtestDescription}</p>
+          <PipelineStrip steps={backtestPipeline} pillClass="bg-indigo-500/15 text-indigo-300" />
         </Section>
 
         {/* Disclaimer */}
-        <p className="text-center text-xs text-gray-400">{disclaimer}</p>
+        <p className="text-center text-xs text-zinc-500">{disclaimer}</p>
       </div>
     </PublicPageLayout>
   );

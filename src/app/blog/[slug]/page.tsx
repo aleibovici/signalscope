@@ -18,7 +18,7 @@ export async function generateMetadata({
   const post = blogPosts.find((p) => p.slug === slug);
   if (!post) return {};
   return {
-    title: `${post.title} — SignalScope`,
+    title: post.title,
     description: post.description,
     alternates: { canonical: `https://signalscopes.com/blog/${post.slug}` },
     openGraph: {
@@ -118,25 +118,25 @@ export default async function BlogPostPage({
 
       <Link
         href="/blog"
-        className="mb-6 inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 transition-colors"
+        className="mb-6 inline-flex items-center gap-1 text-sm text-sky-400 hover:text-sky-200 transition-colors"
       >
         <span>&larr;</span> Back to Blog
       </Link>
 
       <article>
         <header className="mb-8">
-          <time dateTime={post.date} className="text-xs font-medium text-gray-400">
+          <time dateTime={post.date} className="text-xs font-medium text-zinc-500">
             {formatDate(post.date)}
           </time>
-          <h1 className="mt-1.5 text-2xl font-bold text-gray-900 sm:text-3xl">
+          <h1 className="mt-1.5 text-2xl font-bold text-white sm:text-3xl">
             {post.title}
           </h1>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="text-sm text-gray-400">{post.readingTime}</span>
+            <span className="text-sm text-zinc-500">{post.readingTime}</span>
             {post.tags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500"
+                className="rounded-full bg-white/4/6 px-2 py-0.5 text-xs text-zinc-400"
               >
                 {tag}
               </span>
@@ -148,11 +148,11 @@ export default async function BlogPostPage({
           {post.sections.map((section, i) => (
             <section key={i}>
               {section.heading && (
-                <h2 className="mb-2 text-lg font-semibold text-gray-900">
+                <h2 className="mb-2 text-lg font-semibold text-white">
                   {section.heading}
                 </h2>
               )}
-              <p className="text-sm leading-relaxed text-gray-600 sm:text-base sm:leading-relaxed">
+              <p className="text-sm leading-relaxed text-zinc-300 sm:text-base sm:leading-relaxed">
                 {section.body}
               </p>
               {section.diagramKey === "ml-evolution" && <MlEvolutionDiagram />}
@@ -162,19 +162,19 @@ export default async function BlogPostPage({
       </article>
 
       {related.length > 0 && (
-        <div className="mt-12 border-t border-gray-200 pt-8">
-          <h3 className="mb-4 text-lg font-semibold text-gray-900">Related posts</h3>
+        <div className="mt-12 border-t border-white/10 pt-8">
+          <h3 className="mb-4 text-lg font-semibold text-white">Related posts</h3>
           <div className="grid gap-4 sm:grid-cols-3">
             {related.map((r) => (
               <Link
                 key={r.slug}
                 href={`/blog/${r.slug}`}
-                className="group rounded-lg border border-gray-200 bg-white p-4 transition-all hover:border-blue-200 hover:shadow-sm"
+                className="group rounded-lg border border-white/10 bg-white/4 p-4 transition-all hover:border-sky-500/30 hover:shadow-sm"
               >
-                <h4 className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2">
+                <h4 className="text-sm font-semibold text-white group-hover:text-sky-400 transition-colors line-clamp-2">
                   {r.title}
                 </h4>
-                <p className="mt-1 text-xs text-gray-400">{r.readingTime}</p>
+                <p className="mt-1 text-xs text-zinc-500">{r.readingTime}</p>
               </Link>
             ))}
           </div>
