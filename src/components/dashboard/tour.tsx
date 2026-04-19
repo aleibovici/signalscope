@@ -127,7 +127,7 @@ export function Tour() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (localStorage.getItem(TOUR_KEY)) return;
-    const t = setTimeout(() => setVisible(true), 700);
+    const t = setTimeout(() => setVisible(true), 1500);
     return () => clearTimeout(t);
   }, []);
 
@@ -275,7 +275,7 @@ export function Tour() {
           />
           {/* Spotlight ring with massive box-shadow as dimmer */}
           <div
-            className="pointer-events-none fixed z-[9990] transition-all duration-200"
+            className="pointer-events-none fixed z-[9990] transition-[top,left,width,height,box-shadow] duration-base"
             style={{
               top: rect.top - 4,
               left: rect.left - 4,
@@ -338,7 +338,7 @@ export function Tour() {
             {STEPS.map((_, i) => (
               <div
                 key={i}
-                className={`h-1.5 rounded-full transition-all ${
+                className={`h-1.5 rounded-full transition-[width,background-color] duration-base ${
                   i === step
                     ? "w-4 bg-blue-600 dark:bg-blue-400"
                     : i < step

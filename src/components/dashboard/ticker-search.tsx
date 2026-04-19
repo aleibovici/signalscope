@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { stageLabel } from "@/lib/stage-labels";
+import { inputCls } from "@/lib/input-cls";
 
 interface SearchResult {
   symbol: string;
@@ -113,7 +114,7 @@ export function TickerSearch() {
           }}
           onFocus={() => query.length >= 1 && setOpen(true)}
           onKeyDown={handleKeyDown}
-          className="w-full rounded-md border border-gray-200 bg-white py-1.5 pl-8 pr-3 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder-zinc-500"
+          className={`w-full py-1.5 pl-8 pr-3 placeholder-gray-400 dark:placeholder-zinc-500 ${inputCls}`}
         />
       </div>
 

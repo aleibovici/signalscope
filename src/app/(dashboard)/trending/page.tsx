@@ -7,6 +7,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { STAGE_LABELS } from "@/lib/stage-labels";
+import { inputCls } from "@/lib/input-cls";
 
 const PAGE_SIZE = 12;
 
@@ -18,8 +19,7 @@ function formatTimeAgo(d: Date): string {
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
   return `${Math.floor(s / 86400)}d ago`;
 }
-const selectClass =
-  "h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-blue-400 dark:focus:ring-blue-400";
+const selectClass = `h-10 w-full px-3 shadow-sm ${inputCls}`;
 const checkboxLabelClass =
   "flex cursor-pointer select-none items-center gap-2 text-sm text-gray-700 dark:text-zinc-300";
 
@@ -223,7 +223,7 @@ export default function TrendingPage() {
         <select
           value={filters.sortBy || ""}
           onChange={(e) => updateFilter({ sortBy: (e.target.value || undefined) as TrendingFilters["sortBy"] })}
-          className="h-9 shrink-0 rounded-lg border border-gray-200 bg-white px-2.5 pr-7 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-blue-400 dark:focus:ring-blue-400"
+          className={`h-9 shrink-0 px-2.5 pr-7 shadow-sm ${inputCls}`}
         >
           {SORT_OPTIONS.map((s) => (
             <option key={s.value} value={s.value}>Sort: {s.label}</option>
@@ -315,7 +315,7 @@ export default function TrendingPage() {
                 type="checkbox"
                 checked={filters.hidePnd || false}
                 onChange={(e) => updateFilter({ hidePnd: e.target.checked || undefined })}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-900 dark:focus:ring-blue-400"
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:border-zinc-600 dark:bg-zinc-900 dark:focus-visible:ring-blue-400/40"
               />
               Hide P&D flagged
             </label>
@@ -325,7 +325,7 @@ export default function TrendingPage() {
                 type="checkbox"
                 checked={filters.near52wLow || false}
                 onChange={(e) => updateFilter({ near52wLow: e.target.checked || undefined })}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-900 dark:focus:ring-blue-400"
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:border-zinc-600 dark:bg-zinc-900 dark:focus-visible:ring-blue-400/40"
               />
               Near 52W Low only
             </label>

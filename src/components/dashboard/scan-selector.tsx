@@ -2,6 +2,7 @@
 
 import { useScans, type ScanSummary } from "@/hooks/use-scans";
 import { Spinner } from "@/components/ui/spinner";
+import { inputCls } from "@/lib/input-cls";
 
 export function ScanSelector({
   selectedScanId,
@@ -38,7 +39,7 @@ export function ScanSelector({
       <select
         value={selectedScanId || ""}
         onChange={(e) => onSelect(e.target.value)}
-        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 sm:w-auto"
+        className={`w-full px-4 py-2 sm:w-auto ${inputCls}`}
       >
         {scans.map((scan: ScanSummary) => (
           <option key={scan.id} value={scan.id}>

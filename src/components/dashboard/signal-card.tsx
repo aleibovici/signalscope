@@ -115,6 +115,8 @@ export function SignalCard({
               </span>
               {recClass && (
                 <span
+                  role="status"
+                  aria-label={`Recommendation: ${ticker.recommendation}`}
                   className={`shrink-0 rounded border-[0.75px] px-1 py-[3px] text-[10px] font-bold uppercase tracking-[0.3px] ${recClass}`}
                 >
                   {ticker.recommendation}

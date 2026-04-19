@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAddPosition } from "@/hooks/use-portfolio";
+import { inputCls } from "@/lib/input-cls";
 
 export function AddPositionModal({
   symbol,
@@ -55,7 +56,7 @@ export function AddPositionModal({
               placeholder="0.00"
               value={entryPrice}
               onChange={(e) => setEntryPrice(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-3 text-base text-gray-900 placeholder-gray-400 shadow-inner focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:py-2 sm:text-sm dark:border-zinc-600 dark:bg-zinc-950/50 dark:text-zinc-100 dark:placeholder-zinc-500 dark:focus:border-sky-500/60 dark:focus:ring-sky-500/50"
+              className={`w-full px-3 py-3 placeholder-gray-400 shadow-inner sm:py-2 dark:placeholder-zinc-500 dark:bg-zinc-950/50 ${inputCls}`}
               required
               autoFocus
             />

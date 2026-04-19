@@ -8,6 +8,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { PageHeader } from "@/components/ui/page-header";
 import { Spinner } from "@/components/ui/spinner";
+import { inputCls } from "@/lib/input-cls";
 
 const LOOKBACK_OPTIONS = [
   { value: 3, label: "3 days" },
@@ -17,8 +18,7 @@ const LOOKBACK_OPTIONS = [
 ];
 const SCORE_OPTIONS = [60, 70, 80, 90];
 
-const selectClass =
-  "h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-blue-400 dark:focus:ring-blue-400";
+const selectClass = `h-10 px-3 shadow-sm ${inputCls}`;
 
 function formatPct(value: number, minDecimals = 1): string {
   const pct = value * 100;

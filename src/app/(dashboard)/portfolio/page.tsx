@@ -11,6 +11,7 @@ import {
 import { PositionCard } from "@/components/portfolio/position-card";
 import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ButtonLink } from "@/components/ui/button";
 
 export default function PortfolioPage() {
   const { data, isLoading, isError, refetch, isFetching } = usePortfolio();
@@ -235,7 +236,20 @@ export default function PortfolioPage() {
           <p className="text-red-600 dark:text-red-400">Failed to load portfolio. Please refresh and try again.</p>
         </div>
       ) : openPositions.length === 0 && closedPositions.length === 0 ? (
-        <EmptyState message="No positions yet. Track a signal from the dashboard or add one manually." />
+        <EmptyState
+          message="No positions yet."
+          icon={
+            <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+            </svg>
+          }
+          action={
+            <div className="flex flex-wrap justify-center gap-2">
+              <ButtonLink href="/dashboard" variant="primary" size="sm">Browse signals</ButtonLink>
+              <ButtonLink href="/trending" variant="secondary" size="sm">View trending</ButtonLink>
+            </div>
+          }
+        />
       ) : (
         <>
           {openPositions.length > 0 && (

@@ -5,9 +5,9 @@ import { useTickerNetwork, type NetworkFilters } from "@/hooks/use-network";
 import { NetworkGraph, type ColorMode } from "@/components/dashboard/network-graph";
 import { Spinner } from "@/components/ui/spinner";
 import { STAGE_LABELS } from "@/lib/stage-labels";
+import { inputCls } from "@/lib/input-cls";
 
-const selectClass =
-  "h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-blue-400 dark:focus:ring-blue-400";
+const selectClass = `h-10 w-full px-3 shadow-sm ${inputCls}`;
 
 const SECTOR_LEGEND = [
   { label: "Technology", color: "#3b82f6" },

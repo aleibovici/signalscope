@@ -158,7 +158,7 @@ export function Sidebar({ revision }: { revision: string }) {
 
       {/* Sidebar panel */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-gray-200 bg-white transition-transform duration-200 ease-in-out dark:border-zinc-800 dark:bg-zinc-950 md:static md:z-auto md:translate-x-0 md:bg-gray-50 md:dark:bg-zinc-950 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-gray-200 bg-white transition-transform duration-base ease-in-out dark:border-zinc-800 dark:bg-zinc-950 md:static md:z-auto md:translate-x-0 md:bg-gray-50 md:dark:bg-zinc-950 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
