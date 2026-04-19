@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tooltip } from "@/components/ui/tooltip";
 import type { ValidatedTickerData } from "@/hooks/use-scans";
 import { stageLabel } from "@/lib/stage-labels";
 
@@ -148,21 +149,27 @@ export function SignalCard({
         </div>
 
         {/* Scores */}
-        <div className="flex items-center gap-4">
-          <div
-            className="flex items-baseline gap-1"
-            title="Early-mover / opportunity rank — list order uses this (higher = earlier or more favorable setup)."
+        <div className="pointer-events-auto flex items-center gap-4">
+          <Tooltip
+            side="bottom"
+            align="start"
+            content="Opportunity rank — early-mover/setup score. Higher = earlier or more favorable setup. Drives list order."
           >
-            <span className="text-[9px] font-semibold uppercase tracking-wide text-amber-500/70 dark:text-amber-400/60">Opp</span>
-            <span className="text-xl font-black tabular-nums leading-none text-amber-500 dark:text-amber-400">{ticker.opportunityScore}</span>
-          </div>
-          <div
-            className="flex items-baseline gap-1"
-            title="How strong the evidence is (sources, sentiment, corroboration). Not the same as expected upside."
+            <span className="flex items-baseline gap-1">
+              <span className="type-overline text-amber-500/70 dark:text-amber-400/60">Opp</span>
+              <span className="num text-xl font-black leading-none text-amber-500 dark:text-amber-400">{ticker.opportunityScore}</span>
+            </span>
+          </Tooltip>
+          <Tooltip
+            side="bottom"
+            align="start"
+            content="AI confidence — evidence strength from sources, sentiment, and corroboration. Not expected upside."
           >
-            <span className="text-[9px] font-semibold uppercase tracking-wide text-blue-500/70 dark:text-blue-400/60">AI</span>
-            <span className="text-xl font-black tabular-nums leading-none text-blue-500 dark:text-blue-400">{ticker.aiScore}</span>
-          </div>
+            <span className="flex items-baseline gap-1">
+              <span className="type-overline text-blue-500/70 dark:text-blue-400/60">AI</span>
+              <span className="num text-xl font-black leading-none text-blue-500 dark:text-blue-400">{ticker.aiScore}</span>
+            </span>
+          </Tooltip>
         </div>
 
         {/* Tags: outlined rectangular pills */}
