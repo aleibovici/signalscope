@@ -10,6 +10,7 @@ import {
 } from "@/hooks/use-portfolio";
 import { PositionCard } from "@/components/portfolio/position-card";
 import { Spinner } from "@/components/ui/spinner";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default function PortfolioPage() {
   const { data, isLoading, isError, refetch, isFetching } = usePortfolio();
@@ -234,12 +235,7 @@ export default function PortfolioPage() {
           <p className="text-red-600 dark:text-red-400">Failed to load portfolio. Please refresh and try again.</p>
         </div>
       ) : openPositions.length === 0 && closedPositions.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center dark:border-zinc-600">
-          <p className="text-gray-500 dark:text-zinc-400">
-            No positions yet. Track a signal from the dashboard or add one
-            manually.
-          </p>
-        </div>
+        <EmptyState message="No positions yet. Track a signal from the dashboard or add one manually." />
       ) : (
         <>
           {openPositions.length > 0 && (

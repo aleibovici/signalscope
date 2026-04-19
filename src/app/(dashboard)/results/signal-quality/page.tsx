@@ -9,6 +9,7 @@ import type {
 import { EmergingReturnsChart } from "@/components/emerging-returns-chart";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
+import { PageHeader } from "@/components/ui/page-header";
 import { STAGE_LABELS } from "@/lib/stage-labels";
 
 
@@ -355,17 +356,11 @@ export default function PerformancePage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900 md:text-2xl dark:text-zinc-100">Signal Performance</h1>
-          <p className="text-sm text-gray-500 dark:text-zinc-400">
-            How high-confidence signals (AI score ≥70) perform after detection — broken down by week and type
-          </p>
-          {dataUpdatedAt > 0 && (
-            <p className="mt-0.5 text-xs text-gray-400 dark:text-zinc-500">
-              Updated {formatTimeAgo(new Date(dataUpdatedAt))}
-            </p>
-          )}
-        </div>
+        <PageHeader
+          title="Signal Performance"
+          subtitle="How high-confidence signals (AI score ≥70) perform after detection — broken down by week and type"
+          meta={dataUpdatedAt > 0 ? `Updated ${formatTimeAgo(new Date(dataUpdatedAt))}` : undefined}
+        />
         <div className="flex rounded-lg border border-gray-200 bg-white p-1 dark:border-zinc-600 dark:bg-zinc-900">
           {INTERVALS.map((iv) => (
             <button

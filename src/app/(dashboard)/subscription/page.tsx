@@ -8,6 +8,7 @@ import { useCheckout, usePortal } from "@/hooks/use-subscription";
 import { useShareReward } from "@/hooks/use-share-reward";
 import { ShareRewardBadge } from "@/components/dashboard/share-reward-badge";
 import { trackEvent, trackConversion } from "@/lib/analytics";
+import { PageHeader } from "@/components/ui/page-header";
 
 const MONTHLY_PRICE = 10;
 const YEARLY_PRICE = 100;
@@ -60,10 +61,12 @@ export default function SubscriptionPage() {
 
   return (
     <div className="mx-auto max-w-lg">
-      <h1 className="mb-2 text-2xl font-bold text-gray-900 dark:text-zinc-100">API Access</h1>
-      <p className="mb-6 text-sm text-gray-500 dark:text-zinc-400">
-        The SignalScope dashboard is free. Subscribe to unlock programmatic API access, on-demand AI reports, and email alerts.
-      </p>
+      <div className="mb-6">
+        <PageHeader
+          title="API Access"
+          subtitle="The SignalScope dashboard is free. Subscribe to unlock programmatic API access, on-demand AI reports, and email alerts."
+        />
+      </div>
 
       {success && !isActive && (
         <div className="mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-950/50 dark:text-green-300">

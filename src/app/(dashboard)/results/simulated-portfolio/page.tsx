@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 import { usePaperTrades, useAlphaCurve, type PaperTrade, type AlphaPoint } from "@/hooks/use-paper-trading";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { KpiTile } from "@/components/ui/kpi-tile";
+import { PageHeader } from "@/components/ui/page-header";
 import { Spinner } from "@/components/ui/spinner";
 
 const LOOKBACK_OPTIONS = [
@@ -175,15 +177,10 @@ export default function PaperTradingPage() {
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <div className="min-w-0">
-        <h1 className="text-xl font-bold text-gray-900 md:text-2xl dark:text-zinc-100">
-          Paper Trading
-        </h1>
-        <p className="text-pretty text-sm leading-relaxed text-gray-500 dark:text-zinc-400">
-          Simulated trades from signals detected in the last {lookbackDays} day{lookbackDays !== 1 ? "s" : ""} — see what would happen if you followed
-          every call
-        </p>
-      </div>
+      <PageHeader
+        title="Paper Trading"
+        subtitle={`Simulated trades from signals detected in the last ${lookbackDays} day${lookbackDays !== 1 ? "s" : ""} — see what would happen if you followed every call`}
+      />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
         <div className="min-w-0 w-full sm:w-auto">
@@ -257,13 +254,13 @@ export default function PaperTradingPage() {
             className="rounded-2xl border border-gray-200/90 bg-linear-to-b from-gray-50/95 to-white p-2 shadow-sm sm:p-3 dark:border-zinc-800 dark:from-zinc-900/80 dark:to-[#12181f]"
           >
             <div className="grid grid-cols-2 gap-2 *:min-w-0 [&>:last-child]:col-span-2 sm:[&>:last-child]:col-span-1 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-7 lg:gap-2">
-              <SummaryCard
+              <KpiTile
                 label="Total trades"
                 value={String(scaledSummary.totalTrades)}
                 sub={`${scaledSummary.openTrades} · ${scaledSummary.closedTrades}`}
                 subHint="Open · closed"
               />
-              <SummaryCard
+              <KpiTile
                 label="Win rate"
                 value={
                   scaledSummary.tradesWithMark > 0
@@ -272,12 +269,12 @@ export default function PaperTradingPage() {
                 }
                 sub="with mark"
               />
-              <SummaryCard
+              <KpiTile
                 label="Avg hold"
                 value={scaledSummary.avgHoldDays !== null ? `${scaledSummary.avgHoldDays.toFixed(1)}d` : "--"}
                 sub="1d / 3d / 7d"
               />
-              <SummaryCard
+              <KpiTile
                 label="Avg return"
                 value={
                   scaledSummary.tradesWithMark > 0 ? formatPct(scaledSummary.avgReturn) : "--"
@@ -297,7 +294,7 @@ export default function PaperTradingPage() {
                     : "no marks"
                 }
               />
-              <SummaryCard
+              <KpiTile
                 label="S&P 500"
                 value={
                   data.benchmark.matchedReturnPct !== null
@@ -318,7 +315,7 @@ export default function PaperTradingPage() {
                 sub={spyBenchmarkSub}
                 subHint="SPY avg return, matched to each trade's hold period"
               />
-              <SummaryCard
+              <KpiTile
                 label="Total P&L"
                 value={
                   scaledSummary.tradesWithMark > 0
@@ -340,7 +337,7 @@ export default function PaperTradingPage() {
                     : `${formatLegNotional(positionSize)}/leg · ${scaledSummary.tradesWithMark}`
                 }
               />
-              <SummaryCard
+              <KpiTile
                 label="Peak Capital"
                 value={`$${peakCapital.amount.toLocaleString()}`}
                 sub={`${peakCapital.legs} × ${formatLegNotional(positionSize)} max`}
@@ -595,51 +592,6 @@ function TradesTable({
             </tbody>
           </table>
         </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function SummaryCard({
-  label,
-  value,
-  sub,
-  subHint,
-  valueColor,
-}: {
-  label: string;
-  value: string;
-  sub: string;
-  subHint?: string;
-  valueColor?: "green" | "red";
-}) {
-  const colorClass =
-    valueColor === "green"
-      ? "text-green-600 dark:text-green-400"
-      : valueColor === "red"
-        ? "text-red-600 dark:text-red-400"
-        : "text-gray-900 dark:text-zinc-100";
-
-  return (
-    <Card
-      className="min-w-0 h-full border-gray-200/90 bg-white/90 shadow-sm transition-[box-shadow,border-color] duration-200 hover:border-blue-200/70 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950/60 dark:hover:border-zinc-600"
-      title={subHint}
-    >
-      <CardContent className="flex h-full min-h-25 flex-col items-center justify-between gap-1 px-2! py-3.5 text-center sm:px-3! lg:px-2! lg:py-3">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-500">
-          {label}
-        </p>
-        <p
-          className={`min-h-8 text-xl font-bold tabular-nums tracking-tight sm:min-h-9 sm:text-2xl ${colorClass}`}
-        >
-          {value}
-        </p>
-        <p
-          className="line-clamp-2 min-h-8 w-full text-[10px] leading-snug text-gray-400 sm:text-[11px] dark:text-zinc-500"
-          title={subHint ? undefined : sub.length > 24 ? sub : undefined}
-        >
-          {sub}
-        </p>
       </CardContent>
     </Card>
   );

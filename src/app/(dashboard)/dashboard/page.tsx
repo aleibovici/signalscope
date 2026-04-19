@@ -10,6 +10,7 @@ import { ScanSelector } from "@/components/dashboard/scan-selector";
 import { StageTabs } from "@/components/dashboard/stage-tabs";
 import { SignalCard } from "@/components/dashboard/signal-card";
 import { Spinner } from "@/components/ui/spinner";
+import { EmptyState } from "@/components/ui/empty-state";
 
 function downloadWatchlistCSV(symbols: Set<string>) {
   const lines = ["Symbol", ...Array.from(symbols).sort()];
@@ -144,13 +145,9 @@ useScrollRestore("dashboard");
           <p className="text-red-600 dark:text-red-400">Failed to load signals. Please refresh and try again.</p>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center dark:border-zinc-600">
-          <p className="text-gray-500 dark:text-zinc-400">
-            {selectedScanId
-              ? "No signals found for this stage."
-              : "No scans available. Run a scan to detect breakout signals."}
-          </p>
-        </div>
+        <EmptyState
+          message={selectedScanId ? "No signals found for this stage." : "No scans available. Run a scan to detect breakout signals."}
+        />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((ticker: ValidatedTickerData, i) => (
