@@ -899,10 +899,20 @@ export default function TickerDetailPage({
                 id="ticker-ai-analysis"
                 className="rounded-xl border border-slate-200 bg-white p-6 dark:border-[#1e262f] dark:bg-[#12181f]"
               >
-                <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400">
-                  <IconAiSparkles className="h-4 w-4" />
-                  AI TECHNICAL ANALYSIS
-                </h3>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400">
+                    <IconAiSparkles className="h-4 w-4" />
+                    AI TECHNICAL ANALYSIS
+                  </h3>
+                  <span className="text-[10px] text-slate-400 dark:text-zinc-500">
+                    Based on scan data from{" "}
+                    {new Date(ticker.createdAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
                 {reportGenerating ? (
                   <div className="flex items-center gap-2 py-4 text-sm text-slate-600 dark:text-zinc-400">
                     <Spinner className="h-4 w-4" />
