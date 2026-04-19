@@ -87,7 +87,7 @@ useScrollRestore("dashboard");
   return (
     <div className="space-y-4 md:space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-xl font-bold text-gray-900 dark:text-zinc-100 md:text-2xl">Signal Dashboard</h1>
+        <h1 className="type-h1 text-gray-900 dark:text-zinc-100">Signal Dashboard</h1>
         <div className="flex items-center gap-2">
           {session?.user && bookmarkedSymbols.size > 0 && (
             <button

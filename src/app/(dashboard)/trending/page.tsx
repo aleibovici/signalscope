@@ -342,8 +342,8 @@ export default function TrendingPage() {
               style={{ background: "linear-gradient(to bottom, #71717a, #a1a1aa)" }}
               aria-hidden="true"
             />
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-zinc-500">Trending</p>
-            <p className="mt-1 text-2xl font-bold text-gray-900 md:text-3xl dark:text-zinc-100">
+            <p className="type-overline text-gray-400 dark:text-zinc-500">Trending</p>
+            <p className="num mt-1 text-2xl font-bold text-gray-900 md:text-3xl dark:text-zinc-100">
               {data.summary.totalTrending}
             </p>
           </div>
@@ -354,8 +354,8 @@ export default function TrendingPage() {
               style={{ background: "linear-gradient(to bottom, #22c55e, #10b981)" }}
               aria-hidden="true"
             />
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-zinc-500">Rising</p>
-            <p className="mt-1 text-2xl font-bold text-green-600 md:text-3xl dark:text-green-400">
+            <p className="type-overline text-gray-400 dark:text-zinc-500">Rising</p>
+            <p className="num mt-1 text-2xl font-bold text-green-600 md:text-3xl dark:text-green-400">
               {data.summary.risingCount}
             </p>
           </div>
@@ -366,8 +366,8 @@ export default function TrendingPage() {
               style={{ background: "linear-gradient(to bottom, #3b82f6, #6366f1)" }}
               aria-hidden="true"
             />
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-zinc-500">Avg Score</p>
-            <p className="mt-1 text-2xl font-bold text-gray-900 md:text-3xl dark:text-zinc-100">
+            <p className="type-overline text-gray-400 dark:text-zinc-500">Avg Score</p>
+            <p className="num mt-1 text-2xl font-bold text-gray-900 md:text-3xl dark:text-zinc-100">
               {data.summary.avgScore}
             </p>
           </div>

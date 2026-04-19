@@ -409,7 +409,7 @@ export default function TickerDetailPage({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
           <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <h1 className="text-2xl font-black leading-none tracking-tighter text-gray-900 sm:text-3xl dark:text-white">
+              <h1 className="type-display text-gray-900 dark:text-white">
                 {ticker.symbol}
               </h1>
             </div>

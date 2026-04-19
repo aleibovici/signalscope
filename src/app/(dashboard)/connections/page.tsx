@@ -44,7 +44,7 @@ export default function ConnectionsPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 md:text-2xl dark:text-zinc-100">Connections</h1>
+          <h1 className="type-h1 text-gray-900 dark:text-zinc-100">Connections</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">
             Discover tickers with correlated price movements
           </p>

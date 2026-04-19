@@ -26,10 +26,8 @@ export function KpiTile({
       title={subHint}
     >
       <CardContent className="flex h-full min-h-25 flex-col items-center justify-between gap-1 px-2! py-3.5 text-center sm:px-3! lg:px-2! lg:py-3">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-          {label}
-        </p>
-        <p className={`min-h-8 text-xl font-bold tabular-nums tracking-tight sm:min-h-9 sm:text-2xl ${colorClass}`}>
+        <p className="type-overline text-muted">{label}</p>
+        <p className={`num min-h-8 text-xl font-bold tracking-tight sm:min-h-9 sm:text-2xl ${colorClass}`}>
           {value}
         </p>
         <p

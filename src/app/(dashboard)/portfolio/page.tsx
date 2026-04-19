@@ -159,7 +159,7 @@ export default function PortfolioPage() {
     <div className="space-y-4 md:space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-zinc-100 md:text-2xl">Portfolio</h1>
+          <h1 className="type-h1 text-gray-900 dark:text-zinc-100">Portfolio</h1>
           {positions.length > 0 && (
             <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">
               {positions.length} positions &middot; Overall avg gain:{" "}
