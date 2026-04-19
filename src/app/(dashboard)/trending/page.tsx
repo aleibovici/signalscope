@@ -6,8 +6,8 @@ import { TrendingCard } from "@/components/dashboard/trending-card";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
+import { Select } from "@/components/ui/select";
 import { STAGE_LABELS } from "@/lib/stage-labels";
-import { inputCls } from "@/lib/input-cls";
 
 const PAGE_SIZE = 12;
 
@@ -19,7 +19,6 @@ function formatTimeAgo(d: Date): string {
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
   return `${Math.floor(s / 86400)}d ago`;
 }
-const selectClass = `h-10 w-full px-3 shadow-sm ${inputCls}`;
 const checkboxLabelClass =
   "flex cursor-pointer select-none items-center gap-2 text-sm text-gray-700 dark:text-zinc-300";
 
@@ -220,15 +219,14 @@ export default function TrendingPage() {
           ))}
         </div>
 
-        <select
+        <Select
+          className="w-[180px] shrink-0"
+          ariaLabel="Sort tickers"
           value={filters.sortBy || ""}
-          onChange={(e) => updateFilter({ sortBy: (e.target.value || undefined) as TrendingFilters["sortBy"] })}
-          className={`h-9 shrink-0 px-2.5 pr-7 shadow-sm ${inputCls}`}
-        >
-          {SORT_OPTIONS.map((s) => (
-            <option key={s.value} value={s.value}>Sort: {s.label}</option>
-          ))}
-        </select>
+          onChange={(v) => updateFilter({ sortBy: (v || undefined) as TrendingFilters["sortBy"] })}
+          options={SORT_OPTIONS}
+          renderValue={(o) => <span>Sort: {o?.label ?? "Appearances"}</span>}
+        />
 
         {hasActiveFilters(filters) && (
           <button
@@ -245,18 +243,17 @@ export default function TrendingPage() {
         <div className="rounded-xl border border-gray-200 bg-gray-50/80 px-5 py-4 dark:border-zinc-800 dark:bg-zinc-900/40">
           <p className="mb-3 text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-zinc-500">Filters</p>
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-zinc-400">Min Appearances</label>
-              <select
-                value={filters.minAppearances || ""}
-                onChange={(e) => updateFilter({ minAppearances: e.target.value ? Number(e.target.value) : undefined })}
-                className={selectClass}
-              >
-                <option value="">2+ (default)</option>
-                <option value="3">3+</option>
-                <option value="5">5+</option>
-              </select>
-            </div>
+            <Select
+              label="Min Appearances"
+              className="w-full"
+              value={String(filters.minAppearances || "")}
+              onChange={(v) => updateFilter({ minAppearances: v ? Number(v) : undefined })}
+              options={[
+                { value: "", label: "2+ (default)" },
+                { value: "3", label: "3+" },
+                { value: "5", label: "5+" },
+              ]}
+            />
 
             <MultiSelectDropdown
               label="Stage"
