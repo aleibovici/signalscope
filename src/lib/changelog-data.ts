@@ -31,6 +31,7 @@ export const changelog: ChangelogEntry[] = [
           "Chip overflow is capped at two visible tags with a hover-to-see-all indicator, reducing visual noise on the grid.",
           "New type scale (display / h1 / h2 / h3 / body / caption / overline) with weights and tracking baked in — headings render with more deliberate hierarchy across the dashboard.",
           "All prices, scores, and percentages now use tabular numerics so digits align in columns and stop jittering on live updates.",
+          "Methodology and AI scoring prompts synced to the latest ML backtest (exp609, mean IC 0.161): architecture updated to the pure LightGBM model on 3d returns (293 features, ~10 active), stale per-feature importance rankings removed, and pnd_micro_cap_no_catalyst elevated as the dominant single predictor.",
         ],
       },
       {
