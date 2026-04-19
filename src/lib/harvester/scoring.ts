@@ -162,7 +162,7 @@ Return JSON: { "scores": [{ "symbol": "X", "score": 0-100, "sentiment": "bullish
       // Enforce social-only cap: tickers without a catalyst source (SEC_INSIDER/OPTIONS_FLOW/CONGRESS)
       // should never score above 50, regardless of what the AI returns
       const sources = new Set(s.signals.map((sig) => sig.source));
-      const hasCatalystSource = sources.has("SEC_INSIDER") || sources.has("OPTIONS_FLOW") || sources.has("CONGRESS");
+      const hasCatalystSource = sources.has("SEC_INSIDER") || sources.has("SEC_FILING") || sources.has("OPTIONS_FLOW") || sources.has("CONGRESS") || sources.has("VOLUME_SPIKE");
       const maxScore = hasCatalystSource ? 100 : 50;
 
       const rawScore = Math.max(0, Math.round(item.score));
@@ -185,7 +185,9 @@ export function defaultScore(s: AggregatedSymbol, novelty?: NoveltyContext): AiS
   const hasInsider = sources.has("SEC_INSIDER");
   const hasOptions = sources.has("OPTIONS_FLOW");
   const hasCongress = sources.has("CONGRESS");
-  const hasCatalystSource = hasInsider || hasOptions || hasCongress;
+  const hasSecFiling = sources.has("SEC_FILING");
+  const hasVolumeSpike = sources.has("VOLUME_SPIKE");
+  const hasCatalystSource = hasInsider || hasOptions || hasCongress || hasSecFiling || hasVolumeSpike;
 
   // Insider/options/congress signals get a strong base; pure social caps at 50
   let base: number;

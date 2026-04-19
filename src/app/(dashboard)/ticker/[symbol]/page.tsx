@@ -362,6 +362,8 @@ export default function TickerDetailPage({
         setLivePrice(p ?? null);
         if (p != null) setLastLiveAt(new Date());
       }
+    } catch {
+      // network error — price stays as scan snapshot
     } finally {
       setPriceRefreshing(false);
     }
