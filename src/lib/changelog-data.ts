@@ -10,7 +10,7 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-04-19",
-    title: "AI Agent Discovery",
+    title: "AI Agent Discovery & Design System Refresh",
     changes: [
       {
         category: "new",
@@ -20,6 +20,23 @@ export const changelog: ChangelogEntry[] = [
           "Homepage now emits RFC 8288 Link headers for api-catalog, service-doc, and agent-skills — enabling automated API discovery by AI agents.",
           "Added Content-Signal directives to robots.txt (search=yes, ai-input=yes, ai-train=no) declaring AI content usage preferences per contentsignals.org.",
           "Published MCP Server Card at /.well-known/mcp/server-card.json (SEP-1649) describing the signalscope-mcp stdio server (npx -y signalscope-mcp).",
+          "New Tooltip and Select primitives replace native browser dropdowns — consistent styling in light and dark mode, full keyboard navigation.",
+          "Mobile bottom tab bar for one-thumb navigation between Signals, Trending, Results, Portfolio, and Profile (iOS safe-area aware).",
+        ],
+      },
+      {
+        category: "improved",
+        items: [
+          "Signal cards redesigned: AI confidence is now the hero metric, Opportunity score demoted to a compact rank, and the stage (Emerging/Building/Consensus) is shown as a pill visible in both themes instead of a dark-only accent border.",
+          "Chip overflow is capped at two visible tags with a hover-to-see-all indicator, reducing visual noise on the grid.",
+          "New type scale (display / h1 / h2 / h3 / body / caption / overline) with weights and tracking baked in — headings render with more deliberate hierarchy across the dashboard.",
+          "All prices, scores, and percentages now use tabular numerics so digits align in columns and stop jittering on live updates.",
+        ],
+      },
+      {
+        category: "fixed",
+        items: [
+          "Signal count label now pluralizes correctly (\"1 signal\" vs \"2 signals\").",
         ],
       },
     ],
