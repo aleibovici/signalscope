@@ -79,7 +79,7 @@ const authNavItems = [
 
 export function Sidebar({ revision }: { revision: string }) {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const { data: shareReward } = useShareReward(!!session?.user);
   const [open, setOpen] = useState(false);
 
@@ -208,7 +208,7 @@ export function Sidebar({ revision }: { revision: string }) {
                 </Link>
               );
             })}
-            {session?.user && authNavItems.map((item) => {
+            {status !== "loading" && session?.user && authNavItems.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link
@@ -275,7 +275,7 @@ export function Sidebar({ revision }: { revision: string }) {
         </div>
 
         <div className="shrink-0 border-t border-gray-200 px-4 py-4 dark:border-zinc-800">
-          {session?.user ? (
+          {status === "loading" ? null : session?.user ? (
             <>
               <div className="mb-2 truncate text-xs text-gray-500 dark:text-zinc-400">
                 {session.user.email}
