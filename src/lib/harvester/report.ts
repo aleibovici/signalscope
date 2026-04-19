@@ -116,7 +116,7 @@ Return JSON:
   "catalyst": "1-2 sentence catalyst summary — lead with insider/options if present",
   "risks": "1-2 sentence key risks — be specific",
   "recommendation": "Strong Buy|Buy|Watch|Avoid",
-  "report": "3-5 paragraph analysis covering catalyst, technical setup, short interest, risk factors, and outlook. State confidence level explicitly.",
+  "report": "3-5 paragraph analysis. Begin each paragraph with a bold section label followed by an em-dash, e.g. '**Catalyst** — ', '**Technical Setup** — ', '**Short Interest** — ', '**Risk Factors** — ', '**Outlook** — '. Labels should match the content; these exact names are not required. State confidence level explicitly.",
   "tradeSetup": {
     "entryLo": <number>,
     "entryHi": <number>,
