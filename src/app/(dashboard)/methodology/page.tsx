@@ -68,7 +68,7 @@ export default function MethodologyPage() {
 
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-zinc-100 md:text-2xl">How It Works</h1>
+        <h1 className="type-h1 text-gray-900 dark:text-zinc-100">How It Works</h1>
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-gray-500 dark:text-zinc-400">{methodologyDescription}</p>
       </div>
 

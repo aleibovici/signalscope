@@ -215,6 +215,63 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 
+/* ─── Type scale ──────────────────────────────────────────────────────────────
+ * Named heading utilities with weight + tracking baked in. Use these on new
+ * components; existing text-* calls keep working. Sizes are responsive-ready
+ * via clamp so layouts hold up at any viewport without extra breakpoint classes.
+ * ─────────────────────────────────────────────────────────────────────────── */
+@utility type-display {
+  font-size: clamp(2rem, 1.6rem + 1.6vw, 3rem);       /* 32–48px */
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+@utility type-h1 {
+  font-size: clamp(1.5rem, 1.25rem + 0.9vw, 2rem);    /* 24–32px */
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+}
+@utility type-h2 {
+  font-size: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);  /* 20–24px */
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+@utility type-h3 {
+  font-size: 1.125rem;                                 /* 18px */
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  line-height: 1.35;
+}
+@utility type-body {
+  font-size: 0.875rem;                                 /* 14px */
+  font-weight: 400;
+  line-height: 1.55;
+}
+@utility type-caption {
+  font-size: 0.75rem;                                  /* 12px */
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.4;
+}
+@utility type-overline {
+  font-size: 0.6875rem;                                /* 11px */
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+/* ─── Numeric alignment ──────────────────────────────────────────────────────
+ * .num — tabular lining figures for any numeric value (prices, scores, %, counts).
+ * Use wherever digits need to align in columns or avoid width jitter on ticks.
+ * ─────────────────────────────────────────────────────────────────────────── */
+@utility num {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum", "lnum";
+}
+
 /* Prevent iOS input zoom on focus (inputs < 16px trigger zoom) */
 @media (max-width: 767px) {
   input,

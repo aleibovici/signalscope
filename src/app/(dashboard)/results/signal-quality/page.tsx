@@ -76,7 +76,7 @@ function SummaryCards({
       <Card>
         <CardContent className="pt-6 text-center">
           <p className="text-sm text-gray-500 dark:text-zinc-400">High-Score Picks<InfoTip text="Unique tickers that scored 70+ on AI signal confidence with return data for the selected period." /></p>
-          <p className="text-3xl font-bold text-gray-900 dark:text-zinc-100">
+          <p className="num text-3xl font-bold text-gray-900 dark:text-zinc-100">
             {summary.totalTracked}
           </p>
           <p className="mt-1 text-xs text-gray-400 dark:text-zinc-500">with {days}d return data</p>
@@ -86,7 +86,7 @@ function SummaryCards({
       <Card>
         <CardContent className="pt-6 text-center">
           <p className="text-sm text-gray-500 dark:text-zinc-400">Win Rate ({days}d)<InfoTip text="Percentage of high-score picks (AI ≥70) detected in the last 30 days that had a positive return over the selected period." /></p>
-          <p className="text-3xl font-bold text-gray-900 dark:text-zinc-100">
+          <p className="num text-3xl font-bold text-gray-900 dark:text-zinc-100">
             {hasData
               ? `${(current.winRate * 100).toFixed(0)}%`
               : "--"}
@@ -101,7 +101,7 @@ function SummaryCards({
         <CardContent className="pt-6 text-center">
           <p className="text-sm text-gray-500 dark:text-zinc-400">Median Return ({days}d)<InfoTip text="Median return of all high-score picks (AI ≥70) detected in the last 30 days, measured at the selected period after detection. More representative than the mean for skewed distributions." /></p>
           <p
-            className={`text-3xl font-bold ${
+            className={`num text-3xl font-bold ${
               hasData && current.medianReturn > 0
                 ? "text-green-600 dark:text-green-400"
                 : hasData && current.medianReturn < 0
