@@ -50,6 +50,7 @@ function buildTickerContext(
     sampleSignals: pickDiverseSample(agg.signals, 5).map((s) => ({
       source: s.source,
       title: s.title,
+      body: s.body,
       upvotes: s.upvotes,
       commentCount: s.commentCount,
       subreddit: s.subreddit,
@@ -78,12 +79,12 @@ HARD RULES:
 - Be direct about confidence level. Do NOT hype weak signals. If evidence is thin, say "Low confidence — social signal only, no verifiable catalyst." A "Watch" or "Avoid" recommendation is fine and often correct.
 - Never use vague hype language like "could be huge" or "massive potential." State what is known and what is speculation.
 
-Catalyst field format:
-- If insider_buy: "CEO/CFO [name] purchased $[amount] of stock on [date] — insider buying signals confidence in near-term outlook."
-- If options_flow: "Unusual [call/put] activity detected — [volume] contracts vs [OI] open interest ([ratio]x), suggesting smart money positioning."
-- If congress: "[Chamber] [Name] ([Party]) purchased ~$[amount] of [ticker] on [date] — congressional trading often precedes policy-driven moves."
+Catalyst field format — extract actual values from sampleSignals (title + body fields contain the date, name, and amount). Never output literal placeholder text like [date] or [name].
+- If insider_buy: "CEO/CFO <name> purchased $<amount> of stock on <date from body> — insider buying signals confidence in near-term outlook." Omit date phrase if not found in body.
+- If options_flow: "Unusual <call/put> activity detected — <volume> contracts vs <OI> open interest (<ratio>x), suggesting smart money positioning."
+- If congress: "<Chamber> <Name> (<Party>) purchased ~$<amount> of <ticker> on <date from body> — congressional trading often precedes policy-driven moves." Omit date phrase if not found in body.
 - If multi_source: Lead with the strongest non-social signal (insider, congress, or options), then note cross-source corroboration.
-- If reddit_velocity only: "Social signal only — [describe what's being discussed]. No insider or institutional confirmation yet."
+- If reddit_velocity only: "Social signal only — <describe what's being discussed>. No insider or institutional confirmation yet."
 
 Also analyze:
 - Short squeeze potential: high short float % + real catalyst = squeeze candidate

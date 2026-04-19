@@ -197,7 +197,7 @@ export function Sidebar({ revision }: { revision: string }) {
                   key={item.href}
                   href={item.href}
                   id={item.tourId}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
                     isActive
                       ? "bg-blue-50 text-blue-700 border-l-2 border-blue-500 pl-[10px] dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-400"
                       : "text-gray-700 hover:bg-gray-100 border-l-2 border-transparent pl-[10px] dark:text-zinc-300 dark:hover:bg-zinc-800/80"
@@ -214,7 +214,7 @@ export function Sidebar({ revision }: { revision: string }) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
                     isActive
                       ? "bg-blue-50 text-blue-700 border-l-2 border-blue-500 pl-[10px] dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-400"
                       : "text-gray-700 hover:bg-gray-100 border-l-2 border-transparent pl-[10px] dark:text-zinc-300 dark:hover:bg-zinc-800/80"
@@ -228,7 +228,7 @@ export function Sidebar({ revision }: { revision: string }) {
             {session?.user?.role === "admin" && (
               <Link
                 href="/admin"
-                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
                   pathname === "/admin"
                     ? "bg-blue-50 text-blue-700 border-l-2 border-blue-500 pl-[10px] dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-400"
                     : "text-gray-700 hover:bg-gray-100 border-l-2 border-transparent pl-[10px] dark:text-zinc-300 dark:hover:bg-zinc-800/80"
