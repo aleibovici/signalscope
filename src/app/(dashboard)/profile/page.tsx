@@ -8,6 +8,7 @@ import { useUserProfile, useUpdateUsername, useUpdateEmailAlerts } from "@/hooks
 import { useApiKey, useGenerateApiKey, useRevokeApiKey } from "@/hooks/use-api-key";
 import { useShareReward, useClaimShareReward } from "@/hooks/use-share-reward";
 import { trackEvent } from "@/lib/analytics";
+import { inputCls } from "@/lib/input-cls";
 
 export default function ProfilePage() {
   const { data: profile, isLoading } = useUserProfile();
@@ -58,7 +59,7 @@ export default function ProfilePage() {
                   }}
                   placeholder="e.g. swift_falcon_427"
                   maxLength={20}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-blue-400 dark:focus:ring-blue-400"
+                  className={`w-full px-3 py-2 text-gray-900 dark:text-zinc-100 ${inputCls}`}
                 />
               </div>
 
@@ -116,12 +117,12 @@ export default function ProfilePage() {
                 aria-checked={profile?.emailAlerts ?? true}
                 onClick={() => updateEmailAlerts.mutate(!profile?.emailAlerts)}
                 disabled={updateEmailAlerts.isPending}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 dark:focus:ring-offset-zinc-950 ${
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-base focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2 disabled:opacity-50 dark:focus:ring-offset-zinc-950 ${
                   profile?.emailAlerts ? "bg-blue-600 dark:bg-blue-500" : "bg-gray-200 dark:bg-zinc-600"
                 }`}
               >
                 <span
-                  className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform duration-200 ${
+                  className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform duration-base ${
                     profile?.emailAlerts ? "translate-x-5" : "translate-x-0"
                   }`}
                 />
@@ -213,7 +214,7 @@ function ShareRewardSection() {
                     claim.reset();
                   }}
                   placeholder="https://x.com/you/status/..."
-                  className="min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder-zinc-500 dark:focus:border-blue-400 dark:focus:ring-blue-400"
+                  className={`min-w-0 flex-1 px-3 py-2 text-gray-900 placeholder-gray-400 dark:text-zinc-100 dark:placeholder-zinc-500 ${inputCls}`}
                 />
                 <button
                   type="button"
@@ -432,7 +433,7 @@ function DeleteAccountSection() {
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}
             placeholder="DELETE"
-            className="w-full rounded-lg border border-red-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 dark:border-red-800 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-red-400 dark:focus:ring-red-400"
+            className="w-full rounded-lg border border-red-300 bg-white px-3 py-2 text-sm text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 focus-visible:border-red-500 dark:border-red-800 dark:bg-zinc-900 dark:text-zinc-100 dark:focus-visible:ring-red-400/40 dark:focus-visible:border-red-400"
           />
           <div className="flex gap-2">
             <button

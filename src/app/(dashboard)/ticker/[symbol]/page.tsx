@@ -1101,7 +1101,7 @@ export default function TickerDetailPage({
                                     <span className="inline-flex items-center gap-1">
                                       {group.entries.length}
                                       <svg
-                                        className={`h-3 w-3 transition-transform duration-150 ${isExpanded ? "rotate-180" : ""}`}
+                                        className={`h-3 w-3 transition-transform duration-fast ${isExpanded ? "rotate-180" : ""}`}
                                         fill="none"
                                         viewBox="0 0 24 24"
                                         stroke="currentColor"

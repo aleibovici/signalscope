@@ -371,7 +371,7 @@ export function NetworkGraph({ nodes, edges, centerSymbol, colorMode = "stage", 
             <g
               key={node.symbol}
               opacity={dimmed ? 0.15 : 1}
-              className="transition-opacity duration-150"
+              className="transition-opacity duration-fast"
             >
               <circle
                 cx={node.x} cy={node.y} r={r}
