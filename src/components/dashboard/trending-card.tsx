@@ -1,7 +1,6 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { Sparkline } from "@/components/ui/sparkline";
 import { SignalCard } from "@/components/dashboard/signal-card";
 import type { TrendingTicker } from "@/hooks/use-trending";
 
@@ -36,12 +35,6 @@ export function TrendingCard({
           </span>
         </div>
       </div>
-
-      {ticker.scoreTrajectory.length > 1 && (
-        <div className="mb-2 rounded-lg border border-gray-100 bg-gray-50/60 px-1 py-0.5 dark:border-zinc-800/80 dark:bg-zinc-900/35">
-          <Sparkline points={ticker.scoreTrajectory} height={48} />
-        </div>
-      )}
 
       <SignalCard
         ticker={ticker}
