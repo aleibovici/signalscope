@@ -9,6 +9,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-04-20",
+    title: "Pricing Page",
+    changes: [
+      {
+        category: "new",
+        items: [
+          "Dedicated /pricing page with Free, Pro, and x402 pay-per-call tiers — full schema.org structured data and canonical URL.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-04-19",
     title: "AI Agent Discovery & Design System Refresh",
     changes: [
