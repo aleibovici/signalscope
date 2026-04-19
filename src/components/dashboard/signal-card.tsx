@@ -72,41 +72,6 @@ function collectTags(ticker: ValidatedTickerData): string[] {
   return tags;
 }
 
-function ScoreBadge({
-  value,
-  type,
-  title,
-}: {
-  value: number;
-  type: "opportunity" | "confidence";
-  title?: string;
-}) {
-  const isOpp = type === "opportunity";
-  const label = isOpp ? "OPP" : "AI";
-  const bgClass = isOpp
-    ? "bg-amber-500/10 dark:bg-amber-500/10"
-    : "bg-blue-500/10 dark:bg-blue-500/10";
-  const labelClass = isOpp
-    ? "text-amber-500/85 dark:text-amber-400/85"
-    : "text-blue-500/85 dark:text-blue-400/85";
-  const valueClass = isOpp
-    ? "text-amber-500 dark:text-amber-400"
-    : "text-blue-500 dark:text-blue-400";
-
-  return (
-    <div
-      className={`flex w-11 flex-col items-center rounded-md py-1 ${bgClass}`}
-      title={title}
-    >
-      <span className={`text-[7px] font-bold uppercase tracking-wide ${labelClass}`}>
-        {label}
-      </span>
-      <span className={`text-base font-black tabular-nums leading-tight ${valueClass}`}>
-        {value}
-      </span>
-    </div>
-  );
-}
 
 export function SignalCard({
   ticker,
@@ -180,18 +145,22 @@ export function SignalCard({
           )}
         </div>
 
-        {/* Score badges */}
-        <div className="flex items-center gap-3">
-          <ScoreBadge
-            value={ticker.opportunityScore}
-            type="opportunity"
+        {/* Scores */}
+        <div className="flex items-center gap-4">
+          <div
+            className="flex items-baseline gap-1"
             title="Early-mover / opportunity rank — list order uses this (higher = earlier or more favorable setup)."
-          />
-          <ScoreBadge
-            value={ticker.aiScore}
-            type="confidence"
+          >
+            <span className="text-[9px] font-semibold uppercase tracking-wide text-amber-500/70 dark:text-amber-400/60">Opp</span>
+            <span className="text-xl font-black tabular-nums leading-none text-amber-500 dark:text-amber-400">{ticker.opportunityScore}</span>
+          </div>
+          <div
+            className="flex items-baseline gap-1"
             title="How strong the evidence is (sources, sentiment, corroboration). Not the same as expected upside."
-          />
+          >
+            <span className="text-[9px] font-semibold uppercase tracking-wide text-blue-500/70 dark:text-blue-400/60">AI</span>
+            <span className="text-xl font-black tabular-nums leading-none text-blue-500 dark:text-blue-400">{ticker.aiScore}</span>
+          </div>
         </div>
 
         {/* Tags: outlined rectangular pills */}
@@ -200,14 +169,14 @@ export function SignalCard({
             {visibleTags.map((tag, i) => (
               <span
                 key={`${tag}-${i}`}
-                className="rounded border border-border-strong/60 px-1 py-[3px] text-[10px] font-bold uppercase tracking-[0.3px] text-secondary"
+                className="rounded bg-surface-muted px-1.5 py-0.5 text-[10px] text-muted"
               >
                 {tag}
               </span>
             ))}
             {overflow > 0 && (
               <span
-                className="rounded border border-border-strong/60 px-1 py-[3px] text-[10px] font-bold text-muted"
+                className="rounded bg-surface-muted px-1.5 py-0.5 text-[10px] text-muted"
                 title={overflowTitle}
               >
                 +{overflow}
