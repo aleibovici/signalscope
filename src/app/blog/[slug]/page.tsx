@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PublicPageLayout } from "@/components/public-page-layout";
+import { MlEvolutionDiagram } from "@/components/blog/ml-evolution-diagram";
 import { blogPosts } from "@/lib/blog-data";
 
 export function generateStaticParams() {
@@ -154,6 +155,7 @@ export default async function BlogPostPage({
               <p className="text-sm leading-relaxed text-gray-600 sm:text-base sm:leading-relaxed">
                 {section.body}
               </p>
+              {section.diagramKey === "ml-evolution" && <MlEvolutionDiagram />}
             </section>
           ))}
         </div>

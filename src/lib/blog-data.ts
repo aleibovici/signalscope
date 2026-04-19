@@ -1,6 +1,7 @@
 export interface BlogSection {
   heading?: string;
   body: string;
+  diagramKey?: "ml-evolution";
 }
 
 export interface BlogPost {
@@ -14,6 +15,49 @@ export interface BlogPost {
 }
 
 const blogPostsUnsorted: BlogPost[] = [
+  {
+    slug: "ml-model-evolution-xgboost-to-lightgbm",
+    title: "From XGBoost to LightGBM: How Our ML Model Adapted to Two Market Regimes",
+    description:
+      "Over two months we rebuilt our signal-scoring ML pipeline three times to keep up with shifting market regimes. Here's what worked, what didn't, and why the simpler model eventually won.",
+    date: "2026-04-19",
+    readingTime: "8 min read",
+    tags: ["machine-learning", "backtesting", "methodology", "lightgbm", "model-evolution"],
+    sections: [
+      {
+        body: "When we first wrote about SignalScope's ML backtesting pipeline in March, the model of record was XGBoost. Six weeks and hundreds of experiments later, it isn't. The current production model is a single LightGBM regressor with forty trees and depth two, trained on three-day forward returns, pulling almost all of its out-of-sample skill from a single feature. Mean information coefficient — the rank correlation between how the model ranks tickers and how they actually perform, where 0 is random and higher is better — has climbed from 0.006 on our first Ridge baseline to 0.161 today, a roughly 27x improvement. But the path between those two numbers wasn't monotonic. Twice in the last six weeks, a regime shift in the underlying data quietly invalidated our best model and forced us to start over. This is the story of how we rebuilt the pipeline three times — and what those rebuilds taught us about model stewardship in markets that keep changing underneath you.",
+        diagramKey: "ml-evolution",
+      },
+      {
+        heading: "Where we started: XGBoost and SHAP",
+        body: "Our first public description of the backtesting pipeline leaned heavily on XGBoost. The appeal was standard: gradient-boosted trees find non-linear interactions, SHAP values make the predictions interpretable, and both are well-trodden in quantitative finance. We ran 13 experiments on 248 symbols, applied the SHAP-derived rules (comment-heavy demotion at -0.004, upvote conviction boost at +0.005), and pushed the findings into the AI scoring prompt and the opportunity-score heuristics. At that point the model-of-record narrative and the production pipeline were in rough alignment, and public-facing copy described XGBoost as the evaluator behind the system.",
+      },
+      {
+        heading: "Why XGBoost didn't survive contact with our dataset",
+        body: "The first crack showed up when we started running honest train/test splits with a rank-target objective. XGBoost posted a train IC of 0.33 and a test IC of -0.043 — textbook leaf-wise overfitting. A pure Ridge baseline, with the same features, held at 0.077 on test. The ensemble of the two actually dropped to 0.012 because XGBoost's noise was pulling the Ridge predictions sideways. We tried LightGBM next with leaf-wise trees and got the same pathology. At our dataset size (fewer than 10,000 training rows, highly correlated features, very heavy-tailed return distributions), boosted trees were memorizing noise faster than they were finding signal. We dropped XGBoost from the pipeline and built back up from RidgeCV. The public-facing copy lagged the model change for a few weeks — one of the reasons this post exists is to close that gap.",
+      },
+      {
+        heading: "The atomic P&D flag breakthrough",
+        body: "The single biggest jump in our out-of-sample IC — larger than any model-architecture change we ever made — came from a feature-engineering decision, not a modeling one. Each candidate ticker in our pipeline gets checked against 13 pump-and-dump flags (things like \"market cap under $40M with no news catalyst,\" \"price below $1,\" \"three posts in three hours with almost no upvotes\"). Our early experiments represented those flags as concatenated strings and one-hot-encoded them into 120+ sparse features. The result was catastrophic overfitting: IC collapsed to -0.049. Pivoting to atomic extraction — one binary feature per flag, no string concatenation — lifted mean IC from around 0.011 to 0.072 overnight. The strongest individual bearish flag turned out to be what we call \"micro-cap with no catalyst\" — tiny companies moving on social attention alone, with no verifiable news to explain the interest. It averages -4.5% over seven days. Next was \"sudden spike\" — three or more Reddit posts inside a three-hour window with almost zero engagement, the pattern of coordinated posting rather than organic discovery — at -4.0%. Several flags that intuition would have labeled bearish turned out to be neutral or slightly bullish: sub-dollar stocks and OTC / Pink Sheets listings both showed small positive returns in aggregate, and were reclassified as informational rather than predictive. The lesson: a good representation of the features you already have will beat a better model almost every time.",
+      },
+      {
+        heading: "Adding history: EWMA features and the Ridge+LightGBM ensemble",
+        body: "Through late March and early April we added historical reputation features — for each ticker, a running average of how often it had been flagged for pump-and-dump patterns in past scans, how many sources had historically covered it, and interaction terms between its current-scan signals and its prior-scan behavior. A ticker that has been flagged for suspicious patterns seven times in the last month is a very different signal than the same ticker appearing fresh for the first time. Mean IC climbed from 0.077 to 0.094 to 0.101 as we crossed the 10% IC barrier for the first time. The breakthrough was experiment 601: a Ridge+LightGBM ensemble that ran a separate model for each forecast horizon (1-day, 3-day, 7-day) and blended them with per-horizon weights. LightGBM hurt 1-day predictions (weight set to 0), helped 3-day modestly (weight 0.06), and contributed the bulk of the lift on the 7-day horizon (weight 0.30). The blend added 0.005 on top of a Ridge plateau that had been locked at 0.0905 for six straight experiments. At that point we updated all of the public-facing copy to describe a Ridge+LightGBM per-horizon ensemble as the evaluator. That description lasted six days.",
+      },
+      {
+        heading: "The March tariff crisis and contrarian 7d",
+        body: "On March 27, the VIX surged to 31 on Middle East tensions and U.S. tariff news. Our training set suddenly contained a window of high-volatility data where the signals that had worked in calm markets inverted. In particular, the 7-day horizon flipped: tickers the earlier model flagged as strongest became the worst performers over that window, and vice versa. We experimented with exponentially-weighted moving averages (features that give more weight to recent scans and less to older ones) built as interactions between each ticker's history and its current-scan behavior. The surprising fix came next: on the 7-day horizon we multiplied the raw prediction by a negative weight, inverting it. The flipped signal turned positive-predictive. We called that a \"contrarian 7-day\" component, and it pushed mean IC to a pre-regime-shift peak of 0.1007. For roughly a week, the production model was a three-horizon Ridge ensemble with a LightGBM booster and an explicit inverted 7-day head.",
+      },
+      {
+        heading: "The April 19 regime shift, and why simpler won",
+        body: "When the April 19 dataset landed, the contrarian 7-day config collapsed. Running experiment 601 unchanged on new data produced an IC of -0.010 — worse than random. The 7-day horizon was no longer inverted; it was simply noise. We swept every blend and feature-selection axis we had left and found that the dataset now had one clean signal path: the 3-day horizon, driven almost entirely by the same \"micro-cap with no catalyst\" flag we had discovered back in March. A one-feature Ridge on that flag alone scored 0.051 IC. A LightGBM with depth 2, forty trees, and learning rate 0.02 — trained only on the 3-day target, using all 293 features — amplified the same signal to 0.161. Only about ten features ended up with non-zero importance: scan-level aggregates (how strong signals were across the whole scan), short-float metrics (percentage of a stock's tradable shares sold short), historical cross-products, and a handful of interaction terms. The rest were dead weight. We stripped the ensemble, dropped the inverted 7-day head, tore out the per-horizon weighting machinery, and shipped the simpler model.",
+      },
+      {
+        heading: "What two months of model rewrites taught us",
+        body: "Three things stick after the dust settles. First: representation matters more than architecture at our data scale. The atomic P&D flag change added more IC than every model-class change combined. Second: market regimes can silently invalidate a winning configuration, and the only defense is a short feedback loop. We now re-run the full experiment sweep every time the training set extends by a meaningful amount, and we keep every past configuration around so we can rerun them on fresh data and spot regressions fast. Third: simpler models win more often than the literature suggests. Every time we added complexity — deeper trees, richer ensembles, per-horizon heads — we eventually had to walk it back. The final production model has forty trees, depth two, and ten effective features, and it outperforms everything that came before. When the underlying process keeps changing, the model that generalizes best is usually the one with the fewest moving parts.",
+      },
+    ],
+  },
   {
     slug: "pelosi-stock-tracker",
     title: "Pelosi Stock Tracker: How to See Congressional Trades in Real Time",
