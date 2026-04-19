@@ -22,6 +22,22 @@ function formatTimeAgo(d: Date): string {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
+const SOURCE_LABELS: Record<string, string> = {
+  SEC_INSIDER: "SEC Insider Filing",
+  SEC_FILING: "SEC Filing",
+  CONGRESS: "Congressional Trade",
+  OPTIONS_FLOW: "Options Flow",
+  VOLUME_SPIKE: "Volume Spike",
+  REDDIT: "Reddit",
+  TWITTER: "Twitter / X",
+  STOCKTWITS: "StockTwits",
+  POLYMARKET: "Polymarket",
+};
+
+function formatSource(source: string): string {
+  return SOURCE_LABELS[source] ?? source;
+}
+
 function formatExchangeLabel(ex: string | null): string | null {
   if (!ex?.trim()) return null;
   const t = ex.trim();
@@ -561,7 +577,7 @@ export default function TickerDetailPage({
         </div>
       </header>
 
-      <div className="grid grid-cols-2 gap-0 divide-x divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white dark:divide-[#1e262f] dark:border-[#1e262f] dark:bg-[#12181f] md:grid-cols-3 lg:grid-cols-6">
+      <div className={`grid grid-cols-2 gap-0 divide-x divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white dark:divide-[#1e262f] dark:border-[#1e262f] dark:bg-[#12181f] ${ticker.netPremium != null && ticker.netPremium !== 0 ? "md:grid-cols-5" : "md:grid-cols-4"}`}>
         <div className="flex flex-col gap-0.5 px-2.5 py-2 sm:px-3 sm:py-2.5">
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">Live price</p>
           <div className="flex flex-wrap items-baseline gap-1.5">
@@ -621,14 +637,16 @@ export default function TickerDetailPage({
         </div>
         <div className="flex flex-col gap-0.5 px-2.5 py-2 sm:px-3 sm:py-2.5">
           <div className="flex items-start justify-between gap-1.5">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">Opp. score</p>
-            <InfoHint text="Early-mover rank for this scan — not a forecast of returns." />
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">Opportunity</p>
+            <InfoHint text="Early-mover score (0–100). Higher = more pre-consensus, novel, fast-moving setup. Not a return forecast." />
           </div>
           <span className="text-xl font-black text-blue-600 dark:text-blue-400">
             {ticker.opportunityScore}
             <span className="text-xs font-medium text-slate-500 dark:text-zinc-500">/100</span>
           </span>
-          <p className="text-[10px] italic text-slate-500 dark:text-zinc-500">Early-mover rank</p>
+          <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-zinc-800">
+            <div className="h-full rounded-full bg-blue-500" style={{ width: `${ticker.opportunityScore}%` }} />
+          </div>
         </div>
         <div className="flex flex-col gap-0.5 px-2.5 py-2 sm:px-3 sm:py-2.5">
           <div className="flex items-start justify-between gap-1.5">
@@ -641,23 +659,9 @@ export default function TickerDetailPage({
             {ticker.aiScore}
             <span className="text-xs font-medium text-slate-500 dark:text-zinc-500">/100</span>
           </span>
-          <p className="text-[10px] italic text-slate-500 dark:text-zinc-500">Evidence strength</p>
-        </div>
-        <div className="flex flex-col gap-0.5 px-2.5 py-2 sm:px-3 sm:py-2.5">
-          <div className="flex items-start justify-between gap-1.5">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">Sources</p>
-            <InfoHint text="Number of distinct signal feeds (Reddit, X, SEC insider, etc.) represented in this scan." />
-          </div>
-          <span className="text-xl font-black text-gray-900 dark:text-white">{ticker.sourceCount}</span>
-          <p className="text-[10px] text-slate-500 dark:text-zinc-500">Distinct feed types</p>
-        </div>
-        <div className="flex flex-col gap-0.5 px-2.5 py-2 sm:px-3 sm:py-2.5">
-          <div className="flex items-start justify-between gap-1.5">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">Signals</p>
-            <InfoHint text="Total raw signals aggregated for this symbol in the scan (posts, filings, tweets, etc.)." />
-          </div>
-          <span className="text-xl font-black text-gray-900 dark:text-white">{ticker.signalCount}</span>
-          <p className="text-[10px] text-slate-500 dark:text-zinc-500">In this scan</p>
+          <p className="text-[10px] text-slate-500 dark:text-zinc-500">
+            {ticker.signalCount} signal{ticker.signalCount !== 1 ? "s" : ""} · {ticker.sourceCount} source{ticker.sourceCount !== 1 ? "s" : ""}
+          </p>
         </div>
         {ticker.netPremium != null && ticker.netPremium !== 0 && (
           <div className="flex flex-col gap-0.5 px-2.5 py-2 sm:px-3 sm:py-2.5">
@@ -829,7 +833,7 @@ export default function TickerDetailPage({
                     <path d="M23 6l-9.5 9.5-5-5L1 18" strokeLinecap="round" strokeLinejoin="round" />
                     <path d="M17 6h6v6" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  THESIS
+                  Thesis
                 </h4>
                 {reportGenerating ? (
                   <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-zinc-400">
@@ -852,9 +856,35 @@ export default function TickerDetailPage({
                     )}
                   </p>
                 ) : (
-                  <p className="text-sm leading-relaxed text-slate-700 dark:text-zinc-300">
-                    {ticker.catalyst || (reportError ? "AI analysis unavailable." : "No catalyst data available.")}
-                  </p>
+                  <>
+                    <p className="text-sm leading-relaxed text-slate-700 dark:text-zinc-300">
+                      {ticker.catalyst || (reportError ? "AI analysis unavailable." : "No catalyst data available.")}
+                    </p>
+                    {ticker.catalyst && signals.length > 0 && (
+                      <ul className="mt-3 space-y-1 border-t border-blue-600/10 pt-3">
+                        {signals
+                          .filter((s) => !s.pndFlagged)
+                          .slice(0, 3)
+                          .map((s) => (
+                            <li key={s.id} className="flex items-start gap-1.5 text-[11px] text-slate-600 dark:text-zinc-400">
+                              <span className="mt-0.5 shrink-0 text-blue-400">·</span>
+                              <span className="min-w-0 truncate">
+                                {s.url && /^https?:\/\//.test(s.url) ? (
+                                  <a href={s.url} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 dark:hover:text-blue-400">
+                                    {s.title || s.source}
+                                  </a>
+                                ) : (
+                                  s.title || s.source
+                                )}
+                                {s.upvotes != null && (
+                                  <span className="ml-1 text-slate-400 dark:text-zinc-500">{s.upvotes}↑</span>
+                                )}
+                              </span>
+                            </li>
+                          ))}
+                      </ul>
+                    )}
+                  </>
                 )}
               </div>
               <div className="relative overflow-hidden rounded-xl border border-amber-500/20 bg-amber-500/5 p-6 dark:border-amber-500/25 dark:bg-amber-500/5">
@@ -869,10 +899,30 @@ export default function TickerDetailPage({
                     <path d="M12 9v4M12 17h.01" strokeLinecap="round" />
                     <circle cx="12" cy="12" r="10" />
                   </svg>
-                  RISKS
+                  Risks
                 </h4>
                 {ticker.risks ? (
-                  <p className="text-sm leading-relaxed text-slate-700 dark:text-zinc-300">{ticker.risks}</p>
+                  <>
+                    <p className="text-sm leading-relaxed text-slate-700 dark:text-zinc-300">{ticker.risks}</p>
+                    {signals.some((s) => s.pndFlagged) && (
+                      <ul className="mt-3 space-y-1 border-t border-amber-500/10 pt-3">
+                        {signals
+                          .filter((s) => s.pndFlagged)
+                          .slice(0, 3)
+                          .map((s) => (
+                            <li key={s.id} className="flex items-start gap-1.5 text-[11px] text-slate-600 dark:text-zinc-400">
+                              <span className="mt-0.5 shrink-0 text-amber-400">·</span>
+                              <span className="min-w-0 truncate">
+                                {s.title || s.source}
+                                {s.pndFlags.length > 0 && (
+                                  <span className="ml-1 text-amber-500">{s.pndFlags[0].replace(/_/g, " ")}</span>
+                                )}
+                              </span>
+                            </li>
+                          ))}
+                      </ul>
+                    )}
+                  </>
                 ) : reportError && (reportErrorObj?.message?.includes("subscription") || reportErrorObj?.message?.includes("Sign in")) ? (
                   <p className="text-sm text-slate-600 dark:text-zinc-400">
                     {session?.user ? (
@@ -902,7 +952,7 @@ export default function TickerDetailPage({
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <h3 className="flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400">
                     <IconAiSparkles className="h-4 w-4" />
-                    AI TECHNICAL ANALYSIS
+                    AI Technical Analysis
                   </h3>
                   <span className="text-[10px] text-slate-400 dark:text-zinc-500">
                     Based on scan data from{" "}
@@ -920,9 +970,20 @@ export default function TickerDetailPage({
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {ticker.report!.split("\n").filter(Boolean).map((paragraph, i) => (
-                      <p key={i} className="text-sm leading-relaxed text-slate-700 dark:text-zinc-300">{paragraph}</p>
-                    ))}
+                    {ticker.report!.split("\n").filter(Boolean).map((paragraph, i) => {
+                      const match = paragraph.match(/^\*\*([^*]+)\*\*\s*[—–-]?\s*([\s\S]*)/);
+                      if (match) {
+                        return (
+                          <p key={i} className="text-sm leading-relaxed text-slate-700 dark:text-zinc-300">
+                            <span className="font-semibold text-slate-900 dark:text-zinc-100">{match[1]}</span>
+                            {match[2] ? ` — ${match[2]}` : ""}
+                          </p>
+                        );
+                      }
+                      return (
+                        <p key={i} className="text-sm leading-relaxed text-slate-700 dark:text-zinc-300">{paragraph}</p>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -968,8 +1029,8 @@ export default function TickerDetailPage({
                         )}
                       </h5>
                       <div className="mt-1 flex flex-wrap gap-2">
-                        <span className="rounded bg-blue-600/10 px-2 py-0.5 text-[10px] font-bold uppercase text-blue-600 dark:text-blue-400">
-                          {signal.source}
+                        <span className="rounded bg-blue-600/10 px-2 py-0.5 text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                          {formatSource(signal.source)}
                         </span>
                         {signal.pndFlagged ? (
                           <span className="rounded bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold uppercase text-rose-500">
@@ -977,16 +1038,30 @@ export default function TickerDetailPage({
                           </span>
                         ) : (
                           <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-600">
-                            P&amp;D risk: low
+                            clean
+                          </span>
+                        )}
+                        {signal.pndFlags.length > 0 && signal.pndFlagged && (
+                          <span className="rounded bg-rose-500/5 px-2 py-0.5 text-[10px] text-rose-400">
+                            {signal.pndFlags[0].replace(/_/g, " ")}
                           </span>
                         )}
                       </div>
                     </div>
                   </div>
                   <div className="ml-3 flex shrink-0 flex-col items-end gap-1 text-right">
-                    {signal.upvotes != null && (
-                      <span className="text-xs font-bold text-slate-500 dark:text-zinc-400">{signal.upvotes} pts</span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {signal.upvotes != null && (
+                        <span className="text-[11px] text-slate-500 dark:text-zinc-400">
+                          <span className="font-bold">{signal.upvotes}</span>↑
+                        </span>
+                      )}
+                      {signal.commentCount != null && signal.commentCount > 0 && (
+                        <span className="text-[11px] text-slate-500 dark:text-zinc-400">
+                          <span className="font-bold">{signal.commentCount}</span> 💬
+                        </span>
+                      )}
+                    </div>
                     <span className="text-[10px] text-slate-500 dark:text-zinc-500">
                       {new Date(signal.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                     </span>
@@ -1003,7 +1078,12 @@ export default function TickerDetailPage({
           {!historyData ? (
             <div className="py-4 text-center text-sm text-gray-400 dark:text-zinc-500">Loading history…</div>
           ) : historyData.history.length <= 1 ? (
-            <p className="text-sm text-gray-500 dark:text-zinc-400">Only one scan recorded for this ticker yet.</p>
+            <div className="py-2">
+              <p className="text-sm font-medium text-slate-700 dark:text-zinc-300">Tracking begins here.</p>
+              <p className="mt-1 text-sm text-slate-500 dark:text-zinc-400">
+                This ticker appeared in its first scan. History and score trends build automatically as it continues to surface in future scans.
+              </p>
+            </div>
           ) : (
             <div className="space-y-4">
               <div className="rounded-xl border border-gray-100 bg-gray-50/60 px-1 py-1 dark:border-zinc-800/80 dark:bg-zinc-900/35">

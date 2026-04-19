@@ -72,8 +72,8 @@ export function TradeSetupCard({
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">
             Entry range
           </p>
-          <p className="text-lg font-bold text-gray-900 dark:text-white">
-            ${entryLo.toFixed(2)} – ${entryHi.toFixed(2)}
+          <p className="text-sm font-bold tabular-nums text-gray-900 dark:text-white sm:text-lg">
+            ${entryLo.toFixed(2)}&thinsp;–&thinsp;${entryHi.toFixed(2)}
           </p>
         </div>
         <div className="space-y-1">
