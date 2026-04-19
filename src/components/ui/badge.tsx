@@ -2,7 +2,7 @@ import { type ReactNode } from "react";
 
 const variants: Record<string, string> = {
   default:
-    "bg-gray-100 text-gray-800 dark:bg-zinc-800/90 dark:text-zinc-200 dark:ring-1 dark:ring-zinc-700/50",
+    "bg-surface-muted text-label ring-1 ring-border-strong/50",
   success:
     "bg-green-100 text-green-800 dark:bg-emerald-950/60 dark:text-emerald-300 dark:ring-1 dark:ring-emerald-500/30",
   warning:

@@ -122,14 +122,14 @@ export function SignalCard({
 
   const retVal = getReturnValue(ticker, returnPeriod);
   const recClass = ticker.recommendation
-    ? recBorderColors[ticker.recommendation] ?? "border-gray-400/60 text-gray-500 dark:border-zinc-500/50 dark:text-zinc-400"
+    ? recBorderColors[ticker.recommendation] ?? "border-border-strong/60 text-secondary"
     : null;
 
   return (
-    <Card className="group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-xl border-gray-200/90 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md dark:border-zinc-800/90 dark:shadow-[0_1px_3px_rgba(0,0,0,0.35)] dark:hover:border-blue-500/35 dark:hover:shadow-lg dark:hover:shadow-black/40">
-      {/* Gradient accent bar — dark mode only */}
+    <Card className="group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-card-xl border-border-default/90 shadow-card transition-[transform,box-shadow,border-color] duration-base hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-card-hover dark:hover:border-blue-500/35">
+      {/* Gradient accent bar */}
       <div
-        className="pointer-events-none absolute inset-y-0 left-0 z-10 hidden w-[3px] rounded-l-xl dark:block"
+        className="pointer-events-none absolute inset-y-0 left-0 z-10 w-[3px] rounded-l-xl opacity-0 dark:opacity-100"
         style={{ background: "linear-gradient(to bottom, #afc6ff, #4edea3)" }}
         aria-hidden="true"
       />
@@ -145,7 +145,7 @@ export function SignalCard({
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 flex-col gap-0.5">
             <div className="flex min-w-0 items-center gap-2">
-              <span className="text-xl font-semibold tracking-tight text-gray-900 group-hover:text-blue-600 dark:text-zinc-50 dark:group-hover:text-blue-400">
+              <span className="text-xl font-semibold tracking-tight text-primary group-hover:text-blue-600 dark:group-hover:text-blue-400">
                 {ticker.symbol}
               </span>
               {recClass && (
@@ -157,12 +157,12 @@ export function SignalCard({
               )}
             </div>
             {ticker.name && (
-              <p className="line-clamp-1 text-xs text-gray-500 dark:text-zinc-400">{ticker.name}</p>
+              <p className="line-clamp-1 text-xs text-secondary">{ticker.name}</p>
             )}
           </div>
           {ticker.price != null && (
             <div className="flex shrink-0 flex-col items-end gap-0.5 text-right">
-              <p className="text-base font-semibold tabular-nums text-gray-900 dark:text-zinc-100">
+              <p className="text-base font-semibold tabular-nums text-strong">
                 ${ticker.price.toFixed(2)}
               </p>
               {retVal != null && (
@@ -200,14 +200,14 @@ export function SignalCard({
             {visibleTags.map((tag, i) => (
               <span
                 key={`${tag}-${i}`}
-                className="rounded border-[0.75px] border-gray-300/70 px-1 py-[3px] text-[10px] font-bold uppercase tracking-[0.3px] text-gray-500 dark:border-zinc-600/60 dark:text-zinc-400"
+                className="rounded border border-border-strong/60 px-1 py-[3px] text-[10px] font-bold uppercase tracking-[0.3px] text-secondary"
               >
                 {tag}
               </span>
             ))}
             {overflow > 0 && (
               <span
-                className="rounded border-[0.75px] border-gray-300/70 px-1 py-[3px] text-[10px] font-bold text-gray-400 dark:border-zinc-600/60 dark:text-zinc-500"
+                className="rounded border border-border-strong/60 px-1 py-[3px] text-[10px] font-bold text-muted"
                 title={overflowTitle}
               >
                 +{overflow}
@@ -217,28 +217,28 @@ export function SignalCard({
         )}
 
         {/* Footer: sources + signals + bookmark */}
-        <div className="mt-auto flex items-center justify-between gap-2 border-t border-gray-100 pt-2 dark:border-zinc-800/60">
+        <div className="mt-auto flex items-center justify-between gap-2 border-t border-border-default/60 pt-2">
           {/* Source chips + signal count */}
           <div className="flex min-w-0 flex-wrap items-center gap-1">
             {ticker.sources?.slice(0, 3).map((src) => (
               <span
                 key={src}
-                className="rounded border-[0.75px] border-gray-200/90 px-1 py-[3px] text-[9px] font-bold uppercase tracking-[0.3px] text-gray-400 dark:border-zinc-700/60 dark:text-zinc-500"
+                className="rounded border border-border-default/80 px-1 py-[3px] text-[9px] font-bold uppercase tracking-[0.3px] text-muted"
               >
                 {src.replace(/_/g, " ")}
               </span>
             ))}
             {(ticker.sources?.length ?? 0) > 3 && (
-              <span className="text-[9px] text-gray-400 dark:text-zinc-600">
+              <span className="text-[9px] text-muted">
                 +{(ticker.sources?.length ?? 0) - 3}
               </span>
             )}
-            <span className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-zinc-500">
+            <span className="flex items-center gap-1 text-[10px] text-muted">
               <span
                 className="h-1.5 w-1.5 rounded-full bg-blue-400 dark:bg-blue-500"
                 aria-hidden="true"
               />
-              <span className="tabular-nums font-medium text-gray-500 dark:text-zinc-400">{ticker.signalCount}</span>
+              <span className="tabular-nums font-medium text-secondary">{ticker.signalCount}</span>
               <span>signals</span>
             </span>
             {ticker.netPremium != null && ticker.netPremium !== 0 && (
@@ -258,7 +258,7 @@ export function SignalCard({
           {/* Chevron */}
           <div className="flex shrink-0 items-center pointer-events-auto">
             <svg
-              className="h-4 w-4 text-gray-300 transition-colors group-hover:text-blue-500 dark:text-zinc-600 dark:group-hover:text-blue-400"
+              className="h-4 w-4 text-muted transition-colors duration-base group-hover:text-blue-500 dark:group-hover:text-blue-400"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={2}
