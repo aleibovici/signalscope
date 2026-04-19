@@ -3,7 +3,7 @@ import { PublicPageLayout } from "@/components/public-page-layout";
 import { changelog } from "@/lib/changelog-data";
 
 export const metadata: Metadata = {
-  title: "Changelog — SignalScope",
+  title: "Changelog",
   description:
     "What's new in SignalScope — improvements, new signal sources, ML updates, and bug fixes.",
   alternates: {
@@ -32,9 +32,9 @@ const categoryLabel: Record<string, string> = {
 };
 
 const categoryColor: Record<string, string> = {
-  new: "bg-blue-50 text-blue-700 border-blue-200",
-  improved: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  fixed: "bg-amber-50 text-amber-700 border-amber-200",
+  new: "bg-sky-500/10 text-sky-300 border-sky-500/30",
+  improved: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30",
+  fixed: "bg-amber-500/10 text-amber-300 border-amber-500/30",
 };
 
 function formatDate(iso: string) {
@@ -63,8 +63,8 @@ export default function ChangelogPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumb) }}
       />
       <div className="mb-10">
-        <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">Changelog</h1>
-        <p className="mt-2 text-gray-500">
+        <h1 className="text-3xl font-bold text-white sm:text-4xl">Changelog</h1>
+        <p className="mt-2 text-zinc-400">
           What&apos;s new — improvements, new signal sources, ML updates, and fixes.
         </p>
       </div>
@@ -73,18 +73,18 @@ export default function ChangelogPage() {
         {changelog.map((entry) => (
           <article
             key={entry.date}
-            className="relative border-l-2 border-blue-200 pl-6"
+            className="relative border-l-2 border-sky-500/30 pl-6"
           >
             {/* Timeline dot */}
-            <span className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-blue-400 bg-white" />
+            <span className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-sky-400 bg-zinc-950" />
 
             <time
               dateTime={entry.date}
-              className="block text-xs font-semibold uppercase tracking-widest text-blue-600"
+              className="block text-xs font-semibold uppercase tracking-widest text-sky-400"
             >
               {formatDate(entry.date)}
             </time>
-            <h2 className="mt-1 text-lg font-semibold text-gray-900">
+            <h2 className="mt-1 text-lg font-semibold text-white">
               {entry.title}
             </h2>
 
@@ -98,8 +98,8 @@ export default function ChangelogPage() {
                   </span>
                   <ul className="mt-2 space-y-1.5">
                     {group.items.map((item, i) => (
-                      <li key={i} className="flex gap-2 text-sm text-gray-600">
-                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gray-400" />
+                      <li key={i} className="flex gap-2 text-sm text-zinc-300">
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-500" />
                         {item}
                       </li>
                     ))}

@@ -4,7 +4,7 @@ import { PublicPageLayout } from "@/components/public-page-layout";
 import { blogPosts } from "@/lib/blog-data";
 
 export const metadata: Metadata = {
-  title: "Blog — SignalScope",
+  title: "Blog",
   description:
     "Articles on stock breakout signal detection, pump-and-dump filtering, SEC insider analysis, congressional trades, and ML-driven backtesting.",
   alternates: { canonical: "http://localhost:3000/blog" },
@@ -61,8 +61,8 @@ export default function BlogIndex() {
       />
 
       <div className="mb-10">
-        <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">Blog</h1>
-        <p className="mt-2 text-gray-500">
+        <h1 className="text-3xl font-bold text-white sm:text-4xl">Blog</h1>
+        <p className="mt-2 text-zinc-400">
           How stock breakout signal detection works — methodology, sources, and the technology behind it.
         </p>
       </div>
@@ -72,23 +72,23 @@ export default function BlogIndex() {
           <Link
             key={post.slug}
             href={`/blog/${post.slug}`}
-            className="group rounded-xl border border-gray-200 bg-white p-5 transition-all hover:border-blue-200 hover:shadow-md sm:p-6"
+            className="group rounded-xl border border-white/10 bg-white/4 p-5 transition-all hover:border-sky-500/30 hover:shadow-md sm:p-6"
           >
-            <time dateTime={post.date} className="text-xs font-medium text-gray-400">
+            <time dateTime={post.date} className="text-xs font-medium text-zinc-500">
               {formatDate(post.date)}
             </time>
-            <h2 className="mt-1.5 text-base font-semibold text-gray-900 group-hover:text-blue-600 transition-colors sm:text-lg">
+            <h2 className="mt-1.5 text-base font-semibold text-white group-hover:text-sky-400 transition-colors sm:text-lg">
               {post.title}
             </h2>
-            <p className="mt-2 text-sm leading-relaxed text-gray-500 line-clamp-3">
+            <p className="mt-2 text-sm leading-relaxed text-zinc-400 line-clamp-3">
               {post.description}
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="text-xs text-gray-400">{post.readingTime}</span>
+              <span className="text-xs text-zinc-500">{post.readingTime}</span>
               {post.tags.slice(0, 3).map((tag) => (
                 <span
                   key={tag}
-                  className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500"
+                  className="rounded-full bg-white/4/6 px-2 py-0.5 text-xs text-zinc-400"
                 >
                   {tag}
                 </span>

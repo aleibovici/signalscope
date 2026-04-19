@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     default: "SignalScope — Stock Breakout Signal Detection",
     template: "%s — SignalScope",
   },
-  description: "Find breakout stock candidates before market consensus. SignalScope monitors Reddit, X/Twitter, SEC insider filings, options flow with net premium tracking, and volume spikes — scored by AI, filtered for pump-and-dumps, with cross-scan trending analysis, ML backtesting, and an AI Agent Skill. Pay-per-call API access via x402 micropayments — no account required.",
+  description: "Find breakout stock candidates before market consensus. SignalScope monitors Reddit, X/Twitter, StockTwits, SEC insider filings, congressional trades, options flow, volume spikes, and Polymarket — scored by AI, filtered for pump-and-dumps, with cross-scan trending, LightGBM backtesting, and an AI Agent Skill. Pay-per-call API access via x402 micropayments — no account required.",
   keywords: [
     "stock breakout",
     "stock signals",
@@ -156,14 +156,30 @@ const jsonLd = {
       "applicationCategory": "FinanceApplication",
       "operatingSystem": "Web",
       "description":
-        "Find breakout stock candidates before market consensus. SignalScope monitors public market signals from Reddit, X/Twitter, SEC insider filings, congressional trades, options flow with net premium tracking, and volume spikes — scored by AI, filtered for pump-and-dumps, with cross-scan trending analysis, ML backtesting, an AI Agent Skill, and x402 pay-per-call API access.",
-      "offers": {
-        "@type": "AggregateOffer",
-        "lowPrice": "0",
-        "highPrice": "100",
-        "priceCurrency": "USD",
-        "offerCount": "2",
-      },
+        "Find breakout stock candidates before market consensus. SignalScope monitors public market signals from Reddit, X/Twitter, StockTwits, SEC insider filings, congressional trades, options flow with net premium tracking, volume spikes, and Polymarket prediction markets — scored by AI, filtered for pump-and-dumps, with cross-scan trending analysis, LightGBM backtesting, an AI Agent Skill, and x402 pay-per-call API access.",
+      "offers": [
+        {
+          "@type": "Offer",
+          "name": "Free",
+          "price": "0",
+          "priceCurrency": "USD",
+          "url": "http://localhost:3000/register",
+        },
+        {
+          "@type": "Offer",
+          "name": "Pro Monthly",
+          "price": "10",
+          "priceCurrency": "USD",
+          "url": "http://localhost:3000/pricing",
+        },
+        {
+          "@type": "Offer",
+          "name": "Pro Yearly",
+          "price": "100",
+          "priceCurrency": "USD",
+          "url": "http://localhost:3000/pricing",
+        },
+      ],
       "publisher": { "@id": "http://localhost:3000/#organization" },
     },
   ],
