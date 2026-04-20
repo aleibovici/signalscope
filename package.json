@@ -58,7 +58,7 @@
     "remotion": "^4.0.448",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
-    "typescript": "5.9.3",
+    "typescript": "6.0.3",
     "vitest": "^4.1.4"
   }
 }
