@@ -131,7 +131,7 @@ describe("POST /api/alerts/send", () => {
     expect(findManyCall.where.stage).toEqual({ in: ["EARLY", "FORMING", "CONFIRMED"] });
     expect(findManyCall.where.aiScore).toEqual({ gte: 50 });
     expect(findManyCall.where.pndFlagged).toBe(false);
-    expect(findManyCall.select.aiReasoning).toBe(true);
+    expect(findManyCall.select).toBeUndefined(); // full row fetch, no select
     expect(findManyCall.orderBy).toBeUndefined();
     expect(findManyCall.take).toBeUndefined();
 

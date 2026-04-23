@@ -32,8 +32,7 @@ export async function POST(req: NextRequest) {
       client.listPositions(),
     ]);
 
-    // Build lookups
-    const liveOrderMap = new Map(brokerOrders.map((o) => [o.brokerOrderId, o]));
+    // Build symbol lookup for position closure detection
     const liveSymbols = new Set(brokerPositions.map((p) => p.symbol));
 
     // Sync BrokerOrder statuses — match on brokerOrderId (stored in ibkrOrderId as string via cOID)

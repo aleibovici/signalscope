@@ -9,6 +9,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-04-23",
+    title: "Alpaca Paper Trading",
+    changes: [
+      {
+        category: "new",
+        items: [
+          "SignalScope now auto-executes every recommended trade setup on a real Alpaca paper account — bracket orders with stop-loss and take-profit placed at 9:15 AM ET after each harvest.",
+          "New Alpaca Paper (Live) tab on the Paper Trading page shows real fills, open/closed positions, win rate, and P&L vs SPY benchmark.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-04-20",
     title: "Pricing Page",
     changes: [
