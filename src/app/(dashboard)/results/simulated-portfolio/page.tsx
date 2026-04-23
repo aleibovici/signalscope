@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { usePaperTrades, useAlphaCurve, type PaperTrade, type AlphaPoint } from "@/hooks/use-paper-trading";
+import { useIbkrPaperTrades, type IbkrTrade } from "@/hooks/use-ibkr-paper-trading";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { PageHeader } from "@/components/ui/page-header";
@@ -111,13 +112,17 @@ function sortTrades(list: PaperTrade[], sortBy: SortKey, sortDir: "asc" | "desc"
   });
 }
 
+type TabKey = "simulated" | "ibkr";
+
 export default function PaperTradingPage() {
+  const [tab, setTab] = useState<TabKey>("simulated");
   const [lookbackDays, setLookbackDays] = useState(14);
   const [minScore, setMinScore] = useState(70);
   const [positionSize, setPositionSize] = useState(1000);
 
   const { data, isLoading, error } = usePaperTrades({ minScore, lookbackDays });
   const alphaCurve = useAlphaCurve(minScore);
+  const ibkr = useIbkrPaperTrades();
 
   const { openTrades, closedTrades } = useMemo(() => {
     if (!data) return { openTrades: [], closedTrades: [] };
@@ -175,204 +180,473 @@ export default function PaperTradingPage() {
     return "SPY, hold-matched avg";
   }, [data, scaledSummary]);
 
+  const ibkrHasData = ibkr.data && ibkr.data.trades.length > 0;
+
   return (
     <div className="space-y-4 md:space-y-6">
       <PageHeader
         title="Paper Trading"
-        subtitle={`Simulated trades from signals detected in the last ${lookbackDays} day${lookbackDays !== 1 ? "s" : ""} — see what would happen if you followed every call`}
+        subtitle={
+          tab === "simulated"
+            ? `Simulated trades from signals detected in the last ${lookbackDays} day${lookbackDays !== 1 ? "s" : ""} — see what would happen if you followed every call`
+            : "Live Alpaca paper account — real order fills, real slippage. SignalScope executes every recommended trade setup automatically."
+        }
       />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-        <div className="min-w-0 w-full sm:w-auto">
-          <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">
-            Lookback
-          </label>
-          <select
-            value={lookbackDays}
-            onChange={(e) => setLookbackDays(Number(e.target.value))}
-            className={`${selectClass} h-11 w-full min-w-0 touch-manipulation sm:h-10 sm:w-auto sm:min-w-36`}
-          >
-            {LOOKBACK_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="min-w-0 w-full sm:w-auto">
-          <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">
-            Min AI Score
-          </label>
-          <select
-            value={minScore}
-            onChange={(e) => setMinScore(Number(e.target.value))}
-            className={`${selectClass} h-11 w-full min-w-0 touch-manipulation sm:h-10 sm:w-auto sm:min-w-36`}
-          >
-            {SCORE_OPTIONS.map((s) => (
-              <option key={s} value={s}>
-                {s}+
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="min-w-0 w-full sm:w-auto">
-          <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">
-            Position Size
-          </label>
-          <select
-            value={positionSize}
-            onChange={(e) => setPositionSize(Number(e.target.value))}
-            className={`${selectClass} h-11 w-full min-w-0 touch-manipulation sm:h-10 sm:w-auto sm:min-w-36`}
-          >
-            {[500, 1000, 2500, 5000, 10000].map((s) => (
-              <option key={s} value={s}>
-                ${s.toLocaleString()}
-              </option>
-            ))}
-          </select>
-        </div>
+      {/* Tab toggle */}
+      <div className="flex gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1 dark:border-zinc-800 dark:bg-zinc-900/60 w-fit">
+        <button
+          onClick={() => setTab("simulated")}
+          className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+            tab === "simulated"
+              ? "bg-white text-gray-900 shadow-sm dark:bg-zinc-800 dark:text-zinc-100"
+              : "text-gray-500 hover:text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+          }`}
+        >
+          Simulated
+        </button>
+        <button
+          onClick={() => setTab("ibkr")}
+          className={`flex items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+            tab === "ibkr"
+              ? "bg-white text-gray-900 shadow-sm dark:bg-zinc-800 dark:text-zinc-100"
+              : "text-gray-500 hover:text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+          }`}
+        >
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+          Alpaca Paper (Live)
+        </button>
       </div>
 
-      {isLoading && (
-        <div className="flex justify-center py-12">
-          <Spinner className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-        </div>
+      {/* ─── IBKR Panel ─── */}
+      {tab === "ibkr" && (
+        <IbkrPanel ibkr={ibkr} ibkrHasData={!!ibkrHasData} />
       )}
 
-      {error && (
-        <p className="text-center text-gray-500 dark:text-zinc-400">
-          Failed to load paper trading data.
-        </p>
-      )}
-
-      {data && scaledSummary && (
+      {/* ─── Simulated Panel ─── */}
+      {tab === "simulated" && (
         <>
-          <section
-            aria-label="Paper trading summary"
-            className="rounded-2xl border border-gray-200/90 bg-linear-to-b from-gray-50/95 to-white p-2 shadow-sm sm:p-3 dark:border-zinc-800 dark:from-zinc-900/80 dark:to-[#12181f]"
-          >
-            <div className="grid grid-cols-2 gap-2 *:min-w-0 [&>:last-child]:col-span-2 sm:[&>:last-child]:col-span-1 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-7 lg:gap-2">
-              <KpiTile
-                label="Total trades"
-                value={String(scaledSummary.totalTrades)}
-                sub={`${scaledSummary.openTrades} · ${scaledSummary.closedTrades}`}
-                subHint="Open · closed"
-              />
-              <KpiTile
-                label="Win rate"
-                value={
-                  scaledSummary.tradesWithMark > 0
-                    ? `${(scaledSummary.winRate * 100).toFixed(0)}%`
-                    : "--"
-                }
-                sub="with mark"
-              />
-              <KpiTile
-                label="Avg hold"
-                value={scaledSummary.avgHoldDays !== null ? `${scaledSummary.avgHoldDays.toFixed(1)}d` : "--"}
-                sub="1d / 3d / 7d"
-              />
-              <KpiTile
-                label="Avg return"
-                value={
-                  scaledSummary.tradesWithMark > 0 ? formatPct(scaledSummary.avgReturn) : "--"
-                }
-                valueColor={
-                  scaledSummary.tradesWithMark === 0
-                    ? undefined
-                    : scaledSummary.avgReturn > 0
-                      ? "green"
-                      : scaledSummary.avgReturn < 0
-                        ? "red"
-                        : undefined
-                }
-                sub={
-                  scaledSummary.tradesWithMark > 0
-                    ? `eq. weight · n=${scaledSummary.tradesWithMark}`
-                    : "no marks"
-                }
-              />
-              <KpiTile
-                label="S&P 500"
-                value={
-                  data.benchmark.matchedReturnPct !== null
-                    ? formatPct(data.benchmark.matchedReturnPct)
-                    : data.benchmark.returnPct !== null
-                      ? formatPct(data.benchmark.returnPct)
-                      : "--"
-                }
-                valueColor={
-                  (data.benchmark.matchedReturnPct ?? data.benchmark.returnPct) === null
-                    ? undefined
-                    : (data.benchmark.matchedReturnPct ?? data.benchmark.returnPct)! > 0
-                      ? "green"
-                      : (data.benchmark.matchedReturnPct ?? data.benchmark.returnPct)! < 0
-                        ? "red"
-                        : undefined
-                }
-                sub={spyBenchmarkSub}
-                subHint="SPY avg return, matched to each trade's hold period"
-              />
-              <KpiTile
-                label="Total P&L"
-                value={
-                  scaledSummary.tradesWithMark > 0
-                    ? formatUsd(totalPnlFromLines)
-                    : "--"
-                }
-                valueColor={
-                  scaledSummary.tradesWithMark === 0
-                    ? undefined
-                    : totalPnlFromLines > 0
-                      ? "green"
-                      : totalPnlFromLines < 0
-                        ? "red"
-                        : undefined
-                }
-                sub={
-                  scaledSummary.tradesWithMark < scaledSummary.totalTrades
-                    ? `${formatLegNotional(positionSize)}/leg · ${scaledSummary.tradesWithMark}/${scaledSummary.totalTrades}`
-                    : `${formatLegNotional(positionSize)}/leg · ${scaledSummary.tradesWithMark}`
-                }
-              />
-              <KpiTile
-                label="Peak Capital"
-                value={`$${peakCapital.amount.toLocaleString()}`}
-                sub={`${peakCapital.legs} × ${formatLegNotional(positionSize)} max`}
-                subHint="Most positions open at the same time"
-              />
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+            <div className="min-w-0 w-full sm:w-auto">
+              <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">
+                Lookback
+              </label>
+              <select
+                value={lookbackDays}
+                onChange={(e) => setLookbackDays(Number(e.target.value))}
+                className={`${selectClass} h-11 w-full min-w-0 touch-manipulation sm:h-10 sm:w-auto sm:min-w-36`}
+              >
+                {LOOKBACK_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
             </div>
-          </section>
 
-          <AlphaCurveChart points={alphaCurve.points} isLoading={alphaCurve.isLoading} positionSize={positionSize} />
+            <div className="min-w-0 w-full sm:w-auto">
+              <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">
+                Min AI Score
+              </label>
+              <select
+                value={minScore}
+                onChange={(e) => setMinScore(Number(e.target.value))}
+                className={`${selectClass} h-11 w-full min-w-0 touch-manipulation sm:h-10 sm:w-auto sm:min-w-36`}
+              >
+                {SCORE_OPTIONS.map((s) => (
+                  <option key={s} value={s}>
+                    {s}+
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <TradesTable
-            title="Open Positions"
-            description={`${openTrades.length} trades still inside the 7-calendar-day hold — MTM uses the best filled snapshot up to the exit (1d / 3d / 7d), same as the eventual exit price.`}
-            trades={openTrades}
-            positionSize={positionSize}
-            priceLabel="Latest"
-            emptyMessage="No open positions."
-            initialSort={{ key: "detectedAt", dir: "desc" }}
-          />
+            <div className="min-w-0 w-full sm:w-auto">
+              <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">
+                Position Size
+              </label>
+              <select
+                value={positionSize}
+                onChange={(e) => setPositionSize(Number(e.target.value))}
+                className={`${selectClass} h-11 w-full min-w-0 touch-manipulation sm:h-10 sm:w-auto sm:min-w-36`}
+              >
+                {[500, 1000, 2500, 5000, 10000].map((s) => (
+                  <option key={s} value={s}>
+                    ${s.toLocaleString()}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
 
-          <TradesTable
-            title="Closed Positions"
-            description={`${closedTrades.length} trades past the 7-calendar-day exit — P&L is the ~1 week snapshot (7d → 3d → 1d if 7d missing). We do not extend the hold to 30d. Summary cards use open + closed rows that have a mark.`}
-            trades={closedTrades}
-            positionSize={positionSize}
-            priceLabel="Exit"
-            emptyMessage="No closed positions yet."
-            initialSort={{ key: "closingAt", dir: "desc" }}
-            showExitDate
-            showDetectedColumn={false}
-          />
+          {isLoading && (
+            <div className="flex justify-center py-12">
+              <Spinner className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+            </div>
+          )}
 
+          {error && (
+            <p className="text-center text-gray-500 dark:text-zinc-400">
+              Failed to load paper trading data.
+            </p>
+          )}
+
+          {data && scaledSummary && (
+            <>
+              <section
+                aria-label="Paper trading summary"
+                className="rounded-2xl border border-gray-200/90 bg-linear-to-b from-gray-50/95 to-white p-2 shadow-sm sm:p-3 dark:border-zinc-800 dark:from-zinc-900/80 dark:to-[#12181f]"
+              >
+                <div className="grid grid-cols-2 gap-2 *:min-w-0 [&>:last-child]:col-span-2 sm:[&>:last-child]:col-span-1 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-7 lg:gap-2">
+                  <KpiTile
+                    label="Total trades"
+                    value={String(scaledSummary.totalTrades)}
+                    sub={`${scaledSummary.openTrades} · ${scaledSummary.closedTrades}`}
+                    subHint="Open · closed"
+                  />
+                  <KpiTile
+                    label="Win rate"
+                    value={
+                      scaledSummary.tradesWithMark > 0
+                        ? `${(scaledSummary.winRate * 100).toFixed(0)}%`
+                        : "--"
+                    }
+                    sub="with mark"
+                  />
+                  <KpiTile
+                    label="Avg hold"
+                    value={scaledSummary.avgHoldDays !== null ? `${scaledSummary.avgHoldDays.toFixed(1)}d` : "--"}
+                    sub="1d / 3d / 7d"
+                  />
+                  <KpiTile
+                    label="Avg return"
+                    value={
+                      scaledSummary.tradesWithMark > 0 ? formatPct(scaledSummary.avgReturn) : "--"
+                    }
+                    valueColor={
+                      scaledSummary.tradesWithMark === 0
+                        ? undefined
+                        : scaledSummary.avgReturn > 0
+                          ? "green"
+                          : scaledSummary.avgReturn < 0
+                            ? "red"
+                            : undefined
+                    }
+                    sub={
+                      scaledSummary.tradesWithMark > 0
+                        ? `eq. weight · n=${scaledSummary.tradesWithMark}`
+                        : "no marks"
+                    }
+                  />
+                  <KpiTile
+                    label="S&P 500"
+                    value={
+                      data.benchmark.matchedReturnPct !== null
+                        ? formatPct(data.benchmark.matchedReturnPct)
+                        : data.benchmark.returnPct !== null
+                          ? formatPct(data.benchmark.returnPct)
+                          : "--"
+                    }
+                    valueColor={
+                      (data.benchmark.matchedReturnPct ?? data.benchmark.returnPct) === null
+                        ? undefined
+                        : (data.benchmark.matchedReturnPct ?? data.benchmark.returnPct)! > 0
+                          ? "green"
+                          : (data.benchmark.matchedReturnPct ?? data.benchmark.returnPct)! < 0
+                            ? "red"
+                            : undefined
+                    }
+                    sub={spyBenchmarkSub}
+                    subHint="SPY avg return, matched to each trade's hold period"
+                  />
+                  <KpiTile
+                    label="Total P&L"
+                    value={
+                      scaledSummary.tradesWithMark > 0
+                        ? formatUsd(totalPnlFromLines)
+                        : "--"
+                    }
+                    valueColor={
+                      scaledSummary.tradesWithMark === 0
+                        ? undefined
+                        : totalPnlFromLines > 0
+                          ? "green"
+                          : totalPnlFromLines < 0
+                            ? "red"
+                            : undefined
+                    }
+                    sub={
+                      scaledSummary.tradesWithMark < scaledSummary.totalTrades
+                        ? `${formatLegNotional(positionSize)}/leg · ${scaledSummary.tradesWithMark}/${scaledSummary.totalTrades}`
+                        : `${formatLegNotional(positionSize)}/leg · ${scaledSummary.tradesWithMark}`
+                    }
+                  />
+                  <KpiTile
+                    label="Peak Capital"
+                    value={`$${peakCapital.amount.toLocaleString()}`}
+                    sub={`${peakCapital.legs} × ${formatLegNotional(positionSize)} max`}
+                    subHint="Most positions open at the same time"
+                  />
+                </div>
+              </section>
+
+              <AlphaCurveChart points={alphaCurve.points} isLoading={alphaCurve.isLoading} positionSize={positionSize} />
+
+              <TradesTable
+                title="Open Positions"
+                description={`${openTrades.length} trades still inside the 7-calendar-day hold — MTM uses the best filled snapshot up to the exit (1d / 3d / 7d), same as the eventual exit price.`}
+                trades={openTrades}
+                positionSize={positionSize}
+                priceLabel="Latest"
+                emptyMessage="No open positions."
+                initialSort={{ key: "detectedAt", dir: "desc" }}
+              />
+
+              <TradesTable
+                title="Closed Positions"
+                description={`${closedTrades.length} trades past the 7-calendar-day exit — P&L is the ~1 week snapshot (7d → 3d → 1d if 7d missing). We do not extend the hold to 30d. Summary cards use open + closed rows that have a mark.`}
+                trades={closedTrades}
+                positionSize={positionSize}
+                priceLabel="Exit"
+                emptyMessage="No closed positions yet."
+                initialSort={{ key: "closingAt", dir: "desc" }}
+                showExitDate
+                showDetectedColumn={false}
+              />
+            </>
+          )}
         </>
       )}
     </div>
+  );
+}
+
+/* ─── IBKR Live Panel ─── */
+
+function IbkrPanel({
+  ibkr,
+  ibkrHasData,
+}: {
+  ibkr: ReturnType<typeof useIbkrPaperTrades>;
+  ibkrHasData: boolean;
+}) {
+  const { data, isLoading, error } = ibkr;
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Spinner className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <p className="text-center text-gray-500 dark:text-zinc-400">
+        Failed to load Alpaca paper trading data.
+      </p>
+    );
+  }
+
+  if (!ibkrHasData) {
+    return (
+      <div className="rounded-xl border border-dashed border-gray-200 dark:border-zinc-700 p-10 text-center">
+        <p className="text-sm font-medium text-gray-600 dark:text-zinc-300">No trades yet</p>
+        <p className="mt-1 text-xs text-gray-400 dark:text-zinc-500">
+          Orders are placed automatically after each harvest cycle. Check back after the next scan.
+        </p>
+      </div>
+    );
+  }
+
+  const { summary, trades, benchmark } = data;
+  const openTrades = trades.filter((t) => t.status === "OPEN");
+  const closedTrades = trades.filter((t) => t.status === "CLOSED");
+
+  return (
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
+        <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+        Live fills — SignalScope-owned Alpaca paper account · $1,000/leg · auto-executed
+      </div>
+
+      <section
+        aria-label="Alpaca paper trading summary"
+        className="rounded-2xl border border-gray-200/90 bg-linear-to-b from-gray-50/95 to-white p-2 shadow-sm sm:p-3 dark:border-zinc-800 dark:from-zinc-900/80 dark:to-[#12181f]"
+      >
+        <div className="grid grid-cols-2 gap-2 *:min-w-0 sm:grid-cols-3 sm:gap-3 md:grid-cols-5 lg:gap-2">
+          <KpiTile
+            label="Total trades"
+            value={String(summary.totalTrades)}
+            sub={`${summary.openTrades} open · ${summary.closedTrades} closed`}
+          />
+          <KpiTile
+            label="Win rate"
+            value={summary.tradesWithMark > 0 ? `${(summary.winRate * 100).toFixed(0)}%` : "--"}
+            sub="with fill"
+          />
+          <KpiTile
+            label="Avg return"
+            value={summary.tradesWithMark > 0 ? `${summary.avgReturn >= 0 ? "+" : ""}${(summary.avgReturn * 100).toFixed(1)}%` : "--"}
+            valueColor={
+              summary.tradesWithMark === 0 ? undefined : summary.avgReturn > 0 ? "green" : summary.avgReturn < 0 ? "red" : undefined
+            }
+            sub={`n=${summary.tradesWithMark}`}
+          />
+          <KpiTile
+            label="S&P 500"
+            value={benchmark.returnPct !== null ? `${benchmark.returnPct >= 0 ? "+" : ""}${(benchmark.returnPct * 100).toFixed(1)}%` : "--"}
+            valueColor={benchmark.returnPct === null ? undefined : benchmark.returnPct > 0 ? "green" : benchmark.returnPct < 0 ? "red" : undefined}
+            sub="30d"
+          />
+          <KpiTile
+            label="Total P&L"
+            value={summary.tradesWithMark > 0 ? `${summary.totalPnl >= 0 ? "+" : "-"}$${Math.abs(summary.totalPnl).toFixed(2)}` : "--"}
+            valueColor={summary.tradesWithMark === 0 ? undefined : summary.totalPnl > 0 ? "green" : summary.totalPnl < 0 ? "red" : undefined}
+            sub="$1k/leg"
+          />
+        </div>
+      </section>
+
+      <IbkrTradesTable title="Open Positions" trades={openTrades} emptyMessage="No open positions." />
+      <IbkrTradesTable title="Closed Positions" trades={closedTrades} emptyMessage="No closed positions yet." showClosedAt />
+
+      <p className="text-xs text-gray-400 dark:text-zinc-600">
+        Orders placed on a SignalScope-owned Alpaca paper account. Not investment advice. Results shown for transparency only.
+      </p>
+    </div>
+  );
+}
+
+function IbkrTradesTable({
+  title,
+  trades,
+  emptyMessage,
+  showClosedAt = false,
+}: {
+  title: string;
+  trades: IbkrTrade[];
+  emptyMessage: string;
+  showClosedAt?: boolean;
+}) {
+  return (
+    <Card>
+      <CardHeader className="px-3! py-3! sm:px-4! md:px-6! md:py-4!">
+        <h3 className="font-semibold text-gray-900 dark:text-zinc-100">{title}</h3>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="hidden max-h-[400px] overflow-x-auto overflow-y-auto md:block">
+          <table className="min-w-[640px] w-full text-sm">
+            <thead className="sticky top-0 z-10 bg-white dark:bg-zinc-900">
+              <tr className="border-b border-gray-100 text-left text-xs text-gray-500 dark:border-zinc-800 dark:text-zinc-400">
+                <th className="px-4 py-3 font-medium">Symbol</th>
+                <th className="px-3 py-3 font-medium text-right">AI Score</th>
+                <th className="px-3 py-3 font-medium text-right">Qty</th>
+                <th className="px-3 py-3 font-medium text-right">Entry</th>
+                <th className="px-3 py-3 font-medium text-right">Price</th>
+                <th className="px-3 py-3 font-medium text-right">Return</th>
+                <th className="px-3 py-3 font-medium text-right">P&L</th>
+                <th className="px-3 py-3 font-medium text-right">Hold</th>
+                {showClosedAt && <th className="px-3 py-3 font-medium text-right">Closed</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {trades.length === 0 && (
+                <tr>
+                  <td colSpan={8 + (showClosedAt ? 1 : 0)} className="py-8 text-center text-gray-400 dark:text-zinc-500">
+                    {emptyMessage}
+                  </td>
+                </tr>
+              )}
+              {trades.map((t) => {
+                const returnColor =
+                  t.returnPct !== null && t.returnPct > 0
+                    ? "text-green-600 dark:text-green-400"
+                    : t.returnPct !== null && t.returnPct < 0
+                      ? "text-red-600 dark:text-red-400"
+                      : "text-gray-400 dark:text-zinc-500";
+                const pnlVal = t.returnPct !== null ? 1000 * t.returnPct : null;
+                return (
+                  <tr key={`${t.symbol}-${t.openedAt}`} className="border-b border-gray-50 hover:bg-gray-50/50 dark:border-zinc-800/80 dark:hover:bg-zinc-900/50">
+                    <td className="px-4 py-2.5">
+                      <Link href={`/ticker/${t.symbol}`} className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+                        {t.symbol}
+                      </Link>
+                      {t.name && <span className="ml-1.5 text-xs text-gray-400 dark:text-zinc-500 truncate">{t.name}</span>}
+                    </td>
+                    <td className="px-3 py-2.5 text-right text-gray-700 dark:text-zinc-200">{t.aiScore ?? "--"}</td>
+                    <td className="px-3 py-2.5 text-right text-gray-600 dark:text-zinc-400">{t.quantity}</td>
+                    <td className="px-3 py-2.5 text-right text-gray-600 dark:text-zinc-400">${t.entryPrice.toFixed(2)}</td>
+                    <td className="px-3 py-2.5 text-right text-gray-600 dark:text-zinc-400">
+                      {t.exitPrice !== null ? `$${t.exitPrice.toFixed(2)}` : "--"}
+                    </td>
+                    <td className={`px-3 py-2.5 text-right font-medium ${returnColor}`}>
+                      {t.returnPct !== null ? `${t.returnPct >= 0 ? "+" : ""}${(t.returnPct * 100).toFixed(1)}%` : "--"}
+                    </td>
+                    <td className={`px-3 py-2.5 text-right font-medium ${returnColor}`}>
+                      {pnlVal !== null ? `${pnlVal >= 0 ? "+" : "-"}$${Math.abs(pnlVal).toFixed(2)}` : "--"}
+                    </td>
+                    <td className="px-3 py-2.5 text-right text-gray-500 dark:text-zinc-400">{t.holdDays}d</td>
+                    {showClosedAt && (
+                      <td className="px-3 py-2.5 text-right text-gray-500 dark:text-zinc-400">{t.closedAt ?? "--"}</td>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {/* Mobile list */}
+        <div className="space-y-3 px-3 pb-4 md:hidden">
+          {trades.length === 0 && (
+            <p className="py-6 text-center text-sm text-gray-400 dark:text-zinc-500">{emptyMessage}</p>
+          )}
+          {trades.map((t) => {
+            const returnColor =
+              t.returnPct !== null && t.returnPct > 0
+                ? "text-green-600 dark:text-green-400"
+                : t.returnPct !== null && t.returnPct < 0
+                  ? "text-red-600 dark:text-red-400"
+                  : "text-gray-500 dark:text-zinc-400";
+            const pnlVal = t.returnPct !== null ? 1000 * t.returnPct : null;
+            return (
+              <div key={`${t.symbol}-${t.openedAt}`} className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <Link href={`/ticker/${t.symbol}`} className="text-base font-semibold text-blue-600 hover:underline dark:text-blue-400">
+                      {t.symbol}
+                    </Link>
+                    {t.name && <p className="mt-0.5 text-xs text-gray-500 dark:text-zinc-400">{t.name}</p>}
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-sm font-semibold ${returnColor}`}>
+                      {t.returnPct !== null ? `${t.returnPct >= 0 ? "+" : ""}${(t.returnPct * 100).toFixed(1)}%` : "—"}
+                    </p>
+                    <p className={`text-xs ${returnColor}`}>
+                      {pnlVal !== null ? `${pnlVal >= 0 ? "+" : "-"}$${Math.abs(pnlVal).toFixed(2)}` : "—"}
+                    </p>
+                  </div>
+                </div>
+                <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-xs">
+                  <dt className="text-gray-500 dark:text-zinc-500">Entry</dt>
+                  <dd className="text-right font-medium tabular-nums">${t.entryPrice.toFixed(2)}</dd>
+                  <dt className="text-gray-500 dark:text-zinc-500">Qty</dt>
+                  <dd className="text-right font-medium tabular-nums">{t.quantity} sh</dd>
+                  <dt className="text-gray-500 dark:text-zinc-500">Hold</dt>
+                  <dd className="text-right font-medium">{t.holdDays}d</dd>
+                  {showClosedAt && t.closedAt && (
+                    <>
+                      <dt className="text-gray-500 dark:text-zinc-500">Closed</dt>
+                      <dd className="text-right">{t.closedAt}</dd>
+                    </>
+                  )}
+                </dl>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

@@ -167,6 +167,7 @@ model ValidatedTicker {
   createdAt           DateTime    @default(now())
   performance      TickerPerformance?
   priceSnapshots   PriceSnapshot[]
+  brokerOrders     BrokerOrder[]
 
   @@unique([scanId, symbol])
   @@index([symbol])
@@ -387,4 +388,60 @@ model PasswordResetToken {
   createdAt DateTime  @default(now())
 
   @@index([expiresAt])
+}
+
+// Broker Paper Trading Integration (multi-broker ready)
+
+model BrokerOrder {
+  id                String   @id @default(cuid())
+  validatedTickerId String
+  validatedTicker   ValidatedTicker @relation(fields: [validatedTickerId], references: [id])
+  symbol            String
+  role              BrokerOrderRole
+  parentOrderId     String?
+  orderType         String   // LMT | STP | MKT
+  side              String   // BUY | SELL
+  quantity          Int
+  limitPrice        Float?
+  stopPrice         Float?
+  cOID              String?  @unique  // client order id (UUID) for parent orders
+  brokerOrderId     String?           // broker-assigned order ID (UUID for Alpaca, int for IBKR)
+  ibkrOrderId       Int?              // legacy IBKR int order ID — unused for Alpaca
+  ibkrStatus        String   @default("PendingSubmit")
+  filledQty         Int      @default(0)
+  avgFillPrice      Float?
+  provider          String   @default("alpaca") // "alpaca" | "ibkr"
+  placedAt          DateTime @default(now())
+  filledAt          DateTime?
+  cancelledAt       DateTime?
+  errorMessage      String?  @db.Text
+
+  @@index([validatedTickerId])
+  @@index([symbol, ibkrStatus])
+  @@index([role, ibkrStatus])
+  @@index([placedAt])
+}
+
+model BrokerPosition {
+  symbol        String   @id
+  quantity      Int
+  avgCost       Float
+  marketPrice   Float?
+  marketValue   Float?
+  unrealizedPnl Float?
+  realizedPnl   Float    @default(0)
+  openedAt      DateTime
+  closedAt      DateTime?
+  syncedAt      DateTime
+  provider      String   @default("alpaca") // "alpaca" | "ibkr"
+
+  @@index([closedAt])
+  @@index([provider])
+}
+
+enum BrokerOrderRole {
+  PARENT
+  STOP
+  TARGET
+  EXIT_TIMEOUT
 }
