@@ -4,6 +4,7 @@ import { handleApiError } from "@/lib/api-error";
 import { generateTickerReportReACT } from "@/lib/harvester/report";
 import { reconstructAggregatedSymbol } from "@/lib/reconstruct-aggregated";
 import type { SignalType } from "@/lib/harvester/types";
+import { executeForTickers } from "@/lib/brokers/executor";
 
 const BATCH_SIZE = 10;
 
@@ -107,6 +108,33 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // After report generation, execute trade setups on IBKR paper account (if configured)
+    let brokerResults: { symbol: string; status: string; reason?: string }[] = [];
+    if (process.env.ALPACA_API_KEY && process.env.ALPACA_SECRET_KEY) {
+      try {
+        // Re-fetch tickers with updated trade setup fields post-report
+        const updatedTickers = await prisma.validatedTicker.findMany({
+          where: {
+            scanId: latestScan.id,
+            stage: { in: ["EARLY", "FORMING"] },
+            tradeSetupEntryHi: { not: null },
+            tradeSetupStopLoss: { not: null },
+            tradeSetupTarget1: { not: null },
+            aiScore: { gte: 70 },
+          },
+          orderBy: { opportunityScore: "desc" },
+        });
+        brokerResults = await executeForTickers(updatedTickers);
+        console.log(`[reports/generate] IBKR paper execution: ${JSON.stringify(
+          brokerResults.reduce((acc, r) => { acc[r.status] = (acc[r.status] ?? 0) + 1; return acc; }, {} as Record<string, number>)
+        )}`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`[reports/generate] IBKR paper execution failed: ${msg}`);
+        brokerResults = [{ symbol: "_global", status: "error", reason: msg }];
+      }
+    }
+
     const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
     console.log(`[reports/generate] Completed in ${elapsed}s — ${generated} generated, ${skipped} skipped, ${errors.length} errors`);
 
@@ -116,6 +144,7 @@ export async function POST(req: NextRequest) {
       generated,
       skipped,
       errors,
+      broker: brokerResults,
     });
   } catch (err) {
     return handleApiError(err, "reports/generate");

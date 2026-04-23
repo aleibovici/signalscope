@@ -136,6 +136,8 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 | `/api/tweets/performance` | POST | Tweet performance proof thread (x-snapshot-key auth) |
 | `/api/twitter/follow` | POST | Automated follow/unfollow job (x-snapshot-key auth) |
 | `/api/alerts/weekly-digest` | POST | Free weekly email digest (x-snapshot-key auth) |
+| `/api/paper-trading/ibkr` | GET | Live IBKR paper portfolio — public, no auth |
+| `/api/brokers/ibkr/sync` | POST | Sync IBKR order fills + positions, time-based exits (x-snapshot-key auth) |
 | `/api/stripe/checkout` | POST | Create Stripe Checkout session (authenticated) |
 | `/api/stripe/portal` | POST | Create Stripe Customer Portal session (authenticated) |
 | `/api/stripe/webhook` | POST | Stripe webhook handler (signature-verified) |
@@ -236,6 +238,12 @@ X_ACCESS_TOKEN_SECRET=...
 
 # Optional: x402 payment protocol (USDC on Base)
 X402_WALLET_ADDRESS=0x...
+
+# Optional: Alpaca paper trading (single SignalScope-owned account)
+ALPACA_API_KEY=<paper account API key from alpaca.markets dashboard>
+ALPACA_SECRET_KEY=<paper account API secret>
+ALPACA_PAPER=true            # set to false for live account
+BROKER_PROVIDER=alpaca       # future: "ibkr" | "tradier"
 
 # Optional: SEO site verification
 GOOGLE_SITE_VERIFICATION=...

@@ -19,6 +19,8 @@ const publicApiPrefixes = [
   "/api/twitter",
   "/api/linkedin",
   "/api/stripe/webhook",
+  "/api/brokers",
+  "/api/paper-trading",
   "/api/scans",
   "/api/signals",
   "/api/stats",
