@@ -9,6 +9,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-04-24",
+    title: "Community Upvotes",
+    changes: [
+      {
+        category: "new",
+        items: [
+          "Upvote any ticker on the signals grid, trending page, or ticker detail page. Votes persist across daily harvests — when a symbol reappears, your mark is still there.",
+          "Community upvote counts shown on every signal card and ticker detail. Vote weights decay with a 45-day half-life so recent interest counts more than stale enthusiasm.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-04-23",
     title: "Alpaca Paper Trading",
     changes: [

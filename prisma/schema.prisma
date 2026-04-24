@@ -23,6 +23,7 @@ model User {
   stripeCustomerId String?        @unique
   positions      UserPosition[]
   watchlist      UserWatchlist[]
+  votes          UserVote[]
   refreshTokens  RefreshToken[]
   apiKeys        ApiKey[]
   subscription   Subscription?
@@ -261,6 +262,18 @@ model UserWatchlist {
   createdAt DateTime @default(now())
 
   @@unique([userId, symbol])
+  @@index([userId])
+}
+
+model UserVote {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  symbol    String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, symbol])
+  @@index([symbol])
   @@index([userId])
 }
 
