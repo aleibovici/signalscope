@@ -7,6 +7,7 @@ import { useSession } from "next-auth/react";
 import { useTickerDetail, useTickerHistory, useGenerateReport } from "@/hooks/use-scans";
 import { useTickerPerformance } from "@/hooks/use-performance";
 import { useWatchlist, useToggleWatchlist } from "@/hooks/use-watchlist";
+import { VoteButton } from "@/components/dashboard/vote-button";
 import { AddPositionModal } from "@/components/dashboard/add-position-modal";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
@@ -435,6 +436,7 @@ export default function TickerDetailPage({
           </div>
 
           <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+            <VoteButton symbol={ticker.symbol} size="lg" />
             <a
               href={`https://finance.yahoo.com/quote/${ticker.symbol}`}
               target="_blank"

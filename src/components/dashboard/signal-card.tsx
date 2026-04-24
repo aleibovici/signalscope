@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip } from "@/components/ui/tooltip";
 import type { ValidatedTickerData } from "@/hooks/use-scans";
 import { stageLabel } from "@/lib/stage-labels";
+import { VoteButton } from "@/components/dashboard/vote-button";
 
 const MAX_TAGS = 2;
 
@@ -249,7 +250,8 @@ export function SignalCard({
             )}
           </div>
 
-          <div className="flex shrink-0 items-center pointer-events-auto">
+          <div className="flex shrink-0 items-center gap-2 pointer-events-auto">
+            <VoteButton symbol={ticker.symbol} size="sm" />
             <svg
               className="h-4 w-4 text-muted transition-colors duration-base group-hover:text-blue-500 dark:group-hover:text-blue-400"
               fill="none"
