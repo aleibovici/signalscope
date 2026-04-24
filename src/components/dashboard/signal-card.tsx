@@ -83,9 +83,11 @@ function collectTags(ticker: ValidatedTickerData): string[] {
 export function SignalCard({
   ticker,
   returnPeriod = "7d",
+  variant = "card",
 }: {
   ticker: ValidatedTickerData;
   returnPeriod?: string;
+  variant?: "card" | "row";
 }) {
   const tags = useMemo(() => collectTags(ticker), [ticker]);
   const visibleTags = tags.slice(0, MAX_TAGS);
@@ -101,6 +103,104 @@ export function SignalCard({
   const stageClass = stagePillStyles[stage] ?? stagePillStyles.Unscored;
 
   const signalCountLabel = ticker.signalCount === 1 ? "signal" : "signals";
+
+  if (variant === "row") {
+    return (
+      <div className="group relative flex cursor-pointer items-center gap-2 sm:gap-3 rounded-lg border border-border-default/90 bg-card px-3 py-2.5 shadow-sm transition-[border-color,background-color] duration-base hover:border-blue-300 hover:bg-surface-muted dark:hover:border-blue-500/35">
+        <Link
+          href={`/ticker/${ticker.symbol}`}
+          className="absolute inset-0 z-0 rounded-lg"
+          aria-label={`Open ${ticker.symbol} detail`}
+          draggable={false}
+        />
+        {/* Stage pill */}
+        <span className={`pointer-events-none relative z-1 shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 type-overline ${stageClass}`}>
+          {stage}
+        </span>
+        {/* Symbol + name */}
+        <div className="pointer-events-none relative z-1 min-w-0 flex-1">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="text-sm font-semibold tracking-tight text-primary group-hover:text-blue-600 dark:group-hover:text-blue-400">
+              {ticker.symbol}
+            </span>
+            {recClass && (
+              <span className={`hidden sm:inline shrink-0 rounded border-[0.75px] px-1 py-[2px] text-[9px] font-bold uppercase tracking-[0.3px] ${recClass}`}>
+                {ticker.recommendation}
+              </span>
+            )}
+            {ticker.name && (
+              <span className="hidden truncate type-caption text-secondary sm:block">{ticker.name}</span>
+            )}
+          </div>
+        </div>
+        {/* Tags */}
+        <div className="pointer-events-none relative z-1 hidden items-center gap-1 md:flex">
+          {visibleTags.map((tag, i) => (
+            <span key={`${tag}-${i}`} className="rounded bg-surface-muted px-1.5 py-0.5 text-[10px] text-muted">
+              {tag}
+            </span>
+          ))}
+          {overflow > 0 && (
+            <span className="rounded bg-surface-muted px-1.5 py-0.5 text-[10px] text-muted">+{overflow}</span>
+          )}
+        </div>
+        {/* Sources */}
+        <div className="pointer-events-none relative z-1 hidden shrink-0 items-center gap-1 lg:flex">
+          {ticker.sources?.slice(0, 2).map((src) => (
+            <span key={src} className="rounded border border-border-default/80 px-1 py-[2px] text-[9px] font-bold uppercase tracking-[0.3px] text-muted">
+              {src.replace(/_/g, " ")}
+            </span>
+          ))}
+          {(ticker.sources?.length ?? 0) > 2 && (
+            <span className="text-[9px] text-muted">+{(ticker.sources?.length ?? 0) - 2}</span>
+          )}
+        </div>
+        {/* AI score + Opp rank */}
+        <div className="pointer-events-none relative z-1 shrink-0 flex items-baseline gap-2">
+          <span className="flex items-baseline gap-1">
+            <span className="type-overline text-blue-500/70 dark:text-blue-400/60">AI</span>
+            <span className="num text-base font-black leading-none text-blue-500 dark:text-blue-400">{ticker.aiScore}</span>
+          </span>
+          <span className="hidden sm:flex items-baseline gap-0.5">
+            <span className="type-overline text-amber-500/70 dark:text-amber-400/60">Opp</span>
+            <span className="num text-xs font-bold leading-none text-amber-500 dark:text-amber-400">#{ticker.opportunityScore}</span>
+          </span>
+        </div>
+        {/* Signal count (lg+) */}
+        <span className="pointer-events-none relative z-1 hidden shrink-0 items-center gap-1 text-[10px] text-muted lg:flex">
+          <span className="h-1.5 w-1.5 rounded-full bg-blue-400 dark:bg-blue-500" aria-hidden="true" />
+          <span className="num font-medium text-secondary">{ticker.signalCount}</span>
+          <span>{signalCountLabel}</span>
+        </span>
+        {/* Price + return + net premium */}
+        {ticker.price != null && (
+          <div className="pointer-events-none relative z-1 shrink-0 flex flex-col items-end">
+            <span className="num text-sm font-semibold text-strong">${ticker.price.toFixed(2)}</span>
+            {retVal != null && (
+              <span className={`num text-[10px] font-semibold leading-tight ${retVal >= 0 ? "text-green-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+                {retVal >= 0 ? "+" : ""}{(retVal * 100).toFixed(1)}%
+              </span>
+            )}
+            {ticker.netPremium != null && ticker.netPremium !== 0 && (
+              <span
+                className={`num text-[10px] font-semibold leading-tight ${ticker.netPremium > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}
+                title={`Net premium flow: ${ticker.netPremium > 0 ? "+" : ""}$${(Math.abs(ticker.netPremium) / 1e6).toFixed(1)}M${ticker.callPremiumRatio != null ? ` · ${Math.round(ticker.callPremiumRatio * 100)}% calls` : ""}`}
+              >
+                {ticker.netPremium > 0 ? "+" : ""}${(Math.abs(ticker.netPremium) / 1e6).toFixed(1)}M
+              </span>
+            )}
+          </div>
+        )}
+        {/* Vote + chevron */}
+        <div className="pointer-events-auto relative z-1 flex shrink-0 items-center gap-2">
+          <VoteButton symbol={ticker.symbol} size="sm" />
+          <svg className="h-3.5 w-3.5 text-muted transition-colors duration-base group-hover:text-blue-500 dark:group-hover:text-blue-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+          </svg>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Card className="group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-card-xl border-border-default/90 shadow-card transition-[transform,box-shadow,border-color] duration-base hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-card-hover dark:hover:border-blue-500/35">
