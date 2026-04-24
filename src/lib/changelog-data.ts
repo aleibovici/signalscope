@@ -10,6 +10,18 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-04-25",
+    title: "Performance & Bug Fixes",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "Dashboard and Trending pages now load vote counts in a single batched API request instead of one request per ticker — reduces network overhead from ~130 requests to 1 on a typical scan page.",
+        ],
+      },
+    ],
+  },
+  {
+    date: "2026-04-25",
     title: "Bug Fixes & Dependency Updates",
     changes: [
       {

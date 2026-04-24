@@ -205,14 +205,14 @@ describe("symbolsQuerySchema", () => {
     expect(() => symbolsQuerySchema.parse("")).toThrow();
   });
 
-  it("rejects more than 50 symbols", () => {
-    const symbols = Array.from({ length: 51 }, (_, i) => `SY${i}`).join(",");
+  it("rejects more than 500 symbols", () => {
+    const symbols = Array.from({ length: 501 }, (_, i) => `SY${i}`).join(",");
     expect(() => symbolsQuerySchema.parse(symbols)).toThrow();
   });
 
-  it("accepts exactly 50 symbols", () => {
-    const symbols = Array.from({ length: 50 }, (_, i) => `S${i}`).join(",");
+  it("accepts exactly 500 symbols", () => {
+    const symbols = Array.from({ length: 500 }, (_, i) => `S${i}`).join(",");
     const result = symbolsQuerySchema.parse(symbols);
-    expect(result).toHaveLength(50);
+    expect(result).toHaveLength(500);
   });
 });
