@@ -9,13 +9,21 @@ type VoteMap = Record<string, VoteAggregate>;
 
 const EMPTY: VoteAggregate = { upvotes: 0, weightedScore: 0, userVoted: false };
 
-function votesQueryKey(symbols: string[]) {
-  return ["votes", symbols.slice().sort().join(",")];
+// Separate namespaces so useIsFetching can distinguish batch from individual fetches.
+// Batch key: ["votes", "batch", "A,B,C,..."]
+// Individual key: ["votes", symbol]
+// Both share the ["votes"] prefix so getQueriesData/cancelQueries still cover all.
+function batchVotesQueryKey(symbols: string[]) {
+  return ["votes", "batch", symbols.slice().sort().join(",")];
+}
+
+function singleVoteQueryKey(symbol: string) {
+  return ["votes", symbol];
 }
 
 export function useVotes(symbols: string[]) {
   return useQuery<{ votes: VoteMap }, Error, Map<string, VoteAggregate>>({
-    queryKey: votesQueryKey(symbols),
+    queryKey: batchVotesQueryKey(symbols),
     enabled: symbols.length > 0,
     queryFn: async () => {
       const params = new URLSearchParams({ symbols: symbols.join(",") });
@@ -28,17 +36,20 @@ export function useVotes(symbols: string[]) {
   });
 }
 
-export function useVoteFor(symbol: string): VoteAggregate {
+// fetchEnabled=false → only reads from cache (used in list views where a parent
+// useVotes() call pre-populates the cache via a single batched request).
+export function useVoteFor(symbol: string, { fetchEnabled = true } = {}): VoteAggregate {
   const qc = useQueryClient();
 
+  // Read from any settled votes query (batch or individual) that has this symbol.
   const fromCache = qc
     .getQueriesData<{ votes: VoteMap }>({ queryKey: ["votes"] })
     .map(([, data]) => data?.votes?.[symbol])
     .find((v) => v !== undefined);
 
   const { data } = useQuery<{ votes: VoteMap }>({
-    queryKey: votesQueryKey([symbol]),
-    enabled: fromCache === undefined,
+    queryKey: singleVoteQueryKey(symbol),
+    enabled: fetchEnabled && fromCache === undefined,
     queryFn: async () => {
       const res = await fetch(`/api/votes?symbols=${symbol}`);
       if (!res.ok) throw new Error("Failed to fetch vote");

@@ -8,13 +8,15 @@ interface VoteButtonProps {
   symbol: string;
   size?: "sm" | "lg";
   showCount?: boolean;
+  /** Set false in list views — parent useVotes() batch populates cache instead. */
+  fetchEnabled?: boolean;
 }
 
-export function VoteButton({ symbol, size = "sm", showCount = true }: VoteButtonProps) {
+export function VoteButton({ symbol, size = "sm", showCount = true, fetchEnabled = true }: VoteButtonProps) {
   const { data: session } = useSession();
   const router = useRouter();
   const pathname = usePathname();
-  const vote = useVoteFor(symbol);
+  const vote = useVoteFor(symbol, { fetchEnabled });
   const { mutate, isPending } = useVoteMutation();
 
   const iconSize = size === "lg" ? "h-5 w-5" : "h-3.5 w-3.5";

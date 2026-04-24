@@ -193,7 +193,7 @@ export function SignalCard({
         )}
         {/* Vote + chevron */}
         <div className="pointer-events-auto relative z-1 flex shrink-0 items-center gap-2">
-          <VoteButton symbol={ticker.symbol} size="sm" />
+          <VoteButton symbol={ticker.symbol} size="sm" fetchEnabled={false} />
           <svg className="h-3.5 w-3.5 text-muted transition-colors duration-base group-hover:text-blue-500 dark:group-hover:text-blue-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
           </svg>
@@ -351,7 +351,7 @@ export function SignalCard({
           </div>
 
           <div className="flex shrink-0 items-center gap-2 pointer-events-auto">
-            <VoteButton symbol={ticker.symbol} size="sm" />
+            <VoteButton symbol={ticker.symbol} size="sm" fetchEnabled={false} />
             <svg
               className="h-4 w-4 text-muted transition-colors duration-base group-hover:text-blue-500 dark:group-hover:text-blue-400"
               fill="none"
