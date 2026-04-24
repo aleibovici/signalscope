@@ -16,6 +16,7 @@ export const changelog: ChangelogEntry[] = [
         category: "fixed",
         items: [
           "Broker sync: eliminated duplicate market-sell orders on time-based exits — if an exit order already exists for a position, subsequent sync runs skip it instead of firing again.",
+          "Broker sync: avgCost now updated from Alpaca's actual fill price on every sync — fixes P&L discrepancy caused by using the limit-order price as a placeholder.",
         ],
       },
       {
