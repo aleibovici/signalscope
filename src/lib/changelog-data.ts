@@ -9,6 +9,24 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-04-25",
+    title: "Bug Fixes & Dependency Updates",
+    changes: [
+      {
+        category: "fixed",
+        items: [
+          "Broker sync: eliminated duplicate market-sell orders on time-based exits — if an exit order already exists for a position, subsequent sync runs skip it instead of firing again.",
+        ],
+      },
+      {
+        category: "improved",
+        items: [
+          "Upgraded TypeScript to 6.0.3.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-04-24",
     title: "Community Upvotes",
     changes: [
