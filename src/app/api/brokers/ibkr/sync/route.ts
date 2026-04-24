@@ -120,6 +120,16 @@ export async function POST(req: NextRequest) {
       const holdDays = resolveHoldDays(parentOrder?.validatedTicker?.tradeSetupTimeframe ?? null);
 
       if (ageDays >= holdDays) {
+        // Guard: skip if an exit order was already submitted to avoid duplicate sells
+        // across sync runs (e.g. after-hours sell expires, position still shows open)
+        const existingExit = await prisma.brokerOrder.findFirst({
+          where: { symbol: pos.symbol, role: "EXIT_TIMEOUT", cancelledAt: null },
+        });
+        if (existingExit) {
+          console.log(`[broker/sync] Time exit skipped for ${pos.symbol} — exit order already exists`);
+          continue;
+        }
+
         try {
           if (pos.quantity > 0) {
             await client.placeMarketSell(pos.symbol, pos.quantity);
