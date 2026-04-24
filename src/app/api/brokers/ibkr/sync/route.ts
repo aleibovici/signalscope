@@ -83,6 +83,7 @@ export async function POST(req: NextRequest) {
         },
         update: {
           quantity: pos.qty,
+          avgCost: pos.avgEntryPrice,
           marketPrice: pos.marketPrice,
           marketValue: pos.marketValue,
           unrealizedPnl: pos.unrealizedPnl,
