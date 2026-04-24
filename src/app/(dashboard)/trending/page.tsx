@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useTrendingTickers, type TrendingFilters } from "@/hooks/use-trending";
+import { useVotes } from "@/hooks/use-votes";
 import { TrendingCard } from "@/components/dashboard/trending-card";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
@@ -155,6 +156,10 @@ export default function TrendingPage() {
   const [filters, setFilters] = useState<TrendingFilters>({ sortBy: "aiScore" });
   const [filtersOpen, setFiltersOpen] = useState(false);
   const { data, isLoading, isError, dataUpdatedAt } = useTrendingTickers(page, PAGE_SIZE, filters);
+
+  // Single batched votes fetch for every symbol on the page; VoteButton's
+  // useVoteFor reads from this cache entry instead of firing per-row requests.
+  useVotes((data?.tickers ?? []).map((t) => t.symbol));
 
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;
   const activeCount = countActiveFilters(filters);

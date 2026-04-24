@@ -39,7 +39,7 @@ export const symbolSchema = z
 export const symbolsQuerySchema = z
   .string()
   .transform((s) => s.split(",").map((sym) => sym.trim().toUpperCase()))
-  .pipe(z.array(z.string().min(1).max(10)).min(1).max(50));
+  .pipe(z.array(z.string().min(1).max(10)).min(1).max(500));
 
 export const addWatchlistSchema = z.object({
   symbol: z.string().min(1).max(10).transform((s) => s.toUpperCase()),

@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useScans, useScanDetail, type ValidatedTickerData } from "@/hooks/use-scans";
 import { useScrollRestore } from "@/hooks/use-scroll-restore";
+import { useVotes } from "@/hooks/use-votes";
 import { useWatchlist, useWatchlistTickers } from "@/hooks/use-watchlist";
 import { ScanSelector } from "@/components/dashboard/scan-selector";
 import { StageTabs } from "@/components/dashboard/stage-tabs";
@@ -96,6 +97,14 @@ useScrollRestore("dashboard");
   const missingWatchlisted = (watchlistTickersData?.tickers ?? []).filter(
     (t) => !scanSymbols.has(t.symbol) && bookmarkedSymbols.has(t.symbol)
   );
+
+  // Single batched votes fetch for every symbol on the page.
+  // VoteButton's useVoteFor is cache-first and reads from this entry,
+  // avoiding one /api/votes request per row.
+  useVotes([
+    ...tickers.map((t) => t.symbol),
+    ...missingWatchlisted.map((t) => t.symbol),
+  ]);
 
   const counts: Record<string, number> = {
     Emerging: tickers.filter((t) => t.stage === "Emerging").length,
