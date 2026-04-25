@@ -10,31 +10,21 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-04-25",
-    title: "Performance & Bug Fixes",
+    title: "ML Scoring Sync, Performance & Bug Fixes",
     changes: [
       {
         category: "improved",
         items: [
+          "AI scoring prompt and methodology refreshed against the latest LightGBM backtest (304-feature pool, exp637a). The dominant predictor is now the interaction between a ticker's prior P&D reputation and its current P&D flag count — repeat offenders get penalised harder. Scan-level context (average signal strength, scan size, log market cap) is recognised as carrying ~50% of model weight.",
           "Dashboard and Trending pages now load vote counts in a single batched API request instead of one request per ticker — reduces network overhead from ~130 requests to 1 on a typical scan page.",
+          "Upgraded TypeScript to 6.0.3.",
         ],
       },
-    ],
-  },
-  {
-    date: "2026-04-25",
-    title: "Bug Fixes & Dependency Updates",
-    changes: [
       {
         category: "fixed",
         items: [
           "Broker sync: eliminated duplicate market-sell orders on time-based exits — if an exit order already exists for a position, subsequent sync runs skip it instead of firing again.",
           "Broker sync: avgCost now updated from Alpaca's actual fill price on every sync — fixes P&L discrepancy caused by using the limit-order price as a placeholder.",
-        ],
-      },
-      {
-        category: "improved",
-        items: [
-          "Upgraded TypeScript to 6.0.3.",
         ],
       },
     ],
