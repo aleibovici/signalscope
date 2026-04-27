@@ -34,7 +34,7 @@
     "prisma": "^7.8.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "resend": "^6.9.4",
+    "resend": "^6.12.2",
     "stripe": "^22.0.2",
     "viem": "^2.48.4",
     "yahoo-finance2": "^3.14.0",
