@@ -55,7 +55,7 @@
     "dotenv": "^17.4.2",
     "eslint": "^10",
     "eslint-config-next": "16.2.4",
-    "remotion": "^4.0.448",
+    "remotion": "^4.0.452",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "6.0.3",
