@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-error";
-import { fetchSpyTotalReturnDecimal } from "@/lib/spy-benchmark";
+import { fetchSpyTotalReturnDecimal, fetchSpyDailyBars, spyReturnForDateRange } from "@/lib/spy-benchmark";
 import { getBrokerClient, isConfigured } from "@/lib/brokers/factory";
 import { AlpacaClient } from "@/lib/brokers/alpaca/client";
 import type { BrokerAccount, BrokerPortfolioHistory } from "@/lib/brokers/interface";
@@ -63,7 +63,10 @@ export async function GET() {
     let account: BrokerAccount | null = null;
     let portfolioHistory: BrokerPortfolioHistory | null = null;
 
-    const spyReturnPct = await fetchSpyTotalReturnDecimal(windowStart, windowEnd);
+    const [spyReturnPct, spyBars] = await Promise.all([
+      fetchSpyTotalReturnDecimal(windowStart, windowEnd),
+      fetchSpyDailyBars(windowStart, windowEnd),
+    ]);
 
     if (isConfigured()) {
       const client = getBrokerClient();
@@ -95,6 +98,11 @@ export async function GET() {
       const holdDays = Math.round(holdMs / 86400000);
       const pnl = returnPct !== null ? 1000 * returnPct : null;
 
+      const exitMs = pos.closedAt ? pos.closedAt.getTime() : now;
+      const spyReturnPct = returnPct !== null
+        ? spyReturnForDateRange(spyBars, pos.openedAt.getTime(), exitMs)
+        : null;
+
       return {
         symbol: pos.symbol,
         name: vt?.name ?? null,
@@ -111,6 +119,7 @@ export async function GET() {
         realizedPnl: pos.realizedPnl,
         holdDays,
         status,
+        spyReturnPct,
         openedAt: pos.openedAt.toISOString().slice(0, 10),
         closedAt: pos.closedAt?.toISOString().slice(0, 10) ?? null,
         tradeSetup: vt
@@ -129,7 +138,8 @@ export async function GET() {
     const closedTrades = trades.filter((t) => t.status === "CLOSED");
     const openTrades = trades.filter((t) => t.status === "OPEN");
     const tradesWithReturn = trades.filter((t) => t.returnPct !== null);
-    const wins = tradesWithReturn.filter((t) => t.returnPct! > 0);
+    const closedWithReturn = closedTrades.filter((t) => t.returnPct !== null);
+    const wins = closedWithReturn.filter((t) => t.returnPct! > 0);
     const totalPnl = tradesWithReturn.reduce((sum, t) => sum + (t.pnl ?? 0), 0);
     const avgReturn =
       tradesWithReturn.length > 0
@@ -141,15 +151,24 @@ export async function GET() {
       openTrades: openTrades.length,
       closedTrades: closedTrades.length,
       tradesWithMark: tradesWithReturn.length,
-      winRate: tradesWithReturn.length > 0 ? wins.length / tradesWithReturn.length : 0,
+      winRate: closedWithReturn.length > 0 ? wins.length / closedWithReturn.length : 0,
       avgReturn,
       totalPnl,
       positionSize: 1000,
     };
 
+    const tradesWithMatchedSpy = trades.filter(
+      (t) => t.spyReturnPct !== null && t.returnPct !== null,
+    );
+    const matchedReturnPct =
+      tradesWithMatchedSpy.length > 0
+        ? tradesWithMatchedSpy.reduce((sum, t) => sum + t.spyReturnPct!, 0) / tradesWithMatchedSpy.length
+        : null;
+
     const benchmark = {
       symbol: "SPY",
       returnPct: spyReturnPct,
+      matchedReturnPct,
       windowStart: windowStart.toISOString().slice(0, 10),
       windowEnd: windowEnd.toISOString().slice(0, 10),
     };
