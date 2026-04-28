@@ -29,4 +29,16 @@ export interface AlpacaAccount {
   equity: string;
   cash: string;
   currency: string;
+  buying_power: string;
+  long_market_value: string;
+  last_equity: string;
+  daytrade_count: number;
+  trading_blocked: boolean;
+}
+
+export interface AlpacaPortfolioHistory {
+  timestamp: number[];
+  equity: (number | null)[];
+  base_value: number;
+  timeframe: string;
 }

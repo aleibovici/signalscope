@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-error";
 import { fetchSpyTotalReturnDecimal } from "@/lib/spy-benchmark";
+import { getBrokerClient, isConfigured } from "@/lib/brokers/factory";
+import { AlpacaClient } from "@/lib/brokers/alpaca/client";
+import type { BrokerAccount, BrokerPortfolioHistory } from "@/lib/brokers/interface";
 
 export async function GET() {
   try {
@@ -56,7 +59,21 @@ export async function GET() {
     const now = Date.now();
     const windowStart = new Date(now - 30 * 86400000);
     const windowEnd = new Date(now);
+
+    let account: BrokerAccount | null = null;
+    let portfolioHistory: BrokerPortfolioHistory | null = null;
+
     const spyReturnPct = await fetchSpyTotalReturnDecimal(windowStart, windowEnd);
+
+    if (isConfigured()) {
+      const client = getBrokerClient();
+      await Promise.all([
+        client.getAccount().then((a) => { account = a; }).catch(() => {}),
+        client instanceof AlpacaClient
+          ? client.getPortfolioHistory("1M").then((h) => { portfolioHistory = h; }).catch(() => {})
+          : Promise.resolve(),
+      ]);
+    }
 
     const trades = positions.map((pos) => {
       const order = orderBySymbol.get(pos.symbol);
@@ -137,7 +154,7 @@ export async function GET() {
       windowEnd: windowEnd.toISOString().slice(0, 10),
     };
 
-    return NextResponse.json({ summary, trades, benchmark, isLive: true });
+    return NextResponse.json({ summary, trades, benchmark, account, portfolioHistory, isLive: true });
   } catch (err) {
     return handleApiError(err, "paper-trading/ibkr");
   }

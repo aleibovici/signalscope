@@ -50,10 +50,33 @@ export interface IbkrBenchmark {
   windowEnd: string;
 }
 
+export interface IbkrAccount {
+  equity: number;
+  cash: number;
+  currency: string;
+  buyingPower: number;
+  longMarketValue: number;
+  lastEquity: number;
+  dayTradeCount: number;
+  tradingBlocked: boolean;
+}
+
+export interface IbkrPortfolioPoint {
+  timestamp: number;
+  equity: number;
+}
+
+export interface IbkrPortfolioHistory {
+  points: IbkrPortfolioPoint[];
+  baseValue: number;
+}
+
 export interface IbkrPaperData {
   summary: IbkrSummary;
   trades: IbkrTrade[];
   benchmark: IbkrBenchmark;
+  account: IbkrAccount | null;
+  portfolioHistory: IbkrPortfolioHistory | null;
   isLive: boolean;
 }
 

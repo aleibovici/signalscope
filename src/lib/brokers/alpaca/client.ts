@@ -1,6 +1,9 @@
 import crypto from "crypto";
-import type { BrokerClient, BracketOrderParams, BracketOrderResult, BrokerOrderStatus, BrokerPositionStatus, BrokerAccount } from "@/lib/brokers/interface";
-import type { AlpacaOrder, AlpacaPosition, AlpacaAccount } from "./types";
+import type { BrokerClient, BracketOrderParams, BracketOrderResult, BrokerOrderStatus, BrokerPositionStatus, BrokerAccount, BrokerPortfolioHistory } from "@/lib/brokers/interface";
+import type { AlpacaOrder, AlpacaPosition, AlpacaAccount, AlpacaPortfolioHistory } from "./types";
+import { TTLCache } from "@/lib/cache";
+
+const portfolioHistoryCache = new TTLCache<BrokerPortfolioHistory>(8 * 60 * 1000, 1); // 8 min TTL, 1 entry
 
 export interface AlpacaCredentials {
   apiKey: string;
@@ -111,7 +114,30 @@ export class AlpacaClient implements BrokerClient {
       equity: parseFloat(acct.equity),
       cash: parseFloat(acct.cash),
       currency: acct.currency,
+      buyingPower: parseFloat(acct.buying_power),
+      longMarketValue: parseFloat(acct.long_market_value),
+      lastEquity: parseFloat(acct.last_equity),
+      dayTradeCount: acct.daytrade_count,
+      tradingBlocked: acct.trading_blocked,
     };
+  }
+
+  async getPortfolioHistory(period = "1M"): Promise<BrokerPortfolioHistory> {
+    const cached = portfolioHistoryCache.get(period);
+    if (cached) return cached;
+
+    const raw = await this.request<AlpacaPortfolioHistory>(
+      "GET",
+      `/v2/account/portfolio/history?period=${period}&timeframe=1D`,
+    );
+
+    const points = raw.timestamp
+      .map((ts, i) => ({ timestamp: ts, equity: raw.equity[i] }))
+      .filter((p): p is { timestamp: number; equity: number } => p.equity != null && p.equity > 0);
+
+    const result: BrokerPortfolioHistory = { points, baseValue: raw.base_value };
+    portfolioHistoryCache.set(period, result);
+    return result;
   }
 }
 

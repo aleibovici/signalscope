@@ -35,6 +35,21 @@ export interface BrokerAccount {
   equity: number;
   cash: number;
   currency: string;
+  buyingPower: number;
+  longMarketValue: number;
+  lastEquity: number;
+  dayTradeCount: number;
+  tradingBlocked: boolean;
+}
+
+export interface BrokerPortfolioPoint {
+  timestamp: number;
+  equity: number;
+}
+
+export interface BrokerPortfolioHistory {
+  points: BrokerPortfolioPoint[];
+  baseValue: number;
 }
 
 export interface BrokerClient {
