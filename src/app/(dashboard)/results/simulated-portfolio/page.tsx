@@ -215,6 +215,9 @@ export default function PaperTradingPage() {
         >
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
           Alpaca Paper (Live)
+          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
+            New
+          </span>
         </button>
       </div>
 
@@ -468,6 +471,32 @@ function IbkrPanel({
       <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
         Live fills — SignalScope-owned Alpaca paper account · $1,000/leg · auto-executed
+      </div>
+
+      <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/70 px-3.5 py-3 dark:border-amber-800/40 dark:bg-amber-900/15">
+        <svg
+          className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
+          <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
+          <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" />
+          <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
+        </svg>
+        <div>
+          <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">
+            Just launched — early stage
+          </p>
+          <p className="mt-0.5 text-xs leading-relaxed text-amber-700/90 dark:text-amber-400/80">
+            This account started trading recently. With only a handful of fills so far, average returns and win rates are not yet statistically meaningful — early results tend to be volatile. Performance will stabilize as the trade history grows.
+          </p>
+        </div>
       </div>
 
       {account && <AlpacaAccountBar account={account} />}
