@@ -139,7 +139,8 @@ export async function GET(request: NextRequest) {
 
     const closedTrades = filteredTrades.filter((t) => t.status === "CLOSED");
     const tradesWithReturn = filteredTrades.filter((t) => t.returnPct !== null);
-    const wins = tradesWithReturn.filter((t) => t.returnPct! > 0);
+    const closedWithReturn = closedTrades.filter((t) => t.returnPct !== null);
+    const wins = closedWithReturn.filter((t) => t.returnPct! > 0);
     const totalReturn = tradesWithReturn.reduce(
       (sum, t) => sum + (t.returnPct ?? 0),
       0,
@@ -159,7 +160,7 @@ export async function GET(request: NextRequest) {
       closedTrades: closedTrades.length,
       openTrades: filteredTrades.length - closedTrades.length,
       tradesWithMark: tradesWithReturn.length,
-      winRate: tradesWithReturn.length > 0 ? wins.length / tradesWithReturn.length : 0,
+      winRate: closedWithReturn.length > 0 ? wins.length / closedWithReturn.length : 0,
       avgReturn:
         tradesWithReturn.length > 0 ? totalReturn / tradesWithReturn.length : 0,
       totalPnl,

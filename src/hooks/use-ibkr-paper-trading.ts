@@ -46,6 +46,7 @@ export interface IbkrSummary {
 export interface IbkrBenchmark {
   symbol: string;
   returnPct: number | null;
+  matchedReturnPct: number | null;
   windowStart: string;
   windowEnd: string;
 }

@@ -127,3 +127,21 @@ function findBarOnOrAfter(bars: SpyHistoryBar[], ms: number): SpyHistoryBar | nu
   }
   return bars.length > 0 ? bars[bars.length - 1] : null;
 }
+
+/**
+ * Compute SPY return between two exact timestamps (for real broker trades with known entry/exit dates).
+ */
+export function spyReturnForDateRange(
+  bars: SpyHistoryBar[],
+  entryMs: number,
+  exitMs: number,
+): number | null {
+  if (bars.length < 2 || exitMs <= entryMs) return null;
+  const entryBar = findBarOnOrAfter(bars, entryMs);
+  const exitBar = findBarOnOrAfter(bars, exitMs);
+  if (!entryBar || !exitBar || entryBar === exitBar) return null;
+  const entryPx = entryBar.adjClose ?? entryBar.close;
+  const exitPx = exitBar.adjClose ?? exitBar.close;
+  if (typeof entryPx !== "number" || typeof exitPx !== "number" || entryPx <= 0) return null;
+  return (exitPx - entryPx) / entryPx;
+}

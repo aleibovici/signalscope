@@ -115,7 +115,7 @@ function sortTrades(list: PaperTrade[], sortBy: SortKey, sortDir: "asc" | "desc"
 type TabKey = "simulated" | "ibkr";
 
 export default function PaperTradingPage() {
-  const [tab, setTab] = useState<TabKey>("simulated");
+  const [tab, setTab] = useState<TabKey>("ibkr");
   const [lookbackDays, setLookbackDays] = useState(14);
   const [minScore, setMinScore] = useState(70);
   const [positionSize, setPositionSize] = useState(1000);
@@ -307,11 +307,11 @@ export default function PaperTradingPage() {
                   <KpiTile
                     label="Win rate"
                     value={
-                      scaledSummary.tradesWithMark > 0
+                      scaledSummary.closedTrades > 0
                         ? `${(scaledSummary.winRate * 100).toFixed(0)}%`
                         : "--"
                     }
-                    sub="with mark"
+                    sub="closed only"
                   />
                   <KpiTile
                     label="Avg hold"
@@ -485,8 +485,8 @@ function IbkrPanel({
           />
           <KpiTile
             label="Win rate"
-            value={summary.tradesWithMark > 0 ? `${(summary.winRate * 100).toFixed(0)}%` : "--"}
-            sub="with fill"
+            value={summary.closedTrades > 0 ? `${(summary.winRate * 100).toFixed(0)}%` : "--"}
+            sub="closed only"
           />
           <KpiTile
             label="Avg return"
@@ -498,9 +498,22 @@ function IbkrPanel({
           />
           <KpiTile
             label="S&P 500"
-            value={benchmark.returnPct !== null ? `${benchmark.returnPct >= 0 ? "+" : ""}${(benchmark.returnPct * 100).toFixed(1)}%` : "--"}
-            valueColor={benchmark.returnPct === null ? undefined : benchmark.returnPct > 0 ? "green" : benchmark.returnPct < 0 ? "red" : undefined}
-            sub="30d"
+            value={
+              (benchmark.matchedReturnPct ?? benchmark.returnPct) !== null
+                ? `${(benchmark.matchedReturnPct ?? benchmark.returnPct)! >= 0 ? "+" : ""}${((benchmark.matchedReturnPct ?? benchmark.returnPct)! * 100).toFixed(1)}%`
+                : "--"
+            }
+            valueColor={
+              (benchmark.matchedReturnPct ?? benchmark.returnPct) === null
+                ? undefined
+                : (benchmark.matchedReturnPct ?? benchmark.returnPct)! > 0
+                  ? "green"
+                  : (benchmark.matchedReturnPct ?? benchmark.returnPct)! < 0
+                    ? "red"
+                    : undefined
+            }
+            sub={benchmark.matchedReturnPct !== null ? "hold-matched avg" : "30d"}
+            subHint="SPY avg return, matched to each trade's hold period"
           />
           <KpiTile
             label="Total P&L"

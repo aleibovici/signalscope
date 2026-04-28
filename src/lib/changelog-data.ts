@@ -9,6 +9,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-04-28",
+    title: "Paper Trading UX & Benchmark Improvements",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "Alpaca Paper (Live) is now the default tab when opening the Paper Trading page.",
+          "S&P 500 benchmark on the Alpaca Live tab now shows a hold-matched average — SPY's return over the exact calendar days each position was held — instead of a flat 30-day return. This makes it a fair apples-to-apples comparison with the portfolio's average per-trade return.",
+          'Results tab renamed from "Simulated Portfolio" to "Paper Trading".',
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-04-25",
     title: "ML Scoring Sync, Performance & Bug Fixes",
     changes: [
