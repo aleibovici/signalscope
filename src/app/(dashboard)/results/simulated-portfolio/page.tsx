@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { usePaperTrades, useAlphaCurve, type PaperTrade, type AlphaPoint } from "@/hooks/use-paper-trading";
-import { useIbkrPaperTrades, type IbkrTrade } from "@/hooks/use-ibkr-paper-trading";
+import { useIbkrPaperTrades, type IbkrTrade, type IbkrAccount, type IbkrPortfolioHistory } from "@/hooks/use-ibkr-paper-trading";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { PageHeader } from "@/components/ui/page-header";
@@ -459,7 +459,7 @@ function IbkrPanel({
     );
   }
 
-  const { summary, trades, benchmark } = data;
+  const { summary, trades, benchmark, account, portfolioHistory } = data;
   const openTrades = trades.filter((t) => t.status === "OPEN");
   const closedTrades = trades.filter((t) => t.status === "CLOSED");
 
@@ -470,11 +470,14 @@ function IbkrPanel({
         Live fills — SignalScope-owned Alpaca paper account · $1,000/leg · auto-executed
       </div>
 
+      {account && <AlpacaAccountBar account={account} />}
+      {portfolioHistory && <AlpacaEquityCurve history={portfolioHistory} />}
+
       <section
         aria-label="Alpaca paper trading summary"
         className="rounded-2xl border border-gray-200/90 bg-linear-to-b from-gray-50/95 to-white p-2 shadow-sm sm:p-3 dark:border-zinc-800 dark:from-zinc-900/80 dark:to-[#12181f]"
       >
-        <div className="grid grid-cols-2 gap-2 *:min-w-0 sm:grid-cols-3 sm:gap-3 md:grid-cols-5 lg:gap-2">
+        <div className="grid grid-cols-2 gap-2 *:min-w-0 [&>:last-child]:col-span-2 sm:[&>:last-child]:col-span-1 sm:grid-cols-3 sm:gap-3 md:grid-cols-5 lg:gap-2">
           <KpiTile
             label="Total trades"
             value={String(summary.totalTrades)}
@@ -515,6 +518,207 @@ function IbkrPanel({
         Orders placed on a SignalScope-owned Alpaca paper account. Not investment advice. Results shown for transparency only.
       </p>
     </div>
+  );
+}
+
+const EQUITY_CHART_W = 520;
+const EQUITY_CHART_H = 100;
+const EQUITY_PAD = { top: 12, right: 20, bottom: 20, left: 44 };
+const EQUITY_PLOT_W = EQUITY_CHART_W - EQUITY_PAD.left - EQUITY_PAD.right;
+const EQUITY_PLOT_H = EQUITY_CHART_H - EQUITY_PAD.top - EQUITY_PAD.bottom;
+
+function AlpacaEquityCurve({ history }: { history: IbkrPortfolioHistory }) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
+  const pts = history.points.filter((p) => p.equity != null && p.equity > 0);
+  if (pts.length < 2) {
+    return (
+      <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6 dark:border-zinc-800/90 dark:bg-[#12181f]">
+        <p className="text-center text-sm text-gray-400 dark:text-zinc-500">Not enough history yet</p>
+      </div>
+    );
+  }
+
+  const values = pts.map((p) => p.equity);
+  const baseValue = history.baseValue > 0 ? history.baseValue : values[0];
+  const latestEquity = values[values.length - 1];
+  const totalReturn = (latestEquity - baseValue) / baseValue;
+  const isPositive = totalReturn >= 0;
+
+  const lineColor = isPositive
+    ? isDark ? "#34d399" : "#059669"
+    : isDark ? "#f87171" : "#dc2626";
+
+  const allVals = [baseValue, ...values];
+  const minV = Math.min(...allVals);
+  const maxV = Math.max(...allVals);
+  const range = maxV - minV || 100;
+  const padV = range * 0.15;
+  const yMin = minV - padV;
+  const yMax = maxV + padV;
+  const n = pts.length;
+
+  function xPos(i: number) {
+    return EQUITY_PAD.left + (i / (n - 1)) * EQUITY_PLOT_W;
+  }
+  function yPos(v: number) {
+    return EQUITY_PAD.top + EQUITY_PLOT_H - ((v - yMin) / (yMax - yMin)) * EQUITY_PLOT_H;
+  }
+
+  function buildCurve(vals: number[]): string {
+    const points = vals.map((v, i) => ({ x: xPos(i), y: yPos(v) }));
+    let d = `M ${points[0].x},${points[0].y}`;
+    for (let i = 0; i < points.length - 1; i++) {
+      const dx = points[i + 1].x - points[i].x;
+      const cp1x = points[i].x + dx * 0.4;
+      const cp2x = points[i + 1].x - dx * 0.4;
+      d += ` C ${cp1x},${points[i].y} ${cp2x},${points[i + 1].y} ${points[i + 1].x},${points[i + 1].y}`;
+    }
+    return d;
+  }
+
+  const curve = buildCurve(values);
+  const areaPath = `${curve} L ${xPos(n - 1)},${EQUITY_PAD.top + EQUITY_PLOT_H} L ${xPos(0)},${EQUITY_PAD.top + EQUITY_PLOT_H} Z`;
+
+  const yTicks: number[] = [];
+  const step = niceStep(yMax - yMin, 4);
+  for (let v = Math.ceil(yMin / step) * step; v <= yMax + 1e-9; v += step) yTicks.push(v);
+
+  const xLabelCount = Math.min(5, n);
+  const xIndices = Array.from({ length: xLabelCount }, (_, i) =>
+    Math.round((i / (xLabelCount - 1)) * (n - 1)),
+  );
+
+  const gridColor = isDark ? "#3f3f46" : "#f3f4f6";
+  const labelColor = isDark ? "#a1a1aa" : "#9ca3af";
+  const xLabelColor = isDark ? "#a1a1aa" : "#6b7280";
+
+  function formatXLabel(ts: number): string {
+    return new Date(ts * 1000).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      timeZone: "America/New_York",
+    });
+  }
+
+  return (
+    <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6 dark:border-zinc-800/90 dark:bg-[#12181f]">
+      <div className="mb-3">
+        <div className="flex items-baseline justify-between gap-3">
+          <h3 className="font-semibold text-gray-900 dark:text-zinc-100">Account Equity</h3>
+          <span className={`text-sm font-semibold tabular-nums ${isPositive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+            {totalReturn >= 0 ? "+" : ""}{(totalReturn * 100).toFixed(2)}%
+          </span>
+        </div>
+        <p className="text-xs text-gray-400 dark:text-zinc-500">
+          Daily portfolio value from Alpaca · last 30 days
+        </p>
+      </div>
+
+      <svg
+        viewBox={`0 0 ${EQUITY_CHART_W} ${EQUITY_CHART_H}`}
+        className="w-full"
+        style={{ overflow: "visible" }}
+        role="img"
+        aria-label="Account equity chart"
+      >
+        <defs>
+          <linearGradient id="equity-area-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={lineColor} stopOpacity={isDark ? "0.25" : "0.15"} />
+            <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {yTicks.map((v) => (
+          <line key={v} x1={EQUITY_PAD.left} x2={EQUITY_PAD.left + EQUITY_PLOT_W} y1={yPos(v)} y2={yPos(v)} stroke={gridColor} strokeWidth={0.5} />
+        ))}
+        {yTicks.map((v) => (
+          <text key={v} x={EQUITY_PAD.left - 8} y={yPos(v)} textAnchor="end" dominantBaseline="central" fill={labelColor} fontSize="5">
+            {fmtDollarAxis(v)}
+          </text>
+        ))}
+        {xIndices.map((idx) => (
+          <text key={idx} x={xPos(idx)} y={EQUITY_CHART_H - 5} textAnchor="middle" fill={xLabelColor} fontSize="5.5" fontWeight="500">
+            {formatXLabel(pts[idx].timestamp)}
+          </text>
+        ))}
+
+        <path d={areaPath} fill="url(#equity-area-fill)" />
+        <path d={curve} fill="none" stroke={lineColor} strokeWidth={0.9} strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx={xPos(n - 1)} cy={yPos(values[n - 1])} r={2} fill={lineColor} stroke={isDark ? "#12181f" : "white"} strokeWidth="0.75" />
+      </svg>
+    </div>
+  );
+}
+
+function AlpacaAccountBar({ account }: { account: IbkrAccount }) {
+  const dayChange = account.equity - account.lastEquity;
+  const dayChangePct = account.lastEquity > 0 ? dayChange / account.lastEquity : 0;
+  const dayColor =
+    dayChange > 0
+      ? "text-green-600 dark:text-green-400"
+      : dayChange < 0
+        ? "text-red-600 dark:text-red-400"
+        : "text-gray-700 dark:text-zinc-200";
+
+  return (
+    <section
+      aria-label="Alpaca account overview"
+      className="rounded-xl border border-gray-200/90 bg-white px-3 py-2.5 shadow-sm sm:px-4 dark:border-zinc-800 dark:bg-zinc-900/60"
+    >
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-zinc-500">
+          Account · {account.currency}
+        </p>
+        {account.tradingBlocked && (
+          <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700 dark:bg-red-900/40 dark:text-red-400">
+            Trading blocked
+          </span>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs sm:grid-cols-3 md:flex md:flex-wrap md:gap-x-6 md:gap-y-0">
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-gray-500 dark:text-zinc-400">Portfolio value</span>
+          <span className="font-semibold tabular-nums text-gray-900 dark:text-zinc-100">
+            ${account.equity.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
+        </div>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-gray-500 dark:text-zinc-400">Day change</span>
+          <span className={`font-semibold tabular-nums ${dayColor}`}>
+            {dayChange >= 0 ? "+" : ""}${Math.abs(dayChange).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <span className="ml-1 text-[10px] font-normal">
+              ({dayChangePct >= 0 ? "+" : ""}{(dayChangePct * 100).toFixed(2)}%)
+            </span>
+          </span>
+        </div>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-gray-500 dark:text-zinc-400">Invested</span>
+          <span className="font-semibold tabular-nums text-gray-900 dark:text-zinc-100">
+            ${account.longMarketValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
+        </div>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-gray-500 dark:text-zinc-400">Cash</span>
+          <span className="font-semibold tabular-nums text-gray-900 dark:text-zinc-100">
+            ${account.cash.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
+        </div>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-gray-500 dark:text-zinc-400">Buying power</span>
+          <span className="font-semibold tabular-nums text-gray-900 dark:text-zinc-100">
+            ${account.buyingPower.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
+        </div>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-gray-500 dark:text-zinc-400">Day trades</span>
+          <span className={`font-semibold tabular-nums ${account.dayTradeCount >= 3 ? "text-amber-600 dark:text-amber-400" : "text-gray-900 dark:text-zinc-100"}`}>
+            {account.dayTradeCount} / 3
+          </span>
+        </div>
+      </div>
+    </section>
   );
 }
 
