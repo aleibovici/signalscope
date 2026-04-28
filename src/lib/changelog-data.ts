@@ -18,6 +18,7 @@ export const changelog: ChangelogEntry[] = [
           "Alpaca Paper (Live) is now the default tab when opening the Paper Trading page.",
           "S&P 500 benchmark on the Alpaca Live tab now shows a hold-matched average — SPY's return over the exact calendar days each position was held — instead of a flat 30-day return. This makes it a fair apples-to-apples comparison with the portfolio's average per-trade return.",
           'Results tab renamed from "Simulated Portfolio" to "Paper Trading".',
+          'Alpaca Paper (Live) tab now shows a "Just launched" banner and a "New" badge explaining why early returns and win rates are not yet statistically meaningful.',
         ],
       },
     ],
