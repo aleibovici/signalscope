@@ -174,9 +174,9 @@ const blogPostsUnsorted: BlogPost[] = [
   },
   {
     slug: "how-breakout-signals-work",
-    title: "How Breakout Signals Work: Multi-Source Stock Monitoring Explained",
+    title: "How to Find Stock Breakouts Early: 8 Signal Sources to Watch",
     description:
-      "Stock breakouts start with signals across Reddit, SEC filings, options flow, and volume data. Here's how 8 independent sources converge to spot moves before the crowd.",
+      "Pros don't watch one chart — they cross-check 8 sources: Reddit, SEC insider buys, options flow, congress trades, volume. Here's how the signals stack up.",
     date: "2026-03-15",
     readingTime: "6 min read",
     tags: ["signals", "methodology", "getting-started"],
@@ -208,9 +208,9 @@ const blogPostsUnsorted: BlogPost[] = [
   },
   {
     slug: "pump-and-dump-detection",
-    title: "Catching Pump-and-Dump Schemes: The 13-Flag Filter Explained",
+    title: "How to Spot a Pump and Dump: 13 Warning Signs to Check First",
     description:
-      "13 statistical red flags — from coordinated posts to penny stocks with no catalyst — catch pump-and-dump schemes before they cause damage. Here's how each flag works.",
+      "Pump-and-dump schemes always leave fingerprints — coordinated posts, penny stocks, no catalyst. The 13 red flags to verify before you buy a stock.",
     date: "2026-03-14",
     readingTime: "8 min read",
     tags: ["pump-and-dump", "methodology", "filtering"],
@@ -250,9 +250,9 @@ const blogPostsUnsorted: BlogPost[] = [
   },
   {
     slug: "sec-insider-filing-analysis",
-    title: "SEC Insider Filings: C-Suite Purchase Patterns as Breakout Indicators",
+    title: "SEC Insider Buys Today: C-Suite Signals That Predict Breakouts",
     description:
-      "SEC insider purchases by CEOs and CFOs are among the strongest breakout predictors in finance. What makes a $50K+ open-market buy signal significant — and how to use it.",
+      "When CEOs and CFOs put $50K+ of their own money into stock, breakouts often follow within weeks. Here's what to watch — and the red flags that fool traders.",
     date: "2026-03-13",
     readingTime: "7 min read",
     tags: ["sec-filings", "methodology", "insider-trading"],
@@ -386,9 +386,9 @@ const blogPostsUnsorted: BlogPost[] = [
   },
   {
     slug: "volume-spike-detection",
-    title: "Volume Spike Detection: What 2x+ Volume Means for Breakout Trading",
+    title: "Stocks with Unusual Volume Today: How to Spot Real Breakouts",
     description:
-      "When a stock trades at 2x its 10-day average volume, something is happening. What drives volume spikes, why they signal breakouts, and when they mislead.",
+      "A stock trading 2x its 10-day average volume often means a breakout is forming. Here's how to separate real volume signals from pump-and-dump noise.",
     date: "2026-03-09",
     readingTime: "5 min read",
     tags: ["volume", "technical-analysis", "methodology"],

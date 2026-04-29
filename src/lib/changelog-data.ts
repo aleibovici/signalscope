@@ -9,6 +9,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-04-29",
+    title: "SEO Improvements",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "Rewrote titles and meta descriptions for four blog posts with existing Google Search Console impressions to improve click-through rates.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-04-28",
     title: "Paper Trading UX & Benchmark Improvements",
     changes: [
