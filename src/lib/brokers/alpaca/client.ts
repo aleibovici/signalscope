@@ -5,6 +5,7 @@ import { TTLCache } from "@/lib/cache";
 
 const portfolioHistoryCache = new TTLCache<BrokerPortfolioHistory>(8 * 60 * 1000, 1); // 8 min TTL, 1 entry
 const positionsCache = new TTLCache<BrokerPositionStatus[]>(60 * 1000, 1); // 60s TTL, 1 entry
+const closedOrdersCache = new TTLCache<BrokerOrderStatus[]>(60 * 1000, 5); // 60s TTL, up to 5 windows
 
 export interface AlpacaCredentials {
   apiKey: string;
@@ -78,6 +79,36 @@ export class AlpacaClient implements BrokerClient {
   async listOpenOrders(): Promise<BrokerOrderStatus[]> {
     const orders = await this.request<AlpacaOrder[]>("GET", "/v2/orders?status=open&limit=500");
     return orders.map(mapOrder);
+  }
+
+  async listClosedOrders(afterIso?: string): Promise<BrokerOrderStatus[]> {
+    const cacheKey = afterIso ?? "all";
+    const cached = closedOrdersCache.get(cacheKey);
+    if (cached) return cached;
+    const params = new URLSearchParams({
+      status: "closed",
+      limit: "500",
+      direction: "desc",
+      nested: "true",
+    });
+    if (afterIso) params.set("after", afterIso);
+    const orders = await this.request<AlpacaOrder[]>("GET", `/v2/orders?${params.toString()}`);
+    // Flatten bracket children — Alpaca returns child legs nested under their parent.
+    // Dedupe by id since nested mode behavior could change.
+    const flat: AlpacaOrder[] = [];
+    const seen = new Set<string>();
+    const push = (o: AlpacaOrder) => {
+      if (seen.has(o.id)) return;
+      seen.add(o.id);
+      flat.push(o);
+    };
+    for (const o of orders) {
+      push(o);
+      if (o.legs) for (const leg of o.legs) push(leg);
+    }
+    const result = flat.map(mapOrder);
+    closedOrdersCache.set(cacheKey, result);
+    return result;
   }
 
   async getOrder(brokerOrderId: string): Promise<BrokerOrderStatus | null> {
@@ -155,6 +186,8 @@ function mapOrder(o: AlpacaOrder): BrokerOrderStatus {
     avgFillPrice: parseFloat(o.filled_avg_price ?? "0"),
     side: o.side,
     symbol: o.symbol,
+    filledAt: o.filled_at ? new Date(o.filled_at) : null,
+    createdAt: o.created_at ? new Date(o.created_at) : null,
   };
 }
 

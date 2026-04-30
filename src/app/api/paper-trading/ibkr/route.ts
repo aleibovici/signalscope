@@ -4,31 +4,184 @@ import { handleApiError } from "@/lib/api-error";
 import { fetchSpyTotalReturnDecimal, fetchSpyDailyBars, spyReturnForDateRange } from "@/lib/spy-benchmark";
 import { getBrokerClient, isConfigured } from "@/lib/brokers/factory";
 import { AlpacaClient } from "@/lib/brokers/alpaca/client";
-import type { BrokerAccount, BrokerPortfolioHistory } from "@/lib/brokers/interface";
+import type {
+  BrokerAccount,
+  BrokerPortfolioHistory,
+  BrokerOrderStatus,
+  BrokerPositionStatus,
+} from "@/lib/brokers/interface";
+
+interface ReconstructedRound {
+  symbol: string;
+  status: "OPEN" | "CLOSED";
+  entryPrice: number;
+  exitPrice: number | null;
+  quantity: number;
+  openedAt: Date;
+  closedAt: Date | null;
+  unrealizedPnl: number | null;
+  pnl: number | null;
+  returnPct: number | null;
+}
+
+// Walk a symbol's filled orders chronologically, splitting into round-trips.
+// A round opens on a BUY when running qty is 0, accumulates further BUYs/SELLs,
+// and closes when running qty returns to 0.
+function reconstructRounds(
+  symbol: string,
+  fills: BrokerOrderStatus[],
+  openPosition: BrokerPositionStatus | undefined,
+  nowMs: number,
+): ReconstructedRound[] {
+  const sorted = fills
+    .slice()
+    .sort((a, b) => (a.filledAt?.getTime() ?? 0) - (b.filledAt?.getTime() ?? 0));
+
+  const rounds: ReconstructedRound[] = [];
+  let buys: BrokerOrderStatus[] = [];
+  let sells: BrokerOrderStatus[] = [];
+  let qty = 0;
+
+  const flush = (closedAt: Date | null) => {
+    if (buys.length === 0) return;
+    const totalBuyQty = buys.reduce((s, b) => s + b.filledQty, 0);
+    const totalSellQty = sells.reduce((s, b) => s + b.filledQty, 0);
+    const wAvgEntry =
+      totalBuyQty > 0
+        ? buys.reduce((s, b) => s + b.avgFillPrice * b.filledQty, 0) / totalBuyQty
+        : 0;
+    const wAvgExit =
+      totalSellQty > 0
+        ? sells.reduce((s, b) => s + b.avgFillPrice * b.filledQty, 0) / totalSellQty
+        : null;
+
+    if (closedAt) {
+      const ret = wAvgExit !== null ? (wAvgExit - wAvgEntry) / wAvgEntry : null;
+      const pnl = wAvgExit !== null ? (wAvgExit - wAvgEntry) * totalSellQty : null;
+      rounds.push({
+        symbol,
+        status: "CLOSED",
+        entryPrice: wAvgEntry,
+        exitPrice: wAvgExit,
+        quantity: totalSellQty || totalBuyQty,
+        openedAt: buys[0].filledAt ?? new Date(nowMs),
+        closedAt,
+        unrealizedPnl: null,
+        pnl,
+        returnPct: ret,
+      });
+    }
+    buys = [];
+    sells = [];
+    qty = 0;
+  };
+
+  for (const f of sorted) {
+    if (f.side === "buy") {
+      buys.push(f);
+      qty += f.filledQty;
+    } else {
+      sells.push(f);
+      qty -= f.filledQty;
+      if (qty <= 0 && (buys.length > 0 || sells.length > 0)) {
+        flush(f.filledAt ?? new Date(nowMs));
+      }
+    }
+  }
+
+  // If running qty > 0, the trailing buys are the OPEN position. Use Alpaca's
+  // current /v2/positions data for entry/current price (Alpaca already weight-
+  // averages avg_entry_price across multiple buys, including any that pre-date
+  // our 30d order-history window).
+  if (openPosition) {
+    const ret =
+      (openPosition.marketPrice - openPosition.avgEntryPrice) / openPosition.avgEntryPrice;
+    const openedAt = buys.length > 0 ? buys[0].filledAt ?? new Date(nowMs) : new Date(nowMs);
+    rounds.push({
+      symbol: openPosition.symbol,
+      status: "OPEN",
+      entryPrice: openPosition.avgEntryPrice,
+      exitPrice: openPosition.marketPrice,
+      quantity: openPosition.qty,
+      openedAt,
+      closedAt: null,
+      unrealizedPnl: openPosition.unrealizedPnl,
+      pnl: openPosition.unrealizedPnl,
+      returnPct: ret,
+    });
+  }
+
+  return rounds;
+}
 
 export async function GET() {
   try {
-    // Fetch all broker positions (open and recently closed)
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000);
+    const now = Date.now();
+    const windowStart = new Date(now - 30 * 86400000);
+    const windowEnd = new Date(now);
 
-    const [positions, orders] = await Promise.all([
-      prisma.brokerPosition.findMany({
-        where: {
-          OR: [
-            { closedAt: null },
-            { closedAt: { gte: thirtyDaysAgo } },
-          ],
-        },
-        orderBy: { openedAt: "desc" },
-      }),
-      prisma.brokerOrder.findMany({
-        where: {
-          role: "PARENT",
-          placedAt: { gte: thirtyDaysAgo },
-        },
-        include: {
-          validatedTicker: {
+    let positions: BrokerPositionStatus[] = [];
+    let closedOrders: BrokerOrderStatus[] = [];
+    let account: BrokerAccount | null = null;
+    let portfolioHistory: BrokerPortfolioHistory | null = null;
+
+    const brokerCalls: Promise<unknown>[] = [];
+    if (isConfigured()) {
+      const client = getBrokerClient();
+      brokerCalls.push(
+        client.listPositions().then((p) => { positions = p; }).catch(() => {}),
+        client
+          .listClosedOrders(windowStart.toISOString())
+          .then((o) => { closedOrders = o; })
+          .catch(() => {}),
+        client.getAccount().then((a) => { account = a; }).catch(() => {}),
+        client instanceof AlpacaClient
+          ? client.getPortfolioHistory("1M").then((h) => { portfolioHistory = h; }).catch(() => {})
+          : Promise.resolve(),
+      );
+    }
+
+    const [spyReturnPct, spyBars] = await Promise.all([
+      fetchSpyTotalReturnDecimal(windowStart, windowEnd),
+      fetchSpyDailyBars(windowStart, windowEnd),
+      ...brokerCalls,
+    ]);
+
+    // Group fills by symbol — keep only orders with real fills
+    const fillsBySymbol = new Map<string, BrokerOrderStatus[]>();
+    for (const o of closedOrders) {
+      if (o.filledQty <= 0 || !o.filledAt || o.avgFillPrice <= 0) continue;
+      const list = fillsBySymbol.get(o.symbol) ?? [];
+      list.push(o);
+      fillsBySymbol.set(o.symbol, list);
+    }
+
+    const positionBySymbol = new Map(positions.map((p) => [p.symbol, p]));
+    const allSymbols = new Set<string>([
+      ...fillsBySymbol.keys(),
+      ...positionBySymbol.keys(),
+    ]);
+
+    const rounds: ReconstructedRound[] = [];
+    for (const symbol of allSymbols) {
+      const fills = fillsBySymbol.get(symbol) ?? [];
+      const openPos = positionBySymbol.get(symbol);
+      rounds.push(...reconstructRounds(symbol, fills, openPos, now));
+    }
+
+    // Drop closed rounds whose close fell outside the 30d window
+    const filtered = rounds.filter(
+      (r) => r.status === "OPEN" || (r.closedAt && r.closedAt.getTime() >= windowStart.getTime()),
+    );
+
+    // Pull metadata for every symbol that ended up in the result
+    const symbolList = Array.from(new Set(filtered.map((r) => r.symbol)));
+    const tickers =
+      symbolList.length > 0
+        ? await prisma.validatedTicker.findMany({
+            where: { symbol: { in: symbolList } },
             select: {
+              symbol: true,
               aiScore: true,
               opportunityScore: true,
               stage: true,
@@ -41,90 +194,43 @@ export async function GET() {
               tradeSetupTimeframe: true,
               tradeSetupConfidence: true,
               tradeSetupRiskReward: true,
+              createdAt: true,
             },
-          },
-        },
-        orderBy: { placedAt: "desc" },
-      }),
-    ]);
+            orderBy: { createdAt: "desc" },
+          })
+        : [];
 
-    // Build a map of symbol → latest parent order
-    const orderBySymbol = new Map<string, (typeof orders)[0]>();
-    for (const order of orders) {
-      if (!orderBySymbol.has(order.symbol)) {
-        orderBySymbol.set(order.symbol, order);
-      }
+    const tickerBySymbol = new Map<string, (typeof tickers)[0]>();
+    for (const t of tickers) {
+      if (!tickerBySymbol.has(t.symbol)) tickerBySymbol.set(t.symbol, t);
     }
 
-    const now = Date.now();
-    const windowStart = new Date(now - 30 * 86400000);
-    const windowEnd = new Date(now);
-
-    let account: BrokerAccount | null = null;
-    let portfolioHistory: BrokerPortfolioHistory | null = null;
-    const livePriceBySymbol = new Map<string, number>();
-
-    const [spyReturnPct, spyBars] = await Promise.all([
-      fetchSpyTotalReturnDecimal(windowStart, windowEnd),
-      fetchSpyDailyBars(windowStart, windowEnd),
-    ]);
-
-    if (isConfigured()) {
-      const client = getBrokerClient();
-      await Promise.all([
-        client.getAccount().then((a) => { account = a; }).catch(() => {}),
-        client instanceof AlpacaClient
-          ? client.getPortfolioHistory("1M").then((h) => { portfolioHistory = h; }).catch(() => {})
-          : Promise.resolve(),
-        client.listPositions().then((livePositions) => {
-          for (const p of livePositions) livePriceBySymbol.set(p.symbol, p.marketPrice);
-        }).catch(() => {}),
-      ]);
-    }
-
-    const trades = positions.map((pos) => {
-      const order = orderBySymbol.get(pos.symbol);
-      const vt = order?.validatedTicker;
-      const status = pos.closedAt ? "CLOSED" : "OPEN";
-
-      const entryPrice = pos.avgCost;
-      const livePrice = !pos.closedAt ? livePriceBySymbol.get(pos.symbol) : undefined;
-      const exitPrice = livePrice ?? pos.marketPrice ?? null;
-      const returnPct =
-        exitPrice !== null
-          ? (exitPrice - entryPrice) / entryPrice
-          : null;
-
-      const holdMs = pos.closedAt
-        ? pos.closedAt.getTime() - pos.openedAt.getTime()
-        : now - pos.openedAt.getTime();
-      const holdDays = Math.round(holdMs / 86400000);
-      const pnl = returnPct !== null ? 1000 * returnPct : null;
-
-      const exitMs = pos.closedAt ? pos.closedAt.getTime() : now;
-      const spyReturnPct = returnPct !== null
-        ? spyReturnForDateRange(spyBars, pos.openedAt.getTime(), exitMs)
-        : null;
+    const trades = filtered.map((r) => {
+      const vt = tickerBySymbol.get(r.symbol);
+      const exitMs = r.closedAt?.getTime() ?? now;
+      const holdMs = exitMs - r.openedAt.getTime();
+      const holdDays = Math.max(0, Math.round(holdMs / 86400000));
+      const spyRet = spyReturnForDateRange(spyBars, r.openedAt.getTime(), exitMs);
 
       return {
-        symbol: pos.symbol,
+        symbol: r.symbol,
         name: vt?.name ?? null,
         aiScore: vt?.aiScore ?? null,
         stage: vt?.stage ?? null,
         recommendation: vt?.recommendation ?? null,
         catalyst: vt?.catalyst ?? null,
-        entryPrice,
-        exitPrice,
-        quantity: pos.quantity,
-        returnPct,
-        pnl,
-        unrealizedPnl: pos.unrealizedPnl ?? null,
-        realizedPnl: pos.realizedPnl,
+        entryPrice: r.entryPrice,
+        exitPrice: r.exitPrice,
+        quantity: r.quantity,
+        returnPct: r.returnPct,
+        pnl: r.pnl,
+        unrealizedPnl: r.unrealizedPnl,
+        realizedPnl: r.status === "CLOSED" ? r.pnl : null,
         holdDays,
-        status,
-        spyReturnPct,
-        openedAt: pos.openedAt.toISOString().slice(0, 10),
-        closedAt: pos.closedAt?.toISOString().slice(0, 10) ?? null,
+        status: r.status,
+        spyReturnPct: spyRet,
+        openedAt: r.openedAt.toISOString().slice(0, 10),
+        closedAt: r.closedAt?.toISOString().slice(0, 10) ?? null,
         tradeSetup: vt
           ? {
               entryHi: vt.tradeSetupEntryHi,
@@ -137,6 +243,8 @@ export async function GET() {
           : null,
       };
     });
+
+    trades.sort((a, b) => (a.openedAt < b.openedAt ? 1 : a.openedAt > b.openedAt ? -1 : 0));
 
     const closedTrades = trades.filter((t) => t.status === "CLOSED");
     const openTrades = trades.filter((t) => t.status === "OPEN");
