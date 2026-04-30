@@ -524,6 +524,7 @@ function IbkrPanel({
               summary.tradesWithMark === 0 ? undefined : summary.avgReturn > 0 ? "green" : summary.avgReturn < 0 ? "red" : undefined
             }
             sub={`n=${summary.tradesWithMark}`}
+            subHint="Capital-weighted: total P&L ÷ total deployed capital"
           />
           <KpiTile
             label="S&P 500"
@@ -548,7 +549,8 @@ function IbkrPanel({
             label="Total P&L"
             value={summary.tradesWithMark > 0 ? `${summary.totalPnl >= 0 ? "+" : "-"}$${Math.abs(summary.totalPnl).toFixed(2)}` : "--"}
             valueColor={summary.tradesWithMark === 0 ? undefined : summary.totalPnl > 0 ? "green" : summary.totalPnl < 0 ? "red" : undefined}
-            sub="$1k/leg"
+            sub="open + closed"
+            subHint="Sum of unrealized (open) and realized (closed) P&L from actual Alpaca fills"
           />
         </div>
       </section>

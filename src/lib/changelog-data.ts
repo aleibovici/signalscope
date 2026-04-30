@@ -24,6 +24,7 @@ export const changelog: ChangelogEntry[] = [
         items: [
           "Added a 60-second cache on Alpaca position and order-history fetches to keep the page snappy without overloading the Alpaca API.",
           "Per-trade P&L now reflects actual position size (e.g. 20 ABT shares × current price) rather than a synthetic $1k/leg approximation, so totals match Alpaca to the cent. The Open/Closed Positions tables now display the API's real P&L value instead of recomputing it client-side.",
+          "Avg Return is now capital-weighted (total P&L ÷ total deployed capital) instead of a simple per-trade mean — this reflects the actual return on capital, not a flat average. The misleading '$1k/leg' label on the Total P&L tile has been replaced with 'open + closed'.",
         ],
       },
     ],

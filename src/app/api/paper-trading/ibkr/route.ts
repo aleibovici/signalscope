@@ -252,10 +252,13 @@ export async function GET() {
     const closedWithReturn = closedTrades.filter((t) => t.returnPct !== null);
     const wins = closedWithReturn.filter((t) => t.returnPct! > 0);
     const totalPnl = tradesWithReturn.reduce((sum, t) => sum + (t.pnl ?? 0), 0);
-    const avgReturn =
-      tradesWithReturn.length > 0
-        ? tradesWithReturn.reduce((sum, t) => sum + (t.returnPct ?? 0), 0) / tradesWithReturn.length
-        : 0;
+    // Capital-weighted average return: actual dollar return on deployed capital,
+    // not a simple mean of per-trade percentages. Reflects portfolio reality.
+    const totalInvested = tradesWithReturn.reduce(
+      (sum, t) => sum + t.entryPrice * t.quantity,
+      0,
+    );
+    const avgReturn = totalInvested > 0 ? totalPnl / totalInvested : 0;
 
     const summary = {
       totalTrades: trades.length,
