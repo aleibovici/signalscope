@@ -4,6 +4,7 @@ import type { AlpacaOrder, AlpacaPosition, AlpacaAccount, AlpacaPortfolioHistory
 import { TTLCache } from "@/lib/cache";
 
 const portfolioHistoryCache = new TTLCache<BrokerPortfolioHistory>(8 * 60 * 1000, 1); // 8 min TTL, 1 entry
+const positionsCache = new TTLCache<BrokerPositionStatus[]>(60 * 1000, 1); // 60s TTL, 1 entry
 
 export interface AlpacaCredentials {
   apiKey: string;
@@ -93,8 +94,12 @@ export class AlpacaClient implements BrokerClient {
   }
 
   async listPositions(): Promise<BrokerPositionStatus[]> {
+    const cached = positionsCache.get("positions");
+    if (cached) return cached;
     const positions = await this.request<AlpacaPosition[]>("GET", "/v2/positions");
-    return positions.map(mapPosition);
+    const result = positions.map(mapPosition);
+    positionsCache.set("positions", result);
+    return result;
   }
 
   async placeMarketSell(symbol: string, qty: number): Promise<void> {

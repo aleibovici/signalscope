@@ -62,6 +62,7 @@ export async function GET() {
 
     let account: BrokerAccount | null = null;
     let portfolioHistory: BrokerPortfolioHistory | null = null;
+    const livePriceBySymbol = new Map<string, number>();
 
     const [spyReturnPct, spyBars] = await Promise.all([
       fetchSpyTotalReturnDecimal(windowStart, windowEnd),
@@ -75,6 +76,9 @@ export async function GET() {
         client instanceof AlpacaClient
           ? client.getPortfolioHistory("1M").then((h) => { portfolioHistory = h; }).catch(() => {})
           : Promise.resolve(),
+        client.listPositions().then((livePositions) => {
+          for (const p of livePositions) livePriceBySymbol.set(p.symbol, p.marketPrice);
+        }).catch(() => {}),
       ]);
     }
 
@@ -84,13 +88,12 @@ export async function GET() {
       const status = pos.closedAt ? "CLOSED" : "OPEN";
 
       const entryPrice = pos.avgCost;
-      const exitPrice = pos.marketPrice ?? null;
+      const livePrice = !pos.closedAt ? livePriceBySymbol.get(pos.symbol) : undefined;
+      const exitPrice = livePrice ?? pos.marketPrice ?? null;
       const returnPct =
-        pos.closedAt && pos.marketPrice
-          ? (pos.marketPrice - entryPrice) / entryPrice
-          : !pos.closedAt && pos.marketPrice
-            ? (pos.marketPrice - entryPrice) / entryPrice
-            : null;
+        exitPrice !== null
+          ? (exitPrice - entryPrice) / entryPrice
+          : null;
 
       const holdMs = pos.closedAt
         ? pos.closedAt.getTime() - pos.openedAt.getTime()
