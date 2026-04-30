@@ -14,6 +14,7 @@ npm run build            # Production build
 npm run lint             # ESLint
 npm test                 # Run Vitest unit tests (~930 tests, 55 files)
 npm run test:watch       # Vitest watch mode
+npm run test:coverage    # Vitest with coverage report
 npm run db:generate      # Generate Prisma client (run after schema changes)
 npm run db:migrate       # Run Prisma migrations (dev)
 npm run db:seed          # Seed database with default user (user_1)
@@ -40,7 +41,7 @@ docker compose -f docker-compose.harvest.yml --env-file .env.production run --rm
 - **Zod 4** for validation
 - **Tailwind CSS 4**
 - **Auth.js v5** (next-auth@beta) with Credentials provider, JWT session strategy, bcryptjs
-- **Dual AI providers**: OpenAI (GPT-4o) and Anthropic (Claude 3.5 Sonnet) with per-call-point override and fallback
+- **Dual AI providers**: OpenAI (GPT-4o / GPT-4o-mini) and Anthropic (Claude Sonnet 4 `claude-sonnet-4-20250514` / Haiku 4.5 mini `claude-haiku-4-5-20251001`) with per-call-point override and fallback
 
 ## Architecture
 
@@ -87,12 +88,20 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 - `src/lib/paper-trading-returns.ts` — `computePaperTradeMark()` uses `TickerPerformance` horizons (prefers 7d → 3d → 1d); positions **OPEN** until age ≥ 7 days then **CLOSED**
 - `src/lib/spy-benchmark.ts` — `fetchSpyTotalReturnDecimal()` loads SPY adj. close bars from Yahoo Finance; cached ~45m via `TTLCache`
 - `src/lib/analytics.ts` — `trackEvent()` pushes to GTM dataLayer; **use `trackConversion` (with `await`) whenever the next line navigates away** so pixel requests complete before page unloads
+- `src/lib/votes.ts` — `getAggregates()`, `getUserVotes()`, `computeDecayWeight()` — ticker community voting with 45-day exponential half-life; cached 60s
+- `src/lib/score-explainer.ts` — shared callout copy for Opportunity Score vs AI Score explanation (used across dashboard, trending, performance, methodology, connections)
+- `src/lib/share-reward.ts` — Share & Earn: tweet about SignalScope → Stripe trial extension; `buildTweetIntentUrl()`
+- `src/lib/price-correlation.ts` — `pearsonCorrelation()` for price return data
+- `src/lib/stage-labels.ts` — `STAGE_LABELS` map: `EARLY`→`"Emerging"`, `FORMING`→`"Building"`, `CONFIRMED`→`"Consensus"` (DB enum ≠ display label)
+- `src/lib/validators.ts` — shared Zod schemas: `paginationSchema`, `symbolsQuerySchema`
+- `src/lib/username-generator.ts` — auto-generates display usernames on registration
+- `src/lib/ga4-server.ts` — server-side GA4 event tracking (complements client GTM)
 
 ### AI Provider System (`src/lib/ai/`)
 
-- `config.ts` resolves provider per call point (scoring, pnd, report) via env vars
+- `config.ts` resolves provider per call point (scoring, pnd, report, promo) via env vars
 - `chatJSON()` in `index.ts` wraps calls with primary/secondary fallback and cost tracking
-- Override per call point: `AI_PROVIDER_SCORING`, `AI_PROVIDER_PND`, `AI_PROVIDER_REPORT`
+- Override per call point: `AI_PROVIDER_SCORING`, `AI_PROVIDER_PND`, `AI_PROVIDER_REPORT`, `AI_PROVIDER_PROMO`
 
 ### API Routes (`src/app/api/`)
 
@@ -120,6 +129,15 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 | `/api/paper-trading` | GET | Simulated paper portfolio — one $1k leg per high-scoring ticker in last 30d; returns `summary`, `trades`, SPY `benchmark` — **authenticated** |
 | `/api/user/profile` | GET/PATCH | Get or update user profile |
 | `/api/user/api-key` | GET/POST/DELETE | Manage API key |
+| `/api/users/export` | GET | Export email-opted-in users as JSON or CSV — `?format=csv` (x-snapshot-key auth) |
+| `/api/votes` | GET | Community vote aggregates for symbols (`?symbols=A,B`); POST to cast a vote — optional auth |
+| `/api/admin/costs` | GET | AI cost log summary (7d, 30d, all-time) — `role: admin` only |
+| `/api/admin/payments` | GET | Stripe payment/subscription summary — `role: admin` only |
+| `/api/admin/stats` | GET | Platform stats for admin — `role: admin` only |
+| `/api/admin/users` | GET | User list — `role: admin` only |
+| `/api/admin/x-usage` | GET | X/Twitter API credit usage — `role: admin` only |
+| `/api/apple/verify` | POST | Apple In-App Purchase receipt verification |
+| `/api/apple/webhook` | POST | Apple App Store Server notification webhook |
 | `/api/health` | GET | Health check |
 | `/api/indexnow` | GET | IndexNow SEO submission |
 | `/api/auth/[...nextauth]` | GET/POST | Auth.js handlers |
@@ -144,7 +162,7 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 
 ### Frontend (`src/app/(dashboard)/`)
 
-Dashboard pages: signals (main), trending, connections, portfolio, paper trading (`/paper-trading` — table + aggregates vs SPY), ticker detail, performance, methodology, subscription, profile. Route group `(dashboard)` with shared sidebar layout.
+Dashboard pages: signals (main), trending, connections, portfolio, paper trading (`/paper-trading` — table + aggregates vs SPY), ticker detail, performance, methodology, subscription, profile, `/admin` (role-gated admin dashboard), `/results/signal-quality` and `/results/simulated-portfolio` (backtesting result views). Route group `(dashboard)` with shared sidebar layout.
 
 Public pages: `/changelog` — statically rendered (`src/app/changelog/page.tsx`), data in `src/lib/changelog-data.ts`. Linked from sidebar with "NEW" badge for 14 days after latest entry.
 
@@ -157,8 +175,9 @@ All data fetching hooks in `src/hooks/` using TanStack Query.
 Multi-user email/password auth via Auth.js v5. Mobile clients use Bearer token auth.
 
 - `auth.config.ts` — Edge-safe config; `trustHost: true` required for Cloud Run reverse proxy
-- `auth.ts` — Full NextAuth instance; exports `auth`, `handlers`, `getCurrentUserId()`
-- `getCurrentUserId()` is **async** — all callers must `await` it; checks `Authorization: Bearer` (mobile JWT) → `x-api-key` → Auth.js cookie session
+- `auth.ts` — Full NextAuth instance; exports `auth`, `handlers`, `getCurrentUserId()`, `getOptionalUserId()`
+- `getCurrentUserId()` is **async** — all callers must `await` it; checks `Authorization: Bearer` (mobile JWT) → `x-api-key` → Auth.js cookie session; throws 401 if unauthenticated
+- `getOptionalUserId()` — same lookup chain but returns `string | null` instead of throwing; use for routes that work for both guests and logged-in users (e.g. votes)
 - `mobile-jwt.ts` — HS256 JWT via `jose`, signing key `"mobile:" + AUTH_SECRET`, 15min access tokens, 30-day refresh tokens (DB-backed, rotation on use)
 - `src/proxy.ts` (middleware) — Protects dashboard routes and `/api/portfolio/**`, `/api/watchlist/**`, `/api/user/**`; Bearer/x-api-key bypass middleware (verified in route handlers)
 - Public routes: `/login`, `/register`, `/changelog`, `/api/auth/**`, `/api/health`, `/api/alerts/**`, `/api/harvest/**`, `/api/snapshots/**`, `/api/reports/**`
@@ -182,7 +201,7 @@ $10/mo or $100/yr gates: API key access, on-demand AI report generation, email a
 
 ### Database Models
 
-Key models in `prisma/schema.prisma`: **User** (`emailAlerts`, `stripeCustomerId`), **Subscription** (Stripe state), **Scan** (harvest run), **Signal** (raw), **ValidatedTicker** (scored candidates), **TickerPerformance** (post-scan returns), **PriceSnapshot** (price time-series), **UserPosition** (portfolio), **UserWatchlist**, **RefreshToken** (mobile auth), **ApiKey** (`sk_sig_` prefix, SHA-256 hashed), **TwitterFollow** (auto-follow queue).
+Key models in `prisma/schema.prisma`: **User** (`emailAlerts`, `stripeCustomerId`, `role`), **Subscription** (Stripe state), **Scan** (harvest run), **Signal** (raw), **ValidatedTicker** (scored candidates), **TickerPerformance** (post-scan returns), **PriceSnapshot** (price time-series), **UserPosition** (portfolio), **UserWatchlist**, **RefreshToken** (mobile auth), **ApiKey** (`sk_sig_` prefix, SHA-256 hashed), **TwitterFollow** (auto-follow queue), **AiCostLog** (per-call AI cost tracking), **BrokerOrder** / **BrokerPosition** (broker integration state), **PasswordResetToken** (password reset flow), **UserVote** (community ticker votes with timestamps for decay), **X402Payment** (x402 on-chain payment records), **XApiLog** (X/Twitter API credit usage tracking).
 
 `ValidatedTicker` notable fields: `wk52Lo/wk52Hi`, `firstSeenDaysAgo` (null = truly novel), `priorAppearances`, `exchange`, `aiReasoning`, `pndFlagged/pndFlags/pndScore/pndAiConfidence/pndAiReasoning`, `netPremium` (call−put premium $), `callPremiumRatio` (0–1), `tradeSetupEntryLo/EntryHi/StopLoss/Target1/Target2/Timeframe/RiskReward/Confidence`.
 
@@ -212,6 +231,7 @@ AI_PRIMARY_PROVIDER=openai
 AI_PROVIDER_SCORING=anthropic
 AI_PROVIDER_PND=anthropic
 AI_PROVIDER_REPORT=anthropic
+AI_PROVIDER_PROMO=anthropic
 
 # Harvester
 HARVEST_ENDPOINT_URL=http://localhost:3000/api/harvest/ingest
@@ -256,7 +276,7 @@ BING_SITE_VERIFICATION=...
 
 - **Cloud Run** — web app (`signalscope-web`), Next.js standalone, port 3000
 - **Cloud SQL** — PostgreSQL 16 (`signalscope-db`, db-f1-micro), Unix socket
-- **Cloud Scheduler** — 6 weekday ET jobs: email alerts (9:10 AM), portfolio alerts (9:12 AM), reports (9:15 AM), snapshots open (9:45 AM), midday (12:30 PM), close (4:05 PM); follow job 3x/day weekdays (9AM, 1PM, 5PM); performance tweet daily (10 AM ET Mon–Fri); weekly digest (Sundays 10 AM ET)
+- **Cloud Scheduler** — weekday ET jobs: reports + Alpaca orders (8:55 AM), email alerts (9:05 AM), portfolio alerts (9:07 AM), snapshots open (9:45 AM), midday (12:30 PM), close (4:05 PM); follow job weekdays (9AM); performance tweet daily (10 AM ET Mon–Fri); weekly digest (Sundays 10 AM ET)
 - **Secret Manager** — `DATABASE_URL`, `AUTH_SECRET`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `SNAPSHOT_API_KEY`, `RESEND_API_KEY`
 - **Artifact Registry** — Docker images (`signalscope` repo)
 - **GitHub Actions** — CI/CD on push to `main`; Workload Identity Federation for keyless auth
@@ -278,7 +298,7 @@ Every run creates a `PriceSnapshot` row for all tickers within 30 days of detect
 | Source | Status | Notes |
 |--------|--------|-------|
 | Reddit | Active | `old.reddit.com` JSON, sequential 1.5s delay, browser UA |
-| X/Twitter | Active | X API v2 Recent Search, requires Basic tier ($200/mo) |
+| X/Twitter | Degraded | X API v2 Recent Search, requires Basic tier ($200/mo); credits depleted 2026-04-07 |
 | SEC Insider | Active | OpenInsider HTML + EDGAR RSS, C-suite $50K+ purchases |
 | Congress | Active | CapitolTrades.com, deduplicates by transaction ID |
 | Volume Spike | Active | Yahoo Finance, 89 symbols, 2x avg volume threshold |
@@ -304,6 +324,7 @@ Key gotchas:
 - TICKER_REGEX is `{1,5}` — 6+ char words never match
 - P&D threshold: `flags.length >= 3` to flag as pump-and-dump
 - `coordinated_posts`: duplicateRatio = `1 - uniqueTitles/totalTitles >= 0.5`
+- DB stage enum values (`EARLY/FORMING/CONFIRMED`) differ from display labels (`Emerging/Building/Consensus`) — see `src/lib/stage-labels.ts`
 
 ## Agent Skill
 
