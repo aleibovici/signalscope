@@ -9,6 +9,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-05-01",
+    title: "Paper Trading Chart Fix",
+    changes: [
+      {
+        category: "fixed",
+        items: [
+          "The Alpaca equity curve chart no longer exaggerates small drawdowns. The y-axis now spans at least 5% of the starting account value, so minor fluctuations don't appear as dramatic losses.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-04-30",
     title: "Alpaca Paper Trading: Source of Truth Rewrite",
     changes: [

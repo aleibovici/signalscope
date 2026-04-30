@@ -597,7 +597,8 @@ function AlpacaEquityCurve({ history }: { history: IbkrPortfolioHistory }) {
   const allVals = [baseValue, ...values];
   const minV = Math.min(...allVals);
   const maxV = Math.max(...allVals);
-  const range = maxV - minV || 100;
+  const minRange = baseValue * 0.05; // always show at least 5% of starting value
+  const range = Math.max(maxV - minV, minRange) || 100;
   const padV = range * 0.15;
   const yMin = minV - padV;
   const yMax = maxV + padV;
