@@ -19,6 +19,8 @@ export interface BrokerOrderStatus {
   avgFillPrice: number;
   side: string;
   symbol: string;
+  filledAt?: Date | null;
+  createdAt?: Date | null;
 }
 
 export interface BrokerPositionStatus {
@@ -57,6 +59,7 @@ export interface BrokerClient {
 
   placeBracketOrder(params: BracketOrderParams): Promise<BracketOrderResult>;
   listOpenOrders(): Promise<BrokerOrderStatus[]>;
+  listClosedOrders(afterIso?: string): Promise<BrokerOrderStatus[]>;
   getOrder(brokerOrderId: string): Promise<BrokerOrderStatus | null>;
   cancelOrder(brokerOrderId: string): Promise<void>;
   listPositions(): Promise<BrokerPositionStatus[]>;

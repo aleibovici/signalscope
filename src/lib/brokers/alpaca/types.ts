@@ -12,6 +12,9 @@ export interface AlpacaOrder {
   limit_price: string | null;
   stop_price: string | null;
   time_in_force: string;
+  created_at?: string;
+  filled_at?: string | null;
+  canceled_at?: string | null;
   legs?: AlpacaOrder[];
 }
 
