@@ -811,7 +811,7 @@ function IbkrTradesTable({
                     : t.returnPct !== null && t.returnPct < 0
                       ? "text-red-600 dark:text-red-400"
                       : "text-gray-400 dark:text-zinc-500";
-                const pnlVal = t.returnPct !== null ? 1000 * t.returnPct : null;
+                const pnlVal = t.pnl;
                 return (
                   <tr key={`${t.symbol}-${t.openedAt}`} className="border-b border-gray-50 hover:bg-gray-50/50 dark:border-zinc-800/80 dark:hover:bg-zinc-900/50">
                     <td className="px-4 py-2.5">
@@ -854,7 +854,7 @@ function IbkrTradesTable({
                 : t.returnPct !== null && t.returnPct < 0
                   ? "text-red-600 dark:text-red-400"
                   : "text-gray-500 dark:text-zinc-400";
-            const pnlVal = t.returnPct !== null ? 1000 * t.returnPct : null;
+            const pnlVal = t.pnl;
             return (
               <div key={`${t.symbol}-${t.openedAt}`} className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
                 <div className="flex items-start justify-between gap-3">

@@ -89,7 +89,7 @@ export function useIbkrPaperTrades() {
       if (!res.ok) throw new Error("Failed to fetch IBKR paper trades");
       return res.json();
     },
-    staleTime: 5 * 60 * 1000, // 5 min — sync runs 3x/day
+    staleTime: 60 * 1000, // 60s — matches server-side Alpaca position cache
     refetchOnWindowFocus: false,
   });
 }
