@@ -9,6 +9,24 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-04-30",
+    title: "Live Alpaca Position Prices",
+    changes: [
+      {
+        category: "fixed",
+        items: [
+          "Open positions on the Alpaca Paper (Live) tab now show real-time prices fetched directly from Alpaca on every page load, instead of stale prices from the last sync (which only ran 3x/day). Returns and P&L now match Alpaca's dashboard.",
+        ],
+      },
+      {
+        category: "improved",
+        items: [
+          "Added a 60-second cache on Alpaca position fetches to keep the page snappy without overloading the Alpaca API.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-04-29",
     title: "SEO Improvements",
     changes: [
