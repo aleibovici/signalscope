@@ -10,12 +10,13 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-05-01",
-    title: "Paper Trading Chart Fix",
+    title: "Paper Trading Fixes",
     changes: [
       {
         category: "fixed",
         items: [
           "The Alpaca equity curve chart no longer exaggerates small drawdowns. The y-axis now spans at least 5% of the starting account value, so minor fluctuations don't appear as dramatic losses.",
+          "Alpaca paper orders are now placed for BUY-rated tickers as intended. Report generation was previously ordered by opportunity score, so high-confidence BUY signals (AI 80) were skipped in favour of lower-scoring Watch tickers. Reports — and the trade setups they contain — are now generated for the highest AI-score tickers first.",
         ],
       },
     ],
