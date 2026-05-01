@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
         stage: { in: ["EARLY", "FORMING"] },
         catalyst: null, // no report yet
       },
-      orderBy: { opportunityScore: "desc" },
+      orderBy: [{ aiScore: "desc" }, { opportunityScore: "desc" }],
       take: BATCH_SIZE,
     });
 
