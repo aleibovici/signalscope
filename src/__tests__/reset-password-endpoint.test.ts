@@ -23,11 +23,11 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 // Mock bcrypt
-const mockHash = vi.fn(() => Promise.resolve("$2a$12$newhash"));
+const mockHash = vi.fn((..._args: unknown[]) => Promise.resolve("$2a$12$newhash"));
 vi.mock("bcryptjs", () => ({ default: { hash: (...args: unknown[]) => mockHash(...args) } }));
 
 // Mock rate limiting
-const mockIsRateLimited = vi.fn(() => false);
+const mockIsRateLimited = vi.fn((..._args: unknown[]) => false as boolean);
 vi.mock("@/lib/rate-limit", () => ({
   isRateLimited: (...args: unknown[]) => mockIsRateLimited(...args),
   getClientIP: () => "127.0.0.1",

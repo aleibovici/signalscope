@@ -103,7 +103,7 @@ describe("handleApiError — rate limit mapping", () => {
 
   it("returns 429 for API key rate limit exceeded error", () => {
     const err = new Error("API key rate limit exceeded (1,000 requests/day)");
-    const res = handleApiError(err, "test") as { status: number; body: { error: string } };
+    const res = handleApiError(err, "test") as unknown as { status: number; body: { error: string } };
     expect(res.status).toBe(429);
     expect(res.body.error).toContain("rate limit");
   });

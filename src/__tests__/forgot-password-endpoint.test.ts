@@ -18,14 +18,14 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 // Mock rate limiting
-const mockIsRateLimited = vi.fn(() => false);
+const mockIsRateLimited = vi.fn((..._args: unknown[]) => false as boolean);
 vi.mock("@/lib/rate-limit", () => ({
   isRateLimited: (...args: unknown[]) => mockIsRateLimited(...args),
   getClientIP: () => "127.0.0.1",
 }));
 
 // Mock email sending
-const mockSendPasswordResetEmail = vi.fn(() => Promise.resolve(true));
+const mockSendPasswordResetEmail = vi.fn((..._args: unknown[]) => Promise.resolve(true));
 vi.mock("@/lib/email/password-reset", () => ({
   sendPasswordResetEmail: (...args: unknown[]) => mockSendPasswordResetEmail(...args),
 }));

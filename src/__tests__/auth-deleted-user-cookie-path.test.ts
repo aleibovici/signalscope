@@ -3,10 +3,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.stubEnv("AUTH_SECRET", "test-secret-for-cookie-path");
 
 // Hoisted so the mock factory can reference it
-const mockSessionAuth = vi.hoisted(() => vi.fn(() => Promise.resolve(null)));
+const mockSessionAuth = vi.hoisted(() => vi.fn<(...args: unknown[]) => Promise<{ user?: { id?: string } } | null>>(() => Promise.resolve(null)));
 
 // Mock headers — return null for all keys so Bearer and API-key paths are skipped
-const mockHeadersGet = vi.fn(() => null);
+const mockHeadersGet = vi.fn((_k: string) => null as string | null);
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve({ get: (k: string) => mockHeadersGet(k) }),
 }));

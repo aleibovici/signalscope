@@ -18,14 +18,14 @@ const mockCompare = vi.fn();
 vi.mock("bcryptjs", () => ({ default: { compare: (...args: unknown[]) => mockCompare(...args) } }));
 
 // Mock rate limiting — allow everything by default
-const mockIsRateLimited = vi.fn(() => false);
+const mockIsRateLimited = vi.fn((..._args: unknown[]) => false as boolean);
 vi.mock("@/lib/rate-limit", () => ({
   isRateLimited: (...args: unknown[]) => mockIsRateLimited(...args),
   getClientIP: () => "127.0.0.1",
 }));
 
 // Mock mobile-jwt
-const mockSignAccessToken = vi.fn(() => Promise.resolve("mock-access-token"));
+const mockSignAccessToken = vi.fn((..._args: unknown[]) => Promise.resolve("mock-access-token"));
 const mockGenerateRefreshToken = vi.fn(() => "mock-refresh-token");
 const mockGetRefreshTokenExpiry = vi.fn(() => new Date("2026-04-01"));
 vi.mock("@/lib/mobile-jwt", () => ({
