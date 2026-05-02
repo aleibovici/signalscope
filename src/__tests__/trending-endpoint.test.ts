@@ -469,7 +469,7 @@ describe("GET /api/tickers/trending", () => {
           makeTicker("TECH", 70, "CONFIRMED", daysAgo(1), "scan_1", { sector: "Technology" }),
           makeTicker("HLTH", 60, "FORMING", daysAgo(1), "scan_1", { sector: "Healthcare" }),
         ];
-        return sectors ? records.filter((r) => sectors.includes(r.sector)) : records;
+        return sectors ? records.filter((r) => sectors.includes(r.sector as string)) : records;
       }
       return [
         { symbol: "TECH", aiScore: 70, stage: "CONFIRMED", createdAt: daysAgo(1) },
@@ -1089,7 +1089,7 @@ describe("GET /api/tickers/trending", () => {
           makeTicker("HLTH", 65, "FORMING",   daysAgo(1), "scan_1", { sector: "Healthcare" }),
           makeTicker("ENRG", 60, "EARLY",     daysAgo(1), "scan_1", { sector: "Energy" }),
         ];
-        return sectors ? records.filter((r) => sectors.includes(r.sector)) : records;
+        return sectors ? records.filter((r) => sectors.includes(r.sector as string)) : records;
       }
       return [
         { symbol: "TECH", aiScore: 70, stage: "CONFIRMED", createdAt: daysAgo(1) },

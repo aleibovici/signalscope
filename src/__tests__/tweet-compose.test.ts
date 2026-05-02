@@ -64,7 +64,7 @@ describe("composeTickerTweet", () => {
   });
 
   it("omits price from info line when null", () => {
-    const tweet = composeTickerTweet(makeTicker({ price: null, tradeSetup: null }));
+    const tweet = composeTickerTweet(makeTicker({ price: null }));
     // Info line is now line index 2 (after headline + hook)
     const infoLine = tweet.split("\n")[2];
     expect(infoLine).toMatch(/^\$/); // starts with market cap $

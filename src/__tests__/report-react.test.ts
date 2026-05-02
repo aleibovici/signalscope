@@ -3,7 +3,7 @@ import type { ChatJSONRequest, ChatJSONResponse } from "@/lib/ai/types";
 import type { AggregatedSymbol, FundamentalData, NoveltyContext } from "@/lib/harvester/types";
 
 // Mock chatJSON (used by both single-shot generateTickerReport and chatReACT)
-const mockChatJSON = vi.fn<[ChatJSONRequest], Promise<ChatJSONResponse>>();
+const mockChatJSON = vi.fn<(req: ChatJSONRequest) => Promise<ChatJSONResponse>>();
 vi.mock("@/lib/ai", () => ({
   chatJSON: (req: ChatJSONRequest) => mockChatJSON(req),
 }));

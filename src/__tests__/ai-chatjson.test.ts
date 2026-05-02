@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ChatJSONRequest, ChatJSONResponse } from "@/lib/ai/types";
 
-const mockOpenAI = vi.fn<[ChatJSONRequest], Promise<ChatJSONResponse>>();
-const mockAnthropic = vi.fn<[ChatJSONRequest], Promise<ChatJSONResponse>>();
-const mockResolve = vi.fn<[string], [string, string | null]>();
+const mockOpenAI = vi.fn<(req: ChatJSONRequest) => Promise<ChatJSONResponse>>();
+const mockAnthropic = vi.fn<(req: ChatJSONRequest) => Promise<ChatJSONResponse>>();
+const mockResolve = vi.fn<(s: string) => [string, string | null]>();
 
 vi.mock("@/lib/ai/openai", () => ({ chatJSONOpenAI: mockOpenAI }));
 vi.mock("@/lib/ai/anthropic", () => ({ chatJSONAnthropic: mockAnthropic }));
@@ -27,6 +27,7 @@ const dummyRequest: ChatJSONRequest = {
 
 const successResponse: ChatJSONResponse = {
   content: '{"result": "ok"}',
+  provider: "openai",
   cost: 0.01,
 };
 
@@ -51,7 +52,7 @@ describe("chatJSON — primary success", () => {
   });
 
   it("does not track cost when response has no cost field", async () => {
-    mockOpenAI.mockResolvedValue({ content: "{}" });
+    mockOpenAI.mockResolvedValue({ content: "{}", provider: "openai" });
     await chatJSON(dummyRequest);
     expect(addCost).not.toHaveBeenCalled();
   });
@@ -74,7 +75,7 @@ describe("chatJSON — primary fails, secondary succeeds", () => {
 
   it("tracks cost from secondary response", async () => {
     mockOpenAI.mockRejectedValue(new Error("openai down"));
-    mockAnthropic.mockResolvedValue({ content: "{}", cost: 0.02 });
+    mockAnthropic.mockResolvedValue({ content: "{}", provider: "anthropic", cost: 0.02 });
     await chatJSON(dummyRequest);
     expect(addCost).toHaveBeenCalledWith(0.02);
   });

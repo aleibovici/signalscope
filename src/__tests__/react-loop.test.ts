@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ChatJSONRequest, ChatJSONResponse } from "@/lib/ai/types";
 
 // Mock chatJSON
-const mockChatJSON = vi.fn<[ChatJSONRequest], Promise<ChatJSONResponse>>();
+const mockChatJSON = vi.fn<(req: ChatJSONRequest) => Promise<ChatJSONResponse>>();
 vi.mock("@/lib/ai", () => ({
   chatJSON: (req: ChatJSONRequest) => mockChatJSON(req),
 }));

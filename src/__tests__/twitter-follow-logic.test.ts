@@ -165,14 +165,15 @@ describe("ensureSeedAccounts — unresolvable seeding regression", () => {
     // Each create call receives a single { data: { ... } } argument.
     // At least one should have source: "unresolvable".
     const unresolvableCalls = mockTwitterFollow.create.mock.calls.filter(
-      ([args]: [{ data?: { source?: string } }]) => args?.data?.source === "unresolvable"
+      (args) => (args[0] as { data?: { source?: string } })?.data?.source === "unresolvable"
     );
     expect(unresolvableCalls.length).toBeGreaterThan(0);
 
     // The twitterId for unresolvable records must use the "unresolvable_" prefix
-    for (const [args] of unresolvableCalls as [{ data: { twitterId: string; username: string } }][]) {
-      expect(args.data.twitterId).toMatch(/^unresolvable_/);
-      expect(args.data.twitterId).toBe(`unresolvable_${args.data.username}`);
+    for (const args of unresolvableCalls) {
+      const data = (args[0] as { data: { twitterId: string; username: string } }).data;
+      expect(data.twitterId).toMatch(/^unresolvable_/);
+      expect(data.twitterId).toBe(`unresolvable_${data.username}`);
     }
 
     fetchSpy.mockRestore();
@@ -366,8 +367,7 @@ describe("processFollows — excludes unresolvable records from follow queue", (
 
     // Find the findMany call that queries the follow queue
     const queueCall = mockTwitterFollow.findMany.mock.calls.find(
-      ([args]: [{ where?: { source?: unknown } }]) =>
-        args?.where?.source !== undefined
+      (args) => (args[0] as { where?: { source?: unknown } })?.where?.source !== undefined
     ) as [{ where: { source: { not: string } } }] | undefined;
 
     expect(queueCall).toBeDefined();
