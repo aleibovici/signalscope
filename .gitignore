@@ -55,3 +55,6 @@ scripts/output/
 
 # Git worktrees
 .worktrees/
+
+# harvester logs
+/logs/
