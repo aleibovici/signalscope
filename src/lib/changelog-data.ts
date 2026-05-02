@@ -9,6 +9,24 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-05-03",
+    title: "iOS App & API Updates",
+    changes: [
+      {
+        category: "new",
+        items: [
+          "Public /api/changelog endpoint — the iOS app can now fetch the changelog natively.",
+        ],
+      },
+      {
+        category: "fixed",
+        items: [
+          "Community votes are now visible to all clients. The /api/votes endpoint was incorrectly protected by middleware, causing vote counts to silently fail for mobile and unauthenticated requests.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-05-01",
     title: "Paper Trading Fixes",
     changes: [
