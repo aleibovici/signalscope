@@ -172,7 +172,7 @@ export const recommendationLevels: RecommendationLevel[] = [
 export const methodologyDescription =
   "SignalScope monitors public ticker mentions across eight signal sources — from social media and SEC filings " +
   "to congressional trades and Polymarket prediction markets — aggregates them by symbol, scores each candidate with AI, runs a " +
-  "13-flag pump-and-dump filter, and validates signal quality against a LightGBM ML backtesting pipeline trained on historical breakout outcomes across 304 engineered features. " +
+  "13-flag pump-and-dump filter, and validates signal quality against a LightGBM ML backtesting pipeline trained on historical breakout outcomes across 308 engineered features. " +
   "The result is a prioritised watchlist of tickers with the strongest multi-source backing, " +
   "verifiable catalysts, and machine-learning-confirmed signal patterns — surfaced before the crowd.";
 
@@ -204,18 +204,19 @@ export const backtestDescription =
   "measure nominal returns at 1, 3, 7, and 30 days after detection. Tickers that undergo corporate actions " +
   "(reverse splits, forward splits, mergers) during the tracking window are automatically detected via " +
   "consecutive-snapshot analysis and excluded from performance statistics. This growing dataset trains a single " +
-  "LightGBM regression model (depth 2, 40 estimators) on 3-day forward returns across 304 engineered features — " +
+  "LightGBM regression model (depth 2, 40 estimators) on 3-day forward returns across 308 engineered features — " +
   "EWMA historical cross-products, P&D flag history, short-float and float-size interactions, and scan-level " +
-  "aggregates. Only about a dozen features carry non-zero importance; the dominant predictor is the interaction " +
-  "between a ticker's prior P&D reputation and its current P&D flag count, followed by scan-level context " +
-  "(average signal strength, scan size, log market cap). The model is evaluated on 1-, 3-, and 7-day horizons; " +
+  "aggregates. Only about 13 features carry non-zero importance; the dominant predictor is the average signal " +
+  "strength across the scan, followed by the log of the interaction between a ticker's prior P&D reputation and " +
+  "its current P&D flag count, then scan size, log market cap, and the prior P&D × scan size interaction. " +
+  "The model is evaluated on 1-, 3-, and 7-day horizons; " +
   "feature importance analysis identifies which factors drive accuracy and feeds back into AI score thresholds, " +
   "stage assignments, and pump-and-dump detection — so the platform gets smarter with every scan.";
 
 export const backtestPipeline = [
   "Price snapshots (open & close)",
   "Return computation (1d, 3d, 7d, 30d)",
-  "Feature engineering (304 features, EWMA cross-products)",
+  "Feature engineering (308 features, EWMA cross-products)",
   "LightGBM training on 3d returns + importance analysis",
   "Multi-horizon evaluation + threshold optimization",
 ] as const;
