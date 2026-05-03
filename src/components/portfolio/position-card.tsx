@@ -20,8 +20,14 @@ export function PositionCard({
   const isPositive = gainPct != null && gainPct > 0;
   const isNegative = gainPct != null && gainPct < 0;
 
+  const railClass = isPositive
+    ? "border-l-2 border-l-emerald-500 dark:border-l-emerald-400"
+    : isNegative
+      ? "border-l-2 border-l-rose-500 dark:border-l-rose-400"
+      : "";
+
   return (
-    <Card className="transition-shadow hover:shadow-md">
+    <Card className={`transition-shadow hover:shadow-md ${railClass}`}>
       <CardContent className="px-4 py-3">
         {/* Row 1: symbol + badge + gain + days */}
         <div className="flex items-center justify-between">
@@ -36,7 +42,7 @@ export function PositionCard({
           </div>
           {gainPct != null && (
             <span
-              className={`text-sm font-bold ${
+              className={`text-xl font-bold ${
                 isPositive ? "text-green-600 dark:text-green-400" : isNegative ? "text-red-600 dark:text-red-400" : "text-gray-600 dark:text-zinc-300"
               }`}
             >
