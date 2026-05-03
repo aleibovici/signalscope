@@ -19,6 +19,12 @@ export const changelog: ChangelogEntry[] = [
         ],
       },
       {
+        category: "improved",
+        items: [
+          "AI scoring prompt and methodology now reflect the latest LightGBM backtest (pool_627, May-03 dataset). Average signal strength across the scan is now the dominant predictor; the historical P&D × current flag interaction is the second-strongest. Feature count updated to 308.",
+        ],
+      },
+      {
         category: "fixed",
         items: [
           "Community votes are now visible to all clients. The /api/votes endpoint was incorrectly protected by middleware, causing vote counts to silently fail for mobile and unauthenticated requests.",

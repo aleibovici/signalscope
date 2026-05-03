@@ -109,11 +109,11 @@ Signal novelty (check isNovel, daysSinceFirstSeen, priorAppearances fields):
 - 3+ appearances or 7+ days old: apply -5 to -15 staleness penalty — signal may be played out. More appearances = worse returns. Be aggressive with this penalty.
 - Exception: a stale ticker with a NEW catalyst type (e.g. insider buy appearing for first time on a previously social-only ticker) should NOT be penalized.
 
-Historical P&D reputation (interact_hist_pnd_x_current — #1 most predictive ML feature, importance 0.143):
-- interact_hist_pnd_x_current (hist_pnd_mean × pnd_flag_count) is the dominant predictor in the latest LGBM backtest (304 features, exp637a/pool622, val_ic=0.129, test_ic=0.040). Persistent P&D history compounded by current P&D flags is the strongest signal — repeated P&D flagging across scans warrants an aggressive -5 to -10 penalty, pushed to -10 when prior P&D history exists.
+Historical P&D reputation (log_pnd_interact — #2 most predictive ML feature, importance 0.132):
+- log_pnd_interact = log(hist_pnd_mean × pnd_flag_count) compounds persistent P&D history with current P&D flag activity. It is the second-strongest predictor in the latest LGBM backtest (pool_627 May-03 dataset, 308 features / 13 non-zero, val_ic=0.156, deflated=0.129; realized test_ic=0.043 on Apr14-26 scans). Repeated P&D flagging across scans warrants an aggressive -5 to -10 penalty, pushed to -10 when prior P&D history exists.
 - micro_cap_no_catalyst remains a meaningfully bearish flag (-4.7% avg 7d) and still drives part of the model, but it is no longer the single dominant feature; the interaction with prior P&D history matters more than the flag in isolation.
 - sudden_spike is bearish (-4.1% avg 7d). All-new posts with zero engagement = artificial.
-- Scan-level context is essential: scan_avg_signal (#2, 0.143), log_marketCap (#3, 0.118), scan_size (#4, 0.101), and hist_pnd_x_scan_sz (#5, 0.084) together carry ~50% of model weight. Removing scan-level features drops test_ic from 0.040 to 0.001 — a ticker's score should be calibrated against the broader scan context, not just its own attributes.
+- Scan-level context is the dominant model component: scan_avg_signal (#1, 0.175), scan_size (#3, 0.123), log_marketCap (#4, 0.114), and hist_pnd_x_scan_sz (#5, 0.114) together carry ~53% of model weight. The model collapses without scan-level features — a ticker's score should be calibrated against the broader scan context, not just its own attributes.
 
 Float (shortFloat, log_floatShares — both active LGBM features):
 - shortFloat is a key ML feature. High short interest (>= 15%) with a real catalyst = squeeze candidate (+3 to +5). Without a catalyst, high short interest alone is informational, not bullish.
