@@ -13,6 +13,14 @@ import { SignalCard } from "@/components/dashboard/signal-card";
 import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 
+function timeAgo(dateStr: string): string {
+  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
 function downloadWatchlistCSV(symbols: Set<string>) {
   const lines = ["Symbol", ...Array.from(symbols).sort()];
   const blob = new Blob([lines.join("\n")], { type: "text/csv" });
@@ -115,7 +123,12 @@ useScrollRestore("dashboard");
   return (
     <div className="space-y-4 md:space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="type-h1 text-gray-900 dark:text-zinc-100">Signal Dashboard</h1>
+        <div>
+          <h1 className="type-h1 text-gray-900 dark:text-zinc-100">Signal Dashboard</h1>
+          {scanDetail?.scan?.completedAt && (
+            <p className="mt-0.5 num text-xs text-muted">Updated {timeAgo(scanDetail.scan.completedAt)}</p>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={toggleViewMode}
