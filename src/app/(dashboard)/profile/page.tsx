@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { useUserProfile, useUpdateUsername, useUpdateEmailAlerts } from "@/hooks/use-user-profile";
+import { useUserProfile, useUpdateUsername, useUpdateEmailAlerts, type SubscriptionInfo } from "@/hooks/use-user-profile";
 import { useApiKey, useGenerateApiKey, useRevokeApiKey } from "@/hooks/use-api-key";
 import { useShareReward, useClaimShareReward } from "@/hooks/use-share-reward";
 import { trackEvent } from "@/lib/analytics";
@@ -29,7 +29,17 @@ export default function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-lg">
-      <h1 className="mb-6 text-2xl font-bold text-gray-900 dark:text-zinc-100">Profile</h1>
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="truncate text-2xl font-bold text-gray-900 dark:text-zinc-100">
+            {profile?.username ?? profile?.email?.split("@")[0] ?? "Profile"}
+          </h1>
+          {profile?.email && (
+            <p className="mt-0.5 truncate text-sm text-gray-500 dark:text-zinc-400">{profile.email}</p>
+          )}
+        </div>
+        {!isLoading && <SubscriptionBadge subscription={profile?.subscription ?? null} />}
+      </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-[#12181f]">
         <h2 className="mb-4 text-base font-semibold text-gray-800 dark:text-zinc-100">Username</h2>
@@ -93,17 +103,12 @@ export default function ProfilePage() {
         {isLoading ? (
           <p className="text-sm text-gray-400 dark:text-zinc-500">Loading…</p>
         ) : !profile?.subscription?.isActive ? (
-          <>
-            <p className="mb-4 text-sm text-gray-500 dark:text-zinc-400">
-              Receive a daily digest email with all confirmed tickers after each scan.
-            </p>
-            <p className="text-sm text-gray-500 dark:text-zinc-400">
-              Email alerts require a Pro subscription.{" "}
-              <Link href="/subscription" className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-                Upgrade to Pro
-              </Link>
-            </p>
-          </>
+          <p className="text-sm text-gray-500 dark:text-zinc-400">
+            Email alerts require a Pro subscription.{" "}
+            <Link href="/subscription" className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+              Upgrade to Pro
+            </Link>
+          </p>
         ) : (
           <>
             <p className="mb-4 text-sm text-gray-500 dark:text-zinc-400">
@@ -146,6 +151,39 @@ export default function ProfilePage() {
       <ApiKeySection hasSubscription={profile?.subscription?.isActive ?? false} />
       <DeleteAccountSection />
     </div>
+  );
+}
+
+function SubscriptionBadge({ subscription }: { subscription: SubscriptionInfo | null }) {
+  if (!subscription || (subscription.status !== "ACTIVE" && subscription.status !== "PAST_DUE")) {
+    return (
+      <span className="shrink-0 rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500 dark:bg-zinc-800 dark:text-zinc-400">
+        Free
+      </span>
+    );
+  }
+  if (subscription.status === "PAST_DUE") {
+    return (
+      <Link
+        href="/subscription"
+        className="shrink-0 rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-200 dark:bg-red-900/40 dark:text-red-300 dark:hover:bg-red-900/60"
+      >
+        Pro · Payment failed
+      </Link>
+    );
+  }
+  const date = new Date(subscription.currentPeriodEnd).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  if (subscription.cancelAtPeriodEnd) {
+    return (
+      <span className="shrink-0 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+        Pro · ends {date}
+      </span>
+    );
+  }
+  return (
+    <span className="shrink-0 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+      Pro · renews {date}
+    </span>
   );
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { type ReactNode, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip } from "@/components/ui/tooltip";
 import type { ValidatedTickerData } from "@/hooks/use-scans";
@@ -31,6 +31,20 @@ const RETURN_LABELS: Record<string, string> = {
   "3d": "3d",
   "7d": "7d",
   "30d": "30d",
+};
+
+const tagStyleMap: Record<string, string> = {
+  "P&D Risk":     "bg-red-500/10 text-red-600 dark:bg-red-400/10 dark:text-red-400",
+  "New":          "bg-sky-500/10 text-sky-700 dark:bg-sky-400/10 dark:text-sky-400",
+  "Bullish Flow": "bg-emerald-500/10 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400",
+  "Bearish Flow": "bg-rose-500/10 text-rose-600 dark:bg-rose-400/10 dark:text-rose-400",
+  "Short Squeeze":"bg-orange-500/10 text-orange-700 dark:bg-orange-400/10 dark:text-orange-400",
+  "Momentum":     "bg-blue-500/10 text-blue-700 dark:bg-blue-400/10 dark:text-blue-400",
+  "Near 52W Low": "bg-amber-500/10 text-amber-700 dark:bg-amber-400/10 dark:text-amber-400",
+  "High Velocity":"bg-violet-500/10 text-violet-700 dark:bg-violet-400/10 dark:text-violet-400",
+  "Recovery":     "bg-teal-500/10 text-teal-700 dark:bg-teal-400/10 dark:text-teal-400",
+  "Multi-Reddit": "bg-purple-500/10 text-purple-700 dark:bg-purple-400/10 dark:text-purple-400",
+  "High SI":      "bg-amber-500/10 text-amber-700 dark:bg-amber-400/10 dark:text-amber-400",
 };
 
 function getReturnValue(ticker: ValidatedTickerData, period: string): number | null | undefined {
@@ -84,10 +98,12 @@ export function SignalCard({
   ticker,
   returnPeriod = "7d",
   variant = "card",
+  header,
 }: {
   ticker: ValidatedTickerData;
   returnPeriod?: string;
   variant?: "card" | "row";
+  header?: ReactNode;
 }) {
   const tags = useMemo(() => collectTags(ticker), [ticker]);
   const visibleTags = tags.slice(0, MAX_TAGS);
@@ -136,7 +152,7 @@ export function SignalCard({
         {/* Tags */}
         <div className="pointer-events-none relative z-1 hidden items-center gap-1 md:flex">
           {visibleTags.map((tag, i) => (
-            <span key={`${tag}-${i}`} className="rounded bg-surface-muted px-1.5 py-0.5 text-[10px] text-muted">
+            <span key={`${tag}-${i}`} className={`rounded px-1.5 py-0.5 text-[10px] ${tagStyleMap[tag] ?? "bg-surface-muted text-muted"}`}>
               {tag}
             </span>
           ))}
@@ -210,6 +226,11 @@ export function SignalCard({
         aria-label={`Open ${ticker.symbol} detail`}
         draggable={false}
       />
+      {header && (
+        <div className="pointer-events-none relative z-1 border-b border-border-default/60">
+          {header}
+        </div>
+      )}
       <CardContent className="pointer-events-none relative z-1 flex flex-1 flex-col gap-3 px-4 py-3 md:px-5 md:py-4">
 
         {/* Row 1: stage pill (top-left, stays visible) */}
@@ -297,7 +318,7 @@ export function SignalCard({
             {visibleTags.map((tag, i) => (
               <span
                 key={`${tag}-${i}`}
-                className="rounded bg-surface-muted px-1.5 py-0.5 text-[10px] text-muted"
+                className={`rounded px-1.5 py-0.5 text-[10px] ${tagStyleMap[tag] ?? "bg-surface-muted text-muted"}`}
               >
                 {tag}
               </span>

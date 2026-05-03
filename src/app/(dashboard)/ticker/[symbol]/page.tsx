@@ -23,6 +23,22 @@ function formatTimeAgo(d: Date): string {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
+const PND_FLAG_LABELS: Record<string, string> = {
+  penny_price:               "Penny stock",
+  otc_listing:               "OTC / pink sheet",
+  micro_cap_no_catalyst:     "Micro-cap, no catalyst",
+  only_penny_subs:           "Only penny stock communities",
+  single_source:             "Single source",
+  coordinated_posts:         "Coordinated posts",
+  no_news_catalyst:          "No news catalyst",
+  sudden_spike:              "Sudden spike",
+  sub_dime_52wk_floor:       "Below $0.10 for 52 weeks",
+  upvote_pump:               "Upvote manipulation",
+  hyperbolic_language:       "Hyperbolic language",
+  twitter_bot_promoters:     "Bot-like promoters",
+  twitter_coordinated_pump:  "Coordinated social campaign",
+};
+
 const SOURCE_LABELS: Record<string, string> = {
   SEC_INSIDER: "SEC Insider Filing",
   SEC_FILING: "SEC Filing",
@@ -520,8 +536,20 @@ export default function TickerDetailPage({
         </div>
 
         <div className="flex flex-wrap gap-1.5">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-600/25 bg-blue-600/10 px-2.5 py-0.5 text-[11px] font-bold text-blue-700 dark:text-blue-300">
-            <span className="font-semibold text-blue-600/80 dark:text-blue-400/90">Stage</span>
+          <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${
+            ticker.stage === "Emerging"
+              ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+              : ticker.stage === "Building"
+                ? "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                : "border-blue-600/25 bg-blue-600/10 text-blue-700 dark:text-blue-300"
+          }`}>
+            <span className={`font-semibold ${
+              ticker.stage === "Emerging"
+                ? "text-emerald-600/80 dark:text-emerald-400/90"
+                : ticker.stage === "Building"
+                  ? "text-amber-600/80 dark:text-amber-400/90"
+                  : "text-blue-600/80 dark:text-blue-400/90"
+            }`}>Stage</span>
             {ticker.stage}
           </span>
           {ticker.recommendation ? (
@@ -571,7 +599,7 @@ export default function TickerDetailPage({
                           : "border-slate-200 bg-white text-slate-600 dark:border-[#2a3441] dark:bg-[#161d26] dark:text-zinc-400"
                   }`}
                 >
-                  {flag.replace(/_/g, " ")}
+                  {PND_FLAG_LABELS[flag] ?? flag.replace(/_/g, " ")}
                 </span>
               ))}
             </>

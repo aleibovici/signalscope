@@ -229,56 +229,58 @@ export default function PaperTradingPage() {
       {/* ─── Simulated Panel ─── */}
       {tab === "simulated" && (
         <>
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-            <div className="min-w-0 w-full sm:w-auto">
-              <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">
-                Lookback
-              </label>
-              <select
-                value={lookbackDays}
-                onChange={(e) => setLookbackDays(Number(e.target.value))}
-                className={`${selectClass} h-11 w-full min-w-0 touch-manipulation sm:h-10 sm:w-auto sm:min-w-36`}
-              >
-                {LOOKBACK_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="rounded-xl border border-gray-200 bg-gray-50/70 px-4 py-3.5 dark:border-zinc-800 dark:bg-zinc-900/50">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+              <div className="min-w-0 w-full sm:w-auto">
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">
+                  Lookback
+                </label>
+                <select
+                  value={lookbackDays}
+                  onChange={(e) => setLookbackDays(Number(e.target.value))}
+                  className={`${selectClass} h-11 w-full min-w-0 touch-manipulation sm:h-10 sm:w-auto sm:min-w-36`}
+                >
+                  {LOOKBACK_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div className="min-w-0 w-full sm:w-auto">
-              <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">
-                Min AI Score
-              </label>
-              <select
-                value={minScore}
-                onChange={(e) => setMinScore(Number(e.target.value))}
-                className={`${selectClass} h-11 w-full min-w-0 touch-manipulation sm:h-10 sm:w-auto sm:min-w-36`}
-              >
-                {SCORE_OPTIONS.map((s) => (
-                  <option key={s} value={s}>
-                    {s}+
-                  </option>
-                ))}
-              </select>
-            </div>
+              <div className="min-w-0 w-full sm:w-auto">
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">
+                  Min AI Score
+                </label>
+                <select
+                  value={minScore}
+                  onChange={(e) => setMinScore(Number(e.target.value))}
+                  className={`${selectClass} h-11 w-full min-w-0 touch-manipulation sm:h-10 sm:w-auto sm:min-w-36`}
+                >
+                  {SCORE_OPTIONS.map((s) => (
+                    <option key={s} value={s}>
+                      {s}+
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div className="min-w-0 w-full sm:w-auto">
-              <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">
-                Position Size
-              </label>
-              <select
-                value={positionSize}
-                onChange={(e) => setPositionSize(Number(e.target.value))}
-                className={`${selectClass} h-11 w-full min-w-0 touch-manipulation sm:h-10 sm:w-auto sm:min-w-36`}
-              >
-                {[500, 1000, 2500, 5000, 10000].map((s) => (
-                  <option key={s} value={s}>
-                    ${s.toLocaleString()}
-                  </option>
-                ))}
-              </select>
+              <div className="min-w-0 w-full sm:w-auto">
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-zinc-400">
+                  Position Size
+                </label>
+                <select
+                  value={positionSize}
+                  onChange={(e) => setPositionSize(Number(e.target.value))}
+                  className={`${selectClass} h-11 w-full min-w-0 touch-manipulation sm:h-10 sm:w-auto sm:min-w-36`}
+                >
+                  {[500, 1000, 2500, 5000, 10000].map((s) => (
+                    <option key={s} value={s}>
+                      ${s.toLocaleString()}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
@@ -1530,9 +1532,16 @@ function TradeRow({
         ? "text-red-600 dark:text-red-400"
         : "text-gray-400 dark:text-zinc-500";
 
+  const railColor =
+    t.returnPct !== null && t.returnPct > 0
+      ? "border-emerald-500 dark:border-emerald-400"
+      : t.returnPct !== null && t.returnPct < 0
+        ? "border-rose-500 dark:border-rose-400"
+        : "border-transparent";
+
   return (
     <tr className="border-b border-gray-50 hover:bg-gray-50/50 dark:border-zinc-800/80 dark:hover:bg-zinc-900/50">
-      <td className="max-w-[min(100%,16rem)] px-4 py-2.5">
+      <td className={`max-w-[min(100%,16rem)] border-l-2 px-4 py-2.5 ${railColor}`}>
         <div className="flex min-w-0 items-baseline gap-1.5">
           <Link
             href={`/ticker/${t.symbol}`}

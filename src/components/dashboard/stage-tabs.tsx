@@ -8,6 +8,18 @@ const stages = [
   { key: STAGE_LABELS.CONFIRMED, label: STAGE_LABELS.CONFIRMED },
 ];
 
+const stageActiveColors: Record<string, string> = {
+  Emerging: "bg-emerald-500 text-white dark:bg-emerald-500 dark:text-white",
+  Building:  "bg-amber-500 text-white dark:bg-amber-500 dark:text-white",
+  Consensus: "bg-blue-500 text-white dark:bg-blue-500 dark:text-white",
+};
+
+const stageActiveCountColors: Record<string, string> = {
+  Emerging: "text-emerald-100",
+  Building:  "text-amber-100",
+  Consensus: "text-blue-100",
+};
+
 export function StageTabs({
   selected,
   onSelect,
@@ -27,7 +39,7 @@ export function StageTabs({
             aria-pressed={selected === stage.key}
             className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold transition-colors sm:px-5 sm:py-2 ${
               selected === stage.key
-                ? "bg-blue-500 text-white dark:bg-blue-500 dark:text-white"
+                ? stageActiveColors[stage.key] ?? "bg-blue-500 text-white"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
             }`}
           >
@@ -35,7 +47,7 @@ export function StageTabs({
             {counts && counts[stage.key] !== undefined && (
               <span className={`ml-2 tabular-nums font-medium ${
                 selected === stage.key
-                  ? "text-blue-100"
+                  ? (stageActiveCountColors[stage.key] ?? "text-blue-100")
                   : "text-gray-400 dark:text-zinc-500"
               }`}>
                 {counts[stage.key]}
