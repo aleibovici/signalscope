@@ -6,6 +6,7 @@ import { QueryProvider } from "@/lib/query-provider";
 import { AppThemeProvider } from "@/lib/theme-provider";
 import { AuthSessionProvider } from "@/lib/session-provider";
 import { GoogleAnalyticsPageView } from "@/lib/google-analytics";
+import { auth } from "@/lib/auth";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -185,16 +186,26 @@ const jsonLd = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+  const isAdmin = session?.user?.role === "admin";
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://www.googletagmanager.com" />
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        {isAdmin && (
+          // Suppress GA4 tracking for admin users before GTM loads
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `window['ga-disable-G-TFSF1MJ97V']=true;`,
+            }}
+          />
+        )}
         <link
           rel="alternate"
           type="application/rss+xml"
