@@ -9,6 +9,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-05-05",
+    title: "Analytics & Traffic",
+    changes: [
+      {
+        category: "fixed",
+        items: [
+          "Admin traffic is no longer recorded in Google Analytics. Admin sessions now have GA4 tracking suppressed server-side before GTM loads.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-05-03",
     title: "iOS App & API Updates",
     changes: [
