@@ -158,6 +158,11 @@ const jsonLd = {
       "operatingSystem": "Web",
       "description":
         "Find breakout stock candidates before market consensus. SignalScope monitors public market signals from Reddit, X/Twitter, StockTwits, SEC insider filings, congressional trades, options flow with net premium tracking, volume spikes, and Polymarket prediction markets — scored by AI, filtered for pump-and-dumps, with cross-scan trending analysis, LightGBM backtesting, an AI Agent Skill, and x402 pay-per-call API access.",
+      "image": "http://localhost:3000/opengraph-image",
+      "brand": {
+        "@type": "Brand",
+        "name": "SignalScope",
+      },
       "offers": [
         {
           "@type": "Offer",
@@ -165,6 +170,22 @@ const jsonLd = {
           "price": "0",
           "priceCurrency": "USD",
           "url": "http://localhost:3000/register",
+          "availability": "https://schema.org/OnlineOnly",
+          "shippingDetails": {
+            "@type": "OfferShippingDetails",
+            "shippingRate": { "@type": "MonetaryAmount", "value": "0", "currency": "USD" },
+            "shippingDestination": { "@type": "DefinedRegion", "addressCountry": "US" },
+            "deliveryTime": {
+              "@type": "ShippingDeliveryTime",
+              "handlingTime": { "@type": "QuantitativeValue", "minValue": 0, "maxValue": 0, "unitCode": "DAY" },
+              "transitTime": { "@type": "QuantitativeValue", "minValue": 0, "maxValue": 0, "unitCode": "DAY" },
+            },
+          },
+          "hasMerchantReturnPolicy": {
+            "@type": "MerchantReturnPolicy",
+            "applicableCountry": "US",
+            "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted",
+          },
         },
         {
           "@type": "Offer",
@@ -172,6 +193,22 @@ const jsonLd = {
           "price": "10",
           "priceCurrency": "USD",
           "url": "http://localhost:3000/pricing",
+          "availability": "https://schema.org/OnlineOnly",
+          "shippingDetails": {
+            "@type": "OfferShippingDetails",
+            "shippingRate": { "@type": "MonetaryAmount", "value": "0", "currency": "USD" },
+            "shippingDestination": { "@type": "DefinedRegion", "addressCountry": "US" },
+            "deliveryTime": {
+              "@type": "ShippingDeliveryTime",
+              "handlingTime": { "@type": "QuantitativeValue", "minValue": 0, "maxValue": 0, "unitCode": "DAY" },
+              "transitTime": { "@type": "QuantitativeValue", "minValue": 0, "maxValue": 0, "unitCode": "DAY" },
+            },
+          },
+          "hasMerchantReturnPolicy": {
+            "@type": "MerchantReturnPolicy",
+            "applicableCountry": "US",
+            "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted",
+          },
         },
         {
           "@type": "Offer",
@@ -179,6 +216,22 @@ const jsonLd = {
           "price": "100",
           "priceCurrency": "USD",
           "url": "http://localhost:3000/pricing",
+          "availability": "https://schema.org/OnlineOnly",
+          "shippingDetails": {
+            "@type": "OfferShippingDetails",
+            "shippingRate": { "@type": "MonetaryAmount", "value": "0", "currency": "USD" },
+            "shippingDestination": { "@type": "DefinedRegion", "addressCountry": "US" },
+            "deliveryTime": {
+              "@type": "ShippingDeliveryTime",
+              "handlingTime": { "@type": "QuantitativeValue", "minValue": 0, "maxValue": 0, "unitCode": "DAY" },
+              "transitTime": { "@type": "QuantitativeValue", "minValue": 0, "maxValue": 0, "unitCode": "DAY" },
+            },
+          },
+          "hasMerchantReturnPolicy": {
+            "@type": "MerchantReturnPolicy",
+            "applicableCountry": "US",
+            "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted",
+          },
         },
       ],
       "publisher": { "@id": "http://localhost:3000/#organization" },
