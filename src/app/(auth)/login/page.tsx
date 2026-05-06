@@ -158,14 +158,17 @@ export default function LoginPage({ heroPreview }: LoginPageProps = {}) {
           {perfStats.emergingCount > 0 && (
             <>
               <span
-                className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 sm:text-sm"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/12 px-3 py-1.5 text-xs font-semibold text-emerald-200 shadow-[0_0_12px_-4px_rgba(52,211,153,0.25)] sm:text-sm"
                 title="High-confidence picks (AI score ≥70) from the last 30 days — same cohort shown on /results"
               >
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
+                <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
+                  <span className="absolute h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" style={{ animationDuration: "2.5s" }} />
+                  <span className="relative h-2 w-2 rounded-full bg-emerald-400" />
+                </span>
                 {Math.round(perfStats.emergingWinRate * 100)}% 7d win rate
               </span>
               <span
-                className="inline-flex items-center gap-1.5 rounded-xl border border-sky-500/25 bg-sky-500/10 px-3 py-1.5 text-xs font-semibold text-sky-200 sm:text-sm"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-sky-500/30 bg-sky-500/12 px-3 py-1.5 text-xs font-semibold text-sky-200 shadow-[0_0_12px_-4px_rgba(56,189,248,0.25)] sm:text-sm"
                 title="Average return measured 7 days after detection, for high-confidence picks (AI ≥70) from the last 30 days"
               >
                 {perfStats.emergingAvgReturn >= 0 ? "+" : ""}
@@ -173,7 +176,7 @@ export default function LoginPage({ heroPreview }: LoginPageProps = {}) {
               </span>
             </>
           )}
-          <span className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/4 px-3 py-1.5 text-xs font-semibold text-zinc-200 sm:text-sm">
+          <span className="inline-flex items-center gap-1.5 rounded-xl border border-white/12 bg-white/5 px-3 py-1.5 text-xs font-semibold text-zinc-200 sm:text-sm">
             {perfStats.totalTracked.toLocaleString()} tickers tracked
           </span>
         </>
@@ -190,7 +193,7 @@ export default function LoginPage({ heroPreview }: LoginPageProps = {}) {
       className={`min-h-screen overflow-x-hidden bg-zinc-950 text-zinc-100${showGuestMobileBar ? " pb-19 lg:pb-0" : ""}`}
     >
       {/* -- Nav ---------------------------------------------------- */}
-      <nav className="fixed top-0 z-50 w-full border-b border-white/15 bg-zinc-950/85 backdrop-blur-md" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      <nav className="fixed top-0 z-50 w-full border-b border-white/10 bg-zinc-950/90 shadow-[0_1px_0_0_rgba(56,189,248,0.08)] backdrop-blur-md" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-6">
             <span className="text-xl font-bold tracking-tight text-white">
@@ -250,16 +253,32 @@ export default function LoginPage({ heroPreview }: LoginPageProps = {}) {
       <main id="main-scroll">
       {/* -- Hero + Preview / Login -------------------------------- */}
       <section className="relative overflow-hidden bg-zinc-950 pt-20 pb-10 md:pt-24 md:pb-20">
-        <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-zinc-950 via-zinc-950 to-blue-950/40" />
-        <div className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-sky-500/10 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-0 left-1/2 h-px w-[min(100%,72rem)] -translate-x-1/2 bg-linear-to-r from-transparent via-sky-500/25 to-transparent" />
+        {/* Dot-grid texture */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage: "radial-gradient(circle, rgba(56,189,248,0.1) 1px, transparent 1px)",
+            backgroundSize: "28px 28px",
+          }}
+        />
+        <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-zinc-950 via-zinc-950/96 to-blue-950/55" />
+        {/* Ambient glows */}
+        <div className="pointer-events-none absolute -top-40 -left-32 h-[520px] w-[520px] rounded-full bg-sky-500/12 blur-3xl" />
+        <div className="pointer-events-none absolute top-1/2 -right-20 h-80 w-80 -translate-y-1/2 rounded-full bg-blue-600/8 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 left-1/2 h-px w-[min(100%,72rem)] -translate-x-1/2 bg-linear-to-r from-transparent via-sky-500/30 to-transparent" />
+        {/* Decorative signal-ping dots — desktop only */}
+        <div className="pointer-events-none absolute inset-0 hidden lg:block" aria-hidden>
+          <span className="absolute left-[12%] top-[28%] h-2 w-2 animate-ping rounded-full bg-sky-400 opacity-20" style={{ animationDuration: "3.8s" }} />
+          <span className="absolute left-[22%] top-[62%] h-1.5 w-1.5 animate-ping rounded-full bg-emerald-400 opacity-15" style={{ animationDelay: "1.4s", animationDuration: "4.2s" }} />
+          <span className="absolute left-[8%] top-[48%] h-1 w-1 animate-ping rounded-full bg-violet-400 opacity-15" style={{ animationDelay: "2.1s", animationDuration: "5s" }} />
+        </div>
 
         <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-8 px-4 sm:px-6 md:gap-12 lg:flex-row lg:items-start lg:gap-16">
           {/* Left -- copy */}
           <div className="max-w-xl text-center lg:min-w-0 lg:flex-1 lg:border-r lg:border-white/10 lg:pr-12 lg:pt-6 lg:text-left">
-            <h1 className="mb-3 text-2xl font-extrabold leading-tight tracking-tight text-white sm:text-3xl md:mb-5 md:text-4xl lg:text-5xl">
+            <h1 className="mb-3 text-[1.75rem] font-extrabold leading-[1.1] tracking-[-0.03em] text-white sm:text-4xl md:mb-5 md:text-5xl lg:text-6xl">
               Spot breakout stocks<br />
-              <span className="text-sky-400">before the crowd</span>
+              <span className="bg-linear-to-r from-sky-400 to-blue-400 bg-clip-text text-transparent">before the crowd</span>
             </h1>
             <p className="mb-5 text-sm leading-relaxed text-zinc-300 sm:text-base md:mb-8 md:text-lg">
               AI-scored signals from eight data sources — social, insider filings, Congress, options flow, and prediction markets — with pump-and-dump filtering and a public ML backtest.
@@ -335,7 +354,10 @@ export default function LoginPage({ heroPreview }: LoginPageProps = {}) {
       {/* -- Features Grid ------------------------------------------ */}
       <section className="border-t border-white/6 bg-zinc-900 py-10 md:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <h2 className="mb-3 text-center text-2xl font-bold text-white md:text-3xl">
+          <div className="mb-2 flex justify-center">
+            <span className="h-px w-10 bg-linear-to-r from-sky-500 to-blue-500" />
+          </div>
+          <h2 className="mb-3 text-center text-2xl font-bold tracking-tight text-white md:text-3xl">
             Everything you need to find breakouts
           </h2>
           <p className="mx-auto mb-6 max-w-2xl text-center text-sm text-zinc-400 md:mb-12 md:text-base">
@@ -389,9 +411,11 @@ export default function LoginPage({ heroPreview }: LoginPageProps = {}) {
             ].map(({ title, desc, icon }) => (
               <div
                 key={title}
-                className="group rounded-xl border border-white/10 bg-white/4 p-5 transition-all hover:border-sky-500/35 hover:bg-white/6 hover:shadow-[0_0_28px_-10px_rgba(56,189,248,0.25)] sm:p-6"
+                className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/4 p-5 transition-all hover:border-sky-500/40 hover:bg-white/6 hover:shadow-[0_0_32px_-8px_rgba(56,189,248,0.2)] sm:p-6"
               >
-                <span className="mb-4 inline-flex rounded-lg bg-sky-500/15 p-2.5 text-sky-400 transition-colors group-hover:bg-sky-500 group-hover:text-white">
+                {/* Hover top accent line */}
+                <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-sky-500/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                <span className="mb-4 inline-flex rounded-lg bg-sky-500/15 p-2.5 text-sky-400 transition-all group-hover:bg-sky-500/20 group-hover:text-sky-300 group-hover:shadow-[0_0_16px_-4px_rgba(56,189,248,0.4)]">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-5 w-5">
                     {icon}
                   </svg>
@@ -407,7 +431,10 @@ export default function LoginPage({ heroPreview }: LoginPageProps = {}) {
       {/* -- How It Works -- Pipeline ------------------------------ */}
       <section id="how-it-works" className="scroll-mt-16 border-t border-white/6 bg-zinc-950 py-10 md:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <h2 className="mb-3 text-center text-2xl font-bold text-white md:text-3xl">
+          <div className="mb-2 flex justify-center">
+            <span className="h-px w-10 bg-linear-to-r from-sky-500 to-blue-500" />
+          </div>
+          <h2 className="mb-3 text-center text-2xl font-bold tracking-tight text-white md:text-3xl">
             How it works
           </h2>
           <p className="mx-auto mb-8 max-w-2xl text-center text-sm text-zinc-400 md:mb-14 md:text-base">
@@ -415,10 +442,10 @@ export default function LoginPage({ heroPreview }: LoginPageProps = {}) {
           </p>
 
           <div className="relative mx-auto max-w-sm sm:hidden">
-            <div className="absolute left-5 top-6 bottom-6 w-0.5 bg-sky-500/30" />
+            <div className="absolute left-5 top-6 bottom-6 w-0.5 bg-linear-to-b from-sky-500/40 via-sky-500/20 to-transparent" />
             {howItWorksSteps.map(({ step, label, desc }) => (
               <div key={label} className="relative flex items-start gap-4 py-3">
-                <span className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-sky-500 to-blue-600 text-sm font-bold text-white shadow-md shadow-sky-950/50">
+                <span className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-sky-500 to-blue-600 text-sm font-bold text-white shadow-lg shadow-sky-900/40 ring-4 ring-sky-500/15">
                   {step}
                 </span>
                 <div className="pt-1.5">
@@ -431,11 +458,15 @@ export default function LoginPage({ heroPreview }: LoginPageProps = {}) {
 
           <div className="hidden sm:grid sm:grid-cols-5">
             {howItWorksSteps.map(({ step, label, desc }, i) => (
-              <div key={label} className="relative flex flex-col items-center text-center px-4 py-6">
+              <div key={label} className="relative flex flex-col items-center text-center px-2 py-6">
+                {/* Watermark step number */}
+                <span className="pointer-events-none absolute top-1 left-1/2 -translate-x-1/2 select-none text-[3.5rem] font-black leading-none text-white/[0.06]">
+                  {step}
+                </span>
                 {i < 4 && (
-                  <div className="pointer-events-none absolute right-0 top-10 h-0.5 w-full translate-x-1/2 bg-sky-500/25" />
+                  <div className="pointer-events-none absolute right-0 top-[2.75rem] h-px w-full translate-x-1/2 bg-linear-to-r from-sky-500/35 via-sky-500/20 to-transparent" />
                 )}
-                <span className="relative z-10 mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-sky-500 to-blue-600 text-sm font-bold text-white shadow-md shadow-sky-950/50">
+                <span className="relative z-10 mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-linear-to-br from-sky-500 to-blue-600 text-sm font-bold text-white shadow-lg shadow-sky-900/40 ring-4 ring-sky-500/15">
                   {step}
                 </span>
                 <h3 className="mb-1 text-sm font-semibold text-white">{label}</h3>
@@ -457,7 +488,10 @@ export default function LoginPage({ heroPreview }: LoginPageProps = {}) {
       {/* -- Signal Sources ----------------------------------------- */}
       <section className="border-t border-white/6 bg-zinc-900 py-10 md:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <h2 className="mb-3 text-center text-2xl font-bold text-white md:text-3xl">
+          <div className="mb-2 flex justify-center">
+            <span className="h-px w-10 bg-linear-to-r from-sky-500 to-blue-500" />
+          </div>
+          <h2 className="mb-3 text-center text-2xl font-bold tracking-tight text-white md:text-3xl">
             Signal sources
           </h2>
           <p className="mx-auto mb-6 max-w-2xl text-center text-sm text-zinc-400 md:mb-12 md:text-base">
@@ -468,7 +502,7 @@ export default function LoginPage({ heroPreview }: LoginPageProps = {}) {
             {SOURCE_CARDS.map(({ name, desc, tag, tagColor, glyph }) => (
               <div
                 key={name}
-                className="rounded-xl border border-white/10 bg-white/4 p-4 transition-all hover:border-sky-500/30 hover:shadow-[0_0_20px_-8px_rgba(56,189,248,0.2)] sm:p-5"
+                className="group rounded-xl border border-white/10 bg-white/4 p-4 transition-all hover:border-white/20 hover:bg-white/6 hover:shadow-[0_4px_20px_-8px_rgba(0,0,0,0.4)] sm:p-5"
               >
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
@@ -496,7 +530,10 @@ export default function LoginPage({ heroPreview }: LoginPageProps = {}) {
       {/* -- ML Backtesting ----------------------------------------- */}
       <section className="border-t border-white/6 bg-zinc-950 py-10 md:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <h2 className="mb-3 text-center text-2xl font-bold text-white md:text-3xl">
+          <div className="mb-2 flex justify-center">
+            <span className="h-px w-10 bg-linear-to-r from-sky-500 to-blue-500" />
+          </div>
+          <h2 className="mb-3 text-center text-2xl font-bold tracking-tight text-white md:text-3xl">
             Continuously learning
           </h2>
           <p className="mx-auto mb-6 max-w-2xl text-center text-sm text-zinc-400 md:mb-12 md:text-base">
@@ -551,7 +588,10 @@ export default function LoginPage({ heroPreview }: LoginPageProps = {}) {
       {/* -- Agent Skill / API -------------------------------------- */}
       <section className="border-t border-white/6 bg-zinc-900 py-10 md:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <h2 className="mb-3 text-center text-2xl font-bold text-white md:text-3xl">
+          <div className="mb-2 flex justify-center">
+            <span className="h-px w-10 bg-linear-to-r from-violet-500 to-purple-500" />
+          </div>
+          <h2 className="mb-3 text-center text-2xl font-bold tracking-tight text-white md:text-3xl">
             Built for AI agents
           </h2>
           <p className="mx-auto mb-6 max-w-2xl text-center text-sm text-zinc-400 md:mb-12 md:text-base">
@@ -674,15 +714,19 @@ export default function LoginPage({ heroPreview }: LoginPageProps = {}) {
       </section>
 
       {/* -- CTA Banner -------------------------------------------- */}
-      <section className="border-t border-white/6 bg-linear-to-br from-zinc-900 via-blue-950/90 to-zinc-950 py-10 md:py-16">
-        <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
-          <h2 className="mb-3 text-xl font-bold text-white sm:text-2xl md:text-3xl">
+      <section className="relative overflow-hidden border-t border-white/6 bg-linear-to-br from-zinc-900 via-blue-950/90 to-zinc-950 py-12 md:py-20">
+        {/* Depth layers */}
+        <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-transparent via-transparent to-black/30" />
+        <div className="pointer-events-none absolute -top-24 left-1/2 h-64 w-96 -translate-x-1/2 rounded-full bg-sky-500/10 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-sky-500/20 to-transparent" />
+        <div className="relative mx-auto max-w-3xl px-4 text-center sm:px-6">
+          <h2 className="mb-3 text-xl font-bold tracking-tight text-white sm:text-2xl md:text-3xl">
             Ready to find the next breakout?
           </h2>
           <p className="mb-4 text-sm text-zinc-400 md:text-base">
             Free to use. No credit card required.
           </p>
-          <div className="mb-5 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-zinc-500 md:text-sm">
+          <div className="mb-6 flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-xs text-zinc-500 md:text-sm">
             {["Watchlist", "Portfolio tracking", "Full dashboard", "Weekly signal digest"].map((b) => (
               <span key={b} className="inline-flex items-center gap-1">
                 <svg className="h-3 w-3 shrink-0 text-emerald-500/80 md:h-3.5 md:w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
@@ -694,7 +738,7 @@ export default function LoginPage({ heroPreview }: LoginPageProps = {}) {
           </div>
           <Link
             href="/register"
-            className="inline-block rounded-xl bg-linear-to-br from-sky-500 to-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-950/40 hover:from-sky-400 hover:to-blue-500 transition-colors touch-manipulation sm:text-base"
+            className="inline-block rounded-xl bg-linear-to-br from-sky-500 to-blue-600 px-8 py-3.5 text-sm font-semibold text-white shadow-xl shadow-sky-900/50 ring-1 ring-sky-400/25 transition-all hover:from-sky-400 hover:to-blue-500 hover:shadow-sky-800/60 hover:ring-sky-400/40 touch-manipulation sm:text-base"
           >
             Create free account
           </Link>

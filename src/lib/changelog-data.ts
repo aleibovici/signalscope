@@ -9,6 +9,25 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-05-06",
+    title: "Landing Page Redesign",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "Hero section gains a dot-grid texture, stronger ambient glows, and animated signal-ping decoration on desktop.",
+          "Headline is larger across all breakpoints with tighter letter-spacing; 'before the crowd' now renders as a sky-to-blue gradient.",
+          "Performance stat chips have a live pulsing indicator and soft glow borders.",
+          "Feature cards show a top accent line and icon glow on hover.",
+          "Section headings across all landing sections now have a small gradient accent rule above them for consistent visual rhythm.",
+          "How It Works pipeline steps have larger circles with sky ring halos, gradient-fade connector lines, and subtle watermark step numbers.",
+          "CTA section gains depth layers (gradient overlay + top glow) and a more prominent button with ring and shadow.",
+          "Nav bar border refined with a faint sky glow underline.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-05-05",
     title: "Analytics, SEO & Traffic",
     changes: [
