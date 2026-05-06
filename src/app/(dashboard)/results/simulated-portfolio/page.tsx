@@ -544,8 +544,8 @@ function IbkrPanel({
                     ? "red"
                     : undefined
             }
-            sub={benchmark.matchedReturnPct !== null ? "hold-matched avg" : "30d"}
-            subHint="SPY avg return, matched to each trade's hold period"
+            sub={benchmark.matchedReturnPct !== null ? "matched capital + hold" : "30d"}
+            subHint="What SPY would have returned with the same dollars deployed for the same hold period as each trade"
           />
           <KpiTile
             label="Total P&L"
