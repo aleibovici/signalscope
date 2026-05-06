@@ -25,6 +25,12 @@ export const changelog: ChangelogEntry[] = [
           "Nav bar border refined with a faint sky glow underline.",
         ],
       },
+      {
+        category: "fixed",
+        items: [
+          "Alpaca Paper (Live) tab: SPY benchmark is now capital + hold weighted to match the portfolio's avg return aggregation. Previously the strategy used dollar-weighted returns while SPY used a simple mean, making the two numbers not directly comparable.",
+        ],
+      },
     ],
   },
   {

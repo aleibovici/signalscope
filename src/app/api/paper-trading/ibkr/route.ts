@@ -271,13 +271,22 @@ export async function GET() {
       positionSize: 1000,
     };
 
+    // Capital + hold weighted: SPY return on the same dollars deployed for the
+    // same hold period as each trade. Matches the avgReturn aggregation above
+    // so the two KPIs are directly comparable.
     const tradesWithMatchedSpy = trades.filter(
       (t) => t.spyReturnPct !== null && t.returnPct !== null,
     );
+    const matchedSpyCapital = tradesWithMatchedSpy.reduce(
+      (sum, t) => sum + t.entryPrice * t.quantity,
+      0,
+    );
+    const matchedSpyPnl = tradesWithMatchedSpy.reduce(
+      (sum, t) => sum + t.entryPrice * t.quantity * (t.spyReturnPct ?? 0),
+      0,
+    );
     const matchedReturnPct =
-      tradesWithMatchedSpy.length > 0
-        ? tradesWithMatchedSpy.reduce((sum, t) => sum + t.spyReturnPct!, 0) / tradesWithMatchedSpy.length
-        : null;
+      matchedSpyCapital > 0 ? matchedSpyPnl / matchedSpyCapital : null;
 
     const benchmark = {
       symbol: "SPY",
