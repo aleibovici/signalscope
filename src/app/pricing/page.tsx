@@ -80,6 +80,7 @@ export default function PricingPage() {
         name: "SignalScope",
         description:
           "Stock breakout signal detection — AI-scored signals from 8 sources with pump-and-dump filtering, ML backtesting, and an AI Agent Skill.",
+        image: "https://signalscopes.com/opengraph-image",
         brand: { "@type": "Organization", name: "SignalScope" },
         offers: [
           {
@@ -125,6 +126,7 @@ export default function PricingPage() {
             name: "x402 Pay-Per-Call",
             price: "0.005",
             priceCurrency: "USD",
+            availability: "https://schema.org/InStock",
             description:
               "Per-call USDC micropayments on Base (L2). No account required.",
             url: "https://signalscopes.com/skill/SKILL.md",
