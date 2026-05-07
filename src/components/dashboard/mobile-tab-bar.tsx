@@ -45,17 +45,6 @@ const TABS: Tab[] = [
     ),
   },
   {
-    href: "/portfolio",
-    label: "Portfolio",
-    icon: (
-      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="7" width="20" height="14" rx="2" />
-        <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
-      </svg>
-    ),
-    authOnly: true,
-  },
-  {
     href: "/profile",
     label: "Profile",
     icon: (
