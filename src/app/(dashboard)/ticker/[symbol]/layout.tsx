@@ -73,7 +73,7 @@ export async function generateMetadata({
       url: `http://localhost:3000/ticker/${upper}`,
       images: [
         {
-          url: `/ticker/${upper}/opengraph-image`,
+          url: `http://localhost:3000/ticker/${upper}/opengraph-image`,
           width: 1200,
           height: 630,
           alt: `${ticker.symbol} — ${rec} — SignalScope`,
@@ -84,7 +84,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title,
       description,
-      images: [`/ticker/${upper}/opengraph-image`],
+      images: [`http://localhost:3000/ticker/${upper}/opengraph-image`],
     },
   };
 }
