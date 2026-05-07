@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 import { prisma } from "@/lib/prisma";
 import { stageLabel } from "@/lib/stage-labels";
 
+export const runtime = "nodejs";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -92,41 +93,71 @@ function collectTags(t: TickerRow): string[] {
   return tags;
 }
 
+function fallbackImage(upper: string): ImageResponse {
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          background: "linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%)",
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "sans-serif",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "baseline", marginBottom: 16 }}>
+          <span style={{ fontSize: 100, fontWeight: 800, color: "white", letterSpacing: "-2px", lineHeight: 1 }}>
+            ${upper}
+          </span>
+        </div>
+        <div style={{ display: "flex", alignItems: "baseline" }}>
+          <span style={{ fontSize: 40, fontWeight: 800, color: "white" }}>Signal</span>
+          <span style={{ fontSize: 40, fontWeight: 800, color: "#93c5fd" }}>Scope</span>
+        </div>
+      </div>
+    ),
+    { ...size },
+  );
+}
+
 export default async function OgImage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const upper = symbol.toUpperCase();
 
-  const ticker = await prisma.validatedTicker.findFirst({
-    where: { symbol: upper },
-    orderBy: { createdAt: "desc" },
-    select: {
-      symbol: true, name: true, price: true, marketCap: true,
-      recommendation: true, opportunityScore: true, aiScore: true,
-      catalyst: true, risks: true, signalCount: true, stage: true,
-      priorAppearances: true, firstSeenDaysAgo: true,
-      wk52Lo: true, wk52Hi: true, shortFloat: true, exchange: true,
-      avgVelocity: true, subredditCount: true, pndFlagged: true,
-      scanId: true,
-    },
-  });
+  let ticker: TickerRow | null = null;
+  let sources: string[] = [];
 
-  if (!ticker) {
-    return new ImageResponse(
-      (
-        <div style={{ background: "#fff", width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "sans-serif" }}>
-          <span style={{ fontSize: 80, fontWeight: 800, color: "#111827" }}>{upper}</span>
-          <span style={{ fontSize: 32, color: "#6b7280", marginLeft: 24 }}>— SignalScope</span>
-        </div>
-      ),
-      { ...size },
-    );
+  try {
+    const row = await prisma.validatedTicker.findFirst({
+      where: { symbol: upper },
+      orderBy: { createdAt: "desc" },
+      select: {
+        symbol: true, name: true, price: true, marketCap: true,
+        recommendation: true, opportunityScore: true, aiScore: true,
+        catalyst: true, risks: true, signalCount: true, stage: true,
+        priorAppearances: true, firstSeenDaysAgo: true,
+        wk52Lo: true, wk52Hi: true, shortFloat: true, exchange: true,
+        avgVelocity: true, subredditCount: true, pndFlagged: true,
+        scanId: true,
+      },
+    });
+
+    if (!row) return fallbackImage(upper);
+    ticker = row as TickerRow;
+
+    const signals = await prisma.signal.findMany({
+      where: { scanId: row.scanId, symbol: upper },
+      select: { source: true },
+    });
+    sources = [...new Set(signals.map((s) => s.source))];
+  } catch {
+    return fallbackImage(upper);
   }
 
-  const signals = await prisma.signal.findMany({
-    where: { scanId: ticker.scanId, symbol: upper },
-    select: { source: true },
-  });
-  const sources = [...new Set(signals.map((s) => s.source))];
+  if (!ticker) return fallbackImage(upper);
 
   const rec = ticker.recommendation ?? "Watch";
   const recStyle = recStyles[rec] ?? { border: "#9ca3af", color: "#6b7280" };
