@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   { href: "/results/signal-quality", label: "Signal Quality" },
-  { href: "/results/simulated-portfolio", label: "Paper Trading" },
+  { href: "/results/paper-trading", label: "Paper Trading" },
 ];
 
 export function ResultsTabs({ children }: { children: React.ReactNode }) {
