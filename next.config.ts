@@ -35,7 +35,12 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/paper-trading",
-        destination: "/results/simulated-portfolio",
+        destination: "/results/paper-trading",
+        permanent: true,
+      },
+      {
+        source: "/results/simulated-portfolio",
+        destination: "/results/paper-trading",
         permanent: true,
       },
     ];

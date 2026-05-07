@@ -20,7 +20,6 @@ const publicApiPrefixes = [
   "/api/linkedin",
   "/api/stripe/webhook",
   "/api/brokers",
-  "/api/paper-trading",
   "/api/scans",
   "/api/signals",
   "/api/stats",
