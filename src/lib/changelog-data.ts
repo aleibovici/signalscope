@@ -9,6 +9,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-05-07",
+    title: "Streamlined Navigation",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "Removed Portfolio from the sidebar and mobile tab bar to simplify the navigation.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-05-06",
     title: "Landing Page Redesign",
     changes: [
