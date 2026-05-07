@@ -43,12 +43,6 @@ const NavIcons = {
       <rect x="9" y="3" width="6" height="4" rx="1" /><line x1="9" y1="12" x2="15" y2="12" /><line x1="9" y1="16" x2="13" y2="16" />
     </svg>
   ),
-  Portfolio: (
-    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="7" width="20" height="14" rx="2" />
-      <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
-    </svg>
-  ),
   ApiAccess: (
     <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
@@ -72,7 +66,6 @@ const publicNavItems: { href: string; label: string; icon: React.ReactNode; tour
   { href: "/results/signal-quality", label: "Results", icon: NavIcons.Performance, tourId: "tour-results", matchPrefix: "/results" },
 ];
 const authNavItems = [
-  { href: "/portfolio", label: "Portfolio", icon: NavIcons.Portfolio },
   { href: "/subscription", label: "API Access", icon: NavIcons.ApiAccess },
   { href: "/profile", label: "Profile", icon: NavIcons.Profile },
 ];
