@@ -6,34 +6,17 @@ vi.mock("@/lib/auth", () => ({
   getCurrentUserId: () => mockGetCurrentUserId(),
 }));
 
-// Mock prisma
+// Mock prisma — hard-delete contract: only user.findUniqueOrThrow + user.delete.
+// All child rows are removed via Postgres cascade (onDelete: Cascade in schema).
 const mockFindUniqueOrThrow = vi.fn();
-const mockUserUpdate = vi.fn();
-const mockSubscriptionDeleteMany = vi.fn();
-const mockRefreshTokenDeleteMany = vi.fn();
-const mockApiKeyDeleteMany = vi.fn();
-const mockPasswordResetTokenDeleteMany = vi.fn();
-const mockTransaction = vi.fn((ops: unknown[]) => Promise.all(ops));
+const mockUserDelete = vi.fn();
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     user: {
       findUniqueOrThrow: (...args: unknown[]) => mockFindUniqueOrThrow(...args),
-      update: (...args: unknown[]) => mockUserUpdate(...args),
+      delete: (...args: unknown[]) => mockUserDelete(...args),
     },
-    subscription: {
-      deleteMany: (...args: unknown[]) => mockSubscriptionDeleteMany(...args),
-    },
-    refreshToken: {
-      deleteMany: (...args: unknown[]) => mockRefreshTokenDeleteMany(...args),
-    },
-    apiKey: {
-      deleteMany: (...args: unknown[]) => mockApiKeyDeleteMany(...args),
-    },
-    passwordResetToken: {
-      deleteMany: (...args: unknown[]) => mockPasswordResetTokenDeleteMany(...args),
-    },
-    $transaction: (ops: unknown[]) => mockTransaction(ops),
   },
 }));
 
@@ -53,11 +36,7 @@ describe("DELETE /api/user/account", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetCurrentUserId.mockResolvedValue(USER_ID);
-    mockUserUpdate.mockResolvedValue({});
-    mockSubscriptionDeleteMany.mockResolvedValue({ count: 0 });
-    mockRefreshTokenDeleteMany.mockResolvedValue({ count: 0 });
-    mockApiKeyDeleteMany.mockResolvedValue({ count: 0 });
-    mockPasswordResetTokenDeleteMany.mockResolvedValue({ count: 0 });
+    mockUserDelete.mockResolvedValue({ id: USER_ID });
   });
 
   it("returns 401 when not authenticated", async () => {
@@ -69,10 +48,9 @@ describe("DELETE /api/user/account", () => {
     expect(json.error).toBe("Not authenticated");
   });
 
-  it("soft-deletes user and anonymizes PII", async () => {
+  it("hard-deletes the user (cascade removes child rows)", async () => {
     mockFindUniqueOrThrow.mockResolvedValue({
       id: USER_ID,
-      stripeCustomerId: null,
       subscription: null,
     });
 
@@ -81,48 +59,18 @@ describe("DELETE /api/user/account", () => {
     const json = await res.json();
     expect(json.success).toBe(true);
 
-    // Verify transaction was called
-    expect(mockTransaction).toHaveBeenCalledTimes(1);
-
-    // Verify user update with anonymized data
-    expect(mockUserUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: USER_ID },
-        data: expect.objectContaining({
-          deletedAt: expect.any(Date),
-          email: `deleted_${USER_ID}@deleted.local`,
-          passwordHash: null,
-          name: null,
-          username: null,
-          stripeCustomerId: null,
-          emailAlerts: false,
-        }),
-      })
-    );
-  });
-
-  it("deletes all related records in transaction", async () => {
-    mockFindUniqueOrThrow.mockResolvedValue({
-      id: USER_ID,
-      stripeCustomerId: null,
-      subscription: null,
-    });
-
-    await DELETE();
-
-    expect(mockSubscriptionDeleteMany).toHaveBeenCalledWith({ where: { userId: USER_ID } });
-    expect(mockRefreshTokenDeleteMany).toHaveBeenCalledWith({ where: { userId: USER_ID } });
-    expect(mockApiKeyDeleteMany).toHaveBeenCalledWith({ where: { userId: USER_ID } });
-    expect(mockPasswordResetTokenDeleteMany).toHaveBeenCalledWith({ where: { userId: USER_ID } });
+    expect(mockUserDelete).toHaveBeenCalledWith({ where: { id: USER_ID } });
+    expect(mockStripeCancel).not.toHaveBeenCalled();
   });
 
   it("cancels active Stripe subscription before deletion", async () => {
     mockFindUniqueOrThrow.mockResolvedValue({
       id: USER_ID,
-      stripeCustomerId: "cus_123",
       subscription: {
-        stripeSubscriptionId: "sub_456",
+        provider: "STRIPE",
         status: "ACTIVE",
+        stripeSubscriptionId: "sub_456",
+        appleOriginalTransactionId: null,
       },
     });
     mockStripeCancel.mockResolvedValue({});
@@ -131,15 +79,17 @@ describe("DELETE /api/user/account", () => {
     expect(res.status).toBe(200);
 
     expect(mockStripeCancel).toHaveBeenCalledWith("sub_456");
+    expect(mockUserDelete).toHaveBeenCalledWith({ where: { id: USER_ID } });
   });
 
   it("cancels PAST_DUE Stripe subscription", async () => {
     mockFindUniqueOrThrow.mockResolvedValue({
       id: USER_ID,
-      stripeCustomerId: "cus_123",
       subscription: {
-        stripeSubscriptionId: "sub_789",
+        provider: "STRIPE",
         status: "PAST_DUE",
+        stripeSubscriptionId: "sub_789",
+        appleOriginalTransactionId: null,
       },
     });
     mockStripeCancel.mockResolvedValue({});
@@ -152,25 +102,28 @@ describe("DELETE /api/user/account", () => {
   it("does not call Stripe cancel for already-canceled subscription", async () => {
     mockFindUniqueOrThrow.mockResolvedValue({
       id: USER_ID,
-      stripeCustomerId: "cus_123",
       subscription: {
-        stripeSubscriptionId: "sub_old",
+        provider: "STRIPE",
         status: "CANCELED",
+        stripeSubscriptionId: "sub_old",
+        appleOriginalTransactionId: null,
       },
     });
 
     await DELETE();
 
     expect(mockStripeCancel).not.toHaveBeenCalled();
+    expect(mockUserDelete).toHaveBeenCalledTimes(1);
   });
 
   it("proceeds with deletion even if Stripe cancel fails", async () => {
     mockFindUniqueOrThrow.mockResolvedValue({
       id: USER_ID,
-      stripeCustomerId: "cus_123",
       subscription: {
-        stripeSubscriptionId: "sub_fail",
+        provider: "STRIPE",
         status: "ACTIVE",
+        stripeSubscriptionId: "sub_fail",
+        appleOriginalTransactionId: null,
       },
     });
     mockStripeCancel.mockRejectedValue(new Error("Stripe API error"));
@@ -178,19 +131,36 @@ describe("DELETE /api/user/account", () => {
     const res = await DELETE();
     expect(res.status).toBe(200);
 
-    // Transaction should still have been called
-    expect(mockTransaction).toHaveBeenCalledTimes(1);
+    expect(mockUserDelete).toHaveBeenCalledTimes(1);
   });
 
   it("does not call Stripe when user has no subscription", async () => {
     mockFindUniqueOrThrow.mockResolvedValue({
       id: USER_ID,
-      stripeCustomerId: null,
       subscription: null,
     });
 
     await DELETE();
 
     expect(mockStripeCancel).not.toHaveBeenCalled();
+    expect(mockUserDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not call Stripe for an active Apple subscription (server cannot cancel)", async () => {
+    mockFindUniqueOrThrow.mockResolvedValue({
+      id: USER_ID,
+      subscription: {
+        provider: "APPLE",
+        status: "ACTIVE",
+        stripeSubscriptionId: null,
+        appleOriginalTransactionId: "1000000000000001",
+      },
+    });
+
+    const res = await DELETE();
+    expect(res.status).toBe(200);
+
+    expect(mockStripeCancel).not.toHaveBeenCalled();
+    expect(mockUserDelete).toHaveBeenCalledTimes(1);
   });
 });
