@@ -7,49 +7,55 @@ export async function DELETE() {
   try {
     const userId = await getCurrentUserId();
 
-    // Load user with subscription to check for active Stripe sub
+    // Load subscription state BEFORE deleting — we need stripeSubscriptionId
+    // to cancel the upstream Stripe subscription, and the row will be
+    // cascade-deleted with the User.
     const user = await prisma.user.findUniqueOrThrow({
       where: { id: userId },
       select: {
         id: true,
-        stripeCustomerId: true,
-        subscription: { select: { stripeSubscriptionId: true, status: true } },
+        subscription: {
+          select: {
+            provider: true,
+            status: true,
+            stripeSubscriptionId: true,
+            appleOriginalTransactionId: true,
+          },
+        },
       },
     });
 
-    // Cancel Stripe subscription immediately if active
-    if (
-      user.subscription?.stripeSubscriptionId &&
-      (user.subscription.status === "ACTIVE" || user.subscription.status === "PAST_DUE")
-    ) {
+    const sub = user.subscription;
+    const isActive = sub?.status === "ACTIVE" || sub?.status === "PAST_DUE";
+
+    // Stripe: cancel immediately if active (server can do this directly).
+    if (sub?.provider === "STRIPE" && isActive && sub.stripeSubscriptionId) {
       try {
         const stripe = getStripe();
-        await stripe.subscriptions.cancel(user.subscription.stripeSubscriptionId);
+        await stripe.subscriptions.cancel(sub.stripeSubscriptionId);
       } catch (err) {
         console.error("Failed to cancel Stripe subscription during account deletion:", err);
-        // Continue with deletion — don't block on Stripe failure
+        // Don't block deletion on Stripe failure.
       }
     }
 
-    // Soft-delete: anonymize PII, revoke all tokens/keys
-    await prisma.$transaction([
-      prisma.user.update({
-        where: { id: userId },
-        data: {
-          deletedAt: new Date(),
-          email: `deleted_${userId}@deleted.local`,
-          passwordHash: null,
-          name: null,
-          username: null,
-          stripeCustomerId: null,
-          emailAlerts: false,
-        },
-      }),
-      prisma.subscription.deleteMany({ where: { userId } }),
-      prisma.refreshToken.deleteMany({ where: { userId } }),
-      prisma.apiKey.deleteMany({ where: { userId } }),
-      prisma.passwordResetToken.deleteMany({ where: { userId } }),
-    ]);
+    // Apple: server cannot cancel the App Store subscription on the user's
+    // behalf. The iOS app's delete-account dialog already instructs the user
+    // to cancel via Settings → Apple ID → Subscriptions. Log so support can
+    // help if a refund request comes in later.
+    if (sub?.provider === "APPLE" && isActive) {
+      console.warn(
+        "Account deletion with active Apple subscription — user must cancel in iOS Settings",
+        { userId, originalTransactionId: sub.appleOriginalTransactionId }
+      );
+    }
+
+    // Hard-delete the User. All child rows (Subscription, RefreshToken,
+    // ApiKey, PasswordResetToken, UserPosition, UserWatchlist, UserVote) have
+    // onDelete: Cascade in the schema, so Postgres removes them in the same
+    // statement. This satisfies App Store guideline 5.1.1(v) — Apple expects
+    // actual data removal, not a soft-delete tombstone.
+    await prisma.user.delete({ where: { id: userId } });
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -34,16 +34,16 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Check for existing active subscription
+    // Check for existing active subscription on either platform.
     const existing = await prisma.subscription.findUnique({
       where: { userId },
-      select: { status: true },
+      select: { status: true, provider: true },
     });
     if (existing && (existing.status === "ACTIVE" || existing.status === "PAST_DUE")) {
-      return NextResponse.json(
-        { error: "You already have an active subscription. Manage it from the subscription page." },
-        { status: 400 }
-      );
+      const msg = existing.provider === "APPLE"
+        ? "You already have an active subscription via the iOS app. Manage it in Settings → Apple ID → Subscriptions."
+        : "You already have an active subscription. Manage it from the subscription page.";
+      return NextResponse.json({ error: msg }, { status: 400 });
     }
 
     const priceId = PRICE_IDS[period as BillingPeriod];

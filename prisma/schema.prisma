@@ -305,20 +305,36 @@ model ApiKey {
 }
 
 model Subscription {
-  id                     String             @id @default(cuid())
-  userId                 String             @unique
-  user                   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  stripeSubscriptionId   String             @unique
-  stripePriceId          String
-  status                 SubscriptionStatus @default(ACTIVE)
-  currentPeriodStart     DateTime
-  currentPeriodEnd       DateTime
-  cancelAtPeriodEnd      Boolean            @default(false)
-  canceledAt             DateTime?
-  createdAt              DateTime           @default(now())
-  updatedAt              DateTime           @updatedAt
+  id                         String                @id @default(cuid())
+  userId                     String                @unique
+  user                       User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  provider                   SubscriptionProvider  @default(STRIPE)
+
+  stripeSubscriptionId       String?               @unique
+  stripePriceId              String?
+
+  appleOriginalTransactionId String?               @unique
+  appleProductId             String?
+  appleEnvironment           String?
+  appleAutoRenewStatus       Boolean?
+  appleExpirationIntent      Int?
+
+  status                     SubscriptionStatus    @default(ACTIVE)
+  currentPeriodStart         DateTime
+  currentPeriodEnd           DateTime
+  cancelAtPeriodEnd          Boolean               @default(false)
+  canceledAt                 DateTime?
+  createdAt                  DateTime              @default(now())
+  updatedAt                  DateTime              @updatedAt
 
   @@index([status])
+  @@index([provider])
+}
+
+enum SubscriptionProvider {
+  STRIPE
+  APPLE
 }
 
 enum SubscriptionStatus {
