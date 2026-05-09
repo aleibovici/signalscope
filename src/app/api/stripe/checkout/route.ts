@@ -54,8 +54,8 @@ export async function POST(request: NextRequest) {
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
       allow_promotion_codes: true,
-      success_url: `${origin}/subscription?success=1`,
-      cancel_url: `${origin}/subscription`,
+      success_url: `${origin}/profile?success=1`,
+      cancel_url: `${origin}/profile`,
       metadata: { userId },
     });
 

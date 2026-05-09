@@ -874,7 +874,7 @@ export default function TickerDetailPage({
                   <p className="text-sm leading-relaxed text-slate-600 dark:text-zinc-400">
                     {session?.user ? (
                       <>AI analysis requires a Pro subscription.{" "}
-                      <a href="/subscription" className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                      <a href="/profile#subscription" className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
                         Upgrade to Pro
                       </a>{" "}
                       to generate reports for any ticker.</>
@@ -957,7 +957,7 @@ export default function TickerDetailPage({
                   <p className="text-sm text-slate-600 dark:text-zinc-400">
                     {session?.user ? (
                       <>Risk analysis requires a Pro subscription.{" "}
-                      <a href="/subscription" className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                      <a href="/profile#subscription" className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
                         Upgrade to Pro
                       </a></>
                     ) : (
