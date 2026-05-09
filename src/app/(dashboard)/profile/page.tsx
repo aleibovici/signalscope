@@ -1,29 +1,42 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useUserProfile, useUpdateUsername, useUpdateEmailAlerts, type SubscriptionInfo } from "@/hooks/use-user-profile";
 import { useApiKey, useGenerateApiKey, useRevokeApiKey } from "@/hooks/use-api-key";
 import { useShareReward, useClaimShareReward } from "@/hooks/use-share-reward";
-import { trackEvent } from "@/lib/analytics";
+import { useCheckout, usePortal } from "@/hooks/use-subscription";
+import { trackEvent, trackConversion } from "@/lib/analytics";
 import { inputCls } from "@/lib/input-cls";
+
+const MONTHLY_PRICE = 2.99;
+const YEARLY_PRICE = 29.99;
+
+const proFeatures = [
+  "On-demand AI reports",
+  "AI-powered trade setups",
+  "Email alerts for new signals",
+  "API key with 1,000 requests/day",
+  "All authenticated API endpoints",
+];
 
 export default function ProfilePage() {
   const { data: profile, isLoading } = useUserProfile();
   const updateUsername = useUpdateUsername();
   const updateEmailAlerts = useUpdateEmailAlerts();
+  const searchParams = useSearchParams();
+  const subscribeSuccess = searchParams.get("success") === "1";
 
   const [input, setInput] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const value = input ?? profile?.username ?? "";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSuccess(false);
+    setSaveSuccess(false);
     updateUsername.mutate(value.trim(), {
-      onSuccess: () => setSuccess(true),
+      onSuccess: () => setSaveSuccess(true),
     });
   }
 
@@ -64,7 +77,7 @@ export default function ProfilePage() {
                   value={value}
                   onChange={(e) => {
                     setInput(e.target.value);
-                    setSuccess(false);
+                    setSaveSuccess(false);
                     updateUsername.reset();
                   }}
                   placeholder="e.g. swift_falcon_427"
@@ -73,7 +86,7 @@ export default function ProfilePage() {
                 />
               </div>
 
-              {updateUsername.isError && (
+                      {updateUsername.isError && (
                 <p className="text-sm text-red-600 dark:text-red-400">
                   {updateUsername.error instanceof Error
                     ? updateUsername.error.message
@@ -81,7 +94,7 @@ export default function ProfilePage() {
                 </p>
               )}
 
-              {success && (
+              {saveSuccess && (
                 <p className="text-sm text-green-600 dark:text-green-400">Username updated successfully.</p>
               )}
 
@@ -105,9 +118,9 @@ export default function ProfilePage() {
         ) : !profile?.subscription?.isActive ? (
           <p className="text-sm text-gray-500 dark:text-zinc-400">
             Email alerts require a Pro subscription.{" "}
-            <Link href="/subscription" className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+            <a href="#subscription" className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
               Upgrade to Pro
-            </Link>
+            </a>
           </p>
         ) : (
           <>
@@ -147,6 +160,11 @@ export default function ProfilePage() {
           </>
         )}
       </div>
+      <SubscriptionSection
+        subscription={profile?.subscription ?? null}
+        isLoading={isLoading}
+        success={subscribeSuccess}
+      />
       <ShareRewardSection />
       <ApiKeySection hasSubscription={profile?.subscription?.isActive ?? false} />
       <DeleteAccountSection />
@@ -164,12 +182,12 @@ function SubscriptionBadge({ subscription }: { subscription: SubscriptionInfo | 
   }
   if (subscription.status === "PAST_DUE") {
     return (
-      <Link
-        href="/subscription"
+      <a
+        href="#subscription"
         className="shrink-0 rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-200 dark:bg-red-900/40 dark:text-red-300 dark:hover:bg-red-900/60"
       >
         Pro · Payment failed
-      </Link>
+      </a>
     );
   }
   const date = new Date(subscription.currentPeriodEnd).toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -319,9 +337,9 @@ function ApiKeySection({ hasSubscription }: { hasSubscription: boolean }) {
           </p>
           <p className="text-sm text-gray-500 dark:text-zinc-400">
             API keys require a Pro subscription.{" "}
-            <Link href="/subscription" className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+            <a href="#subscription" className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
               Upgrade to Pro
-            </Link>
+            </a>
           </p>
         </>
       ) : isLoading ? (
@@ -417,6 +435,177 @@ function ApiKeySection({ hasSubscription }: { hasSubscription: boolean }) {
            revoke.error instanceof Error ? revoke.error.message :
            "Something went wrong"}
         </p>
+      )}
+    </div>
+  );
+}
+
+function SubscriptionSection({
+  subscription,
+  isLoading,
+  success,
+}: {
+  subscription: SubscriptionInfo | null;
+  isLoading: boolean;
+  success: boolean;
+}) {
+  const checkout = useCheckout();
+  const portal = usePortal();
+  const [period, setPeriod] = useState<"monthly" | "yearly">("monthly");
+  const isActive = subscription?.isActive ?? false;
+
+  useEffect(() => {
+    trackEvent("view_subscription_page");
+  }, []);
+
+  async function handleSubscribe() {
+    await trackConversion("begin_checkout", {
+      currency: "USD",
+      value: period === "monthly" ? MONTHLY_PRICE : YEARLY_PRICE,
+      items: [{ item_name: `SignalScope Pro (${period})`, price: period === "monthly" ? MONTHLY_PRICE : YEARLY_PRICE }],
+    });
+    checkout.mutate(period, {
+      onSuccess: (data) => {
+        window.location.href = data.url;
+      },
+    });
+  }
+
+  function handleManage() {
+    portal.mutate(undefined, {
+      onSuccess: (data) => {
+        window.location.href = data.url;
+      },
+    });
+  }
+
+  return (
+    <div id="subscription" className="mt-6 scroll-mt-6 rounded-xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-[#12181f]">
+      <h2 className="mb-4 text-base font-semibold text-gray-800 dark:text-zinc-100">Subscription</h2>
+
+      {success && !isActive && (
+        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-950/50 dark:text-green-300">
+          Subscription activated! You can now generate an API key below.
+        </div>
+      )}
+
+      {isLoading ? (
+        <p className="text-sm text-gray-400 dark:text-zinc-500">Loading...</p>
+      ) : isActive ? (
+        <div>
+          <div className="mb-4 flex items-center gap-2">
+            <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/50 dark:text-green-300">
+              {subscription?.cancelAtPeriodEnd ? "Canceling" : "Active"}
+            </span>
+            <span className="text-sm font-semibold text-gray-900 dark:text-zinc-100">Pro</span>
+          </div>
+
+          {subscription?.cancelAtPeriodEnd && (
+            <p className="mb-4 text-sm text-amber-600 dark:text-amber-400">
+              Your subscription will end on{" "}
+              {new Date(subscription.currentPeriodEnd).toLocaleDateString()}.
+              You&apos;ll keep access until then.
+            </p>
+          )}
+
+          {!subscription?.cancelAtPeriodEnd && (
+            <p className="mb-4 text-sm text-gray-500 dark:text-zinc-400">
+              Next billing date:{" "}
+              {subscription?.currentPeriodEnd
+                ? new Date(subscription.currentPeriodEnd).toLocaleDateString()
+                : "—"}
+            </p>
+          )}
+
+          <h3 className="mb-3 text-sm font-semibold text-gray-800 dark:text-zinc-200">Includes</h3>
+          <ul className="mb-6 space-y-2">
+            {proFeatures.map((f) => (
+              <li key={f} className="flex items-start gap-2 text-sm text-gray-600 dark:text-zinc-300">
+                <span className="mt-0.5 text-green-600 dark:text-green-400">&#10003;</span>
+                {f}
+              </li>
+            ))}
+          </ul>
+
+          <button
+            onClick={handleManage}
+            disabled={portal.isPending}
+            className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+          >
+            {portal.isPending ? "Loading..." : "Manage Subscription"}
+          </button>
+        </div>
+      ) : (
+        <div>
+          <p className="mb-4 text-sm text-gray-500 dark:text-zinc-400">
+            The SignalScope dashboard is free. Subscribe to unlock programmatic API access, on-demand AI reports, and email alerts.
+          </p>
+
+          <div className="mb-6 flex items-center gap-2">
+            <button
+              onClick={() => setPeriod("monthly")}
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                period === "monthly"
+                  ? "bg-blue-600 text-white dark:bg-blue-500"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setPeriod("yearly")}
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                period === "yearly"
+                  ? "bg-blue-600 text-white dark:bg-blue-500"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+              }`}
+            >
+              Yearly
+              <span className="ml-1 text-xs opacity-75">Save $6</span>
+            </button>
+          </div>
+
+          <div className="mb-6">
+            <div className="text-4xl font-bold text-gray-900 dark:text-zinc-100">
+              ${period === "monthly" ? MONTHLY_PRICE : YEARLY_PRICE}
+              <span className="text-base font-normal text-gray-500 dark:text-zinc-400">
+                /{period === "monthly" ? "mo" : "yr"}
+              </span>
+            </div>
+            {period === "yearly" && (
+              <p className="mt-1 text-xs text-gray-500 dark:text-zinc-400">
+                ${(YEARLY_PRICE / 12).toFixed(2)}/mo billed annually
+              </p>
+            )}
+          </div>
+
+          <ul className="mb-6 space-y-2">
+            {proFeatures.map((f) => (
+              <li key={f} className="flex items-start gap-2 text-sm text-gray-600 dark:text-zinc-300">
+                <span className="mt-0.5 text-green-600 dark:text-green-400">&#10003;</span>
+                {f}
+              </li>
+            ))}
+          </ul>
+
+          {checkout.isError && (
+            <p className="mb-4 text-sm text-red-600 dark:text-red-400">
+              {checkout.error instanceof Error ? checkout.error.message : "Something went wrong"}
+            </p>
+          )}
+
+          <button
+            onClick={handleSubscribe}
+            disabled={checkout.isPending}
+            className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-600"
+          >
+            {checkout.isPending ? "Redirecting to checkout..." : "Subscribe to Pro"}
+          </button>
+
+          <p className="mt-4 text-xs text-gray-400 dark:text-zinc-500">
+            Secure checkout via Stripe. Cancel anytime.
+          </p>
+        </div>
       )}
     </div>
   );
