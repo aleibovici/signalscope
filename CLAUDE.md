@@ -85,7 +85,6 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 - `src/lib/rate-limit.ts` — IP-based rate limiting; `getClientIP()` handles `X-Forwarded-For` for Cloud Run
 - `src/lib/price-verification.ts` — `verifyPriceAgainstSnapshot()` validates prices against latest `PriceSnapshot` (5% deviation threshold)
 - `src/lib/co-occurrence.ts` — `getCoOccurringSymbols()`, `getPairwiseEdges()`, `jaccardScore()` for ticker connections
-- `src/lib/paper-trading-returns.ts` — `computePaperTradeMark()` uses `TickerPerformance` horizons (prefers 7d → 3d → 1d); positions **OPEN** until age ≥ 7 days then **CLOSED**
 - `src/lib/spy-benchmark.ts` — `fetchSpyTotalReturnDecimal()` loads SPY adj. close bars from Yahoo Finance; cached ~45m via `TTLCache`
 - `src/lib/analytics.ts` — `trackEvent()` pushes to GTM dataLayer; **use `trackConversion` (with `await`) whenever the next line navigates away** so pixel requests complete before page unloads
 - `src/lib/votes.ts` — `getAggregates()`, `getUserVotes()`, `computeDecayWeight()` — ticker community voting with 45-day exponential half-life; cached 60s
@@ -126,7 +125,6 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 | `/api/search` | GET | Search tickers (public, no auth) |
 | `/api/stats` | GET | Platform-wide stats |
 | `/api/performance` | GET | Portfolio performance over time |
-| `/api/paper-trading` | GET | Simulated paper portfolio — one $1k leg per high-scoring ticker in last 30d; returns `summary`, `trades`, SPY `benchmark` — **authenticated** |
 | `/api/user/profile` | GET/PATCH | Get or update user profile |
 | `/api/user/api-key` | GET/POST/DELETE | Manage API key |
 | `/api/users/export` | GET | Export email-opted-in users as JSON or CSV — `?format=csv` (x-snapshot-key auth) |
@@ -162,7 +160,7 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 
 ### Frontend (`src/app/(dashboard)/`)
 
-Dashboard pages: signals (main), trending, connections, portfolio, paper trading (`/paper-trading` — table + aggregates vs SPY), ticker detail, performance, methodology, subscription, profile, `/admin` (role-gated admin dashboard), `/results/signal-quality` and `/results/simulated-portfolio` (backtesting result views). Route group `(dashboard)` with shared sidebar layout.
+Dashboard pages: signals (main), trending, connections, portfolio, paper trading (`/results/paper-trading` — live Alpaca paper account, table + aggregates vs SPY), ticker detail, performance, methodology, subscription, profile, `/admin` (role-gated admin dashboard), `/results/signal-quality` and `/results/simulated-portfolio` (backtesting result views). Route group `(dashboard)` with shared sidebar layout.
 
 Public pages: `/changelog` — statically rendered (`src/app/changelog/page.tsx`), data in `src/lib/changelog-data.ts`. Linked from sidebar with "NEW" badge for 14 days after latest entry.
 

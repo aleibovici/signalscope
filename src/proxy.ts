@@ -25,6 +25,7 @@ const publicApiPrefixes = [
   "/api/stats",
   "/api/prices",
   "/api/performance",
+  "/api/paper-trading",
 ];
 
 // Public page prefixes (pages with sub-routes like /blog/[slug])
