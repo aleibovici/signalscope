@@ -23,21 +23,28 @@ export async function generateMetadata({
   const { symbol } = await params;
   const upper = symbol.toUpperCase();
 
-  const ticker = await prisma.validatedTicker.findFirst({
-    where: { symbol: upper },
-    orderBy: { createdAt: "desc" },
-    select: {
-      symbol: true,
-      name: true,
-      recommendation: true,
-      opportunityScore: true,
-      aiScore: true,
-      catalyst: true,
-      stage: true,
-      marketCap: true,
-      sourceCount: true,
-    },
-  });
+  // Any DB error (cold-start timeout, pool exhaustion) returns minimal metadata so
+  // Next.js falls back to the file-convention opengraph-image.tsx for the OG card.
+  let ticker;
+  try {
+    ticker = await prisma.validatedTicker.findFirst({
+      where: { symbol: upper },
+      orderBy: { createdAt: "desc" },
+      select: {
+        symbol: true,
+        name: true,
+        recommendation: true,
+        opportunityScore: true,
+        aiScore: true,
+        catalyst: true,
+        stage: true,
+        marketCap: true,
+        sourceCount: true,
+      },
+    });
+  } catch {
+    return { title: `${upper} — SignalScope` };
+  }
 
   if (!ticker) {
     return { title: `${upper} — SignalScope` };
@@ -99,18 +106,23 @@ export default async function TickerLayout({
   const { symbol } = await params;
   const upper = symbol.toUpperCase();
 
-  const ticker = await prisma.validatedTicker.findFirst({
-    where: { symbol: upper },
-    orderBy: { createdAt: "desc" },
-    select: {
-      symbol: true,
-      name: true,
-      recommendation: true,
-      opportunityScore: true,
-      stage: true,
-      createdAt: true,
-    },
-  });
+  let ticker;
+  try {
+    ticker = await prisma.validatedTicker.findFirst({
+      where: { symbol: upper },
+      orderBy: { createdAt: "desc" },
+      select: {
+        symbol: true,
+        name: true,
+        recommendation: true,
+        opportunityScore: true,
+        stage: true,
+        createdAt: true,
+      },
+    });
+  } catch {
+    return <>{children}</>;
+  }
 
   const jsonLd = ticker
     ? {
