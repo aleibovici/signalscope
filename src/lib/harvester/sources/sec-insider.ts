@@ -116,15 +116,27 @@ async function fetchFromOpenInsider(): Promise<RawSignal[]> {
     // OpenInsider does not support HTTPS (port 443 refused) — must use HTTP
     const url = "http://openinsider.com/screener?s=&o=&pl=50&ph=&ll=&lh=&fd=7&fdr=&td=0&tdr=&feession=0&cession=0&sid=1&iession=0&ession=0&otype=&othertype=&ression=0&sortcol=0&cnt=100&page=1";
 
-    const res = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-      },
-      signal: AbortSignal.timeout(15000),
-    });
+    // OpenInsider's HTTP-only server is flaky — retry once on connect timeout / network errors.
+    let res: Response | null = null;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        res = await fetch(url, {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+          },
+          signal: AbortSignal.timeout(15000),
+        });
+        break;
+      } catch (err) {
+        if (attempt === 2) throw err;
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn(`OpenInsider attempt ${attempt} failed (${msg}), retrying in 3s...`);
+        await new Promise((r) => setTimeout(r, 3000));
+      }
+    }
 
-    if (!res.ok) {
-      console.warn(`OpenInsider: ${res.status}`);
+    if (!res || !res.ok) {
+      if (res) console.warn(`OpenInsider: ${res.status}`);
       return [];
     }
 
