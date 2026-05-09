@@ -55,7 +55,6 @@ describe("fetchSecInsiderSignals", () => {
 
     await fetchSecInsiderSignals();
 
-    // First call is OpenInsider, second is EDGAR RSS
     const openInsiderUrl = mockFetch.mock.calls[0][0];
     expect(openInsiderUrl).toMatch(/^http:\/\/openinsider\.com/);
     expect(openInsiderUrl).not.toMatch(/^https:\/\/openinsider\.com/);
@@ -79,8 +78,7 @@ describe("fetchSecInsiderSignals", () => {
       if (url.includes("openinsider.com")) {
         return { ok: true, text: async () => html };
       }
-      // EDGAR RSS — empty
-      return { ok: true, text: async () => "<feed></feed>" };
+      return { ok: false, status: 404 };
     });
 
     const signals = await fetchSecInsiderSignals();
@@ -109,7 +107,7 @@ describe("fetchSecInsiderSignals", () => {
     mockFetch.mockImplementation(async (url: string) => {
       if (url.includes("openinsider.com"))
         return { ok: true, text: async () => html };
-      return { ok: true, text: async () => "<feed></feed>" };
+      return { ok: false, status: 404 };
     });
 
     const signals = await fetchSecInsiderSignals();
@@ -134,7 +132,7 @@ describe("fetchSecInsiderSignals", () => {
     mockFetch.mockImplementation(async (url: string) => {
       if (url.includes("openinsider.com"))
         return { ok: true, text: async () => html };
-      return { ok: true, text: async () => "<feed></feed>" };
+      return { ok: false, status: 404 };
     });
 
     const signals = await fetchSecInsiderSignals();
@@ -159,7 +157,7 @@ describe("fetchSecInsiderSignals", () => {
     mockFetch.mockImplementation(async (url: string) => {
       if (url.includes("openinsider.com"))
         return { ok: true, text: async () => html };
-      return { ok: true, text: async () => "<feed></feed>" };
+      return { ok: false, status: 404 };
     });
 
     const signals = await fetchSecInsiderSignals();
@@ -172,7 +170,7 @@ describe("fetchSecInsiderSignals", () => {
     mockFetch.mockImplementation(async (url: string) => {
       if (url.includes("openinsider.com"))
         throw new Error("Connection refused");
-      return { ok: true, text: async () => "<feed></feed>" };
+      return { ok: false, status: 404 };
     });
 
     const signals = await fetchSecInsiderSignals();
@@ -185,7 +183,7 @@ describe("fetchSecInsiderSignals", () => {
     mockFetch.mockImplementation(async (url: string) => {
       if (url.includes("openinsider.com"))
         return { ok: false, status: 403 };
-      return { ok: true, text: async () => "<feed></feed>" };
+      return { ok: false, status: 404 };
     });
 
     const signals = await fetchSecInsiderSignals();
@@ -219,7 +217,7 @@ describe("fetchSecInsiderSignals", () => {
     mockFetch.mockImplementation(async (url: string) => {
       if (url.includes("openinsider.com"))
         return { ok: true, text: async () => html };
-      return { ok: true, text: async () => "<feed></feed>" };
+      return { ok: false, status: 404 };
     });
 
     const signals = await fetchSecInsiderSignals();
@@ -243,7 +241,7 @@ describe("fetchSecInsiderSignals", () => {
     mockFetch.mockImplementation(async (url: string) => {
       if (url.includes("openinsider.com"))
         return { ok: true, text: async () => html };
-      return { ok: true, text: async () => "<feed></feed>" };
+      return { ok: false, status: 404 };
     });
 
     const signals = await fetchSecInsiderSignals();

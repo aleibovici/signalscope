@@ -1,5 +1,5 @@
 import type { RawSignal } from "../types";
-import { BLACKLIST, MEGA_CAPS } from "./ticker-utils";
+import { BLACKLIST } from "./ticker-utils";
 
 const C_SUITE_TITLES = new Set([
   "CEO", "CFO", "COO", "CTO", "CMO", "CIO", "CISO", "CLO",
@@ -155,62 +155,8 @@ async function fetchFromOpenInsider(): Promise<RawSignal[]> {
   }
 }
 
-async function fetchFromEdgarRss(): Promise<RawSignal[]> {
-  try {
-    const res = await fetch(
-      "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=4&dateb=&owner=include&count=40&search_text=&action=getcurrent&output=atom",
-      {
-        headers: { "User-Agent": "SignalScope admin@signalscope.dev" },
-        signal: AbortSignal.timeout(30000),
-      }
-    );
-
-    if (!res.ok) {
-      console.warn(`SEC RSS: ${res.status}`);
-      return [];
-    }
-
-    const text = await res.text();
-    const tickerMatches = text.match(/\(([A-Z]{1,5})\)/g) || [];
-    const tickers = [...new Set(
-      tickerMatches
-        .map((m) => m.replace(/[()]/g, ""))
-        .filter((t) => !BLACKLIST.has(t) && !MEGA_CAPS.has(t) && t.length >= 2)
-    )];
-
-    // EDGAR RSS Form 4 filings include sales, grants, and exercises — not just buys.
-    // Use a weaker source tag so these don't get the high SEC_INSIDER weight or
-    // bypass P&D checks. Only validated OpenInsider purchase signals use SEC_INSIDER.
-    const signals: RawSignal[] = tickers.slice(0, 20).map((symbol) => ({
-      symbol,
-      source: "SEC_FILING" as const,
-      title: `Recent Form 4 filing for ${symbol}`,
-      url: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=${symbol}&type=4&dateb=&owner=include&count=10`,
-    }));
-
-    console.log(`SEC EDGAR RSS: fetched ${signals.length} signals (unvalidated Form 4 filings)`);
-    return signals;
-  } catch (err) {
-    console.warn("SEC RSS error:", err);
-    return [];
-  }
-}
-
 export async function fetchSecInsiderSignals(): Promise<RawSignal[]> {
-  // Fetch from both sources in parallel, OpenInsider is primary
-  const [openInsiderResult, edgarResult] = await Promise.allSettled([
-    fetchFromOpenInsider(),
-    fetchFromEdgarRss(),
-  ]);
-
-  const openInsider = openInsiderResult.status === "fulfilled" ? openInsiderResult.value : [];
-  const edgar = edgarResult.status === "fulfilled" ? edgarResult.value : [];
-
-  // Deduplicate: prefer OpenInsider signals (richer data) over EDGAR RSS
-  const seen = new Set(openInsider.map((s) => s.symbol));
-  const dedupedEdgar = edgar.filter((s) => !seen.has(s.symbol));
-
-  const signals = [...openInsider, ...dedupedEdgar];
-  console.log(`SEC Insider: ${signals.length} total signals (${openInsider.length} OpenInsider, ${dedupedEdgar.length} EDGAR)`);
+  const signals = await fetchFromOpenInsider();
+  console.log(`SEC Insider: ${signals.length} signals`);
   return signals;
 }
