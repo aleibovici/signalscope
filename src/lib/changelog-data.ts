@@ -19,6 +19,12 @@ export const changelog: ChangelogEntry[] = [
           "Subscription management moved into the Profile page — no separate API Access menu item.",
         ],
       },
+      {
+        category: "fixed",
+        items: [
+          "Live Alpaca paper trading endpoint is now reachable without a session, matching its design as a single shared SignalScope-owned account. iOS and anonymous web visitors no longer hit a 401.",
+        ],
+      },
     ],
   },
   {
