@@ -5,13 +5,13 @@ import { PublicPageLayout } from "@/components/public-page-layout";
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "SignalScope pricing. Free dashboard with watchlist, portfolio tracking, and weekly digest. Pro at $10/mo or $100/yr unlocks AI reports, API key access, and real-time email alerts. AI agents can pay per call via x402 micropayments — no account required.",
+    "SignalScope pricing. Free dashboard with watchlist, portfolio tracking, and weekly digest. Pro at $2.99/mo or $29.99/yr unlocks AI reports, API key access, and real-time email alerts. AI agents can pay per call via x402 micropayments — no account required.",
   alternates: { canonical: "http://localhost:3000/pricing" },
   openGraph: {
     url: "http://localhost:3000/pricing",
     title: "Pricing — SignalScope",
     description:
-      "Free dashboard, Pro at $10/mo ($100/yr), or x402 pay-per-call for AI agents.",
+      "Free dashboard, Pro at $2.99/mo ($29.99/yr), or x402 pay-per-call for AI agents.",
     images: [
       {
         url: "/opengraph-image",
@@ -40,9 +40,9 @@ const tiers = [
   },
   {
     name: "Pro",
-    price: "$10",
+    price: "$2.99",
     cadence: "per month",
-    yearly: "or $100 / year (save 17%)",
+    yearly: "or $29.99 / year (save 16%)",
     tagline: "Unlock automation and AI-generated research.",
     features: [
       "Everything in Free",
@@ -94,11 +94,11 @@ export default function PricingPage() {
           {
             "@type": "Offer",
             name: "Pro Monthly",
-            price: "10",
+            price: "2.99",
             priceCurrency: "USD",
             priceSpecification: {
               "@type": "UnitPriceSpecification",
-              price: "10",
+              price: "2.99",
               priceCurrency: "USD",
               billingIncrement: 1,
               unitCode: "MON",
@@ -109,11 +109,11 @@ export default function PricingPage() {
           {
             "@type": "Offer",
             name: "Pro Yearly",
-            price: "100",
+            price: "29.99",
             priceCurrency: "USD",
             priceSpecification: {
               "@type": "UnitPriceSpecification",
-              price: "100",
+              price: "29.99",
               priceCurrency: "USD",
               billingIncrement: 1,
               unitCode: "ANN",

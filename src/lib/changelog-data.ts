@@ -9,6 +9,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-05-09",
+    title: "New Pricing",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "Pro subscription repriced to $2.99/month or $29.99/year (save 16%) — dashboard remains free for all users.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-05-07",
     title: "Streamlined Navigation",
     changes: [

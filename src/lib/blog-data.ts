@@ -164,7 +164,7 @@ const blogPostsUnsorted: BlogPost[] = [
       },
       {
         heading: "SignalScope: multi-source with built-in scoring",
-        body: "SignalScope sits in a different category from Quiver and Unusual Whales. Instead of giving you raw datasets to filter yourself, it runs eight sources in parallel (Reddit, X/Twitter, StockTwits, SEC insider filings, congressional trades, volume spikes, options flow, Polymarket), aggregates by ticker, and scores each candidate with AI for breakout potential. The output is not a dataset browser — it's a ranked list of tickers with evidence, trade setups (entry, stop, targets, R:R), and an AI-written thesis. A 13-flag pump-and-dump filter removes the worst offenders. Pricing is $10/month or $100/year; the dashboard is free to view. Best fit if you want conclusions instead of raw data, and if you value multi-source corroboration over any single dataset's depth.",
+        body: "SignalScope sits in a different category from Quiver and Unusual Whales. Instead of giving you raw datasets to filter yourself, it runs eight sources in parallel (Reddit, X/Twitter, StockTwits, SEC insider filings, congressional trades, volume spikes, options flow, Polymarket), aggregates by ticker, and scores each candidate with AI for breakout potential. The output is not a dataset browser — it's a ranked list of tickers with evidence, trade setups (entry, stop, targets, R:R), and an AI-written thesis. A 13-flag pump-and-dump filter removes the worst offenders. Pricing is $2.99/month or $29.99/year; the dashboard is free to view. Best fit if you want conclusions instead of raw data, and if you value multi-source corroboration over any single dataset's depth.",
       },
       {
         heading: "How to choose",

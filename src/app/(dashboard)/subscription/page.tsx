@@ -10,8 +10,8 @@ import { ShareRewardBadge } from "@/components/dashboard/share-reward-badge";
 import { trackEvent, trackConversion } from "@/lib/analytics";
 import { PageHeader } from "@/components/ui/page-header";
 
-const MONTHLY_PRICE = 10;
-const YEARLY_PRICE = 100;
+const MONTHLY_PRICE = 2.99;
+const YEARLY_PRICE = 29.99;
 
 const features = [
   "On-demand AI reports",
@@ -146,7 +146,7 @@ export default function SubscriptionPage() {
               }`}
             >
               Yearly
-              <span className="ml-1 text-xs opacity-75">Save $20</span>
+              <span className="ml-1 text-xs opacity-75">Save $6</span>
             </button>
           </div>
 

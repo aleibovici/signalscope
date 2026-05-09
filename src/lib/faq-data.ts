@@ -57,7 +57,7 @@ export const faqItems: FaqItem[] = [
   {
     question: "Is SignalScope free?",
     answer:
-      "The dashboard is free for all registered users — no credit card required to browse signals, trending tickers, portfolio tracking, and watchlists. A Pro subscription ($10/month or $100/year) unlocks API key access for programmatic use, on-demand AI report generation, and email alerts for top emerging tickers. AI agents can also access data without an account via x402 micropayments (from $0.005 per call) — no registration needed.",
+      "The dashboard is free for all registered users — no credit card required to browse signals, trending tickers, portfolio tracking, and watchlists. A Pro subscription ($2.99/month or $29.99/year) unlocks API key access for programmatic use, on-demand AI report generation, and email alerts for top emerging tickers. AI agents can also access data without an account via x402 micropayments (from $0.005 per call) — no registration needed.",
   },
   {
     question: "How is signal performance tracked?",
