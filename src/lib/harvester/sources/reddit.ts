@@ -11,7 +11,6 @@ const SUBREDDIT_CONFIG: Array<{ name: string; sorts: SortConfig[] }> = [
   { name: "smallstreetbets",      sorts: [{ type: "new", limit: 15 }, { type: "rising", limit: 10 }] },
   { name: "options",              sorts: [{ type: "new", limit: 15 }, { type: "rising", limit: 10 }] },
   { name: "stockmarket",          sorts: [{ type: "new", limit: 15 }] },
-  { name: "Undervalued",          sorts: [{ type: "new", limit: 10 }] },
   { name: "ValueInvesting",       sorts: [{ type: "new", limit: 10 }] },
   { name: "spacs",                sorts: [{ type: "new", limit: 10 }] },
   { name: "weedstocks",           sorts: [{ type: "new", limit: 10 }] },
