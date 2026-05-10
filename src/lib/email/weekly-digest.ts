@@ -8,8 +8,8 @@ const resend = process.env.RESEND_API_KEY
 
 /* ------------------------------------------------------------------ */
 /*  Free weekly digest — sent to ALL users, not just subscribers       */
-/*  Shows top 3 tickers (symbol, score, catalyst) — no trade setups.   */
-/*  Goal: convert free users → subscribers, twitter followers → users.  */
+/*  Shows the top 5 picks from the past 7 days ranked by best return.  */
+/*  Goal: prove the system works, convert free users → subscribers.    */
 /* ------------------------------------------------------------------ */
 
 interface DigestTicker {
@@ -18,14 +18,8 @@ interface DigestTicker {
   opportunityScore: number;
   catalyst: string | null;
   stage: string;
-  returnPct: number | null;
-  returnPeriod: string | null;
-}
-
-interface DigestPerformer {
-  symbol: string;
   returnPct: number;
-  period: string;
+  returnPeriod: string;
 }
 
 function formatPct(pct: number): string {
@@ -39,13 +33,13 @@ function truncateSummary(text: string, maxLen = 100): string {
 
 export function buildWeeklyDigestHtml(
   tickers: DigestTicker[],
-  performers: DigestPerformer[],
   totalAvailable: number,
   isSubscriber: boolean,
 ): string {
   function renderTicker(t: DigestTicker): string {
     const stageLabel = STAGE_LABELS[t.stage] ?? t.stage;
     const stageColor = t.stage === "EARLY" ? "#16a34a" : t.stage === "FORMING" ? "#ca8a04" : "#6b7280";
+    const returnColor = t.returnPct >= 0 ? "#16a34a" : "#dc2626";
     const catalystRow = t.catalyst
       ? `<tr><td colspan="3" style="padding:2px 12px 8px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#6b7280;">${truncateSummary(t.catalyst)}</td></tr>`
       : "";
@@ -56,23 +50,13 @@ export function buildWeeklyDigestHtml(
           <a href="http://localhost:3000/ticker/${t.symbol}" style="color:#2563eb;font-weight:600;text-decoration:none;">$${t.symbol}</a>
           <span style="font-size:11px;color:${stageColor};margin-left:6px;">${stageLabel}</span>
         </td>
+        <td style="padding:8px 12px;${t.catalyst ? "" : "border-bottom:1px solid #e5e7eb;"}">
+          <span style="color:${returnColor};font-weight:700;">${formatPct(t.returnPct)}</span>
+          <span style="color:#6b7280;font-size:11px;margin-left:4px;">(${t.returnPeriod})</span>
+        </td>
         <td style="padding:8px 12px;${t.catalyst ? "" : "border-bottom:1px solid #e5e7eb;"}">${t.aiScore}/100</td>
-        <td style="padding:8px 12px;${t.catalyst ? "" : "border-bottom:1px solid #e5e7eb;"}">${t.opportunityScore}/100</td>
       </tr>${catalystRow}`;
   }
-
-  function renderPerformer(p: DigestPerformer): string {
-    const color = p.returnPct >= 0 ? "#16a34a" : "#dc2626";
-    return `<span style="display:inline-block;margin-right:16px;"><a href="http://localhost:3000/ticker/${p.symbol}" style="color:#2563eb;font-weight:600;text-decoration:none;">$${p.symbol}</a> <span style="color:${color};font-weight:600;">${formatPct(p.returnPct)}</span> <span style="color:#6b7280;font-size:12px;">(${p.period})</span></span>`;
-  }
-
-  const performerSection = performers.length > 0
-    ? `
-      <div style="margin:16px 0;padding:12px;background:#f0fdf4;border-radius:6px;border:1px solid #bbf7d0;">
-        <p style="margin:0 0 8px;font-weight:700;font-size:13px;color:#15803d;">📈 Recent Winners — Flagged by SignalScope</p>
-        <p style="margin:0;font-size:14px;line-height:1.8;">${performers.map(renderPerformer).join("")}</p>
-      </div>`
-    : "";
 
   const ctaSection = isSubscriber
     ? `<p style="margin:16px 0 8px;font-size:13px;color:#6b7280;">
@@ -92,17 +76,16 @@ export function buildWeeklyDigestHtml(
   <div style="max-width:600px;margin:0 auto;padding:24px;">
     <div style="background:#1e293b;border-radius:8px 8px 0 0;padding:20px 24px;">
       <h1 style="margin:0;color:#fff;font-size:20px;">SignalScope Weekly Digest</h1>
-      <p style="margin:4px 0 0;color:#94a3b8;font-size:14px;">Top emerging signals this week</p>
+      <p style="margin:4px 0 0;color:#94a3b8;font-size:14px;">This week's top performers</p>
     </div>
     <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:16px 24px;">
-      ${performerSection}
-      <p style="margin:${performers.length > 0 ? "8" : "0"}px 0 12px;font-size:13px;color:#6b7280;">The highest-conviction signals detected across Reddit, X/Twitter, SEC filings, congressional trades, options flow, and volume spikes.</p>
+      <p style="margin:0 0 12px;font-size:13px;color:#6b7280;">Picks from the past 7 days — ranked by best return — across Reddit, X/Twitter, SEC filings, congressional trades, options flow, and volume spikes.</p>
       <table style="width:100%;border-collapse:collapse;font-size:14px;">
         <thead>
           <tr style="text-align:left;color:#6b7280;">
             <th style="padding:8px 12px;border-bottom:2px solid #e5e7eb;">Ticker</th>
+            <th style="padding:8px 12px;border-bottom:2px solid #e5e7eb;">Return</th>
             <th style="padding:8px 12px;border-bottom:2px solid #e5e7eb;">Signal</th>
-            <th style="padding:8px 12px;border-bottom:2px solid #e5e7eb;">Opportunity</th>
           </tr>
         </thead>
         <tbody>${tickers.map(renderTicker).join("")}</tbody>
@@ -126,100 +109,92 @@ export async function sendWeeklyDigest(): Promise<{
   sent: number;
   skipped: number;
   tickerCount: number;
-  performerCount: number;
 }> {
   if (!resend) {
     console.log("[email/weekly] RESEND_API_KEY not set — skipping weekly digest");
-    return { sent: 0, skipped: 0, tickerCount: 0, performerCount: 0 };
+    return { sent: 0, skipped: 0, tickerCount: 0 };
   }
 
-  // 1. Get latest completed scan
-  const scan = await prisma.scan.findFirst({
-    where: { status: "COMPLETED" },
-    orderBy: { completedAt: "desc" },
-  });
+  const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-  if (!scan) {
-    console.log("[email/weekly] No completed scan — skipping");
-    return { sent: 0, skipped: 0, tickerCount: 0, performerCount: 0 };
-  }
-
-  // 2. Top 3 tickers by combined ai+opportunity score (highest conviction first)
-  const topTickersRaw = await prisma.validatedTicker.findMany({
-    where: {
-      scanId: scan.id,
-      stage: { in: ["EARLY", "FORMING", "CONFIRMED"] },
-      pndFlagged: false,
-      aiScore: { gte: 50 },
-      recommendation: { in: ["Strong Buy", "Buy", "Watch"] },
-    },
-    orderBy: [{ aiScore: "desc" }, { opportunityScore: "desc" }],
-    take: 20,
-    select: {
-      symbol: true,
-      aiScore: true,
-      opportunityScore: true,
-      catalyst: true,
-      stage: true,
-    },
-  });
-  const topTickers = topTickersRaw.slice(0, 3);
-
-  if (topTickers.length === 0) {
-    console.log("[email/weekly] No qualifying tickers — skipping");
-    return { sent: 0, skipped: 0, tickerCount: 0, performerCount: 0 };
-  }
-
-  // 3. Top performers from TickerPerformance (proof section)
-  const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+  // 1. Pull every performance row for picks made in the last 7 days
   const perfRows = await prisma.tickerPerformance.findMany({
     where: {
       createdAt: { gte: cutoff },
       corporateActionDetected: false,
       validatedTicker: {
         pndFlagged: false,
-        recommendation: { in: ["Strong Buy", "Buy"] },
+        recommendation: { in: ["Strong Buy", "Buy", "Watch"] },
       },
     },
     include: {
-      validatedTicker: { select: { symbol: true } },
+      validatedTicker: {
+        select: {
+          symbol: true,
+          aiScore: true,
+          opportunityScore: true,
+          catalyst: true,
+          stage: true,
+        },
+      },
     },
-    take: 100,
   });
 
-  // Pick best return per symbol
-  const performers: DigestPerformer[] = [];
-  const seenSymbols = new Set<string>();
-
-  const perfCandidates: { symbol: string; returnPct: number; period: string }[] = [];
+  // 2. For each row pick the best of return1d/3d/7d. Dedupe by symbol.
+  //    Drop anything that isn't positive — "top performers" must have run up.
+  const bestPerSymbol = new Map<string, DigestTicker>();
   for (const row of perfRows) {
-    const sym = row.validatedTicker.symbol;
-    if (row.return7d !== null && row.return7d >= 0.08) {
-      perfCandidates.push({ symbol: sym, returnPct: row.return7d, period: "7d" });
-    } else if (row.return3d !== null && row.return3d >= 0.05) {
-      perfCandidates.push({ symbol: sym, returnPct: row.return3d, period: "3d" });
-    } else if (row.return30d !== null && row.return30d >= 0.12) {
-      perfCandidates.push({ symbol: sym, returnPct: row.return30d, period: "30d" });
+    const periods: Array<{ pct: number | null; label: string }> = [
+      { pct: row.return1d, label: "1d" },
+      { pct: row.return3d, label: "3d" },
+      { pct: row.return7d, label: "7d" },
+    ];
+    let bestPct: number | null = null;
+    let bestLabel = "";
+    for (const p of periods) {
+      if (p.pct !== null && (bestPct === null || p.pct > bestPct)) {
+        bestPct = p.pct;
+        bestLabel = p.label;
+      }
+    }
+    if (bestPct === null || bestPct <= 0) continue;
+
+    const v = row.validatedTicker;
+    const existing = bestPerSymbol.get(v.symbol);
+    if (!existing || bestPct > existing.returnPct) {
+      bestPerSymbol.set(v.symbol, {
+        symbol: v.symbol,
+        aiScore: v.aiScore,
+        opportunityScore: v.opportunityScore,
+        catalyst: v.catalyst,
+        stage: v.stage,
+        returnPct: bestPct,
+        returnPeriod: bestLabel,
+      });
     }
   }
 
-  perfCandidates.sort((a, b) => b.returnPct - a.returnPct);
-  for (const c of perfCandidates) {
-    if (seenSymbols.has(c.symbol)) continue;
-    seenSymbols.add(c.symbol);
-    performers.push(c);
-    if (performers.length >= 3) break;
+  const topTickers = Array.from(bestPerSymbol.values())
+    .sort((a, b) => b.returnPct - a.returnPct)
+    .slice(0, 5);
+
+  if (topTickers.length === 0) {
+    console.log("[email/weekly] No qualifying performers in the last 7 days — skipping");
+    return { sent: 0, skipped: 0, tickerCount: 0 };
   }
 
-  // 4. Total available for context
-  const totalAvailable = await prisma.validatedTicker.count({
+  // 3. Total picks made this week (used in the upgrade/dashboard CTA)
+  const totalAvailable = await prisma.tickerPerformance.count({
     where: {
-      scanId: scan.id,
-      stage: { in: ["EARLY", "FORMING", "CONFIRMED"] },
+      createdAt: { gte: cutoff },
+      validatedTicker: {
+        pndFlagged: false,
+        recommendation: { in: ["Strong Buy", "Buy", "Watch"] },
+      },
     },
   });
 
-  // 5. Get ALL users with emailAlerts enabled (not just subscribers)
+  // 4. Get ALL users with emailAlerts enabled (not just subscribers)
   const users = await prisma.user.findMany({
     where: { emailAlerts: true },
     select: {
@@ -231,30 +206,23 @@ export async function sendWeeklyDigest(): Promise<{
 
   if (users.length === 0) {
     console.log("[email/weekly] No users with email alerts enabled");
-    return { sent: 0, skipped: 0, tickerCount: topTickers.length, performerCount: performers.length };
+    return { sent: 0, skipped: 0, tickerCount: topTickers.length };
   }
 
-  const digestTickers: DigestTicker[] = topTickers.map((t) => ({
-    symbol: t.symbol,
-    aiScore: t.aiScore,
-    opportunityScore: t.opportunityScore,
-    catalyst: t.catalyst,
-    stage: t.stage,
-    returnPct: null,
-    returnPeriod: null,
-  }));
-
-  // 6. Send — subscribers get one CTA, free users get an upgrade CTA
+  // 5. Send — subscribers get one CTA, free users get an upgrade CTA
   const ACTIVE_STATUSES = ["ACTIVE", "PAST_DUE"];
 
   const subscriberEmails: { from: string; to: string; subject: string; html: string }[] = [];
   const freeEmails: { from: string; to: string; subject: string; html: string }[] = [];
 
-  const topSymbols = digestTickers.map((t) => `$${t.symbol}`).join(", ");
-  const subject = `SignalScope Weekly: ${topSymbols}${performers.length > 0 ? ` + ${performers.length} recent winners` : ""}`;
+  const headlineSymbols = topTickers
+    .slice(0, 3)
+    .map((t) => `$${t.symbol} ${formatPct(t.returnPct)}`)
+    .join(", ");
+  const subject = `SignalScope Weekly: ${headlineSymbols}`;
 
-  const subscriberHtml = buildWeeklyDigestHtml(digestTickers, performers, totalAvailable, true);
-  const freeHtml = buildWeeklyDigestHtml(digestTickers, performers, totalAvailable, false);
+  const subscriberHtml = buildWeeklyDigestHtml(topTickers, totalAvailable, true);
+  const freeHtml = buildWeeklyDigestHtml(topTickers, totalAvailable, false);
 
   for (const user of users) {
     const isSub = user.subscription && ACTIVE_STATUSES.includes(user.subscription.status);
@@ -293,8 +261,8 @@ export async function sendWeeklyDigest(): Promise<{
   }
 
   console.log(
-    `[email/weekly] Done: ${sent} sent (${subscriberEmails.length} subscribers, ${freeEmails.length} free), ${skipped} failed, ${topTickers.length} tickers, ${performers.length} performers`
+    `[email/weekly] Done: ${sent} sent (${subscriberEmails.length} subscribers, ${freeEmails.length} free), ${skipped} failed, ${topTickers.length} top performers`
   );
 
-  return { sent, skipped, tickerCount: topTickers.length, performerCount: performers.length };
+  return { sent, skipped, tickerCount: topTickers.length };
 }

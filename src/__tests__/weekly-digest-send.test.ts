@@ -8,10 +8,8 @@ const mocks = vi.hoisted(() => {
   process.env.RESEND_API_KEY = "re_test_key";
   return {
     batchSend: vi.fn(),
-    scanFindFirst: vi.fn(),
-    tickerFindMany: vi.fn(),
-    tickerCount: vi.fn(),
     perfFindMany: vi.fn(),
+    perfCount: vi.fn(),
     userFindMany: vi.fn(),
   };
 });
@@ -30,15 +28,9 @@ vi.mock("resend", () => ({
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    scan: {
-      findFirst: (...args: unknown[]) => mocks.scanFindFirst(...args),
-    },
-    validatedTicker: {
-      findMany: (...args: unknown[]) => mocks.tickerFindMany(...args),
-      count: (...args: unknown[]) => mocks.tickerCount(...args),
-    },
     tickerPerformance: {
       findMany: (...args: unknown[]) => mocks.perfFindMany(...args),
+      count: (...args: unknown[]) => mocks.perfCount(...args),
     },
     user: {
       findMany: (...args: unknown[]) => mocks.userFindMany(...args),
@@ -52,14 +44,41 @@ const { sendWeeklyDigest } = await import("@/lib/email/weekly-digest");
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function makeTicker(overrides: Record<string, unknown> = {}) {
+interface PerfRowOverrides {
+  symbol?: string;
+  return1d?: number | null;
+  return3d?: number | null;
+  return7d?: number | null;
+  aiScore?: number;
+  opportunityScore?: number;
+  catalyst?: string | null;
+  stage?: string;
+  pndFlagged?: boolean;
+  recommendation?: string;
+}
+
+function makePerfRow(overrides: PerfRowOverrides = {}) {
+  const {
+    symbol = "NVDA",
+    return1d = null,
+    return3d = null,
+    return7d = 0.1,
+    aiScore = 80,
+    opportunityScore = 70,
+    catalyst = "Unusual options activity",
+    stage = "EARLY",
+  } = overrides;
   return {
-    symbol: "NVDA",
-    aiScore: 80,
-    opportunityScore: 70,
-    catalyst: "Unusual options activity",
-    stage: "EARLY",
-    ...overrides,
+    return1d,
+    return3d,
+    return7d,
+    validatedTicker: {
+      symbol,
+      aiScore,
+      opportunityScore,
+      catalyst,
+      stage,
+    },
   };
 }
 
@@ -79,128 +98,157 @@ describe("sendWeeklyDigest", () => {
     vi.clearAllMocks();
     mocks.batchSend.mockResolvedValue({ data: { data: [{ id: "email_1" }] }, error: null });
     mocks.perfFindMany.mockResolvedValue([]);
-    mocks.tickerCount.mockResolvedValue(10);
+    mocks.perfCount.mockResolvedValue(10);
     mocks.userFindMany.mockResolvedValue([]);
   });
 
-  // ── No completed scan → skip ──────────────────────────────────────────────
+  // ── Selection window: 7 days ──────────────────────────────────────────────
 
-  it("returns zeroes when no completed scan exists", async () => {
-    mocks.scanFindFirst.mockResolvedValue(null);
-    const result = await sendWeeklyDigest();
-    expect(result).toEqual({ sent: 0, skipped: 0, tickerCount: 0, performerCount: 0 });
-    expect(mocks.tickerFindMany).not.toHaveBeenCalled();
-  });
-
-  it("queries the most recently completed scan", async () => {
-    mocks.scanFindFirst.mockResolvedValue(null);
+  it("queries TickerPerformance with a 7-day createdAt cutoff", async () => {
+    const before = Date.now();
     await sendWeeklyDigest();
-    const call = mocks.scanFindFirst.mock.calls[0][0];
-    expect(call.where).toEqual({ status: "COMPLETED" });
-    expect(call.orderBy).toEqual({ completedAt: "desc" });
+    const after = Date.now();
+
+    const call = mocks.perfFindMany.mock.calls[0][0];
+    const cutoff: Date = call.where.createdAt.gte;
+    const cutoffMs = cutoff.getTime();
+    const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+
+    expect(cutoffMs).toBeGreaterThanOrEqual(before - sevenDaysMs - 1000);
+    expect(cutoffMs).toBeLessThanOrEqual(after - sevenDaysMs + 1000);
   });
 
-  // ── DB ordering: aiScore desc, opportunityScore desc (regression guard) ────
-
-  it("orders tickers by aiScore desc then opportunityScore desc in the DB query", async () => {
-    mocks.scanFindFirst.mockResolvedValue({ id: "scan_1" });
-    mocks.tickerFindMany.mockResolvedValue([]);
-
+  it("filters to non-pnd, Buy/Strong Buy/Watch, no corporate actions", async () => {
     await sendWeeklyDigest();
 
-    const call = mocks.tickerFindMany.mock.calls[0][0];
-    expect(call.orderBy).toEqual([{ aiScore: "desc" }, { opportunityScore: "desc" }]);
+    const call = mocks.perfFindMany.mock.calls[0][0];
+    expect(call.where.corporateActionDetected).toBe(false);
+    expect(call.where.validatedTicker.pndFlagged).toBe(false);
+    expect(call.where.validatedTicker.recommendation).toEqual({
+      in: ["Strong Buy", "Buy", "Watch"],
+    });
   });
 
-  it("does NOT include stage in the DB orderBy (regression guard vs old stage-priority sort)", async () => {
-    mocks.scanFindFirst.mockResolvedValue({ id: "scan_1" });
-    mocks.tickerFindMany.mockResolvedValue([]);
+  // ── Best-of-1d/3d/7d return per row ───────────────────────────────────────
 
-    await sendWeeklyDigest();
-
-    const call = mocks.tickerFindMany.mock.calls[0][0];
-    expect(JSON.stringify(call.orderBy)).not.toContain("stage");
-  });
-
-  it("filters tickers to non-pnd, aiScore >= 50, EARLY/FORMING/CONFIRMED with buy/watch recommendation", async () => {
-    mocks.scanFindFirst.mockResolvedValue({ id: "scan_1" });
-    mocks.tickerFindMany.mockResolvedValue([]);
-
-    await sendWeeklyDigest();
-
-    const call = mocks.tickerFindMany.mock.calls[0][0];
-    expect(call.where.pndFlagged).toBe(false);
-    expect(call.where.aiScore).toEqual({ gte: 50 });
-    expect(call.where.stage).toEqual({ in: ["EARLY", "FORMING", "CONFIRMED"] });
-    expect(call.where.recommendation).toEqual({ in: ["Strong Buy", "Buy", "Watch"] });
-  });
-
-  // ── Core regression: CONFIRMED/90 must beat EARLY/50 ─────────────────────
-
-  it("a CONFIRMED 90-score ticker appears before an EARLY 50-score ticker in the email", async () => {
-    // Simulate what Prisma returns after `orderBy aiScore desc` (CONFIRMED/90 first)
-    mocks.scanFindFirst.mockResolvedValue({ id: "scan_1" });
-    mocks.tickerFindMany.mockResolvedValue([
-      makeTicker({ symbol: "HIGH", stage: "CONFIRMED", aiScore: 90, opportunityScore: 80 }),
-      makeTicker({ symbol: "LOW", stage: "EARLY", aiScore: 50, opportunityScore: 60 }),
+  it("ranks each pick by the BEST of return1d/3d/7d", async () => {
+    mocks.perfFindMany.mockResolvedValue([
+      makePerfRow({ symbol: "PEAK1D", return1d: 0.30, return3d: 0.10, return7d: 0.05 }),
+      makePerfRow({ symbol: "PEAK3D", return1d: 0.05, return3d: 0.25, return7d: 0.10 }),
+      makePerfRow({ symbol: "PEAK7D", return1d: 0.05, return3d: 0.10, return7d: 0.20 }),
     ]);
     mocks.userFindMany.mockResolvedValue([makeUser()]);
 
     await sendWeeklyDigest();
 
-    expect(mocks.batchSend).toHaveBeenCalledTimes(1);
     const batch = mocks.batchSend.mock.calls[0][0] as Array<{ html: string }>;
     const html = batch[0].html;
-    const highIdx = html.indexOf("$HIGH");
-    const lowIdx = html.indexOf("$LOW");
-    expect(highIdx).toBeGreaterThan(-1);
-    expect(lowIdx).toBeGreaterThan(-1);
-    expect(highIdx).toBeLessThan(lowIdx); // CONFIRMED/90 appears before EARLY/50
+    // Order: PEAK1D 30% > PEAK3D 25% > PEAK7D 20%
+    const i1 = html.indexOf("$PEAK1D");
+    const i3 = html.indexOf("$PEAK3D");
+    const i7 = html.indexOf("$PEAK7D");
+    expect(i1).toBeGreaterThan(-1);
+    expect(i3).toBeGreaterThan(-1);
+    expect(i7).toBeGreaterThan(-1);
+    expect(i1).toBeLessThan(i3);
+    expect(i3).toBeLessThan(i7);
+    // Each row should be labeled with its best period
+    expect(html).toMatch(/\$PEAK1D[\s\S]*?\(1d\)/);
+    expect(html).toMatch(/\$PEAK3D[\s\S]*?\(3d\)/);
+    expect(html).toMatch(/\$PEAK7D[\s\S]*?\(7d\)/);
   });
 
-  // ── Caps at 3 tickers ─────────────────────────────────────────────────────
+  it("skips picks whose best return is zero or negative", async () => {
+    mocks.perfFindMany.mockResolvedValue([
+      makePerfRow({ symbol: "WIN", return1d: 0.10, return3d: -0.05, return7d: -0.02 }),
+      makePerfRow({ symbol: "FLAT", return1d: 0, return3d: -0.01, return7d: -0.05 }),
+      makePerfRow({ symbol: "LOSS", return1d: -0.10, return3d: -0.05, return7d: -0.02 }),
+      makePerfRow({ symbol: "NULL", return1d: null, return3d: null, return7d: null }),
+    ]);
+    mocks.userFindMany.mockResolvedValue([makeUser()]);
 
-  it("includes at most 3 tickers in the email regardless of how many the DB returns", async () => {
-    mocks.scanFindFirst.mockResolvedValue({ id: "scan_1" });
-    mocks.tickerFindMany.mockResolvedValue([
-      makeTicker({ symbol: "A", aiScore: 95 }),
-      makeTicker({ symbol: "B", aiScore: 90 }),
-      makeTicker({ symbol: "C", aiScore: 85 }),
-      makeTicker({ symbol: "D", aiScore: 80 }),
-      makeTicker({ symbol: "E", aiScore: 75 }),
+    await sendWeeklyDigest();
+
+    const batch = mocks.batchSend.mock.calls[0][0] as Array<{ html: string }>;
+    const html = batch[0].html;
+    expect(html).toContain("$WIN");
+    expect(html).not.toContain("$FLAT");
+    expect(html).not.toContain("$LOSS");
+    expect(html).not.toContain("$NULL");
+  });
+
+  // ── Dedupe by symbol ──────────────────────────────────────────────────────
+
+  it("dedupes by symbol and keeps the highest-return row", async () => {
+    mocks.perfFindMany.mockResolvedValue([
+      makePerfRow({ symbol: "AAPL", return1d: 0.05, return3d: null, return7d: null }),
+      makePerfRow({ symbol: "AAPL", return1d: 0.20, return3d: null, return7d: null }),
+      makePerfRow({ symbol: "AAPL", return1d: 0.10, return3d: null, return7d: null }),
     ]);
     mocks.userFindMany.mockResolvedValue([makeUser()]);
 
     const result = await sendWeeklyDigest();
 
-    expect(result.tickerCount).toBe(3);
+    expect(result.tickerCount).toBe(1);
+    const batch = mocks.batchSend.mock.calls[0][0] as Array<{ html: string }>;
+    const html = batch[0].html;
+    expect(html).toContain("+20.0%");
+    expect(html).not.toContain("+10.0%");
+    expect(html).not.toContain("+5.0%");
+  });
+
+  // ── Top 5 cap ─────────────────────────────────────────────────────────────
+
+  it("includes at most 5 tickers in the email", async () => {
+    mocks.perfFindMany.mockResolvedValue([
+      makePerfRow({ symbol: "A", return1d: 0.50 }),
+      makePerfRow({ symbol: "B", return1d: 0.40 }),
+      makePerfRow({ symbol: "C", return1d: 0.30 }),
+      makePerfRow({ symbol: "D", return1d: 0.20 }),
+      makePerfRow({ symbol: "E", return1d: 0.10 }),
+      makePerfRow({ symbol: "F", return1d: 0.05 }),
+      makePerfRow({ symbol: "G", return1d: 0.04 }),
+    ]);
+    mocks.userFindMany.mockResolvedValue([makeUser()]);
+
+    const result = await sendWeeklyDigest();
+
+    expect(result.tickerCount).toBe(5);
     const batch = mocks.batchSend.mock.calls[0][0] as Array<{ html: string }>;
     const html = batch[0].html;
     expect(html).toContain("$A");
-    expect(html).toContain("$B");
-    expect(html).toContain("$C");
-    expect(html).not.toContain("$D");
-    expect(html).not.toContain("$E");
+    expect(html).toContain("$E");
+    expect(html).not.toContain("$F");
+    expect(html).not.toContain("$G");
   });
 
-  // ── No qualifying tickers → skip ─────────────────────────────────────────
+  // ── No qualifying performers → skip ───────────────────────────────────────
 
-  it("skips sending when no tickers pass the filter", async () => {
-    mocks.scanFindFirst.mockResolvedValue({ id: "scan_1" });
-    mocks.tickerFindMany.mockResolvedValue([]);
-    mocks.tickerCount.mockResolvedValue(0);
+  it("skips sending when no picks have positive returns in the window", async () => {
+    mocks.perfFindMany.mockResolvedValue([
+      makePerfRow({ symbol: "FLAT", return1d: 0, return3d: 0, return7d: 0 }),
+    ]);
 
     const result = await sendWeeklyDigest();
 
-    expect(result).toEqual({ sent: 0, skipped: 0, tickerCount: 0, performerCount: 0 });
+    expect(result).toEqual({ sent: 0, skipped: 0, tickerCount: 0 });
+    expect(mocks.batchSend).not.toHaveBeenCalled();
+    expect(mocks.userFindMany).not.toHaveBeenCalled();
+  });
+
+  it("returns zeroes when the 7-day window is empty", async () => {
+    mocks.perfFindMany.mockResolvedValue([]);
+
+    const result = await sendWeeklyDigest();
+
+    expect(result).toEqual({ sent: 0, skipped: 0, tickerCount: 0 });
     expect(mocks.batchSend).not.toHaveBeenCalled();
   });
 
   // ── No users with emailAlerts → no emails ────────────────────────────────
 
   it("skips sending when no users have emailAlerts enabled", async () => {
-    mocks.scanFindFirst.mockResolvedValue({ id: "scan_1" });
-    mocks.tickerFindMany.mockResolvedValue([makeTicker()]);
+    mocks.perfFindMany.mockResolvedValue([makePerfRow({ return1d: 0.10 })]);
     mocks.userFindMany.mockResolvedValue([]);
 
     const result = await sendWeeklyDigest();
@@ -212,8 +260,7 @@ describe("sendWeeklyDigest", () => {
   // ── Subscriber vs free user CTA ───────────────────────────────────────────
 
   it("sends subscriber HTML (dashboard link, no upgrade CTA) to ACTIVE subscribers", async () => {
-    mocks.scanFindFirst.mockResolvedValue({ id: "scan_1" });
-    mocks.tickerFindMany.mockResolvedValue([makeTicker()]);
+    mocks.perfFindMany.mockResolvedValue([makePerfRow({ return1d: 0.10 })]);
     mocks.userFindMany.mockResolvedValue([
       makeUser({ email: "sub@example.com", subscription: { status: "ACTIVE" } }),
     ]);
@@ -227,8 +274,7 @@ describe("sendWeeklyDigest", () => {
   });
 
   it("sends free HTML (upgrade CTA, no dashboard link) to users without active subscription", async () => {
-    mocks.scanFindFirst.mockResolvedValue({ id: "scan_1" });
-    mocks.tickerFindMany.mockResolvedValue([makeTicker()]);
+    mocks.perfFindMany.mockResolvedValue([makePerfRow({ return1d: 0.10 })]);
     mocks.userFindMany.mockResolvedValue([
       makeUser({ email: "free@example.com", subscription: null }),
     ]);
@@ -242,8 +288,7 @@ describe("sendWeeklyDigest", () => {
   });
 
   it("sends free HTML to users with CANCELED subscription", async () => {
-    mocks.scanFindFirst.mockResolvedValue({ id: "scan_1" });
-    mocks.tickerFindMany.mockResolvedValue([makeTicker()]);
+    mocks.perfFindMany.mockResolvedValue([makePerfRow({ return1d: 0.10 })]);
     mocks.userFindMany.mockResolvedValue([
       makeUser({ email: "canceled@example.com", subscription: { status: "CANCELED" } }),
     ]);
@@ -255,11 +300,31 @@ describe("sendWeeklyDigest", () => {
     expect(batch[0].html).toContain("Upgrade to Pro");
   });
 
+  // ── Subject line ──────────────────────────────────────────────────────────
+
+  it("subject line headlines the top 3 winners with their returns", async () => {
+    mocks.perfFindMany.mockResolvedValue([
+      makePerfRow({ symbol: "AAA", return1d: 0.30 }),
+      makePerfRow({ symbol: "BBB", return1d: 0.20 }),
+      makePerfRow({ symbol: "CCC", return1d: 0.10 }),
+      makePerfRow({ symbol: "DDD", return1d: 0.05 }),
+    ]);
+    mocks.userFindMany.mockResolvedValue([makeUser()]);
+
+    await sendWeeklyDigest();
+
+    const batch = mocks.batchSend.mock.calls[0][0] as Array<{ subject: string }>;
+    expect(batch[0].subject).toContain("$AAA");
+    expect(batch[0].subject).toContain("+30.0%");
+    expect(batch[0].subject).toContain("$BBB");
+    expect(batch[0].subject).toContain("$CCC");
+    expect(batch[0].subject).not.toContain("$DDD");
+  });
+
   // ── Resend batch error → counts as skipped ────────────────────────────────
 
   it("counts batch-send failures as skipped", async () => {
-    mocks.scanFindFirst.mockResolvedValue({ id: "scan_1" });
-    mocks.tickerFindMany.mockResolvedValue([makeTicker()]);
+    mocks.perfFindMany.mockResolvedValue([makePerfRow({ return1d: 0.10 })]);
     mocks.userFindMany.mockResolvedValue([
       makeUser(),
       makeUser({ id: "user_2", email: "b@example.com" }),
@@ -274,11 +339,10 @@ describe("sendWeeklyDigest", () => {
 
   // ── Return value ──────────────────────────────────────────────────────────
 
-  it("returns correct sent/skipped/tickerCount/performerCount on success", async () => {
-    mocks.scanFindFirst.mockResolvedValue({ id: "scan_1" });
-    mocks.tickerFindMany.mockResolvedValue([
-      makeTicker({ symbol: "A" }),
-      makeTicker({ symbol: "B" }),
+  it("returns correct sent/skipped/tickerCount on success", async () => {
+    mocks.perfFindMany.mockResolvedValue([
+      makePerfRow({ symbol: "A", return1d: 0.20 }),
+      makePerfRow({ symbol: "B", return1d: 0.15 }),
     ]);
     mocks.userFindMany.mockResolvedValue([
       makeUser(),
@@ -291,6 +355,5 @@ describe("sendWeeklyDigest", () => {
     expect(result.sent).toBe(2);
     expect(result.skipped).toBe(0);
     expect(result.tickerCount).toBe(2);
-    expect(result.performerCount).toBe(0);
   });
 });

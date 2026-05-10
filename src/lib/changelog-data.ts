@@ -9,6 +9,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-05-10",
+    title: "Weekly Digest: Top Performers of the Week",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "Sunday weekly digest email now headlines the top 5 picks from the past 7 days ranked by best return (1d/3d/7d), instead of the latest scan's highest-conviction names. Subject line shows the leaders with their gains, e.g. \"$AAA +30.0%, $BBB +20.0%, $CCC +10.0%\".",
+          "Picks with non-positive returns are excluded so the email always showcases winners. Standalone \"Recent Winners\" proof section was removed since the main table is now itself the winners list.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-05-09",
     title: "New Pricing & Simplified Navigation",
     changes: [
