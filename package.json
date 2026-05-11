@@ -17,7 +17,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.92.0",
+    "@anthropic-ai/sdk": "^0.95.1",
     "@apple/app-store-server-library": "^1.6.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
@@ -30,7 +30,7 @@
     "next": "^16.2.4",
     "next-auth": "^5.0.0-beta.31",
     "next-themes": "^0.4.6",
-    "openai": "^6.35.0",
+    "openai": "^6.37.0",
     "pg": "^8.20.0",
     "prisma": "^7.8.0",
     "react": "19.2.5",
