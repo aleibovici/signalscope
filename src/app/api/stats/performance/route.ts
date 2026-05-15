@@ -4,7 +4,7 @@ import { handleApiError } from "@/lib/api-error";
 
 /**
  * Public endpoint — returns aggregate performance stats for the landing page.
- * Matches the filter on /results/signal-quality (AI score ≥ 70, post scoring
+ * Matches the filter on /results/paper-trading (AI score ≥ 70, post scoring
  * overhaul, last 30 days of detections). No auth required. Cached for 10 min.
  */
 

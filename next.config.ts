@@ -30,7 +30,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/performance",
-        destination: "/results/signal-quality",
+        destination: "/results/paper-trading",
         permanent: true,
       },
       {
@@ -40,6 +40,11 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/results/simulated-portfolio",
+        destination: "/results/paper-trading",
+        permanent: true,
+      },
+      {
+        source: "/results/signal-quality",
         destination: "/results/paper-trading",
         permanent: true,
       },
