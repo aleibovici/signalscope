@@ -33,7 +33,7 @@ const TABS: Tab[] = [
     ),
   },
   {
-    href: "/results/signal-quality",
+    href: "/results/paper-trading",
     matchPrefix: "/results",
     label: "Results",
     icon: (

@@ -9,6 +9,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-05-16",
+    title: "Results page consolidated",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "Signal Quality and Paper Trading are now a single Results page. Signal performance metrics (weekly cohorts, win rates, returns chart) appear below the live Alpaca trading data.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-05-10",
     title: "Weekly Digest: Top Performers of the Week",
     changes: [

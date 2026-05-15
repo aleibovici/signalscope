@@ -1,3 +1,125 @@
+# Merge Signal Quality into Paper Trading Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Consolidate the two Results sub-pages (Signal Quality + Paper Trading) into a single `/results/paper-trading` page, then delete the signal-quality page and clean up all references.
+
+**Architecture:** The merged page renders Paper Trading content at the top (live Alpaca account, KPI tiles, trades tables) followed by a "Signal Performance" section that contains the summary cards, interval selector, weekly cohort table, daily returns chart, and signal-type breakdown from the old signal-quality page. The tabs wrapper (`ResultsTabs`) is removed since there is only one page left. All navigation, redirects, proxy allowlist, and metadata are updated to point to `/results/paper-trading`.
+
+**Tech Stack:** Next.js 16 App Router, React 19, TypeScript 5, TanStack Query, Tailwind CSS 4. All components are client components (`"use client"`).
+
+---
+
+## File Map
+
+| Action | Path | Responsibility |
+|--------|------|---------------|
+| Modify | `src/app/(dashboard)/results/paper-trading/page.tsx` | Add signal performance section below paper trading content |
+| Modify | `src/app/(dashboard)/results/layout.tsx` | Remove ResultsTabs wrapper; update metadata to `/results/paper-trading` |
+| Modify | `src/app/(dashboard)/results/page.tsx` | Redirect `/results` → `/results/paper-trading` |
+| Delete | `src/app/(dashboard)/results/tabs.tsx` | No longer needed (only one tab remained) |
+| Delete | `src/app/(dashboard)/results/signal-quality/page.tsx` | Merged into paper-trading page |
+| Modify | `src/components/dashboard/sidebar.tsx` | Change nav href to `/results/paper-trading` |
+| Modify | `src/components/dashboard/mobile-tab-bar.tsx` | Change nav href to `/results/paper-trading` |
+| Modify | `src/proxy.ts` | Add `/results/paper-trading` to public pages, keep `/results/signal-quality` for redirect coverage |
+
+---
+
+## Task 1: Update the `/results` redirect
+
+**Files:**
+- Modify: `src/app/(dashboard)/results/page.tsx`
+
+- [ ] **Step 1: Update the redirect target**
+
+Replace the entire file content with:
+
+```tsx
+import { redirect } from "next/navigation";
+
+export default function ResultsPage() {
+  redirect("/results/paper-trading");
+}
+```
+
+- [ ] **Step 2: Verify the file looks correct**
+
+Run: `cat src/app/(dashboard)/results/page.tsx`
+Expected: shows the redirect to `/results/paper-trading`.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/app/(dashboard)/results/page.tsx
+git commit -m "fix(results): redirect /results to /results/paper-trading"
+```
+
+---
+
+## Task 2: Remove the tabs layout; update metadata
+
+**Files:**
+- Modify: `src/app/(dashboard)/results/layout.tsx`
+- Delete: `src/app/(dashboard)/results/tabs.tsx`
+
+- [ ] **Step 1: Rewrite the layout to remove ResultsTabs**
+
+Replace the entire content of `src/app/(dashboard)/results/layout.tsx` with:
+
+```tsx
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Results",
+  description:
+    "SignalScope paper trading results and signal performance. Live Alpaca account equity, trade win rates, weekly cohort breakdowns, and SPY-benchmarked returns.",
+  alternates: { canonical: "https://signalscopes.com/results/paper-trading" },
+  openGraph: {
+    url: "https://signalscopes.com/results/paper-trading",
+    title: "Results — SignalScope",
+    description:
+      "Live paper trading results and signal quality metrics. Actual order fills, equity curve, win rates, and weekly cohort performance.",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
+  },
+};
+
+export default function ResultsLayout({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
+}
+```
+
+- [ ] **Step 2: Delete the tabs file**
+
+```bash
+rm src/app/(dashboard)/results/tabs.tsx
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/app/(dashboard)/results/layout.tsx
+git rm src/app/(dashboard)/results/tabs.tsx
+git commit -m "refactor(results): remove tabs layout, update metadata for paper-trading"
+```
+
+---
+
+## Task 3: Add signal performance section to the paper trading page
+
+This task merges all content from `signal-quality/page.tsx` into `paper-trading/page.tsx`. The signal-quality page has four pieces: summary cards, cohort table, daily returns chart, and signal-type breakdown. These become a clearly labelled section below the paper trading content.
+
+**Files:**
+- Modify: `src/app/(dashboard)/results/paper-trading/page.tsx`
+
+- [ ] **Step 1: Read the current paper-trading page**
+
+Open `src/app/(dashboard)/results/paper-trading/page.tsx` and confirm it starts with `"use client"` and imports from `@/hooks/use-ibkr-paper-trading`.
+
+- [ ] **Step 2: Replace the entire paper-trading page with the merged version**
+
+Replace `src/app/(dashboard)/results/paper-trading/page.tsx` with the following. The new file keeps all existing paper-trading components intact and adds the signal-performance section at the bottom of the page (inside `IbkrPanel`, after the disclaimer paragraph).
+
+```tsx
 "use client";
 
 import { useState } from "react";
@@ -14,6 +136,7 @@ import { InfoTip } from "@/components/ui/tooltip";
 import { EmergingReturnsChart } from "@/components/emerging-returns-chart";
 import { STAGE_LABELS } from "@/lib/stage-labels";
 
+// ── equity chart constants ───────────────────────────────────────────────────
 const EQUITY_CHART_W = 520;
 const EQUITY_CHART_H = 100;
 const EQUITY_PAD = { top: 12, right: 20, bottom: 20, left: 44 };
@@ -27,6 +150,7 @@ const INTERVALS = [
   { label: "30d", days: 30 },
 ] as const;
 
+// ── helpers ──────────────────────────────────────────────────────────────────
 function fmtDollarAxis(v: number): string {
   if (v >= 1000) return `$${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}k`;
   return `$${v.toFixed(0)}`;
@@ -48,6 +172,7 @@ function formatPctShort(value: number): string {
   return `${value > 0 ? "+" : ""}${(value * 100).toFixed(0)}%`;
 }
 
+// ── signal performance components ────────────────────────────────────────────
 function SignalSummaryCards({
   summary,
   days,
@@ -303,6 +428,7 @@ function SignalPerformanceSection() {
   );
 }
 
+// ── paper trading components (unchanged) ─────────────────────────────────────
 export default function PaperTradingPage() {
   const ibkr = useIbkrPaperTrades();
   const ibkrHasData = ibkr.data && ibkr.data.trades.length > 0;
@@ -765,3 +891,179 @@ function IbkrTradesTable({
     </Card>
   );
 }
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/app/(dashboard)/results/paper-trading/page.tsx
+git commit -m "feat(results): merge signal quality section into paper trading page"
+```
+
+---
+
+## Task 4: Delete the signal-quality page
+
+**Files:**
+- Delete: `src/app/(dashboard)/results/signal-quality/page.tsx`
+
+- [ ] **Step 1: Delete the file**
+
+```bash
+git rm src/app/(dashboard)/results/signal-quality/page.tsx
+```
+
+- [ ] **Step 2: Confirm the directory is now empty and Next.js won't have a leftover route**
+
+```bash
+ls src/app/(dashboard)/results/signal-quality/
+```
+Expected: `ls: cannot access ...signal-quality/: No such file or directory` (directory gone after git rm removes the only file).
+
+If the directory still exists (e.g. there are other files in it), remove it:
+```bash
+rmdir src/app/(dashboard)/results/signal-quality/ 2>/dev/null || true
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git commit -m "remove(results): delete signal-quality page (merged into paper-trading)"
+```
+
+---
+
+## Task 5: Update navigation — sidebar and mobile tab bar
+
+**Files:**
+- Modify: `src/components/dashboard/sidebar.tsx:61`
+- Modify: `src/components/dashboard/mobile-tab-bar.tsx:36`
+
+- [ ] **Step 1: Update the sidebar nav href**
+
+In `src/components/dashboard/sidebar.tsx`, find line 61:
+```tsx
+{ href: "/results/signal-quality", label: "Results", icon: NavIcons.Performance, tourId: "tour-results", matchPrefix: "/results" },
+```
+Change to:
+```tsx
+{ href: "/results/paper-trading", label: "Results", icon: NavIcons.Performance, tourId: "tour-results", matchPrefix: "/results" },
+```
+
+- [ ] **Step 2: Update the mobile tab bar href**
+
+In `src/components/dashboard/mobile-tab-bar.tsx`, find the entry with `href: "/results/signal-quality"` (around line 36):
+```tsx
+href: "/results/signal-quality",
+```
+Change to:
+```tsx
+href: "/results/paper-trading",
+```
+
+- [ ] **Step 3: Verify both files compile (no TypeScript errors)**
+
+```bash
+npx tsc --noEmit 2>&1 | head -30
+```
+Expected: no errors related to these files.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add src/components/dashboard/sidebar.tsx src/components/dashboard/mobile-tab-bar.tsx
+git commit -m "fix(nav): point Results nav link to /results/paper-trading"
+```
+
+---
+
+## Task 6: Update proxy allowlist
+
+The middleware in `src/proxy.ts` has a `publicPages` Set. `/results/signal-quality` is in it; `/results/paper-trading` is not (the route is currently public per `src/app/api/paper-trading/ibkr/route.ts` but the page itself isn't listed). Add `/results/paper-trading` and keep `/results/signal-quality` so old bookmarks that hit the redirect still work without a 401.
+
+**Files:**
+- Modify: `src/proxy.ts:7`
+
+- [ ] **Step 1: Update the publicPages set**
+
+In `src/proxy.ts` find the line:
+```ts
+const publicPages = new Set(["/", "/login", "/register", "/pricing", "/changelog", "/privacy", "/faq", "/how-it-works", "/forgot-password", "/reset-password", "/api/stats/performance", "/api/search", "/api/methodology", "/api/changelog", "/api/votes", "/opengraph-image", "/dashboard", "/trending", "/connections", "/performance", "/methodology", "/results", "/results/signal-quality"]);
+```
+
+Change to:
+```ts
+const publicPages = new Set(["/", "/login", "/register", "/pricing", "/changelog", "/privacy", "/faq", "/how-it-works", "/forgot-password", "/reset-password", "/api/stats/performance", "/api/search", "/api/methodology", "/api/changelog", "/api/votes", "/opengraph-image", "/dashboard", "/trending", "/connections", "/performance", "/methodology", "/results", "/results/signal-quality", "/results/paper-trading"]);
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add src/proxy.ts
+git commit -m "fix(proxy): add /results/paper-trading to public pages allowlist"
+```
+
+---
+
+## Task 7: Run lint and tests; verify build
+
+- [ ] **Step 1: Run ESLint**
+
+```bash
+npm run lint 2>&1 | tail -20
+```
+Expected: no errors (warnings are ok).
+
+- [ ] **Step 2: Run tests**
+
+```bash
+npm test 2>&1 | tail -30
+```
+Expected: all tests pass (the signal-quality page has no dedicated unit tests).
+
+- [ ] **Step 3: TypeScript check**
+
+```bash
+npx tsc --noEmit 2>&1 | head -40
+```
+Expected: no errors.
+
+- [ ] **Step 4: Final commit if any lint auto-fixes were applied**
+
+If lint made changes:
+```bash
+git add -p
+git commit -m "style: lint fixes after signal-quality removal"
+```
+
+---
+
+## Task 8: Update changelog
+
+**Files:**
+- Modify: `src/lib/changelog-data.ts`
+
+- [ ] **Step 1: Add changelog entry at the top of the entries array**
+
+In `src/lib/changelog-data.ts`, add a new entry at the top of the `changelogData` array (before the current first entry). Match the existing entry format exactly:
+
+```ts
+{
+  date: "2026-05-16",
+  entries: [
+    {
+      type: "improvement" as const,
+      title: "Results page consolidated",
+      description:
+        "Signal Quality and Paper Trading are now a single Results page. Signal performance metrics (weekly cohorts, win rates, returns chart) appear below the live Alpaca trading data.",
+    },
+  ],
+},
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add src/lib/changelog-data.ts
+git commit -m "docs(changelog): note results page consolidation"
+```
