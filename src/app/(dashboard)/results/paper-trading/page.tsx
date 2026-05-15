@@ -337,9 +337,14 @@ function IbkrPanel({
 
   if (error || !data) {
     return (
-      <p className="text-center text-gray-500 dark:text-zinc-400">
-        Failed to load Alpaca paper trading data.
-      </p>
+      <div className="space-y-8">
+        <p className="text-center text-gray-500 dark:text-zinc-400">
+          Failed to load Alpaca paper trading data.
+        </p>
+        <div className="border-t border-gray-100 pt-6 dark:border-zinc-800">
+          <SignalPerformanceSection />
+        </div>
+      </div>
     );
   }
 
