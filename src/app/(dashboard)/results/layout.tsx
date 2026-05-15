@@ -1,20 +1,19 @@
 import type { Metadata } from "next";
-import { ResultsTabs } from "./tabs";
 
 export const metadata: Metadata = {
   title: "Results",
   description:
-    "Track SignalScope's signal quality and simulated portfolio performance. Historical win rates, cohort breakdowns, and paper trading returns vs S&P 500.",
-  alternates: { canonical: "http://localhost:3000/results/signal-quality" },
+    "SignalScope paper trading results and signal performance. Live Alpaca account equity, trade win rates, weekly cohort breakdowns, and SPY-benchmarked returns.",
+  alternates: { canonical: "http://localhost:3000/results/paper-trading" },
   openGraph: {
-    url: "http://localhost:3000/results/signal-quality",
+    url: "http://localhost:3000/results/paper-trading",
     title: "Results — SignalScope",
     description:
-      "Signal quality metrics and simulated portfolio returns. 1d through 30d win rates, weekly cohorts, and SPY-benchmarked paper trades.",
+      "Live paper trading results and signal quality metrics. Actual order fills, equity curve, win rates, and weekly cohort performance.",
     images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
   },
 };
 
 export default function ResultsLayout({ children }: { children: React.ReactNode }) {
-  return <ResultsTabs>{children}</ResultsTabs>;
+  return <>{children}</>;
 }

@@ -58,7 +58,7 @@ const NavIcons = {
 const publicNavItems: { href: string; label: string; icon: React.ReactNode; tourId: string; matchPrefix?: string }[] = [
   { href: "/dashboard", label: "Daily Signals", icon: NavIcons.Signals, tourId: "tour-signals" },
   { href: "/trending", label: "Trending", icon: NavIcons.Trending, tourId: "tour-trending" },
-  { href: "/results/signal-quality", label: "Results", icon: NavIcons.Performance, tourId: "tour-results", matchPrefix: "/results" },
+  { href: "/results/paper-trading", label: "Results", icon: NavIcons.Performance, tourId: "tour-results", matchPrefix: "/results" },
 ];
 const authNavItems = [
   { href: "/profile", label: "Profile", icon: NavIcons.Profile },
