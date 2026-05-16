@@ -78,20 +78,11 @@ export async function generateMetadata({
       description,
       type: "article",
       url: `http://localhost:3000/ticker/${upper}`,
-      images: [
-        {
-          url: `http://localhost:3000/ticker/${upper}/opengraph-image`,
-          width: 1200,
-          height: 630,
-          alt: `${ticker.symbol} — ${rec} — SignalScope`,
-        },
-      ],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [`http://localhost:3000/ticker/${upper}/opengraph-image`],
     },
   };
 }
