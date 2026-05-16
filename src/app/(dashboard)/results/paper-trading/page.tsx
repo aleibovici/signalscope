@@ -11,7 +11,6 @@ import { KpiTile } from "@/components/ui/kpi-tile";
 import { PageHeader } from "@/components/ui/page-header";
 import { Spinner } from "@/components/ui/spinner";
 import { InfoTip } from "@/components/ui/tooltip";
-import { EmergingReturnsChart } from "@/components/emerging-returns-chart";
 import { STAGE_LABELS } from "@/lib/stage-labels";
 
 const EQUITY_CHART_W = 520;
@@ -295,7 +294,6 @@ function SignalPerformanceSection() {
         <>
           <SignalSummaryCards summary={data.summary} days={days} />
           <CohortTable cohorts={data.cohorts} days={days} />
-          <EmergingReturnsChart data={data.dailyReturns} horizon={days} />
           <SignalTypeTable data={data.byType} />
         </>
       )}
