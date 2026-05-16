@@ -13,6 +13,7 @@ import { SCAN_SYMBOLS } from "./sources/ticker-utils";
 import { scoreSymbolBatch, defaultScore } from "./scoring";
 import { checkPndFlags, aiPndAssessment, INFORMATIONAL_FLAGS, PND_THRESHOLD } from "./pnd-filter";
 import { fetchFundamentals } from "./fundamentals";
+import { assessScanRegime } from "./regime-filter";
 
 import { computeOpportunityScore } from "./opportunity-score";
 import { resetCostTracker, getTotalCost } from "@/lib/ai";
@@ -508,6 +509,37 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
 
     console.log(`Total raw signals: ${allSignals.length}`);
 
+    // 2b. Macro options-flow regime assessment (see src/lib/harvester/regime-filter.ts).
+    //     Persist features for observability/trailing-mean even when the gate is off.
+    const regime = await assessScanRegime(prisma, allSignals, scan.startedAt);
+    await prisma.scan.update({
+      where: { id: scan.id },
+      data: {
+        scanOfHighConv: regime.scanOfHighConv,
+        scanOfConvDelta: regime.scanOfConvDelta,
+        regimeSkipped: regime.skip,
+      },
+    });
+    await mirrorToDevDb(devPrisma, "scan regime", async (client) => {
+      await client.scan.update({
+        where: { id: scan.id },
+        data: {
+          scanOfHighConv: regime.scanOfHighConv,
+          scanOfConvDelta: regime.scanOfConvDelta,
+          regimeSkipped: regime.skip,
+        },
+      });
+    });
+    if (regime.skip) {
+      console.warn(
+        `[regime] Scan ${scan.id} flagged: scan_of_conv_delta=${regime.scanOfConvDelta.toFixed(2)} > ${regime.threshold}. Demoting all tickers to UNSCORED.`
+      );
+    } else {
+      console.log(
+        `[regime] scan_of_high_conv=${regime.scanOfHighConv} trailing=${regime.scanOfConvTrailing.toFixed(2)} delta=${regime.scanOfConvDelta.toFixed(2)}`
+      );
+    }
+
     // 3. Aggregate by symbol
     const aggregated = aggregateSignals(allSignals);
     console.log(`Unique symbols: ${aggregated.length}`);
@@ -547,16 +579,24 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
     });
     console.log(`[harvest] ${pricedNonCandidates.length} non-candidates with YF price → UNSCORED`);
 
-    // 6. AI scoring in batches of 15 (parallelized)
-    const scoreBatches: AggregatedSymbol[][] = [];
-    for (let i = 0; i < validCandidates.length; i += 15) {
-      scoreBatches.push(validCandidates.slice(i, i + 15));
-    }
-    const scoreResults = (
-      await Promise.all(
-        scoreBatches.map((batch) => scoreSymbolBatch(batch, fundamentalsMap, noveltyMap, scan.id))
-      )
-    ).flat();
+    // 6. AI scoring in batches of 15 (parallelized).
+    //    Regime-skipped scans bypass AI scoring entirely to save cost — heuristic only,
+    //    and every row will be forced to UNSCORED below so they never surface in dashboard/alerts/tweets.
+    const scoreResults = regime.skip
+      ? validCandidates.map((c) => defaultScore(c, noveltyMap.get(c.symbol)))
+      : (
+          await Promise.all(
+            (() => {
+              const scoreBatches: AggregatedSymbol[][] = [];
+              for (let i = 0; i < validCandidates.length; i += 15) {
+                scoreBatches.push(validCandidates.slice(i, i + 15));
+              }
+              return scoreBatches.map((batch) =>
+                scoreSymbolBatch(batch, fundamentalsMap, noveltyMap, scan.id)
+              );
+            })()
+          )
+        ).flat();
 
     const scoreMap = new Map(scoreResults.map((s) => [s.symbol, s]));
 
@@ -584,12 +624,15 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
       ])
     );
 
-    // Resolve all borderline cases (effective flag count === PND_THRESHOLD - 1) in parallel
-    const borderlineCandidates = validCandidates.filter((agg) => {
-      const pnd = pndResultsMap.get(agg.symbol)!;
-      const effectiveCount = pnd.flags.filter((f) => !INFORMATIONAL_FLAGS.has(f)).length;
-      return effectiveCount === PND_THRESHOLD - 1;
-    });
+    // Resolve all borderline cases (effective flag count === PND_THRESHOLD - 1) in parallel.
+    // Skipped on regime-flagged scans — those rows are headed to UNSCORED, no point spending AI on them.
+    const borderlineCandidates = regime.skip
+      ? []
+      : validCandidates.filter((agg) => {
+          const pnd = pndResultsMap.get(agg.symbol)!;
+          const effectiveCount = pnd.flags.filter((f) => !INFORMATIONAL_FLAGS.has(f)).length;
+          return effectiveCount === PND_THRESHOLD - 1;
+        });
     const aiPndResultsMap = new Map(
       await Promise.all(
         borderlineCandidates.map(async (agg) => {
@@ -634,7 +677,9 @@ export async function processSignals(allSignals: RawSignal[]): Promise<string> {
         fundamentals.price != null && fundamentals.price < 5
       );
       const wk52HighRatio = (fundamentals?.wk52Hi && fundamentals?.price) ? fundamentals.wk52Hi / fundamentals.price : undefined;
-      const stage = determineStage(score, agg.sourceCount, agg.weightedSourceScore, agg.avgVelocity, finalPndFlagged, hasNonSocialSource, novelty, agg.subredditCount, pctFrom52wkLow, wk52Lo, isAmexPenny, isNasdaqSmallPenny, agg.medianSignalAgeHrs, fundamentals?.marketCap, fundamentals?.shortFloat, wk52HighRatio, agg.totalUpvotes, agg.totalComments, fundamentals?.price);
+      const stage: "EARLY" | "FORMING" | "CONFIRMED" | "FILTERED" | "UNSCORED" = regime.skip
+        ? "UNSCORED"
+        : determineStage(score, agg.sourceCount, agg.weightedSourceScore, agg.avgVelocity, finalPndFlagged, hasNonSocialSource, novelty, agg.subredditCount, pctFrom52wkLow, wk52Lo, isAmexPenny, isNasdaqSmallPenny, agg.medianSignalAgeHrs, fundamentals?.marketCap, fundamentals?.shortFloat, wk52HighRatio, agg.totalUpvotes, agg.totalComments, fundamentals?.price);
 
       const signalType = classifySignalType(agg);
 

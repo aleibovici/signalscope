@@ -39,6 +39,9 @@ model Scan {
   validatedCount   Int               @default(0)
   filteredCount    Int               @default(0)
   aiCost           Float             @default(0)
+  scanOfHighConv   Int?
+  scanOfConvDelta  Float?
+  regimeSkipped    Boolean           @default(false)
   error            String?
   signals          Signal[]
   validatedTickers ValidatedTicker[]
