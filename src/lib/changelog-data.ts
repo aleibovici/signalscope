@@ -15,7 +15,8 @@ export const changelog: ChangelogEntry[] = [
       {
         category: "improved",
         items: [
-          "Signal Quality and Paper Trading are now a single Results page. Signal performance metrics (weekly cohorts, win rates, returns chart) appear below the live Alpaca trading data.",
+          "Signal Quality and Paper Trading are now a single Results page. Signal performance metrics (weekly cohorts, win rates) appear below the live Alpaca trading data.",
+          "Removed the per-ticker signal return bar chart — open and closed Alpaca trades already show real per-ticker returns with actual fills.",
         ],
       },
     ],
