@@ -18,6 +18,7 @@ vi.mock("@/lib/prisma", () => ({
       create: (...args: unknown[]) => mockCreateScan(...args),
       update: (...args: unknown[]) => mockUpdateScan(...args),
       updateMany: (...args: unknown[]) => mockUpdateManyScan(...args),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     signal: {
       createMany: (...args: unknown[]) => mockCreateManySignal(...args),
