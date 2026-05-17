@@ -24,7 +24,7 @@ export interface IbkrTrade {
   returnPct: number | null;
   pnl: number | null;
   unrealizedPnl: number | null;
-  realizedPnl: number;
+  realizedPnl: number | null;
   holdDays: number;
   status: "OPEN" | "CLOSED";
   openedAt: string;
