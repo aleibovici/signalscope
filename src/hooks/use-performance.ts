@@ -9,14 +9,17 @@ export interface TickerPerformanceData {
   price1d: number | null;
   price3d: number | null;
   price7d: number | null;
+  price14d: number | null;
   price30d: number | null;
   return1d: number | null;
   return3d: number | null;
   return7d: number | null;
+  return14d: number | null;
   return30d: number | null;
   snapped1dAt: string | null;
   snapped3dAt: string | null;
   snapped7dAt: string | null;
+  snapped14dAt: string | null;
   snapped30dAt: string | null;
   validatedTicker: {
     createdAt: string;

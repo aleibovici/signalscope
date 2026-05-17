@@ -60,6 +60,7 @@ const RETURN_PERIODS = [
   { value: "1d", label: "1d" },
   { value: "3d", label: "3d" },
   { value: "7d", label: "7d" },
+  { value: "14d", label: "14d" },
   { value: "30d", label: "30d" },
 ];
 

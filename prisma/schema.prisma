@@ -192,14 +192,17 @@ model TickerPerformance {
   price1d           Float?
   price3d           Float?
   price7d           Float?
+  price14d          Float?
   price30d          Float?
   return1d          Float?
   return3d          Float?
   return7d          Float?
+  return14d         Float?
   return30d         Float?
   snapped1dAt       DateTime?
   snapped3dAt       DateTime?
   snapped7dAt       DateTime?
+  snapped14dAt      DateTime?
   snapped30dAt      DateTime?
 
   corporateActionDetected Boolean @default(false)
