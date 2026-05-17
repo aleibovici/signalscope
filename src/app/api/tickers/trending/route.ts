@@ -28,14 +28,15 @@ const trendingSchema = paginationSchema.extend({
   sortBy: z.enum(["appearances", "aiScore", "opportunityScore", "price", "return", "marketCap"]).default("appearances"),
   source: z.string().transform((v) => v.split(",").filter((s): s is typeof SOURCES[number] => (SOURCES as readonly string[]).includes(s))).optional(),
   hidePnd: z.coerce.boolean().default(false),
-  returnPeriod: z.enum(["1d", "3d", "7d", "30d"]).default("7d"),
+  returnPeriod: z.enum(["1d", "3d", "7d", "14d", "30d"]).default("7d"),
   near52wLow: z.coerce.boolean().default(false),
 });
 
-const RETURN_FIELD_MAP: Record<string, "return1d" | "return3d" | "return7d" | "return30d"> = {
+const RETURN_FIELD_MAP: Record<string, "return1d" | "return3d" | "return7d" | "return14d" | "return30d"> = {
   "1d": "return1d",
   "3d": "return3d",
   "7d": "return7d",
+  "14d": "return14d",
   "30d": "return30d",
 };
 
@@ -177,7 +178,7 @@ async function handleTrending(request: NextRequest) {
       netPremium: true,
       callPremiumRatio: true,
       createdAt: true,
-      performance: { select: { return1d: true, return3d: true, return7d: true, return30d: true } },
+      performance: { select: { return1d: true, return3d: true, return7d: true, return14d: true, return30d: true } },
     },
   });
 
@@ -326,6 +327,7 @@ async function handleTrending(request: NextRequest) {
       return1d: record.performance?.return1d ?? null,
       return3d: record.performance?.return3d ?? null,
       return7d: record.performance?.return7d ?? null,
+      return14d: record.performance?.return14d ?? null,
       return30d: record.performance?.return30d ?? null,
       createdAt: record.createdAt.toISOString(),
       appearanceCount: countBySymbol.get(symbol) ?? 0,

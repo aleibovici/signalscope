@@ -4,10 +4,10 @@ import { getOptionalUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
 import { stageLabel } from "@/lib/stage-labels";
 
-const VALID_DAYS = new Set([1, 3, 7, 30]);
-const HORIZONS = [1, 3, 7, 30] as const;
-type ReturnCol = "return1d" | "return3d" | "return7d" | "return30d";
-type PriceCol = "price1d" | "price3d" | "price7d" | "price30d";
+const VALID_DAYS = new Set([1, 3, 7, 14, 30]);
+const HORIZONS = [1, 3, 7, 14, 30] as const;
+type ReturnCol = "return1d" | "return3d" | "return7d" | "return14d" | "return30d";
+type PriceCol = "price1d" | "price3d" | "price7d" | "price14d" | "price30d";
 
 interface PerformanceRecord {
   symbol: string;
@@ -15,10 +15,12 @@ interface PerformanceRecord {
   return1d: number | null;
   return3d: number | null;
   return7d: number | null;
+  return14d: number | null;
   return30d: number | null;
   price1d: number | null;
   price3d: number | null;
   price7d: number | null;
+  price14d: number | null;
   price30d: number | null;
   createdAt: Date;
   validatedTicker: {
@@ -74,7 +76,7 @@ export async function GET(request: NextRequest) {
 
     if (!Number.isInteger(days) || !VALID_DAYS.has(days)) {
       return NextResponse.json(
-        { error: "Invalid days parameter. Valid values: 1, 3, 7, 30" },
+        { error: "Invalid days parameter. Valid values: 1, 3, 7, 14, 30" },
         { status: 400 },
       );
     }
@@ -183,7 +185,7 @@ export async function GET(request: NextRequest) {
 
         // Best pick for this cohort (use longest available horizon)
         let bestPick: { symbol: string; returnPct: number; horizon: string } | null = null;
-        for (const h of ([7, 3, 1] as const)) {
+        for (const h of ([14, 7, 3, 1] as const)) {
           const col: ReturnCol = `return${h}d`;
           const withReturn = group.filter((r) => r[col] !== null);
           if (withReturn.length > 0) {

@@ -140,6 +140,7 @@ async function getPerformance(symbol: string) {
       return1d: true,
       return3d: true,
       return7d: true,
+      return14d: true,
       return30d: true,
       createdAt: true,
     },

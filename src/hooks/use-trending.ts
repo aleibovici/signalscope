@@ -14,6 +14,7 @@ export interface TrendingTicker extends ValidatedTickerData {
   pndFlags: string[];
   return1d: number | null;
   return3d: number | null;
+  return14d: number | null;
   return30d: number | null;
 }
 
@@ -34,7 +35,7 @@ export interface TrendingFilters {
   sortBy?: "appearances" | "aiScore" | "price" | "return" | "marketCap";
   source?: string[];
   hidePnd?: boolean;
-  returnPeriod?: "1d" | "3d" | "7d" | "30d";
+  returnPeriod?: "1d" | "3d" | "7d" | "14d" | "30d";
   near52wLow?: boolean;
 }
 
