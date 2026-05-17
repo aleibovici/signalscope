@@ -38,6 +38,7 @@ const RETURN_LABELS: Record<string, string> = {
   "1d": "1d",
   "3d": "3d",
   "7d": "7d",
+  "14d": "14d",
   "30d": "30d",
 };
 
@@ -72,6 +73,7 @@ function getReturnValue(ticker: ValidatedTickerData, period: string): number | n
     case "1d": return ticker.return1d;
     case "3d": return ticker.return3d;
     case "7d": return ticker.return7d;
+    case "14d": return ticker.return14d;
     case "30d": return ticker.return30d;
     default: return ticker.return7d;
   }
