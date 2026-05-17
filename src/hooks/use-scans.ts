@@ -47,6 +47,7 @@ export interface ValidatedTickerData {
   return1d?: number | null;
   return3d?: number | null;
   return7d: number | null;
+  return14d?: number | null;
   return30d?: number | null;
   exchange: string | null;
   wk52Lo: number | null;

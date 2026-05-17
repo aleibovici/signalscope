@@ -816,6 +816,7 @@ export default function TickerDetailPage({
                     { label: "1 Day", value: perfData.latest.return1d },
                     { label: "3 Day", value: perfData.latest.return3d },
                     { label: "7 Day", value: perfData.latest.return7d },
+                    { label: "14 Day", value: perfData.latest.return14d },
                     { label: "30 Day", value: perfData.latest.return30d },
                   ] as const).map((item) => (
                     <div key={item.label} className="rounded-lg bg-slate-50 p-3 dark:bg-[#1e262f]/30">
