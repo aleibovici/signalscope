@@ -10,8 +10,14 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-05-17",
-    title: "Ticker page SEO + analytics cleanup",
+    title: "14-day return window + ticker page SEO",
     changes: [
+      {
+        category: "new",
+        items: [
+          "14-day return tracking added across all signal types. Insider and congressional trade signals recommend 1–3 week holding periods — the platform now measures and displays 14-day returns alongside 1d/3d/7d/30d windows. A '14d' filter is available on the Trending page and Results page.",
+        ],
+      },
       {
         category: "improved",
         items: [
