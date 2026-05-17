@@ -10,8 +10,14 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-05-16",
-    title: "Results page consolidated",
+    title: "Results page consolidated + market regime detection",
     changes: [
+      {
+        category: "new",
+        items: [
+          "Market regime detection: the harvester now monitors options market activity across every scan. When a scan shows an unusually high share of large, high-conviction options positions (above the 85th percentile of recent scans), it is flagged as a potential market-wide directional surge. Backtesting across 93 scans and ~23,000 tickers found that breakout signals during those conditions underperform normal scans by ~0.68 percentage points on 3-day returns. The regime filter is being observed before being activated.",
+        ],
+      },
       {
         category: "improved",
         items: [
