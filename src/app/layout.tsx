@@ -190,7 +190,7 @@ const jsonLd = {
         {
           "@type": "Offer",
           "name": "Pro Monthly",
-          "price": "10",
+          "price": "2.99",
           "priceCurrency": "USD",
           "url": "https://signalscopes.com/pricing",
           "availability": "https://schema.org/OnlineOnly",
@@ -213,7 +213,7 @@ const jsonLd = {
         {
           "@type": "Offer",
           "name": "Pro Yearly",
-          "price": "100",
+          "price": "29.99",
           "priceCurrency": "USD",
           "url": "https://signalscopes.com/pricing",
           "availability": "https://schema.org/OnlineOnly",

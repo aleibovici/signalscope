@@ -5,13 +5,13 @@ import { faqItems } from "@/lib/faq-data";
 export const metadata: Metadata = {
   title: "FAQ",
   description:
-    "Frequently asked questions about SignalScope — how breakout signals work, AI scoring, XGBoost ML backtesting, pump-and-dump filtering, data freshness, API access, and more.",
+    "Frequently asked questions about SignalScope — how breakout signals work, AI scoring, LightGBM backtesting, pump-and-dump filtering, data freshness, API access, and more.",
   alternates: { canonical: "https://signalscopes.com/faq" },
   openGraph: {
     url: "https://signalscopes.com/faq",
     title: "FAQ — SignalScope",
     description:
-      "Frequently asked questions about SignalScope — how breakout signals work, AI scoring, XGBoost ML backtesting, pump-and-dump filtering, data freshness, API access, and more.",
+      "Frequently asked questions about SignalScope — how breakout signals work, AI scoring, LightGBM backtesting, pump-and-dump filtering, data freshness, API access, and more.",
     images: [
       {
         url: "/opengraph-image",

@@ -9,6 +9,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-05-17",
+    title: "Ticker page SEO + analytics cleanup",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "Ticker detail pages now show a server-rendered snapshot (recommendation, stage, scores, catalyst) that loads instantly and is indexed by search engines — so $LGVN-style pages appear in Google with real signal data, not just a spinner.",
+          "Removed server-side GA4 Measurement Protocol calls from the Stripe webhook. These were creating phantom sessions with no landing page attribution and 100% bounce rate, inflating the overall site bounce rate metric.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-05-16",
     title: "Results page consolidated + market regime detection",
     changes: [
