@@ -115,6 +115,11 @@ export async function verifyTransactionJWS(
   signedTransaction: string
 ): Promise<JWSTransactionDecodedPayload> {
   const env = peekEnvironment(signedTransaction);
+  // Xcode/LocalTesting tokens bypass Apple's certificate chain — reject them so an
+  // attacker can't self-sign a JWS to claim a free subscription.
+  if (env === Environment.XCODE || env === Environment.LOCAL_TESTING) {
+    throw new Error(`Environment "${env}" is not accepted by this server.`);
+  }
   const verifier = await getVerifier(env);
   const decoded = await verifier.verifyAndDecodeTransaction(signedTransaction);
   if (decoded.bundleId !== APPLE_BUNDLE_ID) {
@@ -127,6 +132,9 @@ export async function verifyNotificationJWS(
   signedPayload: string
 ): Promise<ResponseBodyV2DecodedPayload> {
   const env = peekEnvironment(signedPayload);
+  if (env === Environment.XCODE || env === Environment.LOCAL_TESTING) {
+    throw new Error(`Environment "${env}" is not accepted by this server.`);
+  }
   const verifier = await getVerifier(env);
   return verifier.verifyAndDecodeNotification(signedPayload);
 }
