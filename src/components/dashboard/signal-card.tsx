@@ -26,6 +26,14 @@ const stagePillStyles: Record<string, string> = {
   Unscored: "bg-zinc-500/10 text-stage-unscored border-zinc-500/30 dark:bg-zinc-400/10",
 };
 
+const stageBarColors: Record<string, string> = {
+  Emerging: "bg-emerald-500",
+  Building:  "bg-amber-500",
+  Consensus: "bg-blue-500",
+  Filtered:  "bg-red-500",
+  Unscored:  "bg-zinc-400",
+};
+
 const RETURN_LABELS: Record<string, string> = {
   "1d": "1d",
   "3d": "3d",
@@ -46,6 +54,18 @@ const tagStyleMap: Record<string, string> = {
   "Multi-Reddit": "bg-purple-500/10 text-purple-700 dark:bg-purple-400/10 dark:text-purple-400",
   "High SI":      "bg-amber-500/10 text-amber-700 dark:bg-amber-400/10 dark:text-amber-400",
 };
+
+function SignalDot({ stage }: { stage: string }) {
+  if (stage === "Emerging") {
+    return (
+      <span className="relative flex h-1.5 w-1.5 shrink-0" aria-hidden="true">
+        <span className="absolute h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" style={{ animationDuration: "2.5s" }} />
+        <span className="relative h-1.5 w-1.5 rounded-full bg-emerald-400" />
+      </span>
+    );
+  }
+  return <span className="h-1.5 w-1.5 rounded-full bg-blue-400 dark:bg-blue-500" aria-hidden="true" />;
+}
 
 function getReturnValue(ticker: ValidatedTickerData, period: string): number | null | undefined {
   switch (period) {
@@ -163,7 +183,7 @@ export function SignalCard({
         {/* Sources */}
         <div className="pointer-events-none relative z-1 hidden shrink-0 items-center gap-1 lg:flex">
           {ticker.sources?.slice(0, 2).map((src) => (
-            <span key={src} className="rounded border border-border-default/80 px-1 py-[2px] text-[9px] font-bold uppercase tracking-[0.3px] text-muted">
+            <span key={src} className="rounded border border-border-default/80 px-1 py-[2px] text-[11px] font-bold uppercase tracking-[0.3px] text-muted">
               {src.replace(/_/g, " ")}
             </span>
           ))}
@@ -184,7 +204,7 @@ export function SignalCard({
         </div>
         {/* Signal count (lg+) */}
         <span className="pointer-events-none relative z-1 hidden shrink-0 items-center gap-1 text-[10px] text-muted lg:flex">
-          <span className="h-1.5 w-1.5 rounded-full bg-blue-400 dark:bg-blue-500" aria-hidden="true" />
+          <SignalDot stage={stage} />
           <span className="num font-medium text-secondary">{ticker.signalCount}</span>
           <span>{signalCountLabel}</span>
         </span>
@@ -226,6 +246,7 @@ export function SignalCard({
         aria-label={`Open ${ticker.symbol} detail`}
         draggable={false}
       />
+      <div className={`pointer-events-none relative z-1 h-[3px] w-full ${stageBarColors[stage] ?? "bg-zinc-400"}`} aria-hidden="true" />
       {header && (
         <div className="pointer-events-none relative z-1 border-b border-border-default/60">
           {header}
@@ -339,7 +360,7 @@ export function SignalCard({
             {ticker.sources?.slice(0, 3).map((src) => (
               <span
                 key={src}
-                className="rounded border border-border-default/80 px-1 py-[3px] text-[9px] font-bold uppercase tracking-[0.3px] text-muted"
+                className="rounded border border-border-default/80 px-1 py-[3px] text-[11px] font-bold uppercase tracking-[0.3px] text-muted"
               >
                 {src.replace(/_/g, " ")}
               </span>
@@ -350,10 +371,7 @@ export function SignalCard({
               </span>
             )}
             <span className="flex items-center gap-1 text-[10px] text-muted">
-              <span
-                className="h-1.5 w-1.5 rounded-full bg-blue-400 dark:bg-blue-500"
-                aria-hidden="true"
-              />
+              <SignalDot stage={stage} />
               <span className="num font-medium text-secondary">{ticker.signalCount}</span>
               <span>{signalCountLabel}</span>
             </span>

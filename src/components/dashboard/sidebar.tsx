@@ -113,11 +113,11 @@ export function Sidebar({ revision }: { revision: string }) {
   return (
     <>
       {/* Mobile header bar */}
-      <div className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between border-b border-gray-200 bg-white px-4 dark:border-zinc-800 dark:bg-zinc-950 md:hidden">
+      <div className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between border-b border-white/10 bg-zinc-950 px-4 md:hidden">
         <div className="flex min-w-0 flex-1 items-center">
           <button
             onClick={() => setOpen(true)}
-            className="mr-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 active:bg-gray-200 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:active:bg-zinc-700"
+            className="mr-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-zinc-300 hover:bg-white/10 active:bg-white/15"
             aria-label="Open menu"
             aria-expanded={open}
           >
@@ -127,11 +127,11 @@ export function Sidebar({ revision }: { revision: string }) {
               <line x1="3" y1="18" x2="21" y2="18" />
             </svg>
           </button>
-          <Link href="/login" className="truncate text-lg font-bold text-gray-900 dark:text-zinc-100">
-            SignalScope
+          <Link href="/login" className="truncate text-lg font-bold text-white">
+            Signal<span className="text-sky-400">Scope</span>
           </Link>
         </div>
-        <ThemeToggle />
+        <ThemeToggle variant="on-dark" />
       </div>
 
       {/* Backdrop overlay (mobile only) — suppressed when tour is controlling the sidebar */}
