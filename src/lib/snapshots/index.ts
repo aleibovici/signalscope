@@ -124,9 +124,9 @@ export async function collectSnapshots(): Promise<{ filled: number; errors: numb
             },
             update: {
               corporateActionDetected: true,
-              return1d: null, return3d: null, return7d: null, return30d: null,
-              price1d: null, price3d: null, price7d: null, price30d: null,
-              snapped1dAt: null, snapped3dAt: null, snapped7dAt: null, snapped30dAt: null,
+              return1d: null, return3d: null, return7d: null, return14d: null, return30d: null,
+              price1d: null, price3d: null, price7d: null, price14d: null, price30d: null,
+              snapped1dAt: null, snapped3dAt: null, snapped7dAt: null, snapped14dAt: null, snapped30dAt: null,
             },
           });
           stats.returnsUpdated++;
@@ -144,9 +144,9 @@ export async function collectSnapshots(): Promise<{ filled: number; errors: numb
                 },
                 update: {
                   corporateActionDetected: true,
-                  return1d: null, return3d: null, return7d: null, return30d: null,
-                  price1d: null, price3d: null, price7d: null, price30d: null,
-                  snapped1dAt: null, snapped3dAt: null, snapped7dAt: null, snapped30dAt: null,
+                  return1d: null, return3d: null, return7d: null, return14d: null, return30d: null,
+                  price1d: null, price3d: null, price7d: null, price14d: null, price30d: null,
+                  snapped1dAt: null, snapped3dAt: null, snapped7dAt: null, snapped14dAt: null, snapped30dAt: null,
                 },
               });
             } catch (devErr) {
@@ -178,6 +178,11 @@ export async function collectSnapshots(): Promise<{ filled: number; errors: numb
           updateData.price7d = returns.price7d!;
           updateData.return7d = returns.return7d;
           updateData.snapped7dAt = returns.snapped7dAt!;
+        }
+        if (returns.return14d != null) {
+          updateData.price14d = returns.price14d!;
+          updateData.return14d = returns.return14d;
+          updateData.snapped14dAt = returns.snapped14dAt!;
         }
         if (returns.return30d != null) {
           updateData.price30d = returns.price30d!;
