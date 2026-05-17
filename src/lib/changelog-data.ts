@@ -17,6 +17,14 @@ export const changelog: ChangelogEntry[] = [
         items: [
           "Ticker detail pages now show a server-rendered snapshot (recommendation, stage, scores, catalyst) that loads instantly and is indexed by search engines — so $LGVN-style pages appear in Google with real signal data, not just a spinner.",
           "Removed server-side GA4 Measurement Protocol calls from the Stripe webhook. These were creating phantom sessions with no landing page attribution and 100% bounce rate, inflating the overall site bounce rate metric.",
+          "Upgraded Apple App Store Server Library to v3.1.0.",
+        ],
+      },
+      {
+        category: "fixed",
+        items: [
+          "Security: Apple In-App Purchase verification now rejects tokens claiming a development environment (Xcode/LocalTesting), which bypass Apple's certificate chain — closing a potential free-subscription exploit.",
+          "User export endpoint was unreachable from scheduled jobs due to a missing middleware bypass entry.",
         ],
       },
     ],
