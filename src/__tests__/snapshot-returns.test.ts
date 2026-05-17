@@ -162,6 +162,43 @@ describe("computeReturnsFromSnapshots", () => {
     }
   });
 
+  it("computes 14d return for snapshot at exactly 336 hours", () => {
+    const snapshots = [makeSnapshot(15, hoursAfter(DETECTION_TIME, 336))];
+    const result = computeReturnsFromSnapshots(snapshots, DETECTION_PRICE, DETECTION_TIME);
+    expect(result.return14d).toBeCloseTo(0.5);
+    expect(result.price14d).toBe(15);
+    expect(result.snapped14dAt).toEqual(hoursAfter(DETECTION_TIME, 336));
+  });
+
+  it("ignores snapshots before 14d min window (264h)", () => {
+    const snapshots = [makeSnapshot(15, hoursAfter(DETECTION_TIME, 263))];
+    const result = computeReturnsFromSnapshots(snapshots, DETECTION_PRICE, DETECTION_TIME);
+    expect(result.return14d).toBeNull();
+  });
+
+  it("ignores snapshots past 14d max window (408h)", () => {
+    const snapshots = [makeSnapshot(15, hoursAfter(DETECTION_TIME, 410))];
+    const result = computeReturnsFromSnapshots(snapshots, DETECTION_PRICE, DETECTION_TIME);
+    expect(result.return14d).toBeNull();
+  });
+
+  it("computes all five return periods from a rich time series including 14d", () => {
+    const snapshots = [
+      makeSnapshot(11, hoursAfter(DETECTION_TIME, 24)),
+      makeSnapshot(12, hoursAfter(DETECTION_TIME, 72)),
+      makeSnapshot(14, hoursAfter(DETECTION_TIME, 168)),
+      makeSnapshot(17, hoursAfter(DETECTION_TIME, 336)),
+      makeSnapshot(20, hoursAfter(DETECTION_TIME, 720)),
+    ];
+    const result = computeReturnsFromSnapshots(snapshots, DETECTION_PRICE, DETECTION_TIME);
+    expect(result.return1d).toBeCloseTo(0.1);
+    expect(result.return3d).toBeCloseTo(0.2);
+    expect(result.return7d).toBeCloseTo(0.4);
+    expect(result.return14d).toBeCloseTo(0.7);
+    expect(result.return30d).toBeCloseTo(1.0);
+    expect(result.price14d).toBe(17);
+  });
+
   it("handles detection price as penny stock correctly", () => {
     const snapshots = [makeSnapshot(0.02, hoursAfter(DETECTION_TIME, 24))];
     const result = computeReturnsFromSnapshots(snapshots, 0.01, DETECTION_TIME);

@@ -14,7 +14,7 @@ interface Snapshot {
 }
 
 interface IntervalTarget {
-  field: "1d" | "3d" | "7d" | "30d";
+  field: "1d" | "3d" | "7d" | "14d" | "30d";
   targetHours: number;
   /** Minimum age (hours after detection) for a snapshot to qualify */
   minHours: number;
@@ -28,6 +28,7 @@ const INTERVAL_TARGETS: IntervalTarget[] = [
   { field: "1d", targetHours: 24, minHours: 18, maxHours: 48 },
   { field: "3d", targetHours: 72, minHours: 54, maxHours: 120 },
   { field: "7d", targetHours: 168, minHours: 120, maxHours: 264 },
+  { field: "14d", targetHours: 336, minHours: 264, maxHours: 408 },
   { field: "30d", targetHours: 720, minHours: 600, maxHours: 888 },
 ];
 
@@ -41,6 +42,9 @@ export interface ComputedReturns {
   price7d: number | null;
   return7d: number | null;
   snapped7dAt: Date | null;
+  price14d: number | null;
+  return14d: number | null;
+  snapped14dAt: Date | null;
   price30d: number | null;
   return30d: number | null;
   snapped30dAt: Date | null;
@@ -96,6 +100,7 @@ export function computeReturnsFromSnapshots(
     price1d: null, return1d: null, snapped1dAt: null,
     price3d: null, return3d: null, snapped3dAt: null,
     price7d: null, return7d: null, snapped7dAt: null,
+    price14d: null, return14d: null, snapped14dAt: null,
     price30d: null, return30d: null, snapped30dAt: null,
   };
 
