@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
-import { sendGA4Event } from "@/lib/ga4-server";
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -62,12 +61,6 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        const amount = session.amount_total ? session.amount_total / 100 : 0;
-        sendGA4Event(userId, "purchase", {
-          transaction_id: session.id,
-          value: amount,
-          currency: session.currency?.toUpperCase() || "USD",
-        });
         break;
       }
 
@@ -110,9 +103,6 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        sendGA4Event(dbSub.userId, "subscription_canceled", {
-          stripe_subscription_id: subscription.id,
-        });
         break;
       }
 
@@ -126,15 +116,6 @@ export async function POST(request: NextRequest) {
           data: { status: "PAST_DUE" },
         });
 
-        const failedSub = await prisma.subscription.findFirst({
-          where: { stripeSubscriptionId: subId },
-          select: { userId: true },
-        });
-        if (failedSub) {
-          sendGA4Event(failedSub.userId, "payment_failed", {
-            stripe_subscription_id: subId,
-          });
-        }
         break;
       }
 

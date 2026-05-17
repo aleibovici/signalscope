@@ -15,7 +15,7 @@ const SunIcon = () => (
   </svg>
 );
 
-export function ThemeToggle() {
+export function ThemeToggle({ variant = "default" }: { variant?: "default" | "on-dark" }) {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -24,11 +24,15 @@ export function ThemeToggle() {
 
   const isDark = mounted && resolvedTheme === "dark";
 
+  const buttonClass = variant === "on-dark"
+    ? "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900 text-zinc-300 transition-colors hover:bg-zinc-800"
+    : "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors hover:bg-gray-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800";
+
   return (
     <button
       type="button"
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors hover:bg-gray-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+      className={buttonClass}
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
     >
       {isDark ? <SunIcon /> : <MoonIcon />}
