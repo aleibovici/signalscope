@@ -9,6 +9,21 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-05-19",
+    title: "Signal cards and dashboard polish",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "Signal cards show richer tooltips and clearer return data across dashboard and trending views.",
+          "Trending page uses a unified ticker card layout consistent with the main signals feed.",
+          "Paper trading results page layout refined for readability on smaller screens.",
+          "Dashboard layout fixes prevent horizontal overflow on narrow viewports.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-05-17",
     title: "14-day return window + ticker page SEO",
     changes: [
