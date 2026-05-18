@@ -1,16 +1,19 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { InfoTip } from "@/components/ui/tooltip";
 
 export function KpiTile({
   label,
   value,
   sub,
   subHint,
+  tip,
   valueColor,
 }: {
   label: string;
   value: string;
   sub: string;
   subHint?: string;
+  tip?: string;
   valueColor?: "green" | "red";
 }) {
   const colorClass =
@@ -26,7 +29,10 @@ export function KpiTile({
       title={subHint}
     >
       <CardContent className="flex h-full min-h-25 flex-col items-center justify-between gap-1 px-2! py-3.5 text-center sm:px-3! lg:px-2! lg:py-3">
-        <p className="type-overline text-muted">{label}</p>
+        <p className="type-overline text-muted flex items-center justify-center gap-0">
+          <span>{label}</span>
+          {tip && <InfoTip text={tip} />}
+        </p>
         <p className={`num min-h-8 text-xl font-bold tracking-tight sm:min-h-9 sm:text-2xl ${colorClass}`}>
           {value}
         </p>

@@ -1,16 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useIbkrPaperTrades, type IbkrTrade, type IbkrAccount, type IbkrPortfolioHistory } from "@/hooks/use-ibkr-paper-trading";
 import { useAggregatePerformance } from "@/hooks/use-performance";
-import type { PerformanceStats, CohortEntry } from "@/hooks/use-performance";
+import type { PerformanceStats, PerformanceSummary, CohortEntry } from "@/hooks/use-performance";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { PageHeader } from "@/components/ui/page-header";
 import { Spinner } from "@/components/ui/spinner";
-import { InfoTip } from "@/components/ui/tooltip";
 import { STAGE_LABELS } from "@/lib/stage-labels";
 
 const EQUITY_CHART_W = 520;
@@ -26,6 +25,22 @@ const INTERVALS = [
   { label: "14d", days: 14 },
   { label: "30d", days: 30 },
 ] as const;
+
+const KPI_SUMMARY_SECTION_CLASS =
+  "rounded-2xl border border-gray-200/90 bg-linear-to-b from-gray-50/95 to-white p-2 shadow-sm sm:p-3 dark:border-zinc-800 dark:from-zinc-900/80 dark:to-[#12181f]";
+const KPI_SUMMARY_GRID_CLASS = "grid grid-cols-2 gap-2 *:min-w-0 sm:gap-3 md:grid-cols-4 lg:gap-2";
+
+function KpiSummarySection({ ariaLabel, children }: { ariaLabel: string; children: ReactNode }) {
+  return (
+    <section aria-label={ariaLabel} className={KPI_SUMMARY_SECTION_CLASS}>
+      <div className={KPI_SUMMARY_GRID_CLASS}>{children}</div>
+    </section>
+  );
+}
+
+function signedValueColor(value: number): "green" | "red" | undefined {
+  return value > 0 ? "green" : value < 0 ? "red" : undefined;
+}
 
 function fmtDollarAxis(v: number): string {
   if (v >= 1000) return `$${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}k`;
@@ -48,97 +63,49 @@ function formatPctShort(value: number): string {
   return `${value > 0 ? "+" : ""}${(value * 100).toFixed(0)}%`;
 }
 
-function SignalSummaryCards({
-  summary,
-  days,
-}: {
-  summary: { totalTracked: number; current: PerformanceStats; prior: PerformanceStats };
-  days: number;
-}) {
+function SignalSummaryCards({ summary, days }: { summary: PerformanceSummary; days: number }) {
   const { current } = summary;
   const hasData = current.count > 0;
-  const wrDelta =
-    current.count > 0 && summary.prior.count > 0
-      ? current.winRate - summary.prior.winRate
-      : null;
-  const arDelta =
-    current.count > 0 && summary.prior.count > 0
-      ? current.avgReturn - summary.prior.avgReturn
-      : null;
+  const canCompare = current.count > 0 && summary.prior.count > 0;
+  const wrDelta = canCompare ? current.winRate - summary.prior.winRate : null;
+  const arDelta = canCompare ? current.avgReturn - summary.prior.avgReturn : null;
+
+  const comparisonValue =
+    wrDelta === null ? "--" : `${wrDelta > 0 ? "+" : ""}${(wrDelta * 100).toFixed(0)}pp`;
+  const comparisonSub =
+    summary.prior.count === 0
+      ? "Building history…"
+      : `${arDelta !== null ? `Avg ${formatPct(arDelta)} · ` : ""}${summary.current.count} recent / ${summary.prior.count} prior`;
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-4">
-      <Card>
-        <CardContent className="pt-6 text-center">
-          <p className="text-sm text-gray-500 dark:text-zinc-400">High-Score Picks<InfoTip text="Unique tickers that scored 70+ on AI signal confidence with return data for the selected period." /></p>
-          <p className="num text-4xl font-bold text-gray-900 dark:text-zinc-100">{summary.totalTracked}</p>
-          <p className="mt-1 text-xs text-gray-400 dark:text-zinc-500">with {days}d return data</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="pt-6 text-center">
-          <p className="text-sm text-gray-500 dark:text-zinc-400">Win Rate ({days}d)<InfoTip text="Percentage of high-score picks (AI ≥70) detected in the last 30 days that had a positive return over the selected period." /></p>
-          <p className="num text-4xl font-bold text-gray-900 dark:text-zinc-100">
-            {hasData ? `${(current.winRate * 100).toFixed(0)}%` : "--"}
-          </p>
-          <p className="mt-1 text-xs text-gray-400 dark:text-zinc-500">
-            {hasData ? `${current.count} signals` : "no data"}
-          </p>
-          {hasData && (
-            <div className="mx-auto mt-3 h-1.5 w-full max-w-[80px] overflow-hidden rounded-full bg-gray-100 dark:bg-zinc-800">
-              <div
-                className="h-full rounded-full bg-emerald-500 dark:bg-emerald-400 transition-[width] duration-500"
-                style={{ width: `${(current.winRate * 100).toFixed(0)}%` }}
-              />
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="pt-6 text-center">
-          <p className="text-sm text-gray-500 dark:text-zinc-400">Median Return ({days}d)<InfoTip text="Median return of all high-score picks (AI ≥70) detected in the last 30 days, measured at the selected period after detection." /></p>
-          <p className={`num text-4xl font-bold ${hasData && current.medianReturn > 0 ? "text-green-600 dark:text-green-400" : hasData && current.medianReturn < 0 ? "text-red-600 dark:text-red-400" : "text-gray-900 dark:text-zinc-100"}`}>
-            {hasData ? formatPct(current.medianReturn) : "--"}
-          </p>
-          <p className="mt-1 text-xs text-gray-400 dark:text-zinc-500">{hasData ? `Avg: ${formatPct(current.avgReturn)}` : "no data"}</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="pt-6 text-center">
-          <p className="text-sm text-gray-500 dark:text-zinc-400">Last 30d vs Prior 30d<InfoTip text="Compares win rate and average return of high-score picks (AI ≥70) from the last 30 days against the prior 30-day window." /></p>
-          <div className="mt-1 space-y-1">
-            {summary.prior.count === 0 ? (
-              <p className="mt-2 text-xs text-gray-400 dark:text-zinc-500">Building comparison history…</p>
-            ) : (
-              <>
-                {wrDelta !== null && (
-                  <p className="text-sm">
-                    <span className="text-gray-500 dark:text-zinc-400">Win rate </span>
-                    <span className={`font-semibold ${wrDelta > 0 ? "text-green-600 dark:text-green-400" : wrDelta < 0 ? "text-red-600 dark:text-red-400" : "text-gray-600 dark:text-zinc-300"}`}>
-                      {wrDelta > 0 ? "+" : ""}{(wrDelta * 100).toFixed(0)}pp
-                    </span>
-                  </p>
-                )}
-                {arDelta !== null && (
-                  <p className="text-sm">
-                    <span className="text-gray-500 dark:text-zinc-400">Avg return </span>
-                    <span className={`font-semibold ${arDelta > 0 ? "text-green-600 dark:text-green-400" : arDelta < 0 ? "text-red-600 dark:text-red-400" : "text-gray-600 dark:text-zinc-300"}`}>
-                      {formatPct(arDelta)}
-                    </span>
-                  </p>
-                )}
-              </>
-            )}
-          </div>
-          <p className="mt-1 text-xs text-gray-400 dark:text-zinc-500">
-            {summary.current.count} recent / {summary.prior.count} prior
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+    <KpiSummarySection ariaLabel="Signal performance summary">
+      <KpiTile
+        label="High-score picks"
+        tip="Unique tickers that scored 70+ on AI signal confidence with return data for the selected period."
+        value={String(summary.totalTracked)}
+        sub={`with ${days}d return data`}
+      />
+      <KpiTile
+        label={`Win rate (${days}d)`}
+        tip="Percentage of high-score picks (AI ≥70) detected in the last 30 days that had a positive return over the selected period."
+        value={hasData ? `${(current.winRate * 100).toFixed(0)}%` : "--"}
+        sub={hasData ? `${current.count} signals` : "no data"}
+      />
+      <KpiTile
+        label={`Median return (${days}d)`}
+        tip="Median return of all high-score picks (AI ≥70) detected in the last 30 days, measured at the selected period after detection."
+        value={hasData ? formatPct(current.medianReturn) : "--"}
+        valueColor={hasData ? signedValueColor(current.medianReturn) : undefined}
+        sub={hasData ? `Avg ${formatPct(current.avgReturn)}` : "no data"}
+      />
+      <KpiTile
+        label="30d vs prior"
+        tip="Compares win rate and average return of high-score picks (AI ≥70) from the last 30 days against the prior 30-day window."
+        value={comparisonValue}
+        valueColor={wrDelta === null ? undefined : signedValueColor(wrDelta)}
+        sub={comparisonSub}
+      />
+    </KpiSummarySection>
   );
 }
 
@@ -377,18 +344,9 @@ function IbkrPanel({
       {account && <AlpacaAccountBar account={account} />}
       {portfolioHistory && <AlpacaEquityCurve history={portfolioHistory} />}
 
-      <section
-        aria-label="Alpaca paper trading summary"
-        className="rounded-2xl border border-gray-200/90 bg-linear-to-b from-gray-50/95 to-white p-2 shadow-sm sm:p-3 dark:border-zinc-800 dark:from-zinc-900/80 dark:to-[#12181f]"
-      >
-        <div className="grid grid-cols-2 gap-2 *:min-w-0 [&>:last-child]:col-span-2 sm:[&>:last-child]:col-span-1 sm:grid-cols-3 sm:gap-3 md:grid-cols-5 lg:gap-2">
-          <KpiTile
-            label="Total trades"
-            value={String(summary.totalTrades)}
-            sub={`${summary.openTrades} open · ${summary.closedTrades} closed`}
-          />
-          <KpiTile
-            label="Win rate"
+      <KpiSummarySection ariaLabel="Alpaca paper trading summary">
+        <KpiTile
+          label="Win rate"
             value={summary.closedTrades > 0 ? `${(summary.winRate * 100).toFixed(0)}%` : "--"}
             sub="closed only"
           />
@@ -425,11 +383,16 @@ function IbkrPanel({
             sub="open + closed"
             subHint="Sum of unrealized (open) and realized (closed) P&L from actual Alpaca fills"
           />
-        </div>
-      </section>
+      </KpiSummarySection>
 
       <IbkrTradesTable title="Open Positions" trades={openTrades} emptyMessage="No open positions." />
-      <IbkrTradesTable title="Closed Positions" trades={closedTrades} emptyMessage="No closed positions yet." showClosedAt />
+      <IbkrTradesTable
+        title="Closed Positions"
+        trades={closedTrades}
+        emptyMessage="No closed positions yet."
+        showClosedAt
+        collapsible
+      />
 
       <p className="text-xs text-gray-400 dark:text-zinc-600">
         Orders placed on a SignalScope-owned Alpaca paper account. Not investment advice. Results shown for transparency only.
@@ -643,18 +606,54 @@ function IbkrTradesTable({
   trades,
   emptyMessage,
   showClosedAt = false,
+  collapsible = false,
 }: {
   title: string;
   trades: IbkrTrade[];
   emptyMessage: string;
   showClosedAt?: boolean;
+  collapsible?: boolean;
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const isOpen = !collapsible || expanded;
+
+  const titleEl = (
+    <h3 className="font-semibold text-gray-900 dark:text-zinc-100">
+      {title}
+      {trades.length > 0 && (
+        <span className="ml-2 text-sm font-normal text-gray-500 dark:text-zinc-400">({trades.length})</span>
+      )}
+    </h3>
+  );
+
   return (
     <Card>
       <CardHeader className="px-3! py-3! sm:px-4! md:px-6! md:py-4!">
-        <h3 className="font-semibold text-gray-900 dark:text-zinc-100">{title}</h3>
+        {collapsible ? (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="flex w-full items-center justify-between gap-2 text-left"
+            aria-expanded={expanded}
+          >
+            {titleEl}
+            <svg
+              className={`h-4 w-4 shrink-0 text-gray-400 transition-transform duration-fast dark:text-zinc-500 ${expanded ? "rotate-180" : ""}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+              aria-hidden
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        ) : (
+          titleEl
+        )}
       </CardHeader>
-      <CardContent className="p-0">
+      {isOpen && (
+        <CardContent className="p-0">
         <div className="hidden max-h-[400px] overflow-x-auto overflow-y-auto md:block">
           <table className="min-w-[640px] w-full text-sm">
             <thead className="sticky top-0 z-10 bg-white dark:bg-zinc-900">
@@ -766,6 +765,7 @@ function IbkrTradesTable({
           })}
         </div>
       </CardContent>
+      )}
     </Card>
   );
 }
