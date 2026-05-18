@@ -144,7 +144,7 @@ export function SignalCard({
 
   if (variant === "row") {
     return (
-      <div className="group relative flex cursor-pointer items-center gap-2 sm:gap-3 rounded-lg border border-border-default/90 bg-card px-3 py-2.5 shadow-sm transition-[border-color,background-color] duration-base hover:border-blue-300 hover:bg-surface-muted dark:hover:border-blue-500/35">
+      <div className="group relative flex min-w-0 cursor-pointer items-center gap-2 overflow-hidden sm:gap-3 rounded-lg border border-border-default/90 bg-card px-3 py-2.5 shadow-sm transition-[border-color,background-color] duration-base hover:border-blue-300 hover:bg-surface-muted dark:hover:border-blue-500/35">
         <Link
           href={`/ticker/${ticker.symbol}`}
           className="absolute inset-0 z-0 rounded-lg"

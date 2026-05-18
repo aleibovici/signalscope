@@ -15,8 +15,8 @@ export default function DashboardLayout({
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-zinc-950">
       <Sidebar revision={revision} />
-      <main id="main-scroll" className="min-w-0 flex-1 overflow-y-auto pt-14 pb-16 md:pt-0 md:pb-0">
-        <div className="p-4 md:p-6">
+      <main id="main-scroll" className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto pt-14 pb-16 md:pt-0 md:pb-0">
+        <div className="min-w-0 p-4 md:p-6">
           <GuestBannerWrapper />
           {children}
         </div>

@@ -30,8 +30,8 @@ export function StageTabs({
   counts?: Record<string, number>;
 }) {
   return (
-    <div className="relative">
-      <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="relative min-w-0 overflow-hidden">
+      <div className="flex gap-2 overflow-x-auto overscroll-x-contain">
         {stages.map((stage) => (
           <button
             key={stage.key}

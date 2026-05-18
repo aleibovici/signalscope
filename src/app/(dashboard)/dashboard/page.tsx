@@ -121,7 +121,7 @@ useScrollRestore("dashboard");
   };
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="min-w-0 space-y-4 md:space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="type-h1 text-gray-900 dark:text-zinc-100">Signal Dashboard</h1>
@@ -129,7 +129,7 @@ useScrollRestore("dashboard");
             <p className="mt-0.5 num text-xs text-muted">Updated {timeAgo(scanDetail.scan.completedAt)}</p>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <button
             onClick={toggleViewMode}
             title={viewMode === "card" ? "Switch to row view" : "Switch to card view"}
