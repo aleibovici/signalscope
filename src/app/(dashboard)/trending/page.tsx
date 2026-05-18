@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { useTrendingTickers, type TrendingFilters } from "@/hooks/use-trending";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { useTrendingTickers, type TrendingFilters, type TrendingTicker } from "@/hooks/use-trending";
 import { useVotes } from "@/hooks/use-votes";
-import { TrendingCard } from "@/components/dashboard/trending-card";
+import { SignalCard } from "@/components/dashboard/signal-card";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
@@ -150,6 +150,25 @@ function MultiSelectDropdown({
       )}
     </div>
   );
+}
+
+function TrendingTickerCard({
+  ticker,
+  returnPeriod,
+}: {
+  ticker: TrendingTicker;
+  returnPeriod: string;
+}) {
+  const trending = useMemo(
+    () => ({
+      trend: ticker.trend,
+      appearanceCount: ticker.appearanceCount,
+      scoreTrajectory: ticker.scoreTrajectory,
+    }),
+    [ticker.trend, ticker.appearanceCount, ticker.scoreTrajectory],
+  );
+
+  return <SignalCard ticker={ticker} returnPeriod={returnPeriod} trending={trending} />;
 }
 
 export default function TrendingPage() {
@@ -430,7 +449,7 @@ export default function TrendingPage() {
         <>
           <div className="grid gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-3">
             {data.tickers.map((ticker) => (
-              <TrendingCard
+              <TrendingTickerCard
                 key={ticker.id}
                 ticker={ticker}
                 returnPeriod={filters.returnPeriod || "7d"}
