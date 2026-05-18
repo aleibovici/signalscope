@@ -58,7 +58,7 @@
     "eslint-config-next": "16.2.6",
     "remotion": "^4.0.459",
     "tailwindcss": "^4",
-    "tsx": "^4.21.0",
+    "tsx": "^4.22.1",
     "typescript": "6.0.3",
     "vitest": "^4.1.6"
   }
