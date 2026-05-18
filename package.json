@@ -45,7 +45,7 @@
     "@remotion/cli": "^4.0.459",
     "@remotion/eslint-plugin": "^4.0.459",
     "@remotion/player": "^4.0.455",
-    "@remotion/renderer": "^4.0.455",
+    "@remotion/renderer": "^4.0.462",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^3.0.0",
     "@types/node": "^25",
