@@ -1,8 +1,8 @@
 "use client";
 
-import { Fragment, use, useState, useEffect, useRef, useCallback, type ReactNode } from "react";
+import { Fragment, useState, useEffect, useRef, useCallback, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useTickerDetail, useTickerHistory, useGenerateReport } from "@/hooks/use-scans";
 import { useTickerPerformance } from "@/hooks/use-performance";
@@ -345,14 +345,10 @@ function IconHistory({ className }: { className?: string }) {
   );
 }
 
-export default function TickerDetailPage({
-  params,
-}: {
-  params: Promise<{ symbol: string }>;
-}) {
+export default function TickerDetailPage() {
   const { data: session } = useSession();
   const router = useRouter();
-  const { symbol } = use(params);
+  const symbol = useParams().symbol as string;
   const { data, isLoading, error } = useTickerDetail(symbol);
   const { data: historyData } = useTickerHistory(symbol);
   const { data: perfData } = useTickerPerformance(symbol);
