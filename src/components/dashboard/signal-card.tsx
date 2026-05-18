@@ -5,8 +5,85 @@ import { type ReactNode, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip } from "@/components/ui/tooltip";
 import type { ValidatedTickerData } from "@/hooks/use-scans";
-import { stageLabel } from "@/lib/stage-labels";
+import { recommendationLevels, signalSources, signalStages } from "@/lib/methodology-data";
+import { STAGE_LABELS, stageLabel } from "@/lib/stage-labels";
 import { VoteButton } from "@/components/dashboard/vote-button";
+
+const STAGE_METH_KEY: Record<string, string> = {
+  [STAGE_LABELS.EARLY]: "EARLY",
+  [STAGE_LABELS.FORMING]: "FORMING",
+  [STAGE_LABELS.CONFIRMED]: "CONFIRMED",
+  Filtered: "FILTERED",
+};
+
+const SOURCE_METH_NAME: Record<string, string> = {
+  REDDIT: "Reddit",
+  TWITTER: "X / Twitter",
+  SEC_INSIDER: "SEC Insider",
+  SEC_FILING: "SEC Filing",
+  CONGRESS: "Congress",
+  OPTIONS_FLOW: "Options Flow",
+  VOLUME_SPIKE: "Volume Spike",
+  STOCKTWITS: "StockTwits",
+  POLYMARKET: "Polymarket",
+};
+
+const TAG_TOOLTIPS: Record<string, string> = {
+  New: "First appearance in SignalScope — no prior scan history.",
+  "Near 52W Low": "Price is just above the 52-week low — potential recovery setup.",
+  Momentum: "Trading within 5% of the 52-week high — strength but less early.",
+  "Short Squeeze": "High short float on a sub-$5 name — squeeze potential if volume arrives.",
+  "High SI": "Elevated short interest (7.5–15%) — watch for squeeze or dilution risk.",
+  "High Velocity": "Mentions accelerating quickly across sources in this scan.",
+  Recovery: "Deep drawdown from highs with room to re-rate if catalyst lands.",
+  "Multi-Reddit": "Mentioned across 3+ subreddits — broader retail discovery.",
+  "P&D Risk": "Pump-and-dump flags triggered — treat with extra skepticism.",
+  "Bullish Flow": "Net call premium exceeds puts — options market leaning bullish.",
+  "Bearish Flow": "Net put premium exceeds calls — options market leaning bearish.",
+};
+
+const AI_SCORE_TIP =
+  "AI confidence (0–100) — evidence strength from sources, sentiment, and corroboration. Not expected upside.";
+const OPP_SCORE_TIP =
+  "Opportunity rank — early-mover/setup score. Drives list order within a stage.";
+const NET_PREMIUM_TIP =
+  "Net options premium flow: call dollar volume minus put dollar volume. Positive = bullish institutional positioning.";
+
+function stageTooltip(displayStage: string): string {
+  const key = STAGE_METH_KEY[displayStage];
+  const row = key ? signalStages.find((s) => s.stage === key) : undefined;
+  return row?.desc ?? displayStage;
+}
+
+function recommendationTooltip(rec: string | undefined | null): string | null {
+  if (!rec) return null;
+  return recommendationLevels.find((r) => r.level === rec)?.desc ?? null;
+}
+
+function sourceTooltip(src: string): string {
+  const name = SOURCE_METH_NAME[src];
+  const row = name ? signalSources.find((s) => s.name === name) : undefined;
+  return row?.description ?? src.replace(/_/g, " ");
+}
+
+function tagTooltip(tag: string, ticker: ValidatedTickerData): string {
+  if (tag.startsWith("Seen ")) {
+    return `Seen in ${ticker.priorAppearances} prior scans — repeats without a new catalyst often mean less remaining upside.`;
+  }
+  return TAG_TOOLTIPS[tag] ?? tag;
+}
+
+function netPremiumTooltip(ticker: ValidatedTickerData): string {
+  const callPct =
+    ticker.callPremiumRatio != null
+      ? ` ${Math.round(ticker.callPremiumRatio * 100)}% of premium is calls.`
+      : "";
+  return `${NET_PREMIUM_TIP}${callPct}`;
+}
+
+function returnTooltip(period: string): string {
+  return `Price change since detection (${RETURN_LABELS[period] ?? period} window) from scan snapshot bars.`;
+}
 
 const MAX_TAGS = 2;
 
@@ -152,19 +229,23 @@ export function SignalCard({
           draggable={false}
         />
         {/* Stage pill */}
-        <span className={`pointer-events-none relative z-1 shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 type-overline ${stageClass}`}>
-          {stage}
-        </span>
+        <Tooltip side="bottom" align="start" content={stageTooltip(stage)}>
+          <span className={`pointer-events-auto relative z-1 shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 type-overline ${stageClass}`}>
+            {stage}
+          </span>
+        </Tooltip>
         {/* Symbol + name */}
         <div className="pointer-events-none relative z-1 min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-2">
             <span className="text-sm font-semibold tracking-tight text-primary group-hover:text-blue-600 dark:group-hover:text-blue-400">
               {ticker.symbol}
             </span>
-            {recClass && (
-              <span className={`hidden sm:inline shrink-0 rounded border-[0.75px] px-1 py-[2px] text-[9px] font-bold uppercase tracking-[0.3px] ${recClass}`}>
-                {ticker.recommendation}
-              </span>
+            {recClass && recommendationTooltip(ticker.recommendation) && (
+              <Tooltip side="bottom" align="start" content={recommendationTooltip(ticker.recommendation)!}>
+                <span className={`pointer-events-auto hidden sm:inline shrink-0 rounded border-[0.75px] px-1 py-[2px] text-[9px] font-bold uppercase tracking-[0.3px] ${recClass}`}>
+                  {ticker.recommendation}
+                </span>
+              </Tooltip>
             )}
             {ticker.name && (
               <span className="hidden truncate type-caption text-secondary sm:block">{ticker.name}</span>
@@ -174,58 +255,83 @@ export function SignalCard({
         {/* Tags */}
         <div className="pointer-events-none relative z-1 hidden items-center gap-1 md:flex">
           {visibleTags.map((tag, i) => (
-            <span key={`${tag}-${i}`} className={`rounded px-1.5 py-0.5 text-[10px] ${tagStyleMap[tag] ?? "bg-surface-muted text-muted"}`}>
-              {tag}
-            </span>
+            <Tooltip key={`${tag}-${i}`} side="top" align="start" content={tagTooltip(tag, ticker)}>
+              <span className={`pointer-events-auto rounded px-1.5 py-0.5 text-[10px] ${tagStyleMap[tag] ?? "bg-surface-muted text-muted"}`}>
+                {tag}
+              </span>
+            </Tooltip>
           ))}
           {overflow > 0 && (
-            <span className="rounded bg-surface-muted px-1.5 py-0.5 text-[10px] text-muted">+{overflow}</span>
+            <Tooltip side="top" align="start" content={overflowList}>
+              <span className="pointer-events-auto rounded bg-surface-muted px-1.5 py-0.5 text-[10px] text-muted">+{overflow}</span>
+            </Tooltip>
           )}
         </div>
         {/* Sources */}
         <div className="pointer-events-none relative z-1 hidden shrink-0 items-center gap-1 lg:flex">
           {ticker.sources?.slice(0, 2).map((src) => (
-            <span key={src} className="rounded border border-border-default/80 px-1 py-[2px] text-[11px] font-bold uppercase tracking-[0.3px] text-muted">
-              {src.replace(/_/g, " ")}
-            </span>
+            <Tooltip key={src} side="top" align="start" content={sourceTooltip(src)}>
+              <span className="pointer-events-auto rounded border border-border-default/80 px-1 py-[2px] text-[11px] font-bold uppercase tracking-[0.3px] text-muted">
+                {src.replace(/_/g, " ")}
+              </span>
+            </Tooltip>
           ))}
           {(ticker.sources?.length ?? 0) > 2 && (
-            <span className="text-[9px] text-muted">+{(ticker.sources?.length ?? 0) - 2}</span>
+            <Tooltip
+              side="top"
+              align="start"
+              content={ticker.sources!.slice(2).map((s) => s.replace(/_/g, " ")).join(", ")}
+            >
+              <span className="pointer-events-auto text-[9px] text-muted">+{(ticker.sources?.length ?? 0) - 2}</span>
+            </Tooltip>
           )}
         </div>
         {/* AI score + Opp rank */}
         <div className="pointer-events-none relative z-1 shrink-0 flex items-baseline gap-2">
-          <span className="flex items-baseline gap-1">
-            <span className="type-overline text-blue-500/70 dark:text-blue-400/60">AI</span>
-            <span className="num text-base font-black leading-none text-blue-500 dark:text-blue-400">{ticker.aiScore}</span>
-          </span>
-          <span className="hidden sm:flex items-baseline gap-0.5">
-            <span className="type-overline text-amber-500/70 dark:text-amber-400/60">Opp</span>
-            <span className="num text-xs font-bold leading-none text-amber-500 dark:text-amber-400">#{ticker.opportunityScore}</span>
-          </span>
+          <Tooltip side="bottom" align="start" content={AI_SCORE_TIP}>
+            <span className="pointer-events-auto flex items-baseline gap-1">
+              <span className="type-overline text-blue-500/70 dark:text-blue-400/60">AI</span>
+              <span className="num text-base font-black leading-none text-blue-500 dark:text-blue-400">{ticker.aiScore}</span>
+            </span>
+          </Tooltip>
+          <Tooltip side="bottom" align="end" content={OPP_SCORE_TIP}>
+            <span className="pointer-events-auto hidden sm:flex items-baseline gap-0.5">
+              <span className="type-overline text-amber-500/70 dark:text-amber-400/60">Opp</span>
+              <span className="num text-xs font-bold leading-none text-amber-500 dark:text-amber-400">#{ticker.opportunityScore}</span>
+            </span>
+          </Tooltip>
         </div>
         {/* Signal count (lg+) */}
-        <span className="pointer-events-none relative z-1 hidden shrink-0 items-center gap-1 text-[10px] text-muted lg:flex">
-          <SignalDot stage={stage} />
-          <span className="num font-medium text-secondary">{ticker.signalCount}</span>
-          <span>{signalCountLabel}</span>
-        </span>
+        <Tooltip
+          side="top"
+          align="end"
+          content={`${ticker.signalCount} raw mention${ticker.signalCount === 1 ? "" : "s"} from ${ticker.sourceCount} source${ticker.sourceCount === 1 ? "" : "s"} in this scan.`}
+        >
+          <span className="pointer-events-auto relative z-1 hidden shrink-0 items-center gap-1 text-[10px] text-muted lg:flex">
+            <SignalDot stage={stage} />
+            <span className="num font-medium text-secondary">{ticker.signalCount}</span>
+            <span>{signalCountLabel}</span>
+          </span>
+        </Tooltip>
         {/* Price + return + net premium */}
         {ticker.price != null && (
           <div className="pointer-events-none relative z-1 shrink-0 flex flex-col items-end">
             <span className="num text-sm font-semibold text-strong">${ticker.price.toFixed(2)}</span>
             {retVal != null && (
-              <span className={`num text-[10px] font-semibold leading-tight ${retVal >= 0 ? "text-green-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
-                {retVal >= 0 ? "+" : ""}{(retVal * 100).toFixed(1)}%
-              </span>
+              <Tooltip side="top" align="end" content={returnTooltip(returnPeriod)}>
+                <span className={`pointer-events-auto num text-[10px] font-semibold leading-tight ${retVal >= 0 ? "text-green-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+                  {retVal >= 0 ? "+" : ""}{(retVal * 100).toFixed(1)}%
+                </span>
+              </Tooltip>
             )}
             {ticker.netPremium != null && ticker.netPremium !== 0 && (
-              <span
-                className={`num text-[10px] font-semibold leading-tight ${ticker.netPremium > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}
-                title={`Net premium flow: ${ticker.netPremium > 0 ? "+" : ""}$${(Math.abs(ticker.netPremium) / 1e6).toFixed(1)}M${ticker.callPremiumRatio != null ? ` · ${Math.round(ticker.callPremiumRatio * 100)}% calls` : ""}`}
-              >
-                {ticker.netPremium > 0 ? "+" : ""}${(Math.abs(ticker.netPremium) / 1e6).toFixed(1)}M
-              </span>
+              <Tooltip side="top" align="end" content={netPremiumTooltip(ticker)}>
+                <span
+                  className={`pointer-events-auto num text-[10px] font-semibold leading-tight ${ticker.netPremium > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}
+                >
+                  {ticker.netPremium > 0 ? "+" : ""}${(Math.abs(ticker.netPremium) / 1e6).toFixed(1)}M
+                </span>
+              </Tooltip>
             )}
           </div>
         )}
@@ -248,38 +354,38 @@ export function SignalCard({
         aria-label={`Open ${ticker.symbol} detail`}
         draggable={false}
       />
-      <div className={`pointer-events-none relative z-1 h-[3px] w-full ${stageBarColors[stage] ?? "bg-zinc-400"}`} aria-hidden="true" />
+      <div className={`pointer-events-none relative z-1 h-0.5 w-full ${stageBarColors[stage] ?? "bg-zinc-400"}`} aria-hidden="true" />
       {header && (
         <div className="pointer-events-none relative z-1 border-b border-border-default/60">
           {header}
         </div>
       )}
-      <CardContent className="pointer-events-none relative z-1 flex flex-1 flex-col gap-3 px-4 py-3 md:px-5 md:py-4">
+      <CardContent className="pointer-events-none relative z-1 flex flex-1 flex-col gap-2 px-3 py-2.5">
 
-        {/* Row 1: stage pill (top-left, stays visible) */}
-        <div className="flex items-center justify-between">
-          <span
-            className={`inline-flex items-center rounded-full border px-2 py-0.5 type-overline ${stageClass}`}
-          >
-            {stage}
-          </span>
-        </div>
-
-        {/* Row 2: symbol + rec | price + delta */}
+        {/* Symbol + stage + rec | price + delta */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 flex-col gap-0.5">
-            <div className="flex min-w-0 items-center gap-2">
-              <span className="text-xl font-semibold tracking-tight text-primary group-hover:text-blue-600 dark:group-hover:text-blue-400">
+            <div className="pointer-events-auto flex min-w-0 flex-wrap items-center gap-1.5">
+              <Tooltip side="bottom" align="start" content={stageTooltip(stage)}>
+                <span
+                  className={`inline-flex shrink-0 items-center rounded-full border px-1.5 py-px type-overline ${stageClass}`}
+                >
+                  {stage}
+                </span>
+              </Tooltip>
+              <span className="text-lg font-semibold tracking-tight text-primary group-hover:text-blue-600 dark:group-hover:text-blue-400">
                 {ticker.symbol}
               </span>
-              {recClass && (
-                <span
-                  role="status"
-                  aria-label={`Recommendation: ${ticker.recommendation}`}
-                  className={`shrink-0 rounded border-[0.75px] px-1 py-[3px] text-[10px] font-bold uppercase tracking-[0.3px] ${recClass}`}
-                >
-                  {ticker.recommendation}
-                </span>
+              {recClass && recommendationTooltip(ticker.recommendation) && (
+                <Tooltip side="bottom" align="start" content={recommendationTooltip(ticker.recommendation)!}>
+                  <span
+                    role="status"
+                    aria-label={`Recommendation: ${ticker.recommendation}`}
+                    className={`shrink-0 rounded border-[0.75px] px-1 py-[3px] text-[10px] font-bold uppercase tracking-[0.3px] ${recClass}`}
+                  >
+                    {ticker.recommendation}
+                  </span>
+                </Tooltip>
               )}
             </div>
             {ticker.name && (
@@ -287,44 +393,46 @@ export function SignalCard({
             )}
           </div>
           {ticker.price != null && (
-            <div className="flex shrink-0 flex-col items-end gap-0.5 text-right">
-              <p className="num text-base font-semibold text-strong">
+            <div className="pointer-events-auto flex shrink-0 flex-col items-end gap-0.5 text-right">
+              <p className="num text-sm font-semibold text-strong">
                 ${ticker.price.toFixed(2)}
               </p>
               {retVal != null && (
-                <span
-                  className={`num type-caption font-semibold ${
-                    retVal >= 0
-                      ? "text-green-600 dark:text-emerald-400"
-                      : "text-red-600 dark:text-red-400"
-                  }`}
-                >
-                  {retVal >= 0 ? "+" : ""}{(retVal * 100).toFixed(1)}% {RETURN_LABELS[returnPeriod]}
-                </span>
+                <Tooltip side="top" align="end" content={returnTooltip(returnPeriod)}>
+                  <span
+                    className={`num type-caption font-semibold ${
+                      retVal >= 0
+                        ? "text-green-600 dark:text-emerald-400"
+                        : "text-red-600 dark:text-red-400"
+                    }`}
+                  >
+                    {retVal >= 0 ? "+" : ""}{(retVal * 100).toFixed(1)}% {RETURN_LABELS[returnPeriod]}
+                  </span>
+                </Tooltip>
               )}
             </div>
           )}
         </div>
 
         {/* Row 3: AI hero score | Opp rank (demoted) */}
-        <div className="pointer-events-auto flex items-center justify-between gap-3">
+        <div className="pointer-events-auto flex items-center justify-between gap-2">
           <Tooltip
             side="bottom"
             align="start"
-            content="AI confidence (0–100) — evidence strength from sources, sentiment, and corroboration. Not expected upside."
+            content={AI_SCORE_TIP}
           >
-            <span className="flex items-baseline gap-1.5">
+            <span className="flex items-baseline gap-1">
               <span className="type-overline text-blue-500/70 dark:text-blue-400/60">AI</span>
-              <span className="num text-3xl font-black leading-none text-blue-500 dark:text-blue-400">
+              <span className="num text-2xl font-black leading-none text-blue-500 dark:text-blue-400">
                 {ticker.aiScore}
               </span>
-              <span className="type-caption text-muted">/100</span>
+              <span className="text-[10px] text-muted">/100</span>
             </span>
           </Tooltip>
           <Tooltip
             side="bottom"
             align="end"
-            content="Opportunity rank — early-mover/setup score. Drives list order within a stage."
+            content={OPP_SCORE_TIP}
           >
             <span className="flex items-baseline gap-1 text-right">
               <span className="type-overline text-amber-500/70 dark:text-amber-400/60">Opp</span>
@@ -339,12 +447,13 @@ export function SignalCard({
         {(visibleTags.length > 0 || overflow > 0) && (
           <div className="pointer-events-auto flex flex-wrap items-center gap-1">
             {visibleTags.map((tag, i) => (
-              <span
-                key={`${tag}-${i}`}
-                className={`rounded px-1.5 py-0.5 text-[10px] ${tagStyleMap[tag] ?? "bg-surface-muted text-muted"}`}
-              >
-                {tag}
-              </span>
+              <Tooltip key={`${tag}-${i}`} side="top" align="start" content={tagTooltip(tag, ticker)}>
+                <span
+                  className={`rounded px-1.5 py-0.5 text-[10px] ${tagStyleMap[tag] ?? "bg-surface-muted text-muted"}`}
+                >
+                  {tag}
+                </span>
+              </Tooltip>
             ))}
             {overflow > 0 && (
               <Tooltip side="top" align="start" content={overflowList}>
@@ -357,44 +466,56 @@ export function SignalCard({
         )}
 
         {/* Footer: sources + signal count + net premium + chevron */}
-        <div className="mt-auto flex items-center justify-between gap-2 border-t border-border-default/60 pt-2">
-          <div className="flex min-w-0 flex-wrap items-center gap-1">
+        <div className="mt-auto flex items-center justify-between gap-2 border-t border-border-default/60 pt-1.5">
+          <div className="pointer-events-auto flex min-w-0 flex-wrap items-center gap-1">
             {ticker.sources?.slice(0, 3).map((src) => (
-              <span
-                key={src}
-                className="rounded border border-border-default/80 px-1 py-[3px] text-[11px] font-bold uppercase tracking-[0.3px] text-muted"
-              >
-                {src.replace(/_/g, " ")}
-              </span>
+              <Tooltip key={src} side="top" align="start" content={sourceTooltip(src)}>
+                <span className="rounded border border-border-default/80 px-1 py-px text-[10px] font-bold uppercase tracking-[0.3px] text-muted">
+                  {src.replace(/_/g, " ")}
+                </span>
+              </Tooltip>
             ))}
             {(ticker.sources?.length ?? 0) > 3 && (
-              <span className="text-[9px] text-muted">
-                +{(ticker.sources?.length ?? 0) - 3}
-              </span>
-            )}
-            <span className="flex items-center gap-1 text-[10px] text-muted">
-              <SignalDot stage={stage} />
-              <span className="num font-medium text-secondary">{ticker.signalCount}</span>
-              <span>{signalCountLabel}</span>
-            </span>
-            {ticker.netPremium != null && ticker.netPremium !== 0 && (
-              <span
-                className={`num flex items-center gap-1 text-[10px] font-semibold ${
-                  ticker.netPremium > 0
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-rose-600 dark:text-rose-400"
-                }`}
-                title={`Net premium flow: ${ticker.netPremium > 0 ? "+" : ""}$${(Math.abs(ticker.netPremium) / 1e6).toFixed(1)}M${ticker.callPremiumRatio != null ? ` · ${Math.round(ticker.callPremiumRatio * 100)}% calls` : ""}`}
+              <Tooltip
+                side="top"
+                align="start"
+                content={ticker.sources!.slice(3).map((s) => s.replace(/_/g, " ")).join(", ")}
               >
-                {ticker.netPremium > 0 ? "+" : ""}${(Math.abs(ticker.netPremium) / 1e6).toFixed(1)}M
+                <span className="text-[9px] text-muted">
+                  +{(ticker.sources?.length ?? 0) - 3}
+                </span>
+              </Tooltip>
+            )}
+            <Tooltip
+              side="top"
+              align="start"
+              content={`${ticker.signalCount} raw mention${ticker.signalCount === 1 ? "" : "s"} from ${ticker.sourceCount} source${ticker.sourceCount === 1 ? "" : "s"} in this scan.`}
+            >
+              <span className="flex items-center gap-1 text-[10px] text-muted">
+                <SignalDot stage={stage} />
+                <span className="num font-medium text-secondary">{ticker.signalCount}</span>
+                <span>{signalCountLabel}</span>
               </span>
+            </Tooltip>
+            {ticker.netPremium != null && ticker.netPremium !== 0 && (
+              <Tooltip side="top" align="start" content={netPremiumTooltip(ticker)}>
+                <span
+                  className={`num flex items-center gap-1 text-[10px] font-semibold ${
+                    ticker.netPremium > 0
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-rose-600 dark:text-rose-400"
+                  }`}
+                >
+                  {ticker.netPremium > 0 ? "+" : ""}${(Math.abs(ticker.netPremium) / 1e6).toFixed(1)}M
+                </span>
+              </Tooltip>
             )}
           </div>
 
           <div className="flex shrink-0 items-center gap-2 pointer-events-auto">
             <VoteButton symbol={ticker.symbol} size="sm" fetchEnabled={false} />
             <svg
-              className="h-4 w-4 text-muted transition-colors duration-base group-hover:text-blue-500 dark:group-hover:text-blue-400"
+              className="h-3.5 w-3.5 text-muted transition-colors duration-base group-hover:text-blue-500 dark:group-hover:text-blue-400"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={2}
