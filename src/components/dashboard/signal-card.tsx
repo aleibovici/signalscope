@@ -1,20 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { type ReactNode, useMemo } from "react";
+import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Sparkline } from "@/components/ui/sparkline";
 import { Tooltip } from "@/components/ui/tooltip";
+import type { TrendingTicker } from "@/hooks/use-trending";
 import type { ValidatedTickerData } from "@/hooks/use-scans";
 import { recommendationLevels, signalSources, signalStages } from "@/lib/methodology-data";
-import { STAGE_LABELS, stageLabel } from "@/lib/stage-labels";
+import { stageLabel } from "@/lib/stage-labels";
 import { VoteButton } from "@/components/dashboard/vote-button";
-
-const STAGE_METH_KEY: Record<string, string> = {
-  [STAGE_LABELS.EARLY]: "EARLY",
-  [STAGE_LABELS.FORMING]: "FORMING",
-  [STAGE_LABELS.CONFIRMED]: "CONFIRMED",
-  Filtered: "FILTERED",
-};
 
 const SOURCE_METH_NAME: Record<string, string> = {
   REDDIT: "Reddit",
@@ -27,6 +22,21 @@ const SOURCE_METH_NAME: Record<string, string> = {
   STOCKTWITS: "StockTwits",
   POLYMARKET: "Polymarket",
 };
+
+const STAGE_TOOLTIP_BY_DISPLAY = Object.fromEntries(
+  signalStages.map((row) => [stageLabel(row.stage), row.desc]),
+) as Record<string, string>;
+
+const REC_TOOLTIP_BY_LEVEL = Object.fromEntries(
+  recommendationLevels.map((row) => [row.level, row.desc]),
+) as Record<string, string>;
+
+const SOURCE_TOOLTIP_BY_ENUM = Object.fromEntries(
+  Object.entries(SOURCE_METH_NAME).map(([enumKey, name]) => {
+    const row = signalSources.find((s) => s.name === name);
+    return [enumKey, row?.description ?? enumKey.replace(/_/g, " ")];
+  }),
+) as Record<string, string>;
 
 const TAG_TOOLTIPS: Record<string, string> = {
   New: "First appearance in SignalScope — no prior scan history.",
@@ -49,23 +59,6 @@ const OPP_SCORE_TIP =
 const NET_PREMIUM_TIP =
   "Net options premium flow: call dollar volume minus put dollar volume. Positive = bullish institutional positioning.";
 
-function stageTooltip(displayStage: string): string {
-  const key = STAGE_METH_KEY[displayStage];
-  const row = key ? signalStages.find((s) => s.stage === key) : undefined;
-  return row?.desc ?? displayStage;
-}
-
-function recommendationTooltip(rec: string | undefined | null): string | null {
-  if (!rec) return null;
-  return recommendationLevels.find((r) => r.level === rec)?.desc ?? null;
-}
-
-function sourceTooltip(src: string): string {
-  const name = SOURCE_METH_NAME[src];
-  const row = name ? signalSources.find((s) => s.name === name) : undefined;
-  return row?.description ?? src.replace(/_/g, " ");
-}
-
 function tagTooltip(tag: string, ticker: ValidatedTickerData): string {
   if (tag.startsWith("Seen ")) {
     return `Seen in ${ticker.priorAppearances} prior scans — repeats without a new catalyst often mean less remaining upside.`;
@@ -82,10 +75,92 @@ function netPremiumTooltip(ticker: ValidatedTickerData): string {
 }
 
 function returnTooltip(period: string): string {
-  return `Price change since detection (${RETURN_LABELS[period] ?? period} window) from scan snapshot bars.`;
+  return `Price change since detection (${period} window) from scan snapshot bars.`;
+}
+
+function CardChevron() {
+  return (
+    <svg
+      className="h-3.5 w-3.5 text-muted transition-colors duration-base group-hover:text-blue-500 dark:group-hover:text-blue-400"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={2}
+      stroke="currentColor"
+      aria-hidden
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+    </svg>
+  );
 }
 
 const MAX_TAGS = 2;
+
+export type SignalCardTrendingMeta = Pick<
+  TrendingTicker,
+  "trend" | "appearanceCount" | "scoreTrajectory"
+>;
+
+const trendConfig: Record<
+  SignalCardTrendingMeta["trend"],
+  { icon: string; classes: string; label: string; tip: string }
+> = {
+  rising: {
+    icon: "↑",
+    classes: "text-emerald-600 dark:text-emerald-400",
+    label: "Rising",
+    tip: "AI confidence trend is improving across recent scans.",
+  },
+  stable: {
+    icon: "→",
+    classes: "text-gray-500 dark:text-zinc-400",
+    label: "Stable",
+    tip: "AI confidence is flat across recent scans.",
+  },
+  falling: {
+    icon: "↓",
+    classes: "text-rose-600 dark:text-rose-400",
+    label: "Falling",
+    tip: "AI confidence trend is declining across recent scans.",
+  },
+};
+
+function appearanceHeat(count: number): string {
+  if (count >= 6) return "bg-orange-500/15 text-orange-600 dark:bg-orange-400/15 dark:text-orange-400";
+  if (count >= 4) return "bg-amber-500/10 text-amber-600 dark:bg-amber-400/15 dark:text-amber-400";
+  return "bg-gray-100 text-gray-500 dark:bg-zinc-800 dark:text-zinc-400";
+}
+
+function TrendingCardHeader({ trending }: { trending: SignalCardTrendingMeta }) {
+  const cfg = trendConfig[trending.trend];
+  return (
+    <div className="pointer-events-auto flex items-center justify-between gap-2 px-3 pb-1.5 pt-2">
+      <div className="flex items-center gap-2">
+        <Tooltip side="bottom" align="start" content={cfg.tip}>
+          <span className={`text-[11px] font-semibold ${cfg.classes}`}>
+            <span className="mr-0.5">{cfg.icon}</span>
+            {cfg.label}
+          </span>
+        </Tooltip>
+        <Tooltip
+          side="bottom"
+          align="start"
+          content={`Appeared in ${trending.appearanceCount} completed scans in the last 30 days.`}
+        >
+          <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${appearanceHeat(trending.appearanceCount)}`}>
+            {trending.appearanceCount}×
+          </span>
+        </Tooltip>
+      </div>
+      {trending.scoreTrajectory && trending.scoreTrajectory.length > 1 && (
+        <Tooltip side="bottom" align="end" content="AI confidence across recent scan appearances.">
+          <span className="inline-flex">
+            <Sparkline points={trending.scoreTrajectory} height={24} />
+          </span>
+        </Tooltip>
+      )}
+    </div>
+  );
+}
 
 const recBorderColors: Record<string, string> = {
   "Strong Buy": "border-emerald-500/70 text-emerald-600 dark:border-emerald-400/50 dark:text-emerald-400",
@@ -109,14 +184,6 @@ const stageBarColors: Record<string, string> = {
   Consensus: "bg-blue-500",
   Filtered:  "bg-red-500",
   Unscored:  "bg-zinc-400",
-};
-
-const RETURN_LABELS: Record<string, string> = {
-  "1d": "1d",
-  "3d": "3d",
-  "7d": "7d",
-  "14d": "14d",
-  "30d": "30d",
 };
 
 const tagStyleMap: Record<string, string> = {
@@ -193,17 +260,19 @@ function collectTags(ticker: ValidatedTickerData): string[] {
 }
 
 
+type SignalCardProps = {
+  ticker: ValidatedTickerData;
+  returnPeriod?: string;
+  variant?: "card" | "row";
+  trending?: SignalCardTrendingMeta;
+};
+
 export function SignalCard({
   ticker,
   returnPeriod = "7d",
   variant = "card",
-  header,
-}: {
-  ticker: ValidatedTickerData;
-  returnPeriod?: string;
-  variant?: "card" | "row";
-  header?: ReactNode;
-}) {
+  trending,
+}: SignalCardProps) {
   const tags = useMemo(() => collectTags(ticker), [ticker]);
   const visibleTags = tags.slice(0, MAX_TAGS);
   const overflow = tags.length - visibleTags.length;
@@ -213,11 +282,18 @@ export function SignalCard({
   const recClass = ticker.recommendation
     ? recBorderColors[ticker.recommendation] ?? "border-border-strong/60 text-secondary"
     : null;
+  const recTip = ticker.recommendation ? REC_TOOLTIP_BY_LEVEL[ticker.recommendation] : undefined;
 
   const stage = stageLabel(ticker.stage);
   const stageClass = stagePillStyles[stage] ?? stagePillStyles.Unscored;
+  const stageTip = STAGE_TOOLTIP_BY_DISPLAY[stage] ?? stage;
 
   const signalCountLabel = ticker.signalCount === 1 ? "signal" : "signals";
+  const signalCountTip = `${ticker.signalCount} raw mention${ticker.signalCount === 1 ? "" : "s"} from ${ticker.sourceCount} source${ticker.sourceCount === 1 ? "" : "s"} in this scan.`;
+
+  const sources = ticker.sources ?? [];
+  const netPremiumTip =
+    ticker.netPremium != null && ticker.netPremium !== 0 ? netPremiumTooltip(ticker) : undefined;
 
   if (variant === "row") {
     return (
@@ -229,19 +305,18 @@ export function SignalCard({
           draggable={false}
         />
         {/* Stage pill */}
-        <Tooltip side="bottom" align="start" content={stageTooltip(stage)}>
+        <Tooltip side="bottom" align="start" content={stageTip}>
           <span className={`pointer-events-auto relative z-1 shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 type-overline ${stageClass}`}>
             {stage}
           </span>
         </Tooltip>
-        {/* Symbol + name */}
         <div className="pointer-events-none relative z-1 min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-2">
             <span className="text-sm font-semibold tracking-tight text-primary group-hover:text-blue-600 dark:group-hover:text-blue-400">
               {ticker.symbol}
             </span>
-            {recClass && recommendationTooltip(ticker.recommendation) && (
-              <Tooltip side="bottom" align="start" content={recommendationTooltip(ticker.recommendation)!}>
+            {recClass && recTip && (
+              <Tooltip side="bottom" align="start" content={recTip}>
                 <span className={`pointer-events-auto hidden sm:inline shrink-0 rounded border-[0.75px] px-1 py-[2px] text-[9px] font-bold uppercase tracking-[0.3px] ${recClass}`}>
                   {ticker.recommendation}
                 </span>
@@ -269,20 +344,20 @@ export function SignalCard({
         </div>
         {/* Sources */}
         <div className="pointer-events-none relative z-1 hidden shrink-0 items-center gap-1 lg:flex">
-          {ticker.sources?.slice(0, 2).map((src) => (
-            <Tooltip key={src} side="top" align="start" content={sourceTooltip(src)}>
+          {sources.slice(0, 2).map((src) => (
+            <Tooltip key={src} side="top" align="start" content={SOURCE_TOOLTIP_BY_ENUM[src] ?? src.replace(/_/g, " ")}>
               <span className="pointer-events-auto rounded border border-border-default/80 px-1 py-[2px] text-[11px] font-bold uppercase tracking-[0.3px] text-muted">
                 {src.replace(/_/g, " ")}
               </span>
             </Tooltip>
           ))}
-          {(ticker.sources?.length ?? 0) > 2 && (
+          {sources.length > 2 && (
             <Tooltip
               side="top"
               align="start"
-              content={ticker.sources!.slice(2).map((s) => s.replace(/_/g, " ")).join(", ")}
+              content={sources.slice(2).map((s) => s.replace(/_/g, " ")).join(", ")}
             >
-              <span className="pointer-events-auto text-[9px] text-muted">+{(ticker.sources?.length ?? 0) - 2}</span>
+              <span className="pointer-events-auto text-[9px] text-muted">+{sources.length - 2}</span>
             </Tooltip>
           )}
         </div>
@@ -302,11 +377,7 @@ export function SignalCard({
           </Tooltip>
         </div>
         {/* Signal count (lg+) */}
-        <Tooltip
-          side="top"
-          align="end"
-          content={`${ticker.signalCount} raw mention${ticker.signalCount === 1 ? "" : "s"} from ${ticker.sourceCount} source${ticker.sourceCount === 1 ? "" : "s"} in this scan.`}
-        >
+        <Tooltip side="top" align="end" content={signalCountTip}>
           <span className="pointer-events-auto relative z-1 hidden shrink-0 items-center gap-1 text-[10px] text-muted lg:flex">
             <SignalDot stage={stage} />
             <span className="num font-medium text-secondary">{ticker.signalCount}</span>
@@ -324,8 +395,8 @@ export function SignalCard({
                 </span>
               </Tooltip>
             )}
-            {ticker.netPremium != null && ticker.netPremium !== 0 && (
-              <Tooltip side="top" align="end" content={netPremiumTooltip(ticker)}>
+            {netPremiumTip && ticker.netPremium != null && (
+              <Tooltip side="top" align="end" content={netPremiumTip}>
                 <span
                   className={`pointer-events-auto num text-[10px] font-semibold leading-tight ${ticker.netPremium > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}
                 >
@@ -335,12 +406,9 @@ export function SignalCard({
             )}
           </div>
         )}
-        {/* Vote + chevron */}
         <div className="pointer-events-auto relative z-1 flex shrink-0 items-center gap-2">
           <VoteButton symbol={ticker.symbol} size="sm" fetchEnabled={false} />
-          <svg className="h-3.5 w-3.5 text-muted transition-colors duration-base group-hover:text-blue-500 dark:group-hover:text-blue-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-          </svg>
+          <CardChevron />
         </div>
       </div>
     );
@@ -355,9 +423,9 @@ export function SignalCard({
         draggable={false}
       />
       <div className={`pointer-events-none relative z-1 h-0.5 w-full ${stageBarColors[stage] ?? "bg-zinc-400"}`} aria-hidden="true" />
-      {header && (
+      {trending && (
         <div className="pointer-events-none relative z-1 border-b border-border-default/60">
-          {header}
+          <TrendingCardHeader trending={trending} />
         </div>
       )}
       <CardContent className="pointer-events-none relative z-1 flex flex-1 flex-col gap-2 px-3 py-2.5">
@@ -366,7 +434,7 @@ export function SignalCard({
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 flex-col gap-0.5">
             <div className="pointer-events-auto flex min-w-0 flex-wrap items-center gap-1.5">
-              <Tooltip side="bottom" align="start" content={stageTooltip(stage)}>
+              <Tooltip side="bottom" align="start" content={stageTip}>
                 <span
                   className={`inline-flex shrink-0 items-center rounded-full border px-1.5 py-px type-overline ${stageClass}`}
                 >
@@ -376,8 +444,8 @@ export function SignalCard({
               <span className="text-lg font-semibold tracking-tight text-primary group-hover:text-blue-600 dark:group-hover:text-blue-400">
                 {ticker.symbol}
               </span>
-              {recClass && recommendationTooltip(ticker.recommendation) && (
-                <Tooltip side="bottom" align="start" content={recommendationTooltip(ticker.recommendation)!}>
+              {recClass && recTip && (
+                <Tooltip side="bottom" align="start" content={recTip}>
                   <span
                     role="status"
                     aria-label={`Recommendation: ${ticker.recommendation}`}
@@ -406,7 +474,7 @@ export function SignalCard({
                         : "text-red-600 dark:text-red-400"
                     }`}
                   >
-                    {retVal >= 0 ? "+" : ""}{(retVal * 100).toFixed(1)}% {RETURN_LABELS[returnPeriod]}
+                    {retVal >= 0 ? "+" : ""}{(retVal * 100).toFixed(1)}% {returnPeriod}
                   </span>
                 </Tooltip>
               )}
@@ -468,37 +536,31 @@ export function SignalCard({
         {/* Footer: sources + signal count + net premium + chevron */}
         <div className="mt-auto flex items-center justify-between gap-2 border-t border-border-default/60 pt-1.5">
           <div className="pointer-events-auto flex min-w-0 flex-wrap items-center gap-1">
-            {ticker.sources?.slice(0, 3).map((src) => (
-              <Tooltip key={src} side="top" align="start" content={sourceTooltip(src)}>
+            {sources.slice(0, 3).map((src) => (
+              <Tooltip key={src} side="top" align="start" content={SOURCE_TOOLTIP_BY_ENUM[src] ?? src.replace(/_/g, " ")}>
                 <span className="rounded border border-border-default/80 px-1 py-px text-[10px] font-bold uppercase tracking-[0.3px] text-muted">
                   {src.replace(/_/g, " ")}
                 </span>
               </Tooltip>
             ))}
-            {(ticker.sources?.length ?? 0) > 3 && (
+            {sources.length > 3 && (
               <Tooltip
                 side="top"
                 align="start"
-                content={ticker.sources!.slice(3).map((s) => s.replace(/_/g, " ")).join(", ")}
+                content={sources.slice(3).map((s) => s.replace(/_/g, " ")).join(", ")}
               >
-                <span className="text-[9px] text-muted">
-                  +{(ticker.sources?.length ?? 0) - 3}
-                </span>
+                <span className="text-[9px] text-muted">+{sources.length - 3}</span>
               </Tooltip>
             )}
-            <Tooltip
-              side="top"
-              align="start"
-              content={`${ticker.signalCount} raw mention${ticker.signalCount === 1 ? "" : "s"} from ${ticker.sourceCount} source${ticker.sourceCount === 1 ? "" : "s"} in this scan.`}
-            >
+            <Tooltip side="top" align="start" content={signalCountTip}>
               <span className="flex items-center gap-1 text-[10px] text-muted">
                 <SignalDot stage={stage} />
                 <span className="num font-medium text-secondary">{ticker.signalCount}</span>
                 <span>{signalCountLabel}</span>
               </span>
             </Tooltip>
-            {ticker.netPremium != null && ticker.netPremium !== 0 && (
-              <Tooltip side="top" align="start" content={netPremiumTooltip(ticker)}>
+            {netPremiumTip && ticker.netPremium != null && (
+              <Tooltip side="top" align="start" content={netPremiumTip}>
                 <span
                   className={`num flex items-center gap-1 text-[10px] font-semibold ${
                     ticker.netPremium > 0
@@ -514,15 +576,7 @@ export function SignalCard({
 
           <div className="flex shrink-0 items-center gap-2 pointer-events-auto">
             <VoteButton symbol={ticker.symbol} size="sm" fetchEnabled={false} />
-            <svg
-              className="h-3.5 w-3.5 text-muted transition-colors duration-base group-hover:text-blue-500 dark:group-hover:text-blue-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-            </svg>
+            <CardChevron />
           </div>
         </div>
       </CardContent>
