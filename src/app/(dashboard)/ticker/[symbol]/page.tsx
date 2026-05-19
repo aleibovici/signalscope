@@ -1128,7 +1128,7 @@ export default function TickerDetailPage() {
               </div>
               {(() => {
                 const reversed = [...historyData.history].reverse();
-                const stageOrder: Record<string, number> = { CONFIRMED: 3, FORMING: 2, EARLY: 1, FILTERED: 0 };
+                const stageOrder: Record<string, number> = { Consensus: 3, Building: 2, Emerging: 1, Filtered: 0 };
                 const grouped = reversed.reduce<
                   { dateKey: string; label: string; best: typeof reversed[0]; entries: typeof reversed }[]
                 >((acc, h) => {
