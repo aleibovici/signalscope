@@ -26,9 +26,12 @@ const INTERVALS = [
   { label: "30d", days: 30 },
 ] as const;
 
-const KPI_SUMMARY_SECTION_CLASS =
-  "rounded-2xl border border-gray-200/90 bg-linear-to-b from-gray-50/95 to-white p-2 shadow-sm sm:p-3 dark:border-zinc-800 dark:from-zinc-900/80 dark:to-[#12181f]";
-const KPI_SUMMARY_GRID_CLASS = "grid grid-cols-2 gap-2 *:min-w-0 sm:gap-3 md:grid-cols-4 lg:gap-2";
+/** Edge-to-edge on mobile — cancels dashboard main `p-4` padding */
+const MOBILE_FULL_BLEED =
+  "max-md:-mx-4 max-md:w-[calc(100%+2rem)] max-md:rounded-none max-md:border-x-0 max-md:shadow-none";
+
+const KPI_SUMMARY_SECTION_CLASS = `rounded-2xl border border-gray-200/90 bg-linear-to-b from-gray-50/95 to-white p-1 shadow-sm sm:p-3 dark:border-zinc-800 dark:from-zinc-900/80 dark:to-[#12181f] md:p-2 ${MOBILE_FULL_BLEED}`;
+const KPI_SUMMARY_GRID_CLASS = "grid grid-cols-2 gap-1 *:min-w-0 md:gap-2 sm:gap-3 lg:grid-cols-4 lg:gap-2";
 
 function KpiSummarySection({ ariaLabel, children }: { ariaLabel: string; children: ReactNode }) {
   return (
@@ -113,7 +116,7 @@ function CohortTable({ cohorts, days }: { cohorts: CohortEntry[]; days: number }
   if (cohorts.length === 0) return null;
   const horizon = `${days}d`;
   return (
-    <Card>
+    <Card className={MOBILE_FULL_BLEED}>
       <CardHeader>
         <h3 className="font-semibold text-gray-900 dark:text-zinc-100">Weekly High-Score Cohorts</h3>
         <p className="text-xs text-gray-400 dark:text-zinc-500">
@@ -183,7 +186,7 @@ function SignalTypeTable({ data }: { data: Record<string, PerformanceStats> }) {
   const entries = Object.entries(data);
   if (entries.length === 0) return null;
   return (
-    <Card>
+    <Card className={MOBILE_FULL_BLEED}>
       <CardHeader>
         <h3 className="font-semibold text-gray-900 dark:text-zinc-100">By Signal Type</h3>
       </CardHeader>
@@ -317,7 +320,7 @@ function IbkrPanel({
   if (!ibkrHasData) {
     return (
       <div className="space-y-8">
-        <div className="rounded-xl border border-dashed border-gray-200 dark:border-zinc-700 p-10 text-center">
+        <div className={`rounded-xl border border-dashed border-gray-200 p-10 text-center dark:border-zinc-700 ${MOBILE_FULL_BLEED}`}>
           <p className="text-sm font-medium text-gray-600 dark:text-zinc-300">No trades yet</p>
           <p className="mt-1 text-xs text-gray-400 dark:text-zinc-500">
             Orders are placed automatically after each harvest cycle. Check back after the next scan.
@@ -412,7 +415,7 @@ function AlpacaEquityCurve({ history }: { history: IbkrPortfolioHistory }) {
   const pts = history.points.filter((p) => p.equity != null && p.equity > 0);
   if (pts.length < 2) {
     return (
-      <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6 dark:border-zinc-800/90 dark:bg-[#12181f]">
+      <div className={`rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6 dark:border-zinc-800/90 dark:bg-[#12181f] ${MOBILE_FULL_BLEED}`}>
         <p className="text-center text-sm text-gray-400 dark:text-zinc-500">Not enough history yet</p>
       </div>
     );
@@ -482,7 +485,7 @@ function AlpacaEquityCurve({ history }: { history: IbkrPortfolioHistory }) {
   }
 
   return (
-    <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6 dark:border-zinc-800/90 dark:bg-[#12181f]">
+    <div className={`rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6 dark:border-zinc-800/90 dark:bg-[#12181f] ${MOBILE_FULL_BLEED}`}>
       <div className="mb-3">
         <div className="flex items-baseline justify-between gap-3">
           <h3 className="font-semibold text-gray-900 dark:text-zinc-100">Account Equity</h3>
@@ -544,7 +547,7 @@ function AlpacaAccountBar({ account }: { account: IbkrAccount }) {
   return (
     <section
       aria-label="Alpaca account overview"
-      className="rounded-xl border border-gray-200/90 bg-white px-3 py-2.5 shadow-sm sm:px-4 dark:border-zinc-800 dark:bg-zinc-900/60"
+      className={`rounded-xl border border-gray-200/90 bg-white px-3 py-2.5 shadow-sm sm:px-4 dark:border-zinc-800 dark:bg-zinc-900/60 ${MOBILE_FULL_BLEED}`}
     >
       <div className="mb-2 flex items-center justify-between gap-3">
         <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-zinc-500">
@@ -627,8 +630,8 @@ function IbkrTradesTable({
   );
 
   return (
-    <Card>
-      <CardHeader className="px-3! py-3! sm:px-4! md:px-6! md:py-4!">
+    <Card className={MOBILE_FULL_BLEED}>
+      <CardHeader className="px-4! py-3! md:px-6! md:py-4!">
         {collapsible ? (
           <button
             type="button"
@@ -715,10 +718,10 @@ function IbkrTradesTable({
             </tbody>
           </table>
         </div>
-        {/* Mobile list */}
-        <div className="space-y-3 px-3 pb-4 md:hidden">
+        {/* Mobile list — full viewport width (counteracts dashboard p-4) */}
+        <div className="divide-y divide-gray-200 pb-4 dark:divide-zinc-800 md:hidden">
           {trades.length === 0 && (
-            <p className="py-6 text-center text-sm text-gray-400 dark:text-zinc-500">{emptyMessage}</p>
+            <p className="px-4 py-6 text-center text-sm text-gray-400 dark:text-zinc-500">{emptyMessage}</p>
           )}
           {trades.map((t) => {
             const returnColor =
@@ -728,38 +731,43 @@ function IbkrTradesTable({
                   ? "text-red-600 dark:text-red-400"
                   : "text-gray-500 dark:text-zinc-400";
             const pnlVal = t.pnl;
+            const returnStr =
+              t.returnPct !== null ? `${t.returnPct >= 0 ? "+" : ""}${(t.returnPct * 100).toFixed(1)}%` : null;
+            const pnlStr =
+              pnlVal !== null ? `${pnlVal >= 0 ? "+" : "-"}$${Math.abs(pnlVal).toFixed(2)}` : null;
+            const metaParts = [
+              `$${t.entryPrice.toFixed(2)}`,
+              `${t.quantity} sh`,
+              `${t.holdDays}d`,
+              ...(showClosedAt && t.closedAt ? [t.closedAt] : []),
+            ];
             return (
-              <div key={`${t.symbol}-${t.openedAt}`} className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/60">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <Link href={`/ticker/${t.symbol}`} className="text-base font-semibold text-blue-600 hover:underline dark:text-blue-400">
+              <div key={`${t.symbol}-${t.openedAt}`} className="flex items-center gap-3 bg-white px-4 py-2 dark:bg-zinc-950/60">
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 items-baseline gap-1.5">
+                    <Link
+                      href={`/ticker/${t.symbol}`}
+                      className="shrink-0 text-sm font-semibold text-blue-600 hover:underline dark:text-blue-400"
+                    >
                       {t.symbol}
                     </Link>
-                    {t.name && <p className="mt-0.5 text-xs text-gray-500 dark:text-zinc-400">{t.name}</p>}
+                    {t.name && (
+                      <span className="truncate text-xs text-gray-500 dark:text-zinc-400">{t.name}</span>
+                    )}
                   </div>
-                  <div className="text-right">
-                    <p className={`text-sm font-semibold ${returnColor}`}>
-                      {t.returnPct !== null ? `${t.returnPct >= 0 ? "+" : ""}${(t.returnPct * 100).toFixed(1)}%` : "—"}
-                    </p>
-                    <p className={`text-xs ${returnColor}`}>
-                      {pnlVal !== null ? `${pnlVal >= 0 ? "+" : "-"}$${Math.abs(pnlVal).toFixed(2)}` : "—"}
-                    </p>
-                  </div>
+                  <p className="mt-0.5 truncate text-xs tabular-nums text-gray-600 dark:text-zinc-300">
+                    {metaParts.join(" · ")}
+                  </p>
                 </div>
-                <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-xs">
-                  <dt className="text-gray-500 dark:text-zinc-500">Entry</dt>
-                  <dd className="text-right font-medium tabular-nums">${t.entryPrice.toFixed(2)}</dd>
-                  <dt className="text-gray-500 dark:text-zinc-500">Qty</dt>
-                  <dd className="text-right font-medium tabular-nums">{t.quantity} sh</dd>
-                  <dt className="text-gray-500 dark:text-zinc-500">Hold</dt>
-                  <dd className="text-right font-medium">{t.holdDays}d</dd>
-                  {showClosedAt && t.closedAt && (
-                    <>
-                      <dt className="text-gray-500 dark:text-zinc-500">Closed</dt>
-                      <dd className="text-right">{t.closedAt}</dd>
-                    </>
+                <div className={`shrink-0 text-right text-sm leading-tight ${returnColor}`}>
+                  {returnStr || pnlStr ? (
+                    <p className="font-semibold tabular-nums">
+                      {[returnStr, pnlStr].filter(Boolean).join(" ")}
+                    </p>
+                  ) : (
+                    <p className="font-medium">—</p>
                   )}
-                </dl>
+                </div>
               </div>
             );
           })}
