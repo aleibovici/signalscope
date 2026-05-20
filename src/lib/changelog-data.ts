@@ -10,13 +10,14 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-05-20",
-    title: "Docs sync and tighter trade setups",
+    title: "Docs sync, trade setups, and paper trading mobile polish",
     changes: [
       {
         category: "improved",
         items: [
           "FAQ and Methodology pages updated to match current pipeline behavior — P&D flag counts, 14-day returns, 3× daily snapshots, pure LightGBM model references, and Options Flow as a catalyst source.",
           "AI-generated trade setups use tighter stop-loss and target margins (8% max stop, 10–20% / 20–35% targets) for more realistic risk/reward on breakout entries.",
+          "Paper trading Results page KPI summary and cards use edge-to-edge mobile layout with tighter spacing for small screens.",
         ],
       },
     ],
