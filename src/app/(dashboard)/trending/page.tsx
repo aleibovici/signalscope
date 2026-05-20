@@ -163,9 +163,8 @@ function TrendingTickerCard({
     () => ({
       trend: ticker.trend,
       appearanceCount: ticker.appearanceCount,
-      scoreTrajectory: ticker.scoreTrajectory,
     }),
-    [ticker.trend, ticker.appearanceCount, ticker.scoreTrajectory],
+    [ticker.trend, ticker.appearanceCount],
   );
 
   return <SignalCard ticker={ticker} returnPeriod={returnPeriod} trending={trending} />;
@@ -225,8 +224,10 @@ export default function TrendingPage() {
         }
       />
 
+      {/* Quick bar + filter panel */}
+      <div className="space-y-3">
       {/* Quick bar: return period + sort (always visible) */}
-      <div className="flex items-center gap-3 overflow-x-auto -mb-1 pb-1">
+      <div className="flex items-center gap-3 overflow-x-auto">
         <div className="flex shrink-0 items-center gap-0.5 rounded-lg border border-gray-200 bg-white p-0.5 dark:border-zinc-700 dark:bg-zinc-900">
           {RETURN_PERIODS.map((rp) => (
             <button
@@ -354,82 +355,7 @@ export default function TrendingPage() {
           </div>
         </div>
       </div>
-
-      {/* Summary stats */}
-      {data?.summary && (
-        <div className="space-y-3">
-          <div className="grid grid-cols-3 gap-3 md:gap-4">
-            <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900/40">
-              <div
-                className="pointer-events-none absolute inset-y-0 left-0 hidden w-[3px] rounded-l-xl dark:block"
-                style={{ background: "linear-gradient(to bottom, #71717a, #a1a1aa)" }}
-                aria-hidden="true"
-              />
-              <p className="type-overline text-gray-400 dark:text-zinc-500">Trending</p>
-              <p className="num mt-1 text-2xl font-bold text-gray-900 md:text-3xl dark:text-zinc-100">
-                {data.summary.totalTrending}
-              </p>
-            </div>
-
-            <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900/40">
-              <div
-                className="pointer-events-none absolute inset-y-0 left-0 hidden w-[3px] rounded-l-xl dark:block"
-                style={{ background: "linear-gradient(to bottom, #22c55e, #10b981)" }}
-                aria-hidden="true"
-              />
-              <p className="type-overline text-gray-400 dark:text-zinc-500">Rising</p>
-              <p className="num mt-1 text-2xl font-bold text-green-600 md:text-3xl dark:text-green-400">
-                {data.summary.risingCount}
-              </p>
-            </div>
-
-            <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900/40">
-              <div
-                className="pointer-events-none absolute inset-y-0 left-0 hidden w-[3px] rounded-l-xl dark:block"
-                style={{ background: "linear-gradient(to bottom, #3b82f6, #6366f1)" }}
-                aria-hidden="true"
-              />
-              <p className="type-overline text-gray-400 dark:text-zinc-500">Avg Score</p>
-              <p className="num mt-1 text-2xl font-bold text-gray-900 md:text-3xl dark:text-zinc-100">
-                {data.summary.avgScore}
-              </p>
-            </div>
-          </div>
-
-          {data.summary.totalTrending > 0 && (
-            <div className="space-y-1.5">
-              <div className="flex h-1.5 gap-px overflow-hidden rounded-full">
-                <div
-                  style={{ width: `${(data.summary.risingCount / data.summary.totalTrending) * 100}%` }}
-                  className="bg-emerald-500 dark:bg-emerald-400"
-                />
-                <div
-                  style={{ width: `${(data.summary.stableCount / data.summary.totalTrending) * 100}%` }}
-                  className="bg-gray-300 dark:bg-zinc-600"
-                />
-                <div
-                  style={{ width: `${(data.summary.fallingCount / data.summary.totalTrending) * 100}%` }}
-                  className="bg-rose-500 dark:bg-rose-400"
-                />
-              </div>
-              <div className="flex items-center gap-3 text-[10px] text-gray-400 dark:text-zinc-500">
-                <span className="flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
-                  {data.summary.risingCount} rising
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-gray-300 dark:bg-zinc-600" />
-                  {data.summary.stableCount} stable
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-rose-500 dark:bg-rose-400" />
-                  {data.summary.fallingCount} falling
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      </div>
 
       {isLoading ? (
         <div className="flex justify-center py-12">
