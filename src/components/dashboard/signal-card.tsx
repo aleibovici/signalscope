@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sparkline } from "@/components/ui/sparkline";
 import { Tooltip } from "@/components/ui/tooltip";
 import type { TrendingTicker } from "@/hooks/use-trending";
 import type { ValidatedTickerData } from "@/hooks/use-scans";
@@ -95,10 +94,7 @@ function CardChevron() {
 
 const MAX_TAGS = 2;
 
-export type SignalCardTrendingMeta = Pick<
-  TrendingTicker,
-  "trend" | "appearanceCount" | "scoreTrajectory"
->;
+export type SignalCardTrendingMeta = Pick<TrendingTicker, "trend" | "appearanceCount">;
 
 const trendConfig: Record<
   SignalCardTrendingMeta["trend"],
@@ -133,31 +129,22 @@ function appearanceHeat(count: number): string {
 function TrendingCardHeader({ trending }: { trending: SignalCardTrendingMeta }) {
   const cfg = trendConfig[trending.trend];
   return (
-    <div className="pointer-events-auto flex items-center justify-between gap-2 px-3 pb-1.5 pt-2">
-      <div className="flex items-center gap-2">
-        <Tooltip side="bottom" align="start" content={cfg.tip}>
-          <span className={`text-[11px] font-semibold ${cfg.classes}`}>
-            <span className="mr-0.5">{cfg.icon}</span>
-            {cfg.label}
-          </span>
-        </Tooltip>
-        <Tooltip
-          side="bottom"
-          align="start"
-          content={`Appeared in ${trending.appearanceCount} completed scans in the last 30 days.`}
-        >
-          <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${appearanceHeat(trending.appearanceCount)}`}>
-            {trending.appearanceCount}×
-          </span>
-        </Tooltip>
-      </div>
-      {trending.scoreTrajectory && trending.scoreTrajectory.length > 1 && (
-        <Tooltip side="bottom" align="end" content="AI confidence across recent scan appearances.">
-          <span className="inline-flex">
-            <Sparkline points={trending.scoreTrajectory} height={24} />
-          </span>
-        </Tooltip>
-      )}
+    <div className="pointer-events-auto flex items-center gap-1.5 px-2.5 pb-1 pt-1.5">
+      <Tooltip side="bottom" align="start" content={cfg.tip}>
+        <span className={`text-[11px] font-semibold ${cfg.classes}`}>
+          <span className="mr-0.5">{cfg.icon}</span>
+          {cfg.label}
+        </span>
+      </Tooltip>
+      <Tooltip
+        side="bottom"
+        align="start"
+        content={`Appeared in ${trending.appearanceCount} completed scans in the last 30 days.`}
+      >
+        <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${appearanceHeat(trending.appearanceCount)}`}>
+          {trending.appearanceCount}×
+        </span>
+      </Tooltip>
     </div>
   );
 }
@@ -265,6 +252,8 @@ type SignalCardProps = {
   returnPeriod?: string;
   variant?: "card" | "row";
   trending?: SignalCardTrendingMeta;
+  /** When set, hides the stage pill on cards matching this filter (dashboard stage tab). */
+  stageFilter?: string;
 };
 
 export function SignalCard({
@@ -272,6 +261,7 @@ export function SignalCard({
   returnPeriod = "7d",
   variant = "card",
   trending,
+  stageFilter,
 }: SignalCardProps) {
   const tags = useMemo(() => collectTags(ticker), [ticker]);
   const visibleTags = tags.slice(0, MAX_TAGS);
@@ -287,6 +277,7 @@ export function SignalCard({
   const stage = stageLabel(ticker.stage);
   const stageClass = stagePillStyles[stage] ?? stagePillStyles.Unscored;
   const stageTip = STAGE_TOOLTIP_BY_DISPLAY[stage] ?? stage;
+  const showStageBadge = stageFilter == null || ticker.stage !== stageFilter;
 
   const signalCountLabel = ticker.signalCount === 1 ? "signal" : "signals";
   const signalCountTip = `${ticker.signalCount} raw mention${ticker.signalCount === 1 ? "" : "s"} from ${ticker.sourceCount} source${ticker.sourceCount === 1 ? "" : "s"} in this scan.`;
@@ -304,12 +295,6 @@ export function SignalCard({
           aria-label={`Open ${ticker.symbol} detail`}
           draggable={false}
         />
-        {/* Stage pill */}
-        <Tooltip side="bottom" align="start" content={stageTip}>
-          <span className={`pointer-events-auto relative z-1 shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 type-overline ${stageClass}`}>
-            {stage}
-          </span>
-        </Tooltip>
         <div className="pointer-events-none relative z-1 min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-2">
             <span className="text-sm font-semibold tracking-tight text-primary group-hover:text-blue-600 dark:group-hover:text-blue-400">
@@ -319,6 +304,13 @@ export function SignalCard({
               <Tooltip side="bottom" align="start" content={recTip}>
                 <span className={`pointer-events-auto hidden sm:inline shrink-0 rounded border-[0.75px] px-1 py-[2px] text-[9px] font-bold uppercase tracking-[0.3px] ${recClass}`}>
                   {ticker.recommendation}
+                </span>
+              </Tooltip>
+            )}
+            {showStageBadge && (
+              <Tooltip side="bottom" align="start" content={stageTip}>
+                <span className={`pointer-events-auto shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 type-overline ${stageClass}`}>
+                  {stage}
                 </span>
               </Tooltip>
             )}
@@ -428,20 +420,13 @@ export function SignalCard({
           <TrendingCardHeader trending={trending} />
         </div>
       )}
-      <CardContent className="pointer-events-none relative z-1 flex flex-1 flex-col gap-2 px-3 py-2.5">
+      <CardContent className="pointer-events-none relative z-1 flex flex-1 flex-col gap-1.5 px-2.5 py-2 md:px-3 md:py-2">
 
         {/* Symbol + stage + rec | price + delta */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 flex-col gap-0.5">
-            <div className="pointer-events-auto flex min-w-0 flex-wrap items-center gap-1.5">
-              <Tooltip side="bottom" align="start" content={stageTip}>
-                <span
-                  className={`inline-flex shrink-0 items-center rounded-full border px-1.5 py-px type-overline ${stageClass}`}
-                >
-                  {stage}
-                </span>
-              </Tooltip>
-              <span className="text-lg font-semibold tracking-tight text-primary group-hover:text-blue-600 dark:group-hover:text-blue-400">
+            <div className="pointer-events-auto flex min-w-0 flex-wrap items-center gap-1">
+              <span className="text-base font-semibold tracking-tight text-primary group-hover:text-blue-600 dark:group-hover:text-blue-400">
                 {ticker.symbol}
               </span>
               {recClass && recTip && (
@@ -452,6 +437,15 @@ export function SignalCard({
                     className={`shrink-0 rounded border-[0.75px] px-1 py-[3px] text-[10px] font-bold uppercase tracking-[0.3px] ${recClass}`}
                   >
                     {ticker.recommendation}
+                  </span>
+                </Tooltip>
+              )}
+              {showStageBadge && (
+                <Tooltip side="bottom" align="start" content={stageTip}>
+                  <span
+                    className={`inline-flex shrink-0 items-center rounded-full border px-1.5 py-px type-overline ${stageClass}`}
+                  >
+                    {stage}
                   </span>
                 </Tooltip>
               )}
@@ -491,10 +485,10 @@ export function SignalCard({
           >
             <span className="flex items-baseline gap-1">
               <span className="type-overline text-blue-500/70 dark:text-blue-400/60">AI</span>
-              <span className="num text-2xl font-black leading-none text-blue-500 dark:text-blue-400">
+              <span className="num text-xl font-black leading-none text-blue-500 dark:text-blue-400">
                 {ticker.aiScore}
               </span>
-              <span className="text-[10px] text-muted">/100</span>
+              <span className="text-[9px] text-muted">/100</span>
             </span>
           </Tooltip>
           <Tooltip
@@ -534,7 +528,7 @@ export function SignalCard({
         )}
 
         {/* Footer: sources + signal count + net premium + chevron */}
-        <div className="mt-auto flex items-center justify-between gap-2 border-t border-border-default/60 pt-1.5">
+        <div className="mt-auto flex items-center justify-between gap-2 border-t border-border-default/60 pt-1">
           <div className="pointer-events-auto flex min-w-0 flex-wrap items-center gap-1">
             {sources.slice(0, 3).map((src) => (
               <Tooltip key={src} side="top" align="start" content={SOURCE_TOOLTIP_BY_ENUM[src] ?? src.replace(/_/g, " ")}>

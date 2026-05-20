@@ -189,10 +189,10 @@ useScrollRestore("dashboard");
             </h2>
             <span className="text-xs text-gray-400 dark:text-zinc-500">From previous scans</span>
           </div>
-          <div className={viewMode === "card" ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col gap-1.5"}>
+          <div className={viewMode === "card" ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col gap-1.5"}>
             {missingWatchlisted.map((ticker: ValidatedTickerData) => (
               <div key={ticker.id} className="opacity-75">
-                <SignalCard ticker={ticker} variant={viewMode} />
+                <SignalCard ticker={ticker} variant={viewMode} stageFilter={selectedStage} />
               </div>
             ))}
           </div>
@@ -212,10 +212,10 @@ useScrollRestore("dashboard");
           message={selectedScanId ? "No signals found for this stage." : "No scans available. Run a scan to detect breakout signals."}
         />
       ) : (
-        <div className={viewMode === "card" ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col gap-1.5"}>
+        <div className={viewMode === "card" ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col gap-1.5"}>
           {filtered.map((ticker: ValidatedTickerData, i) => (
             <div key={ticker.id} id={i === 0 ? "tour-ticker-card" : undefined}>
-              <SignalCard ticker={ticker} variant={viewMode} />
+              <SignalCard ticker={ticker} variant={viewMode} stageFilter={selectedStage} />
             </div>
           ))}
         </div>
