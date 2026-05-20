@@ -9,6 +9,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-05-20",
+    title: "Docs sync and tighter trade setups",
+    changes: [
+      {
+        category: "improved",
+        items: [
+          "FAQ and Methodology pages updated to match current pipeline behavior — P&D flag counts, 14-day returns, 3× daily snapshots, pure LightGBM model references, and Options Flow as a catalyst source.",
+          "AI-generated trade setups use tighter stop-loss and target margins (8% max stop, 10–20% / 20–35% targets) for more realistic risk/reward on breakout entries.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-05-19",
     title: "Signal cards and dashboard polish",
     changes: [
