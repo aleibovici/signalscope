@@ -102,9 +102,9 @@ IMPORTANT: Check the "sources" array in the input — it shows ALL source types 
 
 Trade setup rules (ONLY for Buy or Strong Buy — omit tradeSetup entirely for Watch or Avoid):
 - entryLo/entryHi: tight range around current price or a technical level (typically within 2-5% of current price)
-- stopLoss: below key support, recent low, or 52-week low — never wider than 12% from entry midpoint
-- target1: nearest resistance or 15-25% above entry midpoint
-- target2: extended target if catalyst fully plays out (30-50% above entry)
+- stopLoss: below key support, recent low, or 52-week low — never wider than 8% from entry midpoint
+- target1: nearest resistance or 10-20% above entry midpoint
+- target2: extended target if catalyst fully plays out (20-35% above entry)
 - timeframe: realistic holding period given catalyst type (insider/congress: "1-3 weeks"; options flow: "3-7 days"; social only: "1-3 days")
 - riskReward: must be at minimum "1:1.5" to recommend Buy; "1:2" or better for Strong Buy
 - confidence: "High" = insider/congress + multi-source; "Medium" = real catalyst, fewer sources; "Low" = speculative setup
