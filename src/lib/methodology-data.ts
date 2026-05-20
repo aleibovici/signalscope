@@ -109,13 +109,13 @@ export const pndFlags: PndFlag[] = [
   // Effective flags — count toward PnD threshold (ML-validated bearish predictors)
   { flag: "micro_cap_no_catalyst", desc: "Market cap < $40 M with no news — strongest bearish flag (−4.7% avg 7d)" },
   { flag: "sudden_spike", desc: "≥3 Reddit signals all <3 h old AND avg upvotes <10 (−4.1% avg 7d)" },
-  { flag: "no_news_catalyst", desc: "Multiple signals with no verifiable news — informational only (not significant in current dataset)" },
   { flag: "only_penny_subs", desc: "Only in r/pennystocks or r/smallstreetbets (−1.2% avg 7d)" },
   { flag: "sub_dime_52wk_floor", desc: "52-week low below $0.09 — shell/zombie stock risk" },
   { flag: "upvote_pump", desc: ">2000 upvotes with ≤3 posts and <30 comments — coordinated vote boosting" },
   { flag: "hyperbolic_language", desc: '≥3 hype phrases ("moon", "100×", "can\'t lose"…)' },
   { flag: "twitter_bot_promoters", desc: "Coordinated low-credibility accounts on X" },
   // Informational flags — detected but NOT counted toward threshold (ML shows neutral/positive returns)
+  { flag: "no_news_catalyst", desc: "Multiple signals with no verifiable news — informational only (not significant in current dataset)" },
   { flag: "penny_price", desc: "Price below $0.50 — informational only (ML: +1.4% avg 7d)" },
   { flag: "otc_listing", desc: "Listed on OTC / Pink Sheets — informational only (ML: +0.5% avg 7d)" },
   { flag: "single_source", desc: "Only one signal source — informational only (not significant in current dataset)" },
@@ -186,7 +186,7 @@ export const scoringDescription =
   "Each candidate is scored by AI using source weights, catalyst quality, novelty, and " +
   "cross-source corroboration. Pure social signals (Reddit / StockTwits / Twitter only) " +
   "are hard-capped at 50 — this is enforced programmatically regardless of what the AI " +
-  "returns. Only tickers with a verifiable catalyst source (SEC Insider or Congress) " +
+  "returns. Only tickers with a verifiable catalyst source (SEC Insider, Congress, or Options Flow) " +
   "can score above 50. First-appearance tickers receive a +5–10 novelty boost; tickers " +
   "seen 3+ times or older than 7 days receive a staleness penalty. Signal freshness is " +
   "also tracked — stale consensus (median signal age ≥6 h) is excluded from the highest stage. " +
@@ -200,8 +200,8 @@ export const pndDescription =
   "2 flags triggers an additional AI edge-case assessment.";
 
 export const backtestDescription =
-  "SignalScope tracks the real-world performance of every signal it generates. Twice-daily price snapshots " +
-  "measure nominal returns at 1, 3, 7, and 30 days after detection. Tickers that undergo corporate actions " +
+  "SignalScope tracks the real-world performance of every signal it generates. Three daily price snapshots " +
+  "(9:45 AM, 12:30 PM, and 4:05 PM ET) measure nominal returns at 1, 3, 7, 14, and 30 days after detection. Tickers that undergo corporate actions " +
   "(reverse splits, forward splits, mergers) during the tracking window are automatically detected via " +
   "consecutive-snapshot analysis and excluded from performance statistics. This growing dataset trains a single " +
   "LightGBM regression model (depth 2, 40 estimators) on 3-day forward returns across 308 engineered features — " +
@@ -215,7 +215,7 @@ export const backtestDescription =
 
 export const backtestPipeline = [
   "Price snapshots (open & close)",
-  "Return computation (1d, 3d, 7d, 30d)",
+  "Return computation (1d, 3d, 7d, 14d, 30d)",
   "Feature engineering (308 features, EWMA cross-products)",
   "LightGBM training on 3d returns + importance analysis",
   "Multi-horizon evaluation + threshold optimization",
