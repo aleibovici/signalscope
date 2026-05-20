@@ -22,7 +22,7 @@ export const faqItems: FaqItem[] = [
   {
     question: "How does AI scoring work?",
     answer:
-      "Each candidate ticker is scored by AI (GPT-4o or Claude) on a 0-100 scale based on source weights, catalyst quality, novelty, and cross-source corroboration. Pure social signals (Reddit/StockTwits/Twitter only) are hard-capped at 50 regardless of the AI score — only tickers with verifiable catalyst sources like SEC insider filings or congressional trades can score above 50. First-appearance tickers get a novelty boost; stale tickers get a penalty.",
+      "Each candidate ticker is scored by AI (GPT-4o or Claude) on a 0-100 scale based on source weights, catalyst quality, novelty, and cross-source corroboration. Pure social signals (Reddit/StockTwits/Twitter only) are hard-capped at 50 regardless of the AI score — only tickers with verifiable catalyst sources (SEC insider filings, congressional trades, or unusual options flow) can score above 50. First-appearance tickers get a novelty boost; stale tickers get a penalty.",
   },
   {
     question: "What is the difference between Opportunity Score and Signal Confidence?",
@@ -32,7 +32,7 @@ export const faqItems: FaqItem[] = [
   {
     question: "How does the pump-and-dump filter work?",
     answer:
-      "Every candidate is checked against 13 statistical flags. Eight are 'effective' flags that count toward the quarantine threshold — these are ML-validated bearish predictors: micro-cap with no catalyst (−5.2% avg 7d return), sudden spike, no news catalyst, penny-only subreddits, sub-dime 52-week floor, upvote pumping, hyperbolic language, and Twitter bot promoters. Five are 'informational' flags stored for analysis but excluded from the threshold because ML backtesting shows they predict neutral or positive returns: penny price (+3.3% avg 7d), OTC listing (+1.7%), Twitter coordinated pump (+2.0%), coordinated posts, and single source. Three or more effective flags immediately quarantine a ticker. Exactly two effective flags triggers an AI edge-case review.",
+      "Every candidate is checked against 13 statistical flags. Seven are 'effective' flags that count toward the quarantine threshold — these are ML-validated bearish predictors: micro-cap with no catalyst (−4.7% avg 7d return), sudden spike (−4.1%), penny-only subreddits, sub-dime 52-week floor, upvote pumping, hyperbolic language, and Twitter bot promoters. Six are 'informational' flags stored for analysis but excluded from the threshold because ML backtesting shows they predict neutral or positive returns: penny price (+1.4% avg 7d), OTC listing (+0.5%), no news catalyst, Twitter coordinated pump, coordinated posts, and single source. Three or more effective flags immediately quarantine a ticker. Exactly two effective flags triggers an AI edge-case review.",
   },
   {
     question: "What sources does SignalScope monitor?",
@@ -52,7 +52,7 @@ export const faqItems: FaqItem[] = [
   {
     question: "How fresh is the data and how often is it updated?",
     answer:
-      "Signal harvesting runs once daily at 8:30 AM ET on weekdays — approximately one hour before US market open. Price snapshots are collected three times daily: at 9:45 AM ET (15 min after open, avoiding auction volatility), 12:30 PM ET (midday), and 4:05 PM ET (after close). Returns are computed at 1, 3, 7, and 30 days after detection with tolerance windows that handle weekends and holidays. AI reports for the top emerging tickers are pre-generated after each harvest.",
+      "Signal harvesting runs once daily at 8:30 AM ET on weekdays — approximately one hour before US market open. Price snapshots are collected three times daily: at 9:45 AM ET (15 min after open, avoiding auction volatility), 12:30 PM ET (midday), and 4:05 PM ET (after close). Returns are computed at 1, 3, 7, 14, and 30 days after detection with tolerance windows that handle weekends and holidays. AI reports for the top emerging tickers are pre-generated after each harvest.",
   },
   {
     question: "Is SignalScope free?",
@@ -62,12 +62,12 @@ export const faqItems: FaqItem[] = [
   {
     question: "How is signal performance tracked?",
     answer:
-      "Automated price snapshots three times daily track every validated ticker for 30 days after detection. Returns are measured at 1, 3, 7, and 30 days using nominal prices. Tickers that undergo corporate actions (reverse splits, forward splits, mergers) during the tracking window are automatically detected and excluded from performance statistics to prevent misleading returns. This data feeds into an external ML backtesting harness (Ridge+LightGBM per-horizon ensemble) that uses feature importance and information coefficient analysis to identify which signal features predict real-world outcomes, continuously refining scoring thresholds, stage assignments, and filtering logic.",
+      "Automated price snapshots three times daily track every validated ticker for 30 days after detection. Returns are measured at 1, 3, 7, 14, and 30 days using nominal prices. Tickers that undergo corporate actions (reverse splits, forward splits, mergers) during the tracking window are automatically detected and excluded from performance statistics to prevent misleading returns. This data feeds into an external ML backtesting harness (pure LightGBM on 3-day forward returns, 308 features) that uses feature importance and information coefficient analysis to identify which signal features predict real-world outcomes, continuously refining scoring thresholds, stage assignments, and filtering logic.",
   },
   {
     question: "What does Filtered mean?",
     answer:
-      "Filtered tickers failed the pump-and-dump check — they triggered 3 or more effective bearish flags (or exactly 2 effective flags plus a confirming AI assessment). Note that not all 13 flags count toward filtering: penny price, OTC listing, Twitter coordinated pump, coordinated posts, and single source are informational flags that don't trigger quarantine because ML data shows they actually predict neutral or positive returns. Filtered tickers are quarantined from the main dashboard but visible in a dedicated Filtered tab — you can still view the raw signals and understand why they were flagged.",
+      "Filtered tickers failed the pump-and-dump check — they triggered 3 or more effective bearish flags (or exactly 2 effective flags plus a confirming AI assessment). Note that not all 13 flags count toward filtering: penny price, OTC listing, no news catalyst, Twitter coordinated pump, coordinated posts, and single source are informational flags that don't trigger quarantine because ML data shows they predict neutral or positive returns. Filtered tickers are quarantined from the main dashboard but visible in a dedicated Filtered tab — you can still view the raw signals and understand why they were flagged.",
   },
   {
     question: "Can I track my portfolio?",
