@@ -7,6 +7,8 @@ interface ApiKeyMeta {
   prefix: string;
   createdAt: string;
   lastUsedAt: string | null;
+  monthlyCallCount: number;
+  monthlyWindowStart: string;
 }
 
 interface ApiKeyResponse {
