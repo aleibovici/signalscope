@@ -3,17 +3,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // ── Mocks ──────────────────────────────────────────────────────────────────
 
 const mockGetCurrentUserId = vi.fn();
-const mockHasActiveSubscription = vi.fn();
 const mockFindFirst = vi.fn();
 const mockUpdateMany = vi.fn();
 const mockCreate = vi.fn();
 
 vi.mock("@/lib/auth", () => ({
   getCurrentUserId: (...args: unknown[]) => mockGetCurrentUserId(...args),
-}));
-
-vi.mock("@/lib/subscription", () => ({
-  hasActiveSubscription: (...args: unknown[]) => mockHasActiveSubscription(...args),
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -32,7 +27,7 @@ beforeEach(() => {
 
 // ── API Key Generation Gate ────────────────────────────────────────────────
 
-describe("POST /api/user/api-key — subscription gate", () => {
+describe("POST /api/user/api-key — key generation", () => {
   let POST: (typeof import("@/app/api/user/api-key/route"))["POST"];
 
   beforeEach(async () => {
@@ -41,19 +36,20 @@ describe("POST /api/user/api-key — subscription gate", () => {
     POST = mod.POST;
   });
 
-  it("returns 403 when user has no subscription", async () => {
+  it("allows key generation for free users (no subscription required)", async () => {
     mockGetCurrentUserId.mockResolvedValue("user_free");
-    mockHasActiveSubscription.mockResolvedValue(false);
+    mockUpdateMany.mockResolvedValue({ count: 0 });
+    mockCreate.mockResolvedValue({});
 
     const res = await POST();
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.error).toContain("subscription");
+    expect(body.key).toBeDefined();
+    expect(body.key).toMatch(/^sk_sig_/);
   });
 
   it("allows key generation when user has active subscription", async () => {
     mockGetCurrentUserId.mockResolvedValue("user_pro");
-    mockHasActiveSubscription.mockResolvedValue(true);
     mockUpdateMany.mockResolvedValue({ count: 0 });
     mockCreate.mockResolvedValue({});
 
@@ -76,8 +72,6 @@ describe("POST /api/user/api-key — subscription gate", () => {
 
     const res = await mod.GET();
     expect(res.status).toBe(200);
-    // No subscription check needed for GET
-    expect(mockHasActiveSubscription).not.toHaveBeenCalled();
   });
 });
 
@@ -103,6 +97,15 @@ describe("handleApiError — rate limit mapping", () => {
 
   it("returns 429 for API key rate limit exceeded error", () => {
     const err = new Error("API key rate limit exceeded (1,000 requests/day)");
+    const res = handleApiError(err, "test") as unknown as { status: number; body: { error: string } };
+    expect(res.status).toBe(429);
+    expect(res.body.error).toContain("rate limit");
+  });
+
+  it("returns 429 for free-tier monthly rate limit error", () => {
+    const err = new Error(
+      "API key rate limit exceeded: free plan allows 10 calls per calendar month. Upgrade to Pro for 1,000/day."
+    );
     const res = handleApiError(err, "test") as unknown as { status: number; body: { error: string } };
     expect(res.status).toBe(429);
     expect(res.body.error).toContain("rate limit");
@@ -143,5 +146,52 @@ describe("isApiKeyRateLimited", () => {
       isApiKeyRateLimited("user_over");
     }
     expect(isApiKeyRateLimited("user_over")).toBe(true);
+  });
+});
+
+// ── checkAndIncrementFreeApiKey ────────────────────────────────────────────
+
+describe("checkAndIncrementFreeApiKey", () => {
+  beforeEach(async () => {
+    vi.resetModules();
+    mockUpdateMany.mockReset();
+  });
+
+  it("returns allowed: true when increment succeeds (count < limit)", async () => {
+    // Step 1 reset: no rows reset (window is current month)
+    mockUpdateMany.mockResolvedValueOnce({ count: 0 });
+    // Step 2 gate: increment succeeded (1 row updated)
+    mockUpdateMany.mockResolvedValueOnce({ count: 1 });
+
+    const mod = await import("@/lib/rate-limit");
+    const { allowed } = await mod.checkAndIncrementFreeApiKey("key_1");
+    expect(allowed).toBe(true);
+  });
+
+  it("returns allowed: false when at limit (count >= 10, gate returns 0)", async () => {
+    // Step 1 reset: no rows reset
+    mockUpdateMany.mockResolvedValueOnce({ count: 0 });
+    // Step 2 gate: 0 rows updated = already at limit
+    mockUpdateMany.mockResolvedValueOnce({ count: 0 });
+
+    const mod = await import("@/lib/rate-limit");
+    const { allowed } = await mod.checkAndIncrementFreeApiKey("key_1");
+    expect(allowed).toBe(false);
+  });
+
+  it("resets window when monthlyWindowStart is in prior month", async () => {
+    // Step 1 reset: 1 row reset (prior month detected)
+    mockUpdateMany.mockResolvedValueOnce({ count: 1 });
+    // Step 2 gate: increment succeeds
+    mockUpdateMany.mockResolvedValueOnce({ count: 1 });
+
+    const mod = await import("@/lib/rate-limit");
+    const { allowed } = await mod.checkAndIncrementFreeApiKey("key_1");
+    expect(allowed).toBe(true);
+    // Verify step 1 was called with monthlyWindowStart lt filter
+    expect(mockUpdateMany).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      where: expect.objectContaining({ monthlyWindowStart: expect.objectContaining({ lt: expect.any(Date) }) }),
+      data: expect.objectContaining({ monthlyCallCount: 0 }),
+    }));
   });
 });
