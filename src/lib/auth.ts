@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/lib/auth.config";
-import { isRateLimited, isApiKeyRateLimited } from "@/lib/rate-limit";
+import { isRateLimited, isApiKeyRateLimited, checkAndIncrementFreeApiKey } from "@/lib/rate-limit";
 import { verifyAccessToken } from "@/lib/mobile-jwt";
 import { createHash } from "crypto";
 
@@ -104,11 +104,29 @@ export async function getCurrentUserId(): Promise<string> {
   const apiKey = headerStore.get("x-api-key");
   if (apiKey) {
     const hash = createHash("sha256").update(apiKey).digest("hex");
-    const record = await prisma.apiKey.findUnique({ where: { key: hash } });
+    const record = await prisma.apiKey.findUnique({
+      where: { key: hash },
+      include: {
+        user: { select: { subscription: { select: { status: true } } } },
+      },
+    });
     if (record && !record.revokedAt) {
-      if (isApiKeyRateLimited(record.userId)) {
-        throw new Error("API key rate limit exceeded (1,000 requests/day)");
+      const subStatus = record.user?.subscription?.status;
+      const isPro = subStatus === "ACTIVE" || subStatus === "PAST_DUE";
+
+      if (isPro) {
+        if (isApiKeyRateLimited(record.userId)) {
+          throw new Error("API key rate limit exceeded (1,000 requests/day)");
+        }
+      } else {
+        const { allowed } = await checkAndIncrementFreeApiKey(record.id);
+        if (!allowed) {
+          throw new Error(
+            "API key rate limit exceeded: free plan allows 10 calls per calendar month. Upgrade to Pro for 1,000/day."
+          );
+        }
       }
+
       await assertNotDeleted(record.userId);
       trackApiKeyUsage(record.id);
       trackUserActivity(record.userId);

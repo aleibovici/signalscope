@@ -35,6 +35,7 @@ vi.mock("@/lib/mobile-jwt", () => ({
 vi.mock("@/lib/rate-limit", () => ({
   isRateLimited: () => false,
   isApiKeyRateLimited: () => false,
+  checkAndIncrementFreeApiKey: () => Promise.resolve({ allowed: true }),
 }));
 
 // Mock next-auth — needed for the cookie session path
@@ -102,6 +103,7 @@ describe("assertNotDeleted via getCurrentUserId", () => {
         id: "ak_1",
         userId: "user_456",
         revokedAt: null,
+        user: { subscription: { status: "ACTIVE" } },
       });
     });
 
