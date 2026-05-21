@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 // Simple in-memory rate limiter (for single-instance deployments).
 // Shared across login and registration endpoints.
@@ -63,4 +64,36 @@ const API_KEY_DAILY_LIMIT = 1000;
  */
 export function isApiKeyRateLimited(userId: string): boolean {
   return isRateLimited(`apikey:${userId}`, API_KEY_WINDOW_MS, API_KEY_DAILY_LIMIT);
+}
+
+/** Monthly call limit for free-tier API keys */
+export const FREE_MONTHLY_LIMIT = 10;
+
+function firstDayOfMonth(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+
+/**
+ * Atomically check and increment the monthly call count for a free API key.
+ * Resets the window if the stored monthlyWindowStart is from a prior month.
+ * @returns { allowed: true } if under limit (and count was incremented), { allowed: false } if limit reached
+ */
+export async function checkAndIncrementFreeApiKey(
+  apiKeyId: string
+): Promise<{ allowed: boolean }> {
+  const thisMonth = firstDayOfMonth(new Date());
+
+  // Step 1: reset window if it's from a prior month
+  await prisma.apiKey.updateMany({
+    where: { id: apiKeyId, monthlyWindowStart: { lt: thisMonth } },
+    data: { monthlyCallCount: 0, monthlyWindowStart: thisMonth },
+  });
+
+  // Step 2: increment only if under limit (atomic gate)
+  const result = await prisma.apiKey.updateMany({
+    where: { id: apiKeyId, monthlyCallCount: { lt: FREE_MONTHLY_LIMIT } },
+    data: { monthlyCallCount: { increment: 1 } },
+  });
+
+  return { allowed: result.count > 0 };
 }
