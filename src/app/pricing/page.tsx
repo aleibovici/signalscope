@@ -5,7 +5,7 @@ import { PublicPageLayout } from "@/components/public-page-layout";
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "SignalScope pricing. Free dashboard with watchlist, portfolio tracking, and weekly digest. Pro at $2.99/mo or $29.99/yr unlocks AI reports, API key access, and real-time email alerts. AI agents can pay per call via x402 micropayments — no account required.",
+    "SignalScope pricing. Free dashboard with watchlist, portfolio tracking, API key access (10 calls/month), and weekly digest. Pro at $2.99/mo or $29.99/yr unlocks AI reports, 1,000 API calls/day, and real-time email alerts. AI agents can pay per call via x402 micropayments — no account required.",
   alternates: { canonical: "http://localhost:3000/pricing" },
   openGraph: {
     url: "http://localhost:3000/pricing",
@@ -33,6 +33,7 @@ const tiers = [
       "Live dashboard, trending, and connections graph",
       "Watchlist and portfolio tracking",
       "Paper trading simulator",
+      "API key access (10 calls/month)",
       "Free weekly email digest",
     ],
     cta: { label: "Create account", href: "/register", primary: false },
@@ -48,7 +49,7 @@ const tiers = [
       "Everything in Free",
       "On-demand AI ticker reports + trade setups",
       "Daily email alerts on Consensus signals",
-      "API key access (1,000 requests/day)",
+      "API key access (1,000 calls/day)",
       "Priority support",
     ],
     cta: { label: "Create account → upgrade", href: "/register", primary: true },
