@@ -70,13 +70,15 @@ export function isApiKeyRateLimited(userId: string): boolean {
 export const FREE_MONTHLY_LIMIT = 10;
 
 function firstDayOfMonth(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), 1);
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
 }
 
 /**
- * Atomically check and increment the monthly call count for a free API key.
- * Resets the window if the stored monthlyWindowStart is from a prior month.
- * @returns { allowed: true } if under limit (and count was incremented), { allowed: false } if limit reached
+ * Atomically check and increment the monthly call count for a free-tier API key.
+ * Resets the window on the 1st of the UTC calendar month.
+ * NOTE: Atomicity relies on Postgres row-level locking (READ COMMITTED / EvalPlanQual).
+ * Do NOT refactor to a read-then-write pattern.
+ * @returns { allowed: true } if under limit (count incremented), { allowed: false } if limit reached
  */
 export async function checkAndIncrementFreeApiKey(
   apiKeyId: string
