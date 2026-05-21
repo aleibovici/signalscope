@@ -298,14 +298,16 @@ model RefreshToken {
 }
 
 model ApiKey {
-  id         String    @id @default(cuid())
-  key        String    @unique
-  prefix     String
-  userId     String
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lastUsedAt DateTime?
-  createdAt  DateTime  @default(now())
-  revokedAt  DateTime?
+  id                 String    @id @default(cuid())
+  key                String    @unique
+  prefix             String
+  userId             String
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastUsedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  revokedAt          DateTime?
+  monthlyCallCount   Int       @default(0)
+  monthlyWindowStart DateTime  @default(now())
 
   @@index([userId])
 }
