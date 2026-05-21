@@ -9,6 +9,27 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-05-21",
+    title: "Data-anchored trade brackets and stage-based exit timing",
+    changes: [
+      {
+        category: "fixed",
+        items: [
+          "Paper-trading time-exit no longer force-closes every position after 1-2 days. Parser bug in the broker sync route was dropping the unit on \"1-3 weeks\" timeframes and exiting at 1 day; replaced with explicit stage-based hold caps.",
+          "Orphan positions whose database row was marked closed but the broker still held the shares are now un-closed on the next sync, restoring time-exit eligibility.",
+        ],
+      },
+      {
+        category: "improved",
+        items: [
+          "Trade-setup target and stop-loss numbers are now derived server-side from realized 7-day returns (P90 by stage, rolling 90-day window) instead of arbitrary AI guesses. Risk/reward always 1:1.5 by construction.",
+          "Hold-time is stage-tiered: Emerging exits at 5 days, Building/Consensus at 7 days. Matches the ML model's training horizon (1d/3d/7d).",
+          "AI report prompt updated — the model no longer invents target, stop, or timeframe numbers; it focuses on entry range, recommendation, and confidence.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-05-20",
     title: "Docs sync, trade setups, and paper trading mobile polish",
     changes: [
