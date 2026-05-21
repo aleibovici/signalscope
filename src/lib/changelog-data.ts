@@ -9,6 +9,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-05-22",
+    title: "Free-tier API keys",
+    changes: [
+      {
+        category: "new",
+        items: [
+          "API keys are now available to all users — no Pro subscription required.",
+          "Free plan: 10 API calls per calendar month (resets on the 1st). Pro plan: 1,000 calls/day.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-05-21",
     title: "Data-anchored trade brackets and stage-based exit timing",
     changes: [
