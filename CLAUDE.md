@@ -191,9 +191,9 @@ Anonymous pay-per-call access for AI agents via USDC on Base (L2). Coexists with
 
 ### Stripe Subscriptions (`src/lib/stripe.ts`, `src/lib/subscription.ts`)
 
-$2.99/mo or $29.99/yr gates: API key access, on-demand AI report generation, email alerts. Dashboard free for all users.
+$2.99/mo or $29.99/yr gates: on-demand AI report generation, email alerts. Dashboard and API key access free for all users.
 
-- Enforcement: API key generation (403), on-demand reports (403 if no existing report), email alerts (subscribers only), API key rate limiting (1,000 req/day)
+- Enforcement: API key generation open to all. Free plan: 10 calls/calendar month (DB-tracked, resets 1st of month). Pro plan: 1,000 req/day (in-memory). On-demand reports (403 if no existing report), email alerts (subscribers only)
 - `PAST_DUE` still allows access; `CANCELED`/`UNPAID` blocks
 - Stripe Customer created lazily on first checkout, stored as `User.stripeCustomerId`
 

@@ -85,6 +85,8 @@ x-api-key: sk_sig_your_key_here
 
 API keys provide access to all endpoints including account management (portfolio, watchlist, profile). Exception: `POST /api/tickers/:symbol/report` is not available via API key — use x402 or a browser session.
 
+**Rate limits:** Free accounts — 10 calls/calendar month (resets 1st of month). Pro accounts — 1,000 calls/day.
+
 ## Key Concepts
 
 - **Scan**: A monitoring run that collects signals from all sources, scores them, and produces validated tickers

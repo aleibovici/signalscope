@@ -7,6 +7,7 @@ x-api-key: sk_sig_your_key_here
 ```
 
 Generate your API key at signalscopes.com/profile.
+Rate limits: free plan 10 calls/calendar month; Pro plan 1,000 calls/day.
 
 ### Opportunity score vs signal confidence (AI)
 
