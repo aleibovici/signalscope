@@ -1,7 +1,59 @@
 import { chatJSON } from "@/lib/ai";
 import type { AiCostContext } from "@/lib/ai/types";
 import { chatReACT, validateTradeSetup } from "@/lib/ai/react";
-import type { AggregatedSymbol, FundamentalData, NoveltyContext, SignalType, TickerReport } from "./types";
+import { getTradeBracket, holdDaysForStage } from "@/lib/anchors";
+import { TickerStage } from "@/generated/prisma/client";
+import type { AggregatedSymbol, FundamentalData, NoveltyContext, SignalType, TickerReport, TradeSetup } from "./types";
+
+/**
+ * Override the AI's target/stop with data-anchored values derived from
+ * realized 7d returns for this stage (P90 target, R:R 1:1.5 stop). The AI
+ * supplies entryLo/entryHi only; the bracket math comes from production data.
+ *
+ * Preserves the rest of the AI's setup (timeframe, confidence). Drops the
+ * setup entirely if entry range is missing or invalid.
+ */
+export async function applyAnchoredBracket(
+  setup: TradeSetup | undefined,
+  stage: TickerStage,
+): Promise<TradeSetup | undefined> {
+  if (!setup || !Number.isFinite(setup.entryLo) || !Number.isFinite(setup.entryHi)) {
+    return undefined;
+  }
+  if (setup.entryLo <= 0 || setup.entryHi <= 0 || setup.entryHi < setup.entryLo) {
+    return undefined;
+  }
+
+  try {
+    const bracket = await getTradeBracket(stage);
+    const holdDays = holdDaysForStage(stage);
+    const entryMid = (setup.entryLo + setup.entryHi) / 2;
+    const target1 = round2(entryMid * (1 + bracket.targetPct));
+    const target2 = round2(entryMid * (1 + bracket.targetPct * 1.5));
+    const stopLoss = round2(entryMid * (1 + bracket.stopPct));
+    const rrRatio = bracket.targetPct / Math.abs(bracket.stopPct);
+
+    return {
+      entryLo: setup.entryLo,
+      entryHi: setup.entryHi,
+      stopLoss,
+      target1,
+      target2,
+      timeframe: `up to ${holdDays} days`,
+      riskReward: `1:${rrRatio.toFixed(1)}`,
+      confidence: setup.confidence,
+    };
+  } catch (err) {
+    // If anchor lookup fails (DB unavailable etc.), keep AI's original setup
+    // rather than killing the whole report.
+    console.warn(`[report] anchor lookup failed, keeping AI setup:`, err instanceof Error ? err.message : err);
+    return setup;
+  }
+}
+
+function round2(x: number): number {
+  return Math.round(x * 100) / 100;
+}
 
 const CATALYST_SOURCES = new Set(["SEC_INSIDER", "SEC_FILING", "CONGRESS", "OPTIONS_FLOW", "VOLUME_SPIKE"]);
 
@@ -101,15 +153,10 @@ Recommendation guidance:
 IMPORTANT: Check the "sources" array in the input — it shows ALL source types that contributed signals, not just the sample. A ticker with signals from 3+ sources or 3+ subreddits represents genuine cross-platform consensus, not mere hype. Do not dismiss multi-source social consensus as "pure social hype" — coordinated independent discovery across platforms is a meaningful signal. Reserve "Avoid" for genuinely weak setups (single source, low engagement, bad fundamentals, P&D flags), not for well-corroborated emerging signals.
 
 Trade setup rules (ONLY for Buy or Strong Buy — omit tradeSetup entirely for Watch or Avoid):
-- entryLo/entryHi: tight range around current price or a technical level (typically within 2-5% of current price)
-- stopLoss: below key support, recent low, or 52-week low — never wider than 8% from entry midpoint
-- target1: nearest resistance or 10-20% above entry midpoint
-- target2: extended target if catalyst fully plays out (20-35% above entry)
-- timeframe: realistic holding period given catalyst type (insider/congress: "1-3 weeks"; options flow: "3-7 days"; social only: "1-3 days")
-- riskReward: must be at minimum "1:1.5" to recommend Buy; "1:2" or better for Strong Buy
-- confidence: "High" = insider/congress + multi-source; "Medium" = real catalyst, fewer sources; "Low" = speculative setup
-- All price fields must be numbers (not strings). Use the current price and 52-week range to derive realistic levels.
-- If you cannot derive a technically sound setup, omit tradeSetup entirely even for Buy.
+- entryLo/entryHi: tight range around current price or a technical level (typically within 2-5% of current price). Always include these two numbers.
+- stopLoss, target1, target2, riskReward, timeframe: DO NOT GENERATE these — they are computed server-side from production performance data anchored to the stock's stage. Any numbers or strings you provide will be discarded. Set numerics to 0 and timeframe to "" or omit them entirely.
+- confidence: "High" = insider/congress + multi-source; "Medium" = real catalyst, fewer sources; "Low" = speculative setup.
+- If you cannot derive a technically sound entry range (entryLo/entryHi), omit tradeSetup entirely even for Buy.
 
 Return JSON:
 {
@@ -136,7 +183,8 @@ export async function generateTickerReport(
   aiScore: number,
   signalType?: SignalType,
   novelty?: NoveltyContext,
-  context?: AiCostContext
+  context?: AiCostContext,
+  stage: TickerStage = TickerStage.EARLY,
 ): Promise<TickerReport> {
   try {
     const response = await chatJSON({
@@ -165,6 +213,8 @@ export async function generateTickerReport(
       raw.tradeSetup = validateTradeSetup(raw.tradeSetup);
       if (!raw.tradeSetup) {
         console.warn(`Report for ${symbol} has invalid tradeSetup shape, dropping it`);
+      } else {
+        raw.tradeSetup = await applyAnchoredBracket(raw.tradeSetup, stage);
       }
     }
 
@@ -183,10 +233,11 @@ export async function generateTickerReportReACT(
   scanId: string,
   signalType?: SignalType,
   novelty?: NoveltyContext,
-  context?: AiCostContext
+  context?: AiCostContext,
+  stage: TickerStage = TickerStage.EARLY,
 ): Promise<TickerReport> {
   try {
-    return await chatReACT({
+    const report = await chatReACT({
       symbol,
       scanId,
       initialContext: buildTickerContext(symbol, agg, fundamentals, aiScore, signalType, novelty),
@@ -194,9 +245,13 @@ export async function generateTickerReportReACT(
       temperature: 0.4,
       context,
     });
+    if (report.tradeSetup) {
+      report.tradeSetup = await applyAnchoredBracket(report.tradeSetup, stage);
+    }
+    return report;
   } catch (err) {
     console.warn(`[react] ReACT failed for ${symbol}, falling back to single-shot:`, err instanceof Error ? err.message : err);
-    return generateTickerReport(symbol, agg, fundamentals, aiScore, signalType, novelty, context);
+    return generateTickerReport(symbol, agg, fundamentals, aiScore, signalType, novelty, context, stage);
   }
 }
 

@@ -60,7 +60,8 @@ async function handleReport(request: NextRequest, upperSymbol: string, userId?: 
     ticker.scanId,
     (ticker.signalType as SignalType) ?? undefined,
     novelty,
-    { trigger: "on-demand", symbol: upperSymbol, userId }
+    { trigger: "on-demand", symbol: upperSymbol, userId },
+    ticker.stage,
   );
 
   // Persist the report to the DB

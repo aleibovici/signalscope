@@ -71,7 +71,8 @@ export async function POST(req: NextRequest) {
           ticker.scanId,
           (ticker.signalType as SignalType) ?? undefined,
           novelty,
-          { trigger: "batch-report", scanId: ticker.scanId, symbol: ticker.symbol }
+          { trigger: "batch-report", scanId: ticker.scanId, symbol: ticker.symbol },
+          ticker.stage,
         );
         await prisma.validatedTicker.update({
           where: { id: ticker.id },

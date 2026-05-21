@@ -4,14 +4,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-error";
 import { getBrokerClient, isConfigured } from "@/lib/brokers/factory";
+import { holdDaysForStage, HOLD_DAYS_BY_STAGE } from "@/lib/anchors";
+import { TickerStage } from "@/generated/prisma/client";
 
-const DEFAULT_HOLD_DAYS = 7;
-
-function resolveHoldDays(tf: string | null): number {
-  if (!tf) return DEFAULT_HOLD_DAYS;
-  const m = tf.toLowerCase().match(/(\d+)/);
-  return m ? Math.min(parseInt(m[1]), 30) : DEFAULT_HOLD_DAYS;
-}
+// ML model trained on 1d/3d/7d horizons only — holds past 7d use stale alpha.
+// Hold-day defaults come from anchors.ts (stage-tiered: EARLY 5d, FORMING/CONFIRMED 7d).
+// Kept here as the legacy fallback for positions with no resolvable stage.
+export const DEFAULT_HOLD_DAYS = HOLD_DAYS_BY_STAGE.EARLY;
+export const MAX_HOLD_DAYS = 7;
 
 export async function POST(req: NextRequest) {
   try {
@@ -87,6 +87,7 @@ export async function POST(req: NextRequest) {
           marketPrice: pos.marketPrice,
           marketValue: pos.marketValue,
           unrealizedPnl: pos.unrealizedPnl,
+          closedAt: null,
           syncedAt: new Date(),
         },
       });
@@ -115,10 +116,11 @@ export async function POST(req: NextRequest) {
       const ageDays = (now - pos.openedAt.getTime()) / 86400000;
       const parentOrder = await prisma.brokerOrder.findFirst({
         where: { symbol: pos.symbol, role: "PARENT" },
-        include: { validatedTicker: { select: { tradeSetupTimeframe: true } } },
+        include: { validatedTicker: { select: { stage: true } } },
         orderBy: { placedAt: "desc" },
       });
-      const holdDays = resolveHoldDays(parentOrder?.validatedTicker?.tradeSetupTimeframe ?? null);
+      const stage = parentOrder?.validatedTicker?.stage ?? null;
+      const holdDays = stage ? holdDaysForStage(stage as TickerStage) : DEFAULT_HOLD_DAYS;
 
       if (ageDays >= holdDays) {
         // Guard: skip if an exit order was already submitted to avoid duplicate sells
