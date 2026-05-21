@@ -166,7 +166,7 @@ export default function ProfilePage() {
         success={subscribeSuccess}
       />
       <ShareRewardSection />
-      <ApiKeySection hasSubscription={profile?.subscription?.isActive ?? false} />
+      <ApiKeySection isProUser={profile?.subscription?.isActive ?? false} />
       <DeleteAccountSection />
     </div>
   );
@@ -310,7 +310,7 @@ function ShareRewardSection() {
   );
 }
 
-function ApiKeySection({ hasSubscription }: { hasSubscription: boolean }) {
+function ApiKeySection({ isProUser }: { isProUser: boolean }) {
   const { data, isLoading } = useApiKey();
   const generate = useGenerateApiKey();
   const revoke = useRevokeApiKey();
@@ -330,19 +330,7 @@ function ApiKeySection({ hasSubscription }: { hasSubscription: boolean }) {
     <div className="mt-6 rounded-xl border border-gray-200 bg-white p-6 dark:border-zinc-800 dark:bg-[#12181f]">
       <h2 className="mb-4 text-base font-semibold text-gray-800 dark:text-zinc-100">API Key</h2>
 
-      {!hasSubscription ? (
-        <>
-          <p className="mb-4 text-sm text-gray-500 dark:text-zinc-400">
-            Generate an API key for programmatic access to your SignalScope data.
-          </p>
-          <p className="text-sm text-gray-500 dark:text-zinc-400">
-            API keys require a Pro subscription.{" "}
-            <a href="#subscription" className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-              Upgrade to Pro
-            </a>
-          </p>
-        </>
-      ) : isLoading ? (
+      {isLoading ? (
         <p className="text-sm text-gray-400 dark:text-zinc-500">Loading...</p>
       ) : newKey ? (
         <>
@@ -388,6 +376,21 @@ function ApiKeySection({ hasSubscription }: { hasSubscription: boolean }) {
                 <> &middot; Last used {new Date(data.apiKey.lastUsedAt).toLocaleDateString()}</>
               )}
             </div>
+            <div className="mt-2 text-xs text-gray-400 dark:text-zinc-500">
+              {isProUser ? (
+                <span>1,000 calls/day</span>
+              ) : (
+                <span>
+                  {data.apiKey.monthlyCallCount ?? 0} / 10 calls used this month
+                  {data.apiKey.monthlyWindowStart && (() => {
+                    const d = new Date(data.apiKey.monthlyWindowStart);
+                    const nextMonth = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1));
+                    const resetLabel = nextMonth.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                    return <> &middot; resets {resetLabel}</>;
+                  })()}
+                </span>
+              )}
+            </div>
           </div>
           <div className="flex gap-2">
             <button
@@ -412,11 +415,16 @@ function ApiKeySection({ hasSubscription }: { hasSubscription: boolean }) {
         <>
           <p className="mb-4 text-sm text-gray-500 dark:text-zinc-400">
             Generate an API key for programmatic access to your SignalScope data.
-            Use it with Claude or any HTTP client. See the{" "}
-            <a href="/skill/SKILL.md" target="_blank" className="text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-              Agent Skill
-            </a>{" "}
-            for setup instructions.
+            Use it with Claude or any HTTP client.{" "}
+            {isProUser ? (
+              <>See the{" "}
+              <a href="/skill/SKILL.md" target="_blank" className="text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                Agent Skill
+              </a>{" "}
+              for setup instructions.</>
+            ) : (
+              <>Free plan: 10 calls/month.</>
+            )}
           </p>
           <button
             type="button"
