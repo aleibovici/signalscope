@@ -3,14 +3,13 @@ import { randomBytes, createHash } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
-import { hasActiveSubscription } from "@/lib/subscription";
 
 export async function GET() {
   try {
     const userId = await getCurrentUserId();
     const apiKey = await prisma.apiKey.findFirst({
       where: { userId, revokedAt: null },
-      select: { prefix: true, createdAt: true, lastUsedAt: true },
+      select: { prefix: true, createdAt: true, lastUsedAt: true, monthlyCallCount: true, monthlyWindowStart: true },
     });
     return NextResponse.json({ apiKey });
   } catch (err) {
@@ -21,14 +20,6 @@ export async function GET() {
 export async function POST() {
   try {
     const userId = await getCurrentUserId();
-
-    // Require active subscription for API key generation
-    if (!(await hasActiveSubscription(userId))) {
-      return NextResponse.json(
-        { error: "API key access requires a Pro subscription. Visit /subscription to upgrade." },
-        { status: 403 }
-      );
-    }
 
     // Revoke any existing key
     await prisma.apiKey.updateMany({
