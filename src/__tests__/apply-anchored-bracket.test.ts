@@ -132,12 +132,56 @@ describe("applyAnchoredBracket", () => {
     expect(result).toBeUndefined();
   });
 
-  it("falls back to AI's original setup if anchor lookup throws", async () => {
+  it("falls back to per-stage FALLBACK_TARGET_PCT when anchor lookup throws (EARLY = 6%)", async () => {
+    // DB unavailable. Must still produce sensible numbers — never persist
+    // the LLM's placeholder zeros (entryLo=99, entryHi=101 → midpoint 100):
+    //   FALLBACK_TARGET_PCT.EARLY = 0.06
+    //   target1  = 100 * (1 + 0.06)        = 106
+    //   target2  = 100 * (1 + 0.06 * 1.5)  = 109
+    //   stopLoss = 100 * (1 - 0.06/1.5)    = 96
     mockGetTradeBracket.mockRejectedValueOnce(new Error("DB unavailable"));
-    const ai = aiSetup();
-    const result = await applyAnchoredBracket(ai, TickerStage.EARLY);
-    // Returns original AI setup unchanged — better degraded than no report at all
-    expect(result).toEqual(ai);
+    const result = await applyAnchoredBracket(aiSetup(), TickerStage.EARLY);
+    expect(result).toBeDefined();
+    expect(result!.target1).toBe(106);
+    expect(result!.target2).toBe(109);
+    expect(result!.stopLoss).toBe(96);
+    expect(result!.timeframe).toBe("up to 5 days");
+    expect(result!.riskReward).toBe("1:1.5");
+  });
+
+  it("falls back to per-stage FALLBACK_TARGET_PCT when anchor lookup throws (CONFIRMED = 15%)", async () => {
+    mockGetTradeBracket.mockRejectedValueOnce(new Error("DB unavailable"));
+    const result = await applyAnchoredBracket(aiSetup(), TickerStage.CONFIRMED);
+    expect(result).toBeDefined();
+    // 100 * 1.15 = 115
+    expect(result!.target1).toBe(115);
+    // 100 * (1 + 0.15 * 1.5) = 122.5
+    expect(result!.target2).toBe(122.5);
+    // 100 * (1 - 0.10) = 90
+    expect(result!.stopLoss).toBe(90);
+    expect(result!.timeframe).toBe("up to 7 days");
+  });
+
+  it("overrides LLM placeholder zeros even when the anchor lookup fails", async () => {
+    // Mirrors the new LLM contract: it emits only entryLo/entryHi/confidence
+    // (plus zero placeholders for the rest). On DB error, those zeros must
+    // NOT be persisted — the fallback bracket has to do the math.
+    mockGetTradeBracket.mockRejectedValueOnce(new Error("DB unavailable"));
+    const placeholder: TradeSetup = {
+      entryLo: 99,
+      entryHi: 101,
+      stopLoss: 0,
+      target1: 0,
+      target2: 0,
+      timeframe: "",
+      riskReward: "",
+      confidence: "Medium",
+    };
+    const result = await applyAnchoredBracket(placeholder, TickerStage.EARLY);
+    expect(result).toBeDefined();
+    expect(result!.stopLoss).not.toBe(0);
+    expect(result!.target1).not.toBe(0);
+    expect(result!.timeframe).not.toBe("");
   });
 
   it("uses different brackets for different stages", async () => {

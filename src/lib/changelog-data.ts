@@ -9,6 +9,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-05-23",
+    title: "Restored trade setups on Buy and Strong Buy reports",
+    changes: [
+      {
+        category: "fixed",
+        items: [
+          "Buy and Strong Buy reports are once again emitting a trade setup. The AI prompt now asks the model for only the three fields it actually owns (entry low, entry high, confidence); the server fills in stop-loss, targets, timeframe, and risk/reward from the data-anchored bracket. Newer models had been correctly following the prompt instruction to omit the server-computed fields, which the validator was then rejecting — dropping the entire setup.",
+          "If the production database is briefly unavailable while a report is being generated, the trade-setup bracket now falls back to the per-stage hardcoded percentages instead of persisting placeholder zeros.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-05-22",
     title: "Free-tier API keys and deterministic recommendations",
     changes: [

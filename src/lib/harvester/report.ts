@@ -1,7 +1,7 @@
 import { chatJSON } from "@/lib/ai";
 import type { AiCostContext } from "@/lib/ai/types";
 import { chatReACT, validateTradeSetup } from "@/lib/ai/react";
-import { getTradeBracket, holdDaysForStage } from "@/lib/anchors";
+import { getTradeBracket, holdDaysForStage, FALLBACK_TARGET_PCT, STOP_R_R_RATIO } from "@/lib/anchors";
 import { TickerStage } from "@/generated/prisma/client";
 import { deriveRecommendation, recommendationHasTradeSetup, type Recommendation } from "./recommendation";
 import type { AggregatedSymbol, FundamentalData, NoveltyContext, SignalType, TickerReport, TradeSetup } from "./types";
@@ -25,31 +25,37 @@ export async function applyAnchoredBracket(
     return undefined;
   }
 
+  let bracket: { targetPct: number; stopPct: number };
   try {
-    const bracket = await getTradeBracket(stage);
-    const holdDays = holdDaysForStage(stage);
-    const entryMid = (setup.entryLo + setup.entryHi) / 2;
-    const target1 = round2(entryMid * (1 + bracket.targetPct));
-    const target2 = round2(entryMid * (1 + bracket.targetPct * 1.5));
-    const stopLoss = round2(entryMid * (1 + bracket.stopPct));
-    const rrRatio = bracket.targetPct / Math.abs(bracket.stopPct);
-
-    return {
-      entryLo: setup.entryLo,
-      entryHi: setup.entryHi,
-      stopLoss,
-      target1,
-      target2,
-      timeframe: `up to ${holdDays} days`,
-      riskReward: `1:${rrRatio.toFixed(1)}`,
-      confidence: setup.confidence,
-    };
+    bracket = await getTradeBracket(stage);
   } catch (err) {
-    // If anchor lookup fails (DB unavailable etc.), keep AI's original setup
-    // rather than killing the whole report.
-    console.warn(`[report] anchor lookup failed, keeping AI setup:`, err instanceof Error ? err.message : err);
-    return setup;
+    // DB unavailable — fall back to the same hardcoded per-stage percentages
+    // that getTradeBracket uses when its sample is too small. Keeps target /
+    // stop sensible rather than persisting placeholder zeros from the LLM.
+    const fallback = FALLBACK_TARGET_PCT[stage];
+    console.warn(
+      `[report] anchor lookup failed, using ${(fallback * 100).toFixed(0)}% fallback for ${stage}:`,
+      err instanceof Error ? err.message : err,
+    );
+    bracket = { targetPct: fallback, stopPct: -fallback * STOP_R_R_RATIO };
   }
+  const holdDays = holdDaysForStage(stage);
+  const entryMid = (setup.entryLo + setup.entryHi) / 2;
+  const target1 = round2(entryMid * (1 + bracket.targetPct));
+  const target2 = round2(entryMid * (1 + bracket.targetPct * 1.5));
+  const stopLoss = round2(entryMid * (1 + bracket.stopPct));
+  const rrRatio = bracket.targetPct / Math.abs(bracket.stopPct);
+
+  return {
+    entryLo: setup.entryLo,
+    entryHi: setup.entryHi,
+    stopLoss,
+    target1,
+    target2,
+    timeframe: `up to ${holdDays} days`,
+    riskReward: `1:${rrRatio.toFixed(1)}`,
+    confidence: setup.confidence,
+  };
 }
 
 function round2(x: number): number {
@@ -147,10 +153,10 @@ Also analyze:
 
 IMPORTANT: Check the "sources" array in the input — it shows ALL source types that contributed signals, not just the sample. A ticker with signals from 3+ sources or 3+ subreddits represents genuine cross-platform consensus, not mere hype. Do not dismiss multi-source social consensus as "pure social hype" — coordinated independent discovery across platforms is a meaningful signal.
 
-Trade setup rules:
-- entryLo/entryHi: tight range around current price or a technical level (typically within 2-5% of current price). Always include these two numbers when you can derive a technically sound entry; otherwise omit tradeSetup entirely.
-- stopLoss, target1, target2, riskReward, timeframe: DO NOT GENERATE these — they are computed server-side from production performance data anchored to the stock's stage. Any numbers or strings you provide will be discarded. Set numerics to 0 and timeframe to "" or omit them entirely.
-- confidence: "High" = insider/congress + multi-source; "Medium" = real catalyst, fewer sources; "Low" = speculative setup.
+Trade setup rules — you emit EXACTLY three fields, the server computes the rest:
+- entryLo / entryHi: tight range around current price or a technical level (typically within 2-5% of current price). Required when you emit tradeSetup. If you cannot derive a technically sound entry, omit the tradeSetup field entirely.
+- confidence: "High" = insider/congress + multi-source; "Medium" = real catalyst, fewer sources; "Low" = speculative setup. Must be exactly "Low", "Medium", or "High".
+- DO NOT emit stopLoss, target1, target2, timeframe, or riskReward. They are computed server-side from production performance data anchored to the stock's stage. Anything you put there will be discarded.
 
 Server-side post-processing (informational, not your job):
 - The Strong Buy / Buy / Watch / Avoid recommendation label is computed deterministically server-side from the ticker's score, stage, source mix, catalyst presence, and P&D flags. Do not pick it — do not emit a "recommendation" field.
@@ -164,11 +170,6 @@ Return JSON:
   "tradeSetup": {
     "entryLo": <number>,
     "entryHi": <number>,
-    "stopLoss": <number>,
-    "target1": <number>,
-    "target2": <number>,
-    "timeframe": "<string>",
-    "riskReward": "<string e.g. 1:2.5>",
     "confidence": "Low|Medium|High"
   }
 }`;
