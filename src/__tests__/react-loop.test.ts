@@ -97,7 +97,7 @@ describe("buildUserMessage", () => {
 });
 
 describe("validateTradeSetup", () => {
-  it("returns valid trade setup", () => {
+  it("returns valid trade setup with all fields", () => {
     const ts = {
       entryLo: 10,
       entryHi: 11,
@@ -111,13 +111,46 @@ describe("validateTradeSetup", () => {
     expect(validateTradeSetup(ts)).toEqual(ts);
   });
 
+  it("accepts minimal LLM shape (entryLo/entryHi/confidence only) and fills placeholders", () => {
+    // The LLM emits only the three fields it owns; bracket math is filled by
+    // applyAnchoredBracket downstream. Placeholders here must NOT block the
+    // tradeSetup from being returned.
+    const ts = { entryLo: 4.5, entryHi: 4.65, confidence: "Medium" };
+    const result = validateTradeSetup(ts);
+    expect(result).toBeDefined();
+    expect(result!.entryLo).toBe(4.5);
+    expect(result!.entryHi).toBe(4.65);
+    expect(result!.confidence).toBe("Medium");
+    expect(result!.stopLoss).toBe(0);
+    expect(result!.target1).toBe(0);
+    expect(result!.target2).toBe(0);
+    expect(result!.timeframe).toBe("");
+    expect(result!.riskReward).toBe("");
+  });
+
+  it("accepts entryLo/entryHi only and defaults confidence to Medium", () => {
+    const ts = { entryLo: 4.5, entryHi: 4.65 };
+    const result = validateTradeSetup(ts);
+    expect(result).toBeDefined();
+    expect(result!.confidence).toBe("Medium");
+  });
+
+  it("coerces unrecognized confidence to Medium", () => {
+    const ts = { entryLo: 10, entryHi: 11, confidence: "extremely high" };
+    expect(validateTradeSetup(ts)!.confidence).toBe("Medium");
+  });
+
   it("returns undefined for null/undefined", () => {
     expect(validateTradeSetup(null)).toBeUndefined();
     expect(validateTradeSetup(undefined)).toBeUndefined();
   });
 
-  it("returns undefined for malformed setup", () => {
+  it("returns undefined when entry range is missing or invalid", () => {
     expect(validateTradeSetup({ entryLo: "not a number" })).toBeUndefined();
+    expect(validateTradeSetup({ entryLo: 10 })).toBeUndefined();
+    expect(validateTradeSetup({ entryHi: 11 })).toBeUndefined();
+    expect(validateTradeSetup({ entryLo: NaN, entryHi: 11 })).toBeUndefined();
+    expect(validateTradeSetup({ entryLo: 10, entryHi: Infinity })).toBeUndefined();
   });
 });
 

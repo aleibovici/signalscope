@@ -127,22 +127,40 @@ function parseReACTResponse(content: string): ReACTResponse | null {
   }
 }
 
+/**
+ * Validates the LLM-emitted tradeSetup. Only `entryLo`, `entryHi`, and
+ * `confidence` are sourced from the model; the bracket math (stopLoss /
+ * target1 / target2 / timeframe / riskReward) is overwritten downstream by
+ * `applyAnchoredBracket()` using data-anchored values per stage. We therefore
+ * accept partial shapes and fill placeholders here — dropping the setup only
+ * when the entry range is missing or invalid.
+ */
 function validateTradeSetup(ts: unknown): TickerReport["tradeSetup"] | undefined {
   if (!ts || typeof ts !== "object") return undefined;
   const t = ts as Record<string, unknown>;
   if (
     typeof t.entryLo !== "number" ||
     typeof t.entryHi !== "number" ||
-    typeof t.stopLoss !== "number" ||
-    typeof t.target1 !== "number" ||
-    typeof t.target2 !== "number" ||
-    typeof t.timeframe !== "string" ||
-    typeof t.riskReward !== "string" ||
-    typeof t.confidence !== "string"
+    !Number.isFinite(t.entryLo) ||
+    !Number.isFinite(t.entryHi)
   ) {
     return undefined;
   }
-  return t as unknown as TickerReport["tradeSetup"];
+  const confidenceRaw = typeof t.confidence === "string" ? t.confidence.trim() : "";
+  const confidence: "Low" | "Medium" | "High" =
+    confidenceRaw === "High" || confidenceRaw === "Medium" || confidenceRaw === "Low"
+      ? confidenceRaw
+      : "Medium";
+  return {
+    entryLo: t.entryLo,
+    entryHi: t.entryHi,
+    stopLoss: typeof t.stopLoss === "number" && Number.isFinite(t.stopLoss) ? t.stopLoss : 0,
+    target1: typeof t.target1 === "number" && Number.isFinite(t.target1) ? t.target1 : 0,
+    target2: typeof t.target2 === "number" && Number.isFinite(t.target2) ? t.target2 : 0,
+    timeframe: typeof t.timeframe === "string" ? t.timeframe : "",
+    riskReward: typeof t.riskReward === "string" ? t.riskReward : "",
+    confidence,
+  };
 }
 
 function toTickerReport(fa: FinalAnswerResponse): TickerReport {

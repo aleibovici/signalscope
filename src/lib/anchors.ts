@@ -5,12 +5,12 @@ import { TTLCache } from "@/lib/cache";
 const WINDOW_DAYS = 90;
 const MIN_SAMPLE = 10;
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
-const STOP_R_R_RATIO = 1 / 1.5; // stop pct = target pct / 1.5
+export const STOP_R_R_RATIO = 1 / 1.5; // stop pct = target pct / 1.5
 
 // Fallback when the rolling window has too few samples (e.g. fresh deploy, new stage).
 // Numbers from a one-time analysis of production return7d (Buy/Strong Buy, 90d, P90).
 // FILTERED/UNSCORED never have a tradeSetup, so they share EARLY's conservative fallback.
-const FALLBACK_TARGET_PCT: Record<TickerStage, number> = {
+export const FALLBACK_TARGET_PCT: Record<TickerStage, number> = {
   EARLY: 0.06,
   FORMING: 0.15,
   CONFIRMED: 0.15,
