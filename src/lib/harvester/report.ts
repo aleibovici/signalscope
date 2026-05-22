@@ -9,7 +9,15 @@ import {
   hasHardCatalyst,
   recommendationHasTradeSetup,
 } from "./recommendation";
-import type { AggregatedSymbol, FundamentalData, NoveltyContext, SignalType, TickerReport, TradeSetup } from "./types";
+import type {
+  AggregatedSymbol,
+  FundamentalData,
+  NoveltyContext,
+  SignalType,
+  TickerReport,
+  TradeSetup,
+  TradeSetupDraft,
+} from "./types";
 
 /**
  * Override the AI's target/stop with data-anchored values derived from
@@ -20,7 +28,7 @@ import type { AggregatedSymbol, FundamentalData, NoveltyContext, SignalType, Tic
  * setup entirely if entry range is missing or invalid.
  */
 export async function applyAnchoredBracket(
-  setup: TradeSetup | undefined,
+  setup: TradeSetupDraft | undefined,
   stage: TickerStage,
 ): Promise<TradeSetup | undefined> {
   if (!setup || !Number.isFinite(setup.entryLo) || !Number.isFinite(setup.entryHi)) {
@@ -83,7 +91,7 @@ function buildTickerContext(
     signalCount: agg.signals.length,
     sourceCount: agg.sourceCount,
     sources: uniqueSources,
-    hasCatalystSource: hasHardCatalyst(uniqueSources),
+    hasHardCatalyst: hasHardCatalyst(uniqueSources),
     subredditCount: agg.subredditCount,
     avgVelocity: agg.avgVelocity,
     aiScore,
@@ -179,7 +187,7 @@ async function finalizeReport(
     buildRecommendationInput(agg, fundamentals, aiScore, stage, pndFlagged),
   );
 
-  let tradeSetup: TradeSetup | undefined;
+  let tradeSetup: TradeSetupDraft | undefined;
   if (raw.tradeSetup !== undefined && raw.tradeSetup !== null) {
     tradeSetup = validateTradeSetup(raw.tradeSetup);
     if (!tradeSetup && symbol) {

@@ -34,7 +34,6 @@ const fundamentals: FundamentalData = {
   exchange: "NASDAQ",
 };
 
-/** Catalyst + social corroboration (SEC_INSIDER + REDDIT). */
 function catalystAgg(overrides: Partial<AggregatedSymbol> = {}): AggregatedSymbol {
   return {
     symbol: "TEST",
@@ -54,8 +53,7 @@ function catalystAgg(overrides: Partial<AggregatedSymbol> = {}): AggregatedSymbo
   };
 }
 
-/** Social-only, single source. */
-function socialOnlyAgg(overrides: Partial<AggregatedSymbol> = {}): AggregatedSymbol {
+function socialOnlyAgg(): AggregatedSymbol {
   return {
     symbol: "TEST",
     signals: [{ symbol: "TEST", source: "REDDIT", title: "Hype", upvotes: 200 }],
@@ -67,7 +65,6 @@ function socialOnlyAgg(overrides: Partial<AggregatedSymbol> = {}): AggregatedSym
     avgVelocity: 8,
     momentum: { risingCount: 1, freshCount: 1, recentCount: 0, commentDerivedCount: 0, staleCount: 0 },
     medianSignalAgeHrs: 1,
-    ...overrides,
   };
 }
 
@@ -77,7 +74,6 @@ const proseOnly = {
   report: "Analysis paragraph.",
 };
 
-/** New LLM contract: entry range + confidence only. */
 const minimalTradeSetup = {
   entryLo: 9.5,
   entryHi: 10.2,
@@ -105,252 +101,101 @@ function mockReACTReport(body: Record<string, unknown>) {
   });
 }
 
-describe("report pipeline — recommendation v2 integration", () => {
+/** Integration tests for finalizeReport orchestration — rule logic lives in recommendation.test.ts */
+describe("report pipeline — finalizeReport orchestration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockResolveTradeBracket.mockResolvedValue(anchoredBracket);
   });
 
-  describe("generateTickerReport (single-shot)", () => {
-    it("assigns Strong Buy for FORMING + catalyst + multi-source + score>=60", async () => {
-      mockSingleShotReport({ ...proseOnly, tradeSetup: minimalTradeSetup });
-
-      const result = await generateTickerReport(
-        "TEST",
-        catalystAgg(),
-        fundamentals,
-        65,
-        undefined,
-        undefined,
-        undefined,
-        TickerStage.FORMING,
-      );
-
-      expect(result.recommendation).toBe("Strong Buy");
-      expect(result.tradeSetup).toBeDefined();
+  it("overrides LLM recommendation and strips tradeSetup when computed rec is Watch", async () => {
+    mockReACTReport({
+      ...proseOnly,
+      recommendation: "Strong Buy",
+      tradeSetup: minimalTradeSetup,
     });
 
-    it("assigns Buy (not Strong Buy) for EARLY + catalyst + multi-source", async () => {
-      mockSingleShotReport({ ...proseOnly, tradeSetup: minimalTradeSetup });
+    const result = await generateTickerReportReACT(
+      "TEST",
+      socialOnlyAgg(),
+      fundamentals,
+      40,
+      "scan1",
+      undefined,
+      undefined,
+      undefined,
+      TickerStage.EARLY,
+    );
 
-      const result = await generateTickerReport(
-        "TEST",
-        catalystAgg(),
-        fundamentals,
-        65,
-        undefined,
-        undefined,
-        undefined,
-        TickerStage.EARLY,
-      );
-
-      expect(result.recommendation).toBe("Buy");
-    });
-
-    it("assigns Watch for high-score EARLY social-only (no catalyst path)", async () => {
-      mockSingleShotReport({ ...proseOnly, tradeSetup: minimalTradeSetup });
-
-      const result = await generateTickerReport(
-        "TEST",
-        socialOnlyAgg(),
-        fundamentals,
-        85,
-        undefined,
-        undefined,
-        undefined,
-        TickerStage.EARLY,
-      );
-
-      expect(result.recommendation).toBe("Watch");
-      expect(result.tradeSetup).toBeUndefined();
-    });
-
-    it("assigns Buy for CONFIRMED when signals are fresh, Watch when stale", async () => {
-      mockSingleShotReport({ ...proseOnly, tradeSetup: minimalTradeSetup });
-
-      const fresh = await generateTickerReport(
-        "TEST",
-        catalystAgg({ medianSignalAgeHrs: 3 }),
-        fundamentals,
-        65,
-        undefined,
-        undefined,
-        undefined,
-        TickerStage.CONFIRMED,
-      );
-      expect(fresh.recommendation).toBe("Buy");
-
-      mockSingleShotReport({ ...proseOnly, tradeSetup: minimalTradeSetup });
-
-      const stale = await generateTickerReport(
-        "TEST",
-        catalystAgg({ medianSignalAgeHrs: 12 }),
-        fundamentals,
-        65,
-        undefined,
-        undefined,
-        undefined,
-        TickerStage.CONFIRMED,
-      );
-      expect(stale.recommendation).toBe("Watch");
-      expect(stale.tradeSetup).toBeUndefined();
-    });
-
-    it("accepts minimal LLM tradeSetup and applies data-anchored bracket on Buy", async () => {
-      mockSingleShotReport({ ...proseOnly, tradeSetup: minimalTradeSetup });
-
-      const result = await generateTickerReport(
-        "TEST",
-        catalystAgg(),
-        fundamentals,
-        65,
-        undefined,
-        undefined,
-        undefined,
-        TickerStage.FORMING,
-      );
-
-      expect(result.tradeSetup).toBeDefined();
-      // entry midpoint = (9.5 + 10.2) / 2 = 9.85
-      expect(result.tradeSetup!.entryLo).toBe(9.5);
-      expect(result.tradeSetup!.entryHi).toBe(10.2);
-      expect(result.tradeSetup!.target1).toBe(10.44); // 9.85 * 1.06
-      expect(result.tradeSetup!.stopLoss).toBe(9.46); // 9.85 * 0.96
-      expect(result.tradeSetup!.timeframe).toBe("up to 7 days");
-      expect(result.tradeSetup!.riskReward).toBe("1:1.5");
-      expect(mockResolveTradeBracket).toHaveBeenCalledWith(TickerStage.FORMING);
-    });
-
-    it("strips tradeSetup when computed recommendation is Watch even if LLM emitted one", async () => {
-      mockSingleShotReport({ ...proseOnly, tradeSetup: minimalTradeSetup });
-
-      const result = await generateTickerReport(
-        "TEST",
-        socialOnlyAgg(),
-        fundamentals,
-        40,
-        undefined,
-        undefined,
-        undefined,
-        TickerStage.EARLY,
-      );
-
-      expect(result.recommendation).toBe("Watch");
-      expect(result.tradeSetup).toBeUndefined();
-    });
-
-    it("detects catalyst from OPTIONS_FLOW and CONGRESS signal sources", async () => {
-      mockSingleShotReport({ ...proseOnly, tradeSetup: minimalTradeSetup });
-
-      const optionsAgg = catalystAgg({
-        signals: [
-          { symbol: "TEST", source: "REDDIT", title: "Chatter" },
-          { symbol: "TEST", source: "OPTIONS_FLOW", title: "Unusual calls", optionType: "call" },
-        ],
-      });
-
-      const optionsResult = await generateTickerReport(
-        "TEST",
-        optionsAgg,
-        fundamentals,
-        62,
-        undefined,
-        undefined,
-        undefined,
-        TickerStage.FORMING,
-      );
-      expect(optionsResult.recommendation).toBe("Strong Buy");
-
-      mockSingleShotReport({ ...proseOnly, tradeSetup: minimalTradeSetup });
-
-      const congressAgg = catalystAgg({
-        signals: [
-          { symbol: "TEST", source: "STOCKTWITS", title: "Buzz" },
-          { symbol: "TEST", source: "CONGRESS", title: "Senator purchase" },
-        ],
-      });
-
-      const congressResult = await generateTickerReport(
-        "TEST",
-        congressAgg,
-        fundamentals,
-        62,
-        undefined,
-        undefined,
-        undefined,
-        TickerStage.FORMING,
-      );
-      expect(congressResult.recommendation).toBe("Strong Buy");
-    });
-
-    it("does not treat volume spike alone as a hard catalyst (Buy B at most, not Strong Buy)", async () => {
-      mockSingleShotReport({ ...proseOnly, tradeSetup: minimalTradeSetup });
-
-      const volumeSpikeAgg = catalystAgg({
-        signals: [
-          { symbol: "TEST", source: "REDDIT", title: "Chatter" },
-          { symbol: "TEST", source: "VOLUME_SPIKE", title: "2x avg volume" },
-        ],
-      });
-
-      const result = await generateTickerReport(
-        "TEST",
-        volumeSpikeAgg,
-        fundamentals,
-        65,
-        undefined,
-        undefined,
-        undefined,
-        TickerStage.FORMING,
-      );
-
-      expect(result.recommendation).toBe("Buy");
-      expect(result.recommendation).not.toBe("Strong Buy");
-    });
+    expect(result.recommendation).toBe("Watch");
+    expect(result.tradeSetup).toBeUndefined();
   });
 
-  describe("generateTickerReportReACT", () => {
-    it("overrides any LLM recommendation with the deterministic v2 rule", async () => {
-      mockReACTReport({
-        ...proseOnly,
-        recommendation: "Strong Buy", // LLM must not win
-        tradeSetup: minimalTradeSetup,
-      });
+  it("accepts minimal LLM tradeSetup draft and applies data-anchored bracket", async () => {
+    mockSingleShotReport({ ...proseOnly, tradeSetup: minimalTradeSetup });
 
-      const result = await generateTickerReportReACT(
-        "TEST",
-        socialOnlyAgg(),
-        fundamentals,
-        40,
-        "scan1",
-        undefined,
-        undefined,
-        undefined,
-        TickerStage.EARLY,
-      );
+    const result = await generateTickerReport(
+      "TEST",
+      catalystAgg(),
+      fundamentals,
+      65,
+      undefined,
+      undefined,
+      undefined,
+      TickerStage.FORMING,
+    );
 
-      expect(result.recommendation).toBe("Watch");
-      expect(result.tradeSetup).toBeUndefined();
+    expect(result.recommendation).toBe("Strong Buy");
+    expect(result.tradeSetup).toBeDefined();
+    expect(result.tradeSetup!.entryLo).toBe(9.5);
+    expect(result.tradeSetup!.entryHi).toBe(10.2);
+    expect(result.tradeSetup!.target1).toBe(10.44);
+    expect(result.tradeSetup!.stopLoss).toBe(9.46);
+    expect(result.tradeSetup!.timeframe).toBe("up to 7 days");
+    expect(result.tradeSetup!.riskReward).toBe("1:1.5");
+    expect(mockResolveTradeBracket).toHaveBeenCalledWith(TickerStage.FORMING);
+  });
+
+  it("drops invalid tradeSetup before recommendation gating", async () => {
+    mockSingleShotReport({ ...proseOnly, tradeSetup: { entryLo: "bad" } });
+
+    const result = await generateTickerReport(
+      "TEST",
+      catalystAgg(),
+      fundamentals,
+      65,
+      undefined,
+      undefined,
+      undefined,
+      TickerStage.FORMING,
+    );
+
+    expect(result.recommendation).toBe("Strong Buy");
+    expect(result.tradeSetup).toBeUndefined();
+  });
+
+  it("uses buildRecommendationInput catalyst detection end-to-end", async () => {
+    mockSingleShotReport({ ...proseOnly, tradeSetup: minimalTradeSetup });
+
+    const volumeSpikeAgg = catalystAgg({
+      signals: [
+        { symbol: "TEST", source: "REDDIT", title: "Chatter" },
+        { symbol: "TEST", source: "VOLUME_SPIKE", title: "2x avg volume" },
+      ],
     });
 
-    it("preserves minimal tradeSetup through ReACT and anchors bracket for Strong Buy", async () => {
-      mockReACTReport({ ...proseOnly, tradeSetup: minimalTradeSetup });
+    const result = await generateTickerReport(
+      "TEST",
+      volumeSpikeAgg,
+      fundamentals,
+      65,
+      undefined,
+      undefined,
+      undefined,
+      TickerStage.FORMING,
+    );
 
-      const result = await generateTickerReportReACT(
-        "TEST",
-        catalystAgg(),
-        fundamentals,
-        65,
-        "scan1",
-        undefined,
-        undefined,
-        undefined,
-        TickerStage.FORMING,
-      );
-
-      expect(result.recommendation).toBe("Strong Buy");
-      expect(result.tradeSetup!.target1).toBeGreaterThan(0);
-      expect(result.tradeSetup!.stopLoss).toBeGreaterThan(0);
-    });
+    expect(result.recommendation).toBe("Buy");
+    expect(result.recommendation).not.toBe("Strong Buy");
   });
 });
