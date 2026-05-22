@@ -1,16 +1,26 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useTrendingTickers, type TrendingFilters, type TrendingTicker } from "@/hooks/use-trending";
 import { useVotes } from "@/hooks/use-votes";
-import { SignalCard } from "@/components/dashboard/signal-card";
+import { SignalCard, SignalRowHeader } from "@/components/dashboard/signal-card";
+import { SignalRowTable } from "@/components/dashboard/signal-row-table";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Select } from "@/components/ui/select";
 import { STAGE_LABELS } from "@/lib/stage-labels";
+import {
+  defaultSortDir,
+  loadRowSort,
+  saveRowSort,
+  sortTickers,
+  type SignalRowSortDir,
+  type SignalRowSortKey,
+} from "@/lib/signal-row-sort";
 
 const PAGE_SIZE = 12;
+const VIEW_MODE_KEY = "signalscope_view_mode";
 
 function formatTimeAgo(d: Date): string {
   const s = Math.floor((Date.now() - d.getTime()) / 1000);
@@ -155,9 +165,11 @@ function MultiSelectDropdown({
 function TrendingTickerCard({
   ticker,
   returnPeriod,
+  variant = "card",
 }: {
   ticker: TrendingTicker;
   returnPeriod: string;
+  variant?: "card" | "row";
 }) {
   const trending = useMemo(
     () => ({
@@ -167,14 +179,103 @@ function TrendingTickerCard({
     [ticker.trend, ticker.appearanceCount],
   );
 
-  return <SignalCard ticker={ticker} returnPeriod={returnPeriod} trending={trending} />;
+  return (
+    <SignalCard
+      ticker={ticker}
+      returnPeriod={returnPeriod}
+      trending={trending}
+      variant={variant}
+      showStageColumn
+    />
+  );
+}
+
+function ViewModeToggle({
+  viewMode,
+  onToggle,
+}: {
+  viewMode: "card" | "row";
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      title={viewMode === "card" ? "Switch to row view" : "Switch to card view"}
+      className="flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+    >
+      {viewMode === "card" ? (
+        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <line x1="8" y1="6" x2="21" y2="6" />
+          <line x1="8" y1="12" x2="21" y2="12" />
+          <line x1="8" y1="18" x2="21" y2="18" />
+          <line x1="3" y1="6" x2="3.01" y2="6" />
+          <line x1="3" y1="12" x2="3.01" y2="12" />
+          <line x1="3" y1="18" x2="3.01" y2="18" />
+        </svg>
+      ) : (
+        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <rect x="3" y="3" width="7" height="7" />
+          <rect x="14" y="3" width="7" height="7" />
+          <rect x="3" y="14" width="7" height="7" />
+          <rect x="14" y="14" width="7" height="7" />
+        </svg>
+      )}
+      {viewMode === "card" ? "Rows" : "Cards"}
+    </button>
+  );
 }
 
 export default function TrendingPage() {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<TrendingFilters>({ sortBy: "aiScore" });
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"card" | "row">("card");
+  const [sortKey, setSortKey] = useState<SignalRowSortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SignalRowSortDir>("desc");
   const { data, isLoading, isError, dataUpdatedAt } = useTrendingTickers(page, PAGE_SIZE, filters);
+
+  const returnPeriod = filters.returnPeriod || "7d";
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(VIEW_MODE_KEY);
+      if (saved === "row" || saved === "card") setViewMode(saved);
+      const savedSort = loadRowSort();
+      setSortKey(savedSort.key);
+      setSortDir(savedSort.dir);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const handleSort = useCallback((key: SignalRowSortKey) => {
+    if (sortKey === key) {
+      const next = sortDir === "desc" ? "asc" : "desc";
+      setSortDir(next);
+      saveRowSort(key, next);
+      return;
+    }
+    const nextDir = defaultSortDir(key);
+    setSortKey(key);
+    setSortDir(nextDir);
+    saveRowSort(key, nextDir);
+  }, [sortKey, sortDir]);
+
+  function toggleViewMode() {
+    const next = viewMode === "card" ? "row" : "card";
+    setViewMode(next);
+    try {
+      localStorage.setItem(VIEW_MODE_KEY, next);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const sortedTickers = useMemo(
+    () => sortTickers(data?.tickers ?? [], sortKey, sortDir, { returnPeriod }),
+    [data?.tickers, sortKey, sortDir, returnPeriod],
+  );
 
   // Single batched votes fetch for every symbol on the page; VoteButton's
   // useVoteFor reads from this cache entry instead of firing per-row requests.
@@ -253,6 +354,8 @@ export default function TrendingPage() {
           options={SORT_OPTIONS}
           renderValue={(o) => <span>Sort: {o?.label ?? "Appearances"}</span>}
         />
+
+        <ViewModeToggle viewMode={viewMode} onToggle={toggleViewMode} />
 
         {hasActiveFilters(filters) && (
           <button
@@ -373,15 +476,41 @@ export default function TrendingPage() {
         </div>
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-3">
-            {data.tickers.map((ticker) => (
-              <TrendingTickerCard
-                key={ticker.id}
-                ticker={ticker}
-                returnPeriod={filters.returnPeriod || "7d"}
-              />
-            ))}
-          </div>
+          {viewMode === "card" ? (
+            <div className="grid gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-3">
+              {sortedTickers.map((ticker) => (
+                <TrendingTickerCard
+                  key={ticker.id}
+                  ticker={ticker}
+                  returnPeriod={returnPeriod}
+                  variant="card"
+                />
+              ))}
+            </div>
+          ) : (
+            <SignalRowTable
+              caption="Trending tickers"
+              header={
+                <SignalRowHeader
+                  returnPeriod={returnPeriod}
+                  showStageColumn
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={handleSort}
+                />
+              }
+            >
+              {sortedTickers.map((ticker) => (
+                <div key={ticker.id} role="presentation">
+                  <TrendingTickerCard
+                    ticker={ticker}
+                    returnPeriod={returnPeriod}
+                    variant="row"
+                  />
+                </div>
+              ))}
+            </SignalRowTable>
+          )}
 
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-1">

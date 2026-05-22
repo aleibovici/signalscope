@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useScans, useScanDetail, type ValidatedTickerData } from "@/hooks/use-scans";
@@ -9,9 +9,18 @@ import { useVotes } from "@/hooks/use-votes";
 import { useWatchlist, useWatchlistTickers } from "@/hooks/use-watchlist";
 import { ScanSelector } from "@/components/dashboard/scan-selector";
 import { StageTabs } from "@/components/dashboard/stage-tabs";
-import { SignalCard } from "@/components/dashboard/signal-card";
+import { SignalCard, SignalRowHeader } from "@/components/dashboard/signal-card";
+import { SignalRowTable } from "@/components/dashboard/signal-row-table";
 import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
+import {
+  defaultSortDir,
+  loadRowSort,
+  saveRowSort,
+  sortTickers,
+  type SignalRowSortDir,
+  type SignalRowSortKey,
+} from "@/lib/signal-row-sort";
 
 function timeAgo(dateStr: string): string {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -47,6 +56,8 @@ function DashboardContent() {
   );
   const [selectedStage, setSelectedStage] = useState("Emerging");
   const [viewMode, setViewMode] = useState<"card" | "row">("card");
+  const [sortKey, setSortKey] = useState<SignalRowSortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SignalRowSortDir>("desc");
 
   // Restore stage from cookie after hydration to avoid SSR mismatch
   useEffect(() => {
@@ -60,15 +71,31 @@ function DashboardContent() {
     }
   }, []);
 
-  // Restore view mode from localStorage after hydration
+  // Restore view mode and row sort from localStorage after hydration
   useEffect(() => {
     try {
       const saved = localStorage.getItem(VIEW_MODE_KEY);
       if (saved === "row" || saved === "card") setViewMode(saved);
+      const savedSort = loadRowSort();
+      setSortKey(savedSort.key);
+      setSortDir(savedSort.dir);
     } catch {
       // localStorage unavailable — keep default
     }
   }, []);
+
+  const handleSort = useCallback((key: SignalRowSortKey) => {
+    if (sortKey === key) {
+      const next = sortDir === "desc" ? "asc" : "desc";
+      setSortDir(next);
+      saveRowSort(key, next);
+      return;
+    }
+    const nextDir = defaultSortDir(key);
+    setSortKey(key);
+    setSortDir(nextDir);
+    saveRowSort(key, nextDir);
+  }, [sortKey, sortDir]);
 
   function toggleViewMode() {
     const next = viewMode === "card" ? "row" : "card";
@@ -93,17 +120,25 @@ useScrollRestore("dashboard");
   const tickers = scanDetail?.tickers || [];
   const filteredRaw = tickers.filter((t) => t.stage === selectedStage);
 
-  // Bookmarked tickers float to top; within each group, API order (aiScore DESC, opportunityScore DESC) is preserved
-  const filtered = [...filteredRaw].sort((a, b) => {
-    const aB = bookmarkedSymbols.has(a.symbol) ? 0 : 1;
-    const bB = bookmarkedSymbols.has(b.symbol) ? 0 : 1;
-    return aB - bB;
-  });
-
-  // Watchlisted tickers missing from the current scan
   const scanSymbols = new Set(tickers.map((t) => t.symbol));
   const missingWatchlisted = (watchlistTickersData?.tickers ?? []).filter(
-    (t) => !scanSymbols.has(t.symbol) && bookmarkedSymbols.has(t.symbol)
+    (t) => !scanSymbols.has(t.symbol) && bookmarkedSymbols.has(t.symbol),
+  );
+
+  const filtered = useMemo(
+    () =>
+      sortTickers(filteredRaw, sortKey, sortDir, {
+        bookmarkedSymbols,
+      }),
+    [filteredRaw, sortKey, sortDir, bookmarkedSymbols],
+  );
+
+  const sortedWatchlistMissing = useMemo(
+    () =>
+      sortTickers(missingWatchlisted, sortKey, sortDir, {
+        bookmarkedSymbols,
+      }),
+    [missingWatchlisted, sortKey, sortDir, bookmarkedSymbols],
   );
 
   // Single batched votes fetch for every symbol on the page.
@@ -181,7 +216,7 @@ useScrollRestore("dashboard");
         counts={counts}
       />
 
-{session?.user && missingWatchlisted.length > 0 && !isLoading && (
+{session?.user && sortedWatchlistMissing.length > 0 && !isLoading && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
@@ -189,13 +224,33 @@ useScrollRestore("dashboard");
             </h2>
             <span className="text-xs text-gray-400 dark:text-zinc-500">From previous scans</span>
           </div>
-          <div className={viewMode === "card" ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col gap-1.5"}>
-            {missingWatchlisted.map((ticker: ValidatedTickerData) => (
-              <div key={ticker.id} className="opacity-75">
-                <SignalCard ticker={ticker} variant={viewMode} stageFilter={selectedStage} />
-              </div>
-            ))}
-          </div>
+          {viewMode === "card" ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {sortedWatchlistMissing.map((ticker: ValidatedTickerData) => (
+                <div key={ticker.id} className="opacity-75">
+                  <SignalCard ticker={ticker} variant={viewMode} stageFilter={selectedStage} showStageColumn />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <SignalRowTable
+              caption="Watchlist signals"
+              header={
+                <SignalRowHeader
+                  showStageColumn
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={handleSort}
+                />
+              }
+            >
+              {sortedWatchlistMissing.map((ticker: ValidatedTickerData) => (
+                <div key={ticker.id} role="presentation" className="opacity-75">
+                  <SignalCard ticker={ticker} variant={viewMode} stageFilter={selectedStage} showStageColumn />
+                </div>
+              ))}
+            </SignalRowTable>
+          )}
         </div>
       )}
 
@@ -212,13 +267,28 @@ useScrollRestore("dashboard");
           message={selectedScanId ? "No signals found for this stage." : "No scans available. Run a scan to detect breakout signals."}
         />
       ) : (
-        <div className={viewMode === "card" ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col gap-1.5"}>
-          {filtered.map((ticker: ValidatedTickerData, i) => (
-            <div key={ticker.id} id={i === 0 ? "tour-ticker-card" : undefined}>
-              <SignalCard ticker={ticker} variant={viewMode} stageFilter={selectedStage} />
-            </div>
-          ))}
-        </div>
+        viewMode === "card" ? (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {filtered.map((ticker: ValidatedTickerData, i) => (
+              <div key={ticker.id} id={i === 0 ? "tour-ticker-card" : undefined}>
+                <SignalCard ticker={ticker} variant={viewMode} stageFilter={selectedStage} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <SignalRowTable
+            caption="Signal scan results"
+            header={
+              <SignalRowHeader sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+            }
+          >
+            {filtered.map((ticker: ValidatedTickerData, i) => (
+              <div key={ticker.id} id={i === 0 ? "tour-ticker-card" : undefined} role="presentation">
+                <SignalCard ticker={ticker} variant={viewMode} stageFilter={selectedStage} />
+              </div>
+            ))}
+          </SignalRowTable>
+        )
       )}
     </div>
   );

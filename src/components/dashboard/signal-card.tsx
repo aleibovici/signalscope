@@ -1,11 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip } from "@/components/ui/tooltip";
 import type { TrendingTicker } from "@/hooks/use-trending";
 import type { ValidatedTickerData } from "@/hooks/use-scans";
+import {
+  type SignalRowSortDir,
+  type SignalRowSortKey,
+} from "@/lib/signal-row-sort";
+import { sortButtonAriaLabel } from "@/lib/signal-row-sort-labels";
 import { recommendationLevels, signalSources, signalStages } from "@/lib/methodology-data";
 import { stageLabel } from "@/lib/stage-labels";
 import { VoteButton } from "@/components/dashboard/vote-button";
@@ -247,6 +252,213 @@ function collectTags(ticker: ValidatedTickerData): string[] {
 }
 
 
+/** Shared grid for row variant — keeps columns aligned across rows. */
+export function signalRowGridClass(showStageColumn: boolean) {
+  const stage = showStageColumn ? "5rem_" : "";
+  return [
+    "grid w-full items-center gap-x-3",
+    showStageColumn
+      ? `grid-cols-[minmax(8.5rem,1.15fr)_4.25rem_${stage}minmax(5.5rem,7.5rem)_minmax(4.5rem,6rem)_2.5rem_3rem_4.5rem_3.75rem_3rem_3rem_2.25rem]`
+      : "grid-cols-[minmax(8.5rem,1.15fr)_4.25rem_minmax(5.5rem,7.5rem)_minmax(4.5rem,6rem)_2.5rem_3rem_4.5rem_3.75rem_3rem_3rem_2.25rem]",
+  ].join(" ");
+}
+
+function RowCell({
+  children,
+  className = "",
+  align = "left",
+}: {
+  children: ReactNode;
+  className?: string;
+  align?: "left" | "right";
+}) {
+  return (
+    <div
+      role="cell"
+      className={`min-w-0 ${align === "right" ? "text-right" : ""} ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function SignalRowHeaderCell({
+  children,
+  className = "",
+  align = "left",
+  sortKey,
+  activeSortKey,
+  sortDir,
+  onSort,
+  ariaLabel,
+}: {
+  children: ReactNode;
+  className?: string;
+  align?: "left" | "right" | "center";
+  sortKey?: SignalRowSortKey;
+  activeSortKey?: SignalRowSortKey | null;
+  sortDir?: SignalRowSortDir;
+  onSort?: (key: SignalRowSortKey) => void;
+  ariaLabel?: string;
+}) {
+  const alignClass =
+    align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left";
+  const justifyClass =
+    align === "right" ? "justify-end" : align === "center" ? "justify-center" : "justify-start";
+
+  if (sortKey && onSort) {
+    const isActive = activeSortKey === sortKey;
+    return (
+      <div
+        role="columnheader"
+        aria-sort={isActive ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
+        className={`min-w-0 ${alignClass} ${className}`}
+      >
+        <button
+          type="button"
+          onClick={() => onSort(sortKey)}
+          aria-label={sortButtonAriaLabel(sortKey, isActive, sortDir ?? "desc")}
+          className={`group/col flex w-full min-w-0 items-center gap-0.5 type-overline text-muted transition-colors hover:text-primary ${justifyClass}`}
+        >
+          <span className="truncate">{children}</span>
+          <span
+            className={`num shrink-0 text-[9px] leading-none ${isActive ? "text-blue-500 dark:text-blue-400" : "text-transparent group-hover/col:text-muted/60"}`}
+            aria-hidden="true"
+          >
+            {isActive && sortDir === "asc" ? "↑" : "↓"}
+          </span>
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      role="columnheader"
+      aria-label={ariaLabel}
+      className={`min-w-0 ${alignClass} ${className}`}
+    >
+      <span className={`type-overline truncate text-muted ${alignClass}`}>
+        {children}
+      </span>
+    </div>
+  );
+}
+
+export function SignalRowHeader({
+  returnPeriod = "7d",
+  showStageColumn = false,
+  sortKey = null,
+  sortDir = "desc",
+  onSort,
+}: {
+  returnPeriod?: string;
+  showStageColumn?: boolean;
+  sortKey?: SignalRowSortKey | null;
+  sortDir?: SignalRowSortDir;
+  onSort?: (key: SignalRowSortKey) => void;
+}) {
+  return (
+    <div role="row" className={`${signalRowGridClass(showStageColumn)} px-3 pb-0.5`}>
+      <SignalRowHeaderCell sortKey="symbol" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort}>
+        Ticker
+      </SignalRowHeaderCell>
+      <SignalRowHeaderCell sortKey="recommendation" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort}>
+        Rec
+      </SignalRowHeaderCell>
+      {showStageColumn && (
+        <SignalRowHeaderCell sortKey="stage" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort}>
+          Stage
+        </SignalRowHeaderCell>
+      )}
+      <SignalRowHeaderCell ariaLabel="Tags, not sortable">Tags</SignalRowHeaderCell>
+      <SignalRowHeaderCell sortKey="sources" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort}>
+        # Src
+      </SignalRowHeaderCell>
+      <SignalRowHeaderCell align="right" sortKey="aiScore" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort}>
+        AI
+      </SignalRowHeaderCell>
+      <SignalRowHeaderCell align="right" sortKey="opportunityScore" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort}>
+        Opp
+      </SignalRowHeaderCell>
+      <SignalRowHeaderCell align="right" sortKey="signalCount" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort}>
+        Signals
+      </SignalRowHeaderCell>
+      <SignalRowHeaderCell align="right" sortKey="price" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort}>
+        Price
+      </SignalRowHeaderCell>
+      <SignalRowHeaderCell align="right" sortKey="return" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort}>
+        {returnPeriod}
+      </SignalRowHeaderCell>
+      <SignalRowHeaderCell align="right" sortKey="netPremium" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort}>
+        Flow
+      </SignalRowHeaderCell>
+      <div role="columnheader" aria-label="Actions" className="sr-only">
+        Actions
+      </div>
+    </div>
+  );
+}
+
+function SignalRowMobile({
+  ticker,
+  returnPeriod,
+  retVal,
+  trending,
+}: {
+  ticker: ValidatedTickerData;
+  returnPeriod: string;
+  retVal: number | null | undefined;
+  trending?: SignalCardTrendingMeta;
+}) {
+  const returnColor =
+    retVal != null && retVal > 0
+      ? "text-green-600 dark:text-emerald-400"
+      : retVal != null && retVal < 0
+        ? "text-red-600 dark:text-red-400"
+        : "text-muted";
+
+  const metaParts: string[] = [];
+  if (trending) {
+    const cfg = trendConfig[trending.trend];
+    metaParts.push(`${cfg.label} · ${trending.appearanceCount}×`);
+  }
+  if (ticker.recommendation) metaParts.push(ticker.recommendation);
+  if (ticker.pndFlagged) metaParts.push("P&D Risk");
+  metaParts.push(`AI ${ticker.aiScore}`);
+  if (ticker.price != null) metaParts.push(`$${ticker.price.toFixed(2)}`);
+
+  return (
+    <div className="pointer-events-none relative z-1 flex items-center gap-3 py-2 pl-2 pr-3 md:hidden">
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 items-baseline gap-1.5">
+          <span className="shrink-0 text-sm font-semibold text-primary group-hover:text-blue-600 dark:group-hover:text-blue-400">
+            {ticker.symbol}
+          </span>
+          {ticker.name && (
+            <span className="truncate text-xs text-secondary">{ticker.name}</span>
+          )}
+        </div>
+        <p className="mt-0.5 truncate text-xs text-muted">
+          {metaParts.join(" · ")}
+        </p>
+      </div>
+      <div className={`shrink-0 text-right text-sm leading-tight ${returnColor}`}>
+        {retVal != null ? (
+          <p className="num font-semibold">
+            {retVal >= 0 ? "+" : ""}{(retVal * 100).toFixed(1)}% {returnPeriod}
+          </p>
+        ) : (
+          <p className="text-xs text-muted">—</p>
+        )}
+      </div>
+      <div className="pointer-events-auto shrink-0">
+        <VoteButton symbol={ticker.symbol} size="sm" fetchEnabled={false} />
+      </div>
+    </div>
+  );
+}
+
 type SignalCardProps = {
   ticker: ValidatedTickerData;
   returnPeriod?: string;
@@ -254,6 +466,8 @@ type SignalCardProps = {
   trending?: SignalCardTrendingMeta;
   /** When set, hides the stage pill on cards matching this filter (dashboard stage tab). */
   stageFilter?: string;
+  /** When true, reserves a stage column in row view (e.g. mixed-stage watchlist). */
+  showStageColumn?: boolean;
 };
 
 export function SignalCard({
@@ -262,6 +476,7 @@ export function SignalCard({
   variant = "card",
   trending,
   stageFilter,
+  showStageColumn = stageFilter == null,
 }: SignalCardProps) {
   const tags = useMemo(() => collectTags(ticker), [ticker]);
   const visibleTags = tags.slice(0, MAX_TAGS);
@@ -287,120 +502,179 @@ export function SignalCard({
     ticker.netPremium != null && ticker.netPremium !== 0 ? netPremiumTooltip(ticker) : undefined;
 
   if (variant === "row") {
+    const rowClass = [
+      "group relative min-w-0 cursor-pointer overflow-hidden rounded-lg bg-card transition-[background-color] duration-base hover:bg-surface-muted",
+      ticker.pndFlagged && "bg-red-500/[0.04] hover:bg-red-500/[0.08] dark:bg-red-950/20 dark:hover:bg-red-950/30",
+    ]
+      .filter(Boolean)
+      .join(" ");
+
     return (
-      <div className="group relative flex min-w-0 cursor-pointer items-center gap-2 overflow-hidden sm:gap-3 rounded-lg border border-border-default/90 bg-card px-3 py-2.5 shadow-sm transition-[border-color,background-color] duration-base hover:border-blue-300 hover:bg-surface-muted dark:hover:border-blue-500/35">
+      <div className={rowClass}>
+        <div
+          className={`absolute left-0 top-0 bottom-0 w-0.5 ${stageBarColors[stage] ?? "bg-zinc-400"}`}
+          aria-hidden="true"
+        />
         <Link
           href={`/ticker/${ticker.symbol}`}
           className="absolute inset-0 z-0 rounded-lg"
           aria-label={`Open ${ticker.symbol} detail`}
           draggable={false}
         />
-        <div className="pointer-events-none relative z-1 min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="text-sm font-semibold tracking-tight text-primary group-hover:text-blue-600 dark:group-hover:text-blue-400">
-              {ticker.symbol}
-            </span>
-            {recClass && recTip && (
+        <SignalRowMobile
+          ticker={ticker}
+          returnPeriod={returnPeriod}
+          retVal={retVal}
+          trending={trending}
+        />
+        <div
+          role="row"
+          className={`pointer-events-none relative z-1 hidden md:grid ${signalRowGridClass(showStageColumn)} px-3 py-1.5 pl-3.5`}
+        >
+          {/* Ticker */}
+          <RowCell>
+            <div className="flex min-w-0 items-baseline gap-1.5">
+              <span className="shrink-0 text-sm font-semibold tracking-tight text-primary group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                {ticker.symbol}
+              </span>
+              {ticker.name && (
+                <span className="hidden truncate type-caption text-secondary sm:block">{ticker.name}</span>
+              )}
+            </div>
+          </RowCell>
+          {/* Rec */}
+          <RowCell>
+            {recClass && recTip ? (
               <Tooltip side="bottom" align="start" content={recTip}>
-                <span className={`pointer-events-auto hidden sm:inline shrink-0 rounded border-[0.75px] px-1 py-[2px] text-[9px] font-bold uppercase tracking-[0.3px] ${recClass}`}>
+                <span className={`pointer-events-auto inline-block max-w-full truncate rounded border-[0.75px] px-1 py-[2px] text-[9px] font-bold uppercase tracking-[0.3px] ${recClass}`}>
                   {ticker.recommendation}
                 </span>
               </Tooltip>
+            ) : (
+              <span className="type-caption text-muted">—</span>
             )}
-            {showStageBadge && (
-              <Tooltip side="bottom" align="start" content={stageTip}>
-                <span className={`pointer-events-auto shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 type-overline ${stageClass}`}>
-                  {stage}
-                </span>
-              </Tooltip>
+          </RowCell>
+          {/* Stage */}
+          {showStageColumn && (
+            <RowCell>
+              {showStageBadge ? (
+                <Tooltip side="bottom" align="start" content={stageTip}>
+                  <span className={`pointer-events-auto inline-flex max-w-full items-center truncate rounded-full border px-2 py-0.5 type-overline ${stageClass}`}>
+                    {stage}
+                  </span>
+                </Tooltip>
+              ) : (
+                <span className="type-caption text-muted">—</span>
+              )}
+            </RowCell>
+          )}
+          {/* Tags */}
+          <RowCell className="flex items-center gap-1">
+            {visibleTags.length > 0 ? (
+              <>
+                {visibleTags.map((tag, i) => (
+                  <Tooltip key={`${tag}-${i}`} side="top" align="start" content={tagTooltip(tag, ticker)}>
+                    <span className={`pointer-events-auto truncate rounded px-1.5 py-0.5 text-[10px] ${tagStyleMap[tag] ?? "bg-surface-muted text-muted"}`}>
+                      {tag}
+                    </span>
+                  </Tooltip>
+                ))}
+                {overflow > 0 && (
+                  <Tooltip side="top" align="start" content={overflowList}>
+                    <span className="pointer-events-auto shrink-0 rounded bg-surface-muted px-1.5 py-0.5 text-[10px] text-muted">+{overflow}</span>
+                  </Tooltip>
+                )}
+              </>
+            ) : (
+              <span className="type-caption text-muted">—</span>
             )}
-            {ticker.name && (
-              <span className="hidden truncate type-caption text-secondary sm:block">{ticker.name}</span>
+          </RowCell>
+          {/* Sources — count shown in header as # Src; chips list source names */}
+          <RowCell className="flex items-center gap-1">
+            {sources.length > 0 ? (
+              <>
+                {sources.slice(0, 2).map((src) => (
+                  <Tooltip key={src} side="top" align="start" content={SOURCE_TOOLTIP_BY_ENUM[src] ?? src.replace(/_/g, " ")}>
+                    <span className="pointer-events-auto truncate rounded border border-border-default/80 px-1 py-[2px] text-[10px] font-bold uppercase tracking-[0.3px] text-muted">
+                      {src.replace(/_/g, " ")}
+                    </span>
+                  </Tooltip>
+                ))}
+                {sources.length > 2 && (
+                  <Tooltip
+                    side="top"
+                    align="start"
+                    content={sources.slice(2).map((s) => s.replace(/_/g, " ")).join(", ")}
+                  >
+                    <span className="pointer-events-auto shrink-0 text-[9px] text-muted">+{sources.length - 2}</span>
+                  </Tooltip>
+                )}
+              </>
+            ) : (
+              <span className="type-caption text-muted">—</span>
             )}
-          </div>
-        </div>
-        {/* Tags */}
-        <div className="pointer-events-none relative z-1 hidden items-center gap-1 md:flex">
-          {visibleTags.map((tag, i) => (
-            <Tooltip key={`${tag}-${i}`} side="top" align="start" content={tagTooltip(tag, ticker)}>
-              <span className={`pointer-events-auto rounded px-1.5 py-0.5 text-[10px] ${tagStyleMap[tag] ?? "bg-surface-muted text-muted"}`}>
-                {tag}
+          </RowCell>
+          {/* AI */}
+          <RowCell align="right">
+            <Tooltip side="bottom" align="end" content={AI_SCORE_TIP}>
+              <span className="pointer-events-auto num block text-base font-black leading-none text-blue-500 dark:text-blue-400">
+                {ticker.aiScore}
               </span>
             </Tooltip>
-          ))}
-          {overflow > 0 && (
-            <Tooltip side="top" align="start" content={overflowList}>
-              <span className="pointer-events-auto rounded bg-surface-muted px-1.5 py-0.5 text-[10px] text-muted">+{overflow}</span>
-            </Tooltip>
-          )}
-        </div>
-        {/* Sources */}
-        <div className="pointer-events-none relative z-1 hidden shrink-0 items-center gap-1 lg:flex">
-          {sources.slice(0, 2).map((src) => (
-            <Tooltip key={src} side="top" align="start" content={SOURCE_TOOLTIP_BY_ENUM[src] ?? src.replace(/_/g, " ")}>
-              <span className="pointer-events-auto rounded border border-border-default/80 px-1 py-[2px] text-[11px] font-bold uppercase tracking-[0.3px] text-muted">
-                {src.replace(/_/g, " ")}
+          </RowCell>
+          {/* Opp */}
+          <RowCell align="right">
+            <Tooltip side="bottom" align="end" content={OPP_SCORE_TIP}>
+              <span className="pointer-events-auto num block text-xs font-bold leading-none text-amber-500 dark:text-amber-400">
+                #{ticker.opportunityScore}
               </span>
             </Tooltip>
-          ))}
-          {sources.length > 2 && (
-            <Tooltip
-              side="top"
-              align="start"
-              content={sources.slice(2).map((s) => s.replace(/_/g, " ")).join(", ")}
-            >
-              <span className="pointer-events-auto text-[9px] text-muted">+{sources.length - 2}</span>
+          </RowCell>
+          {/* Signals */}
+          <RowCell align="right">
+            <Tooltip side="top" align="end" content={signalCountTip}>
+              <span className="pointer-events-auto flex items-center justify-end gap-1 text-[10px] text-muted">
+                <SignalDot stage={stage} />
+                <span className="num font-medium text-secondary">{ticker.signalCount}</span>
+              </span>
             </Tooltip>
-          )}
-        </div>
-        {/* AI score + Opp rank */}
-        <div className="pointer-events-none relative z-1 shrink-0 flex items-baseline gap-2">
-          <Tooltip side="bottom" align="start" content={AI_SCORE_TIP}>
-            <span className="pointer-events-auto flex items-baseline gap-1">
-              <span className="type-overline text-blue-500/70 dark:text-blue-400/60">AI</span>
-              <span className="num text-base font-black leading-none text-blue-500 dark:text-blue-400">{ticker.aiScore}</span>
+          </RowCell>
+          {/* Price */}
+          <RowCell align="right">
+            <span className="num text-sm font-semibold text-strong">
+              {ticker.price != null ? `$${ticker.price.toFixed(2)}` : "—"}
             </span>
-          </Tooltip>
-          <Tooltip side="bottom" align="end" content={OPP_SCORE_TIP}>
-            <span className="pointer-events-auto hidden sm:flex items-baseline gap-0.5">
-              <span className="type-overline text-amber-500/70 dark:text-amber-400/60">Opp</span>
-              <span className="num text-xs font-bold leading-none text-amber-500 dark:text-amber-400">#{ticker.opportunityScore}</span>
-            </span>
-          </Tooltip>
-        </div>
-        {/* Signal count (lg+) */}
-        <Tooltip side="top" align="end" content={signalCountTip}>
-          <span className="pointer-events-auto relative z-1 hidden shrink-0 items-center gap-1 text-[10px] text-muted lg:flex">
-            <SignalDot stage={stage} />
-            <span className="num font-medium text-secondary">{ticker.signalCount}</span>
-            <span>{signalCountLabel}</span>
-          </span>
-        </Tooltip>
-        {/* Price + return + net premium */}
-        {ticker.price != null && (
-          <div className="pointer-events-none relative z-1 shrink-0 flex flex-col items-end">
-            <span className="num text-sm font-semibold text-strong">${ticker.price.toFixed(2)}</span>
-            {retVal != null && (
+          </RowCell>
+          {/* Return */}
+          <RowCell align="right">
+            {retVal != null ? (
               <Tooltip side="top" align="end" content={returnTooltip(returnPeriod)}>
-                <span className={`pointer-events-auto num text-[10px] font-semibold leading-tight ${retVal >= 0 ? "text-green-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+                <span className={`pointer-events-auto num text-xs font-semibold ${retVal >= 0 ? "text-green-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
                   {retVal >= 0 ? "+" : ""}{(retVal * 100).toFixed(1)}%
                 </span>
               </Tooltip>
+            ) : (
+              <span className="type-caption text-muted">—</span>
             )}
-            {netPremiumTip && ticker.netPremium != null && (
+          </RowCell>
+          {/* Net premium flow */}
+          <RowCell align="right">
+            {netPremiumTip && ticker.netPremium != null ? (
               <Tooltip side="top" align="end" content={netPremiumTip}>
                 <span
-                  className={`pointer-events-auto num text-[10px] font-semibold leading-tight ${ticker.netPremium > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}
+                  className={`pointer-events-auto num text-xs font-semibold ${ticker.netPremium > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}
                 >
                   {ticker.netPremium > 0 ? "+" : ""}${(Math.abs(ticker.netPremium) / 1e6).toFixed(1)}M
                 </span>
               </Tooltip>
+            ) : (
+              <span className="type-caption text-muted">—</span>
             )}
-          </div>
-        )}
-        <div className="pointer-events-auto relative z-1 flex shrink-0 items-center gap-2">
-          <VoteButton symbol={ticker.symbol} size="sm" fetchEnabled={false} />
-          <CardChevron />
+          </RowCell>
+          {/* Actions */}
+          <RowCell align="right" className="pointer-events-auto flex items-center justify-end">
+            <VoteButton symbol={ticker.symbol} size="sm" fetchEnabled={false} />
+          </RowCell>
         </div>
       </div>
     );
