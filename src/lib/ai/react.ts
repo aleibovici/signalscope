@@ -32,7 +32,8 @@ interface FinalAnswerResponse {
   action: "final_answer";
   catalyst: string;
   risks: string;
-  recommendation: string;
+  /** Optional — recommendation is computed server-side; LLM should not emit it. */
+  recommendation?: string;
   report: string;
   tradeSetup?: TickerReport["tradeSetup"];
 }
@@ -50,7 +51,7 @@ FORMAT 1 — Call a tool:
 {"action":"tool_call","tool":"<tool_name>","parameters":{...},"reasoning":"<why you need this data>"}
 
 FORMAT 2 — Final report (when you have enough data):
-{"action":"final_answer","catalyst":"...","risks":"...","recommendation":"...","report":"...","tradeSetup":{...}}
+{"action":"final_answer","catalyst":"...","risks":"...","report":"...","tradeSetup":{...}}
 
 The final_answer format must match the report JSON schema described above.
 
@@ -108,7 +109,6 @@ function parseReACTResponse(content: string): ReACTResponse | null {
       parsed.action === "final_answer" &&
       typeof parsed.catalyst === "string" &&
       typeof parsed.risks === "string" &&
-      typeof parsed.recommendation === "string" &&
       typeof parsed.report === "string"
     ) {
       return parsed as FinalAnswerResponse;
@@ -117,7 +117,6 @@ function parseReACTResponse(content: string): ReACTResponse | null {
     if (
       typeof parsed.catalyst === "string" &&
       typeof parsed.risks === "string" &&
-      typeof parsed.recommendation === "string" &&
       typeof parsed.report === "string"
     ) {
       return { action: "final_answer", ...parsed } as FinalAnswerResponse;
@@ -150,7 +149,8 @@ function toTickerReport(fa: FinalAnswerResponse): TickerReport {
   return {
     catalyst: fa.catalyst,
     risks: fa.risks,
-    recommendation: fa.recommendation,
+    // Placeholder — caller overwrites via deriveRecommendation server-side.
+    recommendation: fa.recommendation ?? "Watch",
     report: fa.report,
     tradeSetup: validateTradeSetup(fa.tradeSetup),
   };

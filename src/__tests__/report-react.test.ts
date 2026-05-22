@@ -66,11 +66,15 @@ const sampleNovelty: NoveltyContext = {
   isNovel: true,
 };
 
+// Note: recommendation is intentionally absent — the LLM no longer emits it.
+// The deterministic deriveRecommendation() in src/lib/harvester/recommendation.ts
+// computes it from the same inputs the rest of the pipeline uses. For the
+// sampleAgg below (SEC_INSIDER + REDDIT, sourceCount=2) with aiScore=75 used
+// in tests, the rule produces "Buy" via the catalyst-led path.
 const reportResponse = {
   action: "final_answer",
   catalyst: "CEO purchased $500K of stock — insider buying signals confidence.",
   risks: "Large-cap, limited upside from current level.",
-  recommendation: "Buy",
   report: "Apple shows insider buying confirmation alongside social momentum. The CEO purchase of $500K is notable. Multiple sources corroborate interest. Technical setup looks favorable near 52-week range midpoint.",
   tradeSetup: {
     entryLo: 173,
@@ -160,7 +164,6 @@ describe("generateTickerReportReACT", () => {
         content: JSON.stringify({
           catalyst: "Fallback catalyst",
           risks: "Fallback risks",
-          recommendation: "Watch",
           report: "Fallback report.",
         }),
         provider: "openai",
@@ -179,11 +182,13 @@ describe("generateTickerReportReACT", () => {
       content: JSON.stringify({
         ...reportResponse,
         tradeSetup: undefined,
-        recommendation: "Watch",
       }),
       provider: "openai",
     });
 
+    // sampleAgg has SEC_INSIDER + REDDIT (catalyst + sourceCount=2), but
+    // aiScore=50 falls below all Buy paths (catalyst-led needs >=55), so
+    // the deterministic rule returns Watch.
     const result = await generateTickerReportReACT(
       "AAPL", sampleAgg, null, 50, "scan1"
     );
