@@ -10,8 +10,16 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-05-23",
-    title: "Restored trade setups on Buy and Strong Buy reports",
+    title: "Emerging-focused recommendations and restored trade setups",
     changes: [
+      {
+        category: "improved",
+        items: [
+          "Recommendation rule re-anchored on the platform's actual purpose — surfacing emerging stocks before consensus forms. Strong Buy is now reserved for Building-stage tickers with a verifiable catalyst (insider / congress / options) plus two or more sources of corroboration and AI score 60+ (calibration: +2.2% mean 7-day return, 65% hit rate). Buy is reachable from Emerging or Building stage with a catalyst, from Building with multi-source social momentum, or from Consensus only when signals are still fresh (≤6h). Consensus is capped at Buy because by the time the crowd notices, most of the move is played out.",
+          "Re-calibration found that high-AI-score Emerging-stage signals actually underperform baseline (mean −0.2% / 43% hit at score≥70 with catalyst). Those tickers still surface on the dashboard at the Emerging stage, but are now labeled Watch rather than carry a Buy label the data does not support.",
+          "Recommendation rule version bumped to 2. Existing reports keep their old labels until the next harvest cycle re-scores each row.",
+        ],
+      },
       {
         category: "fixed",
         items: [

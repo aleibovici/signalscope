@@ -150,17 +150,17 @@ export const recommendationLevels: RecommendationLevel[] = [
   {
     level: "Strong Buy",
     color: "bg-green-600 text-white dark:bg-green-700 dark:text-white",
-    desc: "Consensus stage with a verifiable catalyst (insider buy, congressional trade, or unusual options flow), three or more corroborating sources, AI score 70+, and fresh signals (median age ≤ 6h). Rare by design — the calibration sample over the last 90 days hit a 75% positive 7-day rate.",
+    desc: "Building stage with a verifiable catalyst (insider buy, congressional trade, or unusual options flow), two or more corroborating sources, and AI score 60+. The 'caught it while it's still emerging and the smart-money signal is real' zone — the calibration sample over the last 90 days hit a 65% positive 7-day rate at +2.2% mean return.",
   },
   {
     level: "Buy",
     color: "bg-green-100 text-green-800 dark:bg-green-950/50 dark:text-green-300",
-    desc: "Either Consensus stage with AI score 60+, or a verifiable catalyst with two or more sources and AI score 55+. Both paths cleared a +2.5% mean 7-day return and 61%+ hit rate in calibration.",
+    desc: "One of three paths: Emerging or Building stage with a verifiable catalyst, two or more sources, and AI score 55+ (calibration: +2.5% mean 7-day, 63% hit rate); Building stage with two or more sources and AI score 60+ (calibration: +1.6% / 60% hit); or Consensus stage with AI score 60+ but only when signals are still fresh (median age ≤ 6h, calibration: +2.4% / 61% hit). Consensus is capped at Buy because by the time a ticker reaches consensus the move is largely played out.",
   },
   {
     level: "Watch",
     color: "bg-yellow-100 text-yellow-800 dark:bg-amber-950/40 dark:text-amber-300",
-    desc: "Interesting signal but does not yet meet the Buy thresholds. The default label — most signals start here.",
+    desc: "Interesting signal that does not (yet) meet the Buy thresholds. Includes all Emerging-stage tickers without a multi-source catalyst — calibration showed high-AI-score Emerging signals actually underperform baseline, so we surface them on the dashboard but do not label them Buy. The default label — most signals start here.",
   },
   {
     level: "Avoid",
