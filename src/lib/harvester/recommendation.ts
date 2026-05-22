@@ -13,6 +13,10 @@
 // FORMING+src>=2+score>=60 (mean7d=+1.52%, hit7d=60.4%) was tested as a
 // third Buy path and rejected — it cleared hit_rate but failed the mean
 // return bar (+2% required). Those signals fall through to Watch.
+//
+// aiScore<20+no_catalyst was tested as an Avoid path and rejected —
+// hit7d=49.0% is at baseline, so calling these Avoid would overstate
+// confidence. Those signals also fall through to Watch.
 
 import type { TickerStage } from "@/generated/prisma/client";
 
@@ -40,10 +44,11 @@ export const RECOMMENDATION_RULE_VERSION = 1;
  */
 export function deriveRecommendation(ctx: RecommendationInput): Recommendation {
   // --- Hard Avoid (override everything) ---
+  // Only paths that showed sub-baseline hit rates in calibration. Low score
+  // alone is noise (hit~baseline) and falls through to Watch, not Avoid.
   if (ctx.stage === "FILTERED") return "Avoid";
   if (ctx.pndFlagged) return "Avoid";
   if (ctx.price !== null && ctx.price < 0.12) return "Avoid";
-  if (ctx.aiScore < 20 && !ctx.hasCatalystSource) return "Avoid";
 
   // --- Strong Buy (rare by design) ---
   const signalsFresh = ctx.medianSignalAgeHrs === null || ctx.medianSignalAgeHrs <= 6;
