@@ -35,18 +35,48 @@
 //   dashboard without a recommendation label the data cannot support.
 
 import type { TickerStage } from "@/generated/prisma/client";
+import type { AggregatedSymbol, FundamentalData, Source } from "./types";
 
 export type Recommendation = "Strong Buy" | "Buy" | "Watch" | "Avoid";
 
+/** Insider / options / congress — the only sources that count as a hard catalyst for rec rules. */
+export const HARD_CATALYST_SOURCES = new Set<Source>(["SEC_INSIDER", "OPTIONS_FLOW", "CONGRESS"]);
+
+export function hasHardCatalyst(sources: Iterable<Source>): boolean {
+  for (const source of sources) {
+    if (HARD_CATALYST_SOURCES.has(source)) return true;
+  }
+  return false;
+}
+
 export interface RecommendationInput {
   aiScore: number;
-  stage: TickerStage | "EARLY" | "FORMING" | "CONFIRMED" | "FILTERED" | "UNSCORED";
+  stage: TickerStage;
   sourceCount: number;
   hasCatalystSource: boolean;
   pndFlagged: boolean;
   price: number | null;
   /** null when signals are non-social (insider, congress, options) — treated as fresh */
   medianSignalAgeHrs: number | null;
+}
+
+/** Build the pure-function input from pipeline aggregates — single canonical catalyst check. */
+export function buildRecommendationInput(
+  agg: AggregatedSymbol,
+  fundamentals: FundamentalData | null,
+  aiScore: number,
+  stage: TickerStage,
+  pndFlagged: boolean,
+): RecommendationInput {
+  return {
+    aiScore,
+    stage,
+    sourceCount: agg.sourceCount,
+    hasCatalystSource: hasHardCatalyst(agg.signals.map((s) => s.source)),
+    pndFlagged,
+    price: fundamentals?.price ?? null,
+    medianSignalAgeHrs: agg.medianSignalAgeHrs,
+  };
 }
 
 /** Bump when rule semantics change so downstream consumers can detect drift. */

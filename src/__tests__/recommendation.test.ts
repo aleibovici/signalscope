@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
+import { TickerStage } from "@/generated/prisma/client";
 import {
+  buildRecommendationInput,
   deriveRecommendation,
+  hasHardCatalyst,
   recommendationHasTradeSetup,
   RECOMMENDATION_RULE_VERSION,
   type Recommendation,
   type RecommendationInput,
 } from "@/lib/harvester/recommendation";
+import type { AggregatedSymbol, FundamentalData } from "@/lib/harvester/types";
 
 function input(overrides: Partial<RecommendationInput> = {}): RecommendationInput {
   return {
@@ -357,6 +361,58 @@ describe("recommendationHasTradeSetup", () => {
 describe("RECOMMENDATION_RULE_VERSION", () => {
   it("is 2 after the emerging-focused rule change", () => {
     expect(RECOMMENDATION_RULE_VERSION).toBe(2);
+  });
+});
+
+describe("hasHardCatalyst", () => {
+  it("returns true for insider, options, and congress", () => {
+    expect(hasHardCatalyst(["SEC_INSIDER"])).toBe(true);
+    expect(hasHardCatalyst(["OPTIONS_FLOW"])).toBe(true);
+    expect(hasHardCatalyst(["CONGRESS"])).toBe(true);
+  });
+
+  it("returns false for volume spike, SEC filing, and social-only sources", () => {
+    expect(hasHardCatalyst(["VOLUME_SPIKE", "REDDIT"])).toBe(false);
+    expect(hasHardCatalyst(["SEC_FILING"])).toBe(false);
+    expect(hasHardCatalyst(["REDDIT", "STOCKTWITS"])).toBe(false);
+  });
+});
+
+describe("buildRecommendationInput", () => {
+  const baseAgg = (): AggregatedSymbol => ({
+    symbol: "TEST",
+    signals: [
+      { symbol: "TEST", source: "REDDIT", title: "Chatter" },
+      { symbol: "TEST", source: "VOLUME_SPIKE", title: "2x volume" },
+    ],
+    sourceCount: 2,
+    weightedSourceScore: 2,
+    subredditCount: 1,
+    totalUpvotes: 50,
+    totalComments: 5,
+    avgVelocity: 2,
+    momentum: { risingCount: 1, freshCount: 1, recentCount: 0, commentDerivedCount: 0, staleCount: 0 },
+    medianSignalAgeHrs: 2,
+  });
+
+  it("does not treat volume spike as a hard catalyst", () => {
+    const fundamentals: FundamentalData = {
+      price: 10,
+      marketCap: 500_000_000,
+      shortFloat: 0.08,
+      fiftyTwoWeekRange: "6 - 14",
+      name: "Test",
+      sector: "Tech",
+      exchange: "NASDAQ",
+    };
+    const recInput = buildRecommendationInput(baseAgg(), fundamentals, 65, TickerStage.FORMING, false);
+    expect(recInput.hasCatalystSource).toBe(false);
+  });
+
+  it("matches deriveRecommendation when passed through", () => {
+    const recInput = buildRecommendationInput(baseAgg(), null, 65, TickerStage.FORMING, false);
+    expect(deriveRecommendation(recInput)).toBe("Buy"); // Path B: FORMING + src>=2 + score>=60
+    expect(deriveRecommendation(recInput)).not.toBe("Strong Buy");
   });
 });
 
