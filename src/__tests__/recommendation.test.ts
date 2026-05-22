@@ -30,11 +30,14 @@ describe("deriveRecommendation", () => {
     ).toBe("Avoid");
   });
 
-  it("returns Avoid for very low score with no catalyst", () => {
-    expect(deriveRecommendation(input({ aiScore: 15, hasCatalystSource: false }))).toBe("Avoid");
+  it("returns Watch (not Avoid) for very low score with no catalyst", () => {
+    // Calibration showed score<20+no_catalyst has hit7d=49% — at baseline,
+    // not actively negative. Falls through to Watch rather than overstating
+    // confidence with Avoid.
+    expect(deriveRecommendation(input({ aiScore: 15, hasCatalystSource: false }))).toBe("Watch");
   });
 
-  it("does NOT return Avoid for low score when catalyst exists", () => {
+  it("does not return Avoid when only a low score is present", () => {
     expect(
       deriveRecommendation(input({ aiScore: 15, hasCatalystSource: true, sourceCount: 1 })),
     ).not.toBe("Avoid");

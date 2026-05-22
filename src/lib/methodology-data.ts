@@ -165,7 +165,7 @@ export const recommendationLevels: RecommendationLevel[] = [
   {
     level: "Avoid",
     color: "bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300",
-    desc: "Flagged by the pump-and-dump filter, price under $0.12, AI score under 20 with no catalyst source, or Filtered stage. All four paths showed sub-baseline hit rates in calibration.",
+    desc: "Flagged by the pump-and-dump filter, price under $0.12, or Filtered stage. Each path showed sub-baseline hit rates in calibration — low scores alone fall through to Watch rather than overstate confidence with Avoid.",
   },
 ];
 
