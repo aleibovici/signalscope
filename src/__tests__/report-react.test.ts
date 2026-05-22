@@ -195,4 +195,41 @@ describe("generateTickerReportReACT", () => {
 
     expect(result.recommendation).toBe("Watch");
   });
+
+  it("drops tradeSetup when computed recommendation is Watch (LLM emitted one)", async () => {
+    // LLM emits a tradeSetup, but the deterministic rule will produce Watch
+    // for aiScore=50 (below the catalyst-led Buy bar of 55).
+    mockChatJSON.mockResolvedValue({
+      content: JSON.stringify(reportResponse),
+      provider: "openai",
+    });
+
+    const result = await generateTickerReportReACT(
+      "AAPL", sampleAgg, sampleFundamentals, 50, "scan1",
+      "insider_buy", sampleNovelty
+    );
+
+    expect(result.recommendation).toBe("Watch");
+    expect(result.tradeSetup).toBeUndefined();
+  });
+
+  it("returns Avoid + drops tradeSetup when pndFlagged is true", async () => {
+    // LLM emits Strong-Buy-quality data + tradeSetup, but pndFlagged forces Avoid
+    // server-side. The trade setup must be stripped.
+    mockChatJSON.mockResolvedValue({
+      content: JSON.stringify(reportResponse),
+      provider: "openai",
+    });
+
+    const result = await generateTickerReportReACT(
+      "AAPL", sampleAgg, sampleFundamentals, 90, "scan1",
+      "insider_buy", sampleNovelty,
+      undefined,
+      "CONFIRMED",
+      true, // pndFlagged
+    );
+
+    expect(result.recommendation).toBe("Avoid");
+    expect(result.tradeSetup).toBeUndefined();
+  });
 });
