@@ -1,4 +1,5 @@
 import type { ValidatedTickerData } from "@/hooks/use-scans";
+import { returnFieldForPeriod, type ReturnPeriod, DEFAULT_RETURN_PERIOD } from "@/lib/return-period";
 
 export type SignalRowSortKey =
   | "symbol"
@@ -29,24 +30,11 @@ const STAGE_RANK: Record<string, number> = {
   Unscored: 0,
 };
 
+export const LEGACY_ROW_SORT_KEY = "signalscope_row_sort";
+export const DASHBOARD_ROW_SORT_KEY = "signalscope_row_sort_dashboard";
+
 export function defaultSortDir(key: SignalRowSortKey): SignalRowSortDir {
   return key === "symbol" ? "asc" : "desc";
-}
-
-function returnField(period: string): keyof ValidatedTickerData {
-  switch (period) {
-    case "1d":
-      return "return1d";
-    case "3d":
-      return "return3d";
-    case "14d":
-      return "return14d";
-    case "30d":
-      return "return30d";
-    case "7d":
-    default:
-      return "return7d";
-  }
 }
 
 function numVal(value: number | null | undefined): number {
@@ -62,7 +50,7 @@ export function compareTickers(
   a: ValidatedTickerData,
   b: ValidatedTickerData,
   key: SignalRowSortKey,
-  returnPeriod = "7d",
+  returnPeriod: ReturnPeriod = DEFAULT_RETURN_PERIOD,
 ): number {
   let cmp = 0;
   switch (key) {
@@ -91,8 +79,8 @@ export function compareTickers(
       cmp = numVal(a.price) - numVal(b.price);
       break;
     case "return": {
-      const field = returnField(returnPeriod);
-      cmp = numVal(a[field] as number | null | undefined) - numVal(b[field] as number | null | undefined);
+      const field = returnFieldForPeriod(returnPeriod);
+      cmp = numVal(a[field]) - numVal(b[field]);
       break;
     }
     case "netPremium":
@@ -108,11 +96,11 @@ export function sortTickers(
   sortKey: SignalRowSortKey | null,
   sortDir: SignalRowSortDir,
   options?: {
-    returnPeriod?: string;
+    returnPeriod?: ReturnPeriod;
     bookmarkedSymbols?: Set<string>;
   },
 ): ValidatedTickerData[] {
-  const returnPeriod = options?.returnPeriod ?? "7d";
+  const returnPeriod = options?.returnPeriod ?? DEFAULT_RETURN_PERIOD;
   const bookmarkedSymbols = options?.bookmarkedSymbols;
 
   if (!sortKey) {
@@ -130,11 +118,15 @@ export function sortTickers(
   );
 }
 
-export const SIGNAL_ROW_SORT_KEY = "signalscope_row_sort";
-
-export function loadRowSort(): { key: SignalRowSortKey | null; dir: SignalRowSortDir } {
+export function loadRowSort(storageKey: string = DASHBOARD_ROW_SORT_KEY): {
+  key: SignalRowSortKey | null;
+  dir: SignalRowSortDir;
+} {
   try {
-    const raw = localStorage.getItem(SIGNAL_ROW_SORT_KEY);
+    let raw = localStorage.getItem(storageKey);
+    if (!raw && storageKey === DASHBOARD_ROW_SORT_KEY) {
+      raw = localStorage.getItem(LEGACY_ROW_SORT_KEY);
+    }
     if (!raw) return { key: null, dir: "desc" };
     const parsed = JSON.parse(raw) as { key?: SignalRowSortKey | null; dir?: SignalRowSortDir };
     return { key: parsed.key ?? null, dir: parsed.dir ?? "desc" };
@@ -143,9 +135,13 @@ export function loadRowSort(): { key: SignalRowSortKey | null; dir: SignalRowSor
   }
 }
 
-export function saveRowSort(key: SignalRowSortKey | null, dir: SignalRowSortDir) {
+export function saveRowSort(
+  storageKey: string,
+  key: SignalRowSortKey | null,
+  dir: SignalRowSortDir,
+) {
   try {
-    localStorage.setItem(SIGNAL_ROW_SORT_KEY, JSON.stringify({ key, dir }));
+    localStorage.setItem(storageKey, JSON.stringify({ key, dir }));
   } catch {
     /* ignore */
   }

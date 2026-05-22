@@ -19,7 +19,6 @@ const EQUITY_PLOT_W = EQUITY_CHART_W - EQUITY_PAD.left - EQUITY_PAD.right;
 const EQUITY_PLOT_H = EQUITY_CHART_H - EQUITY_PAD.top - EQUITY_PAD.bottom;
 
 const INTERVALS = [
-  { label: "1d", days: 1 },
   { label: "3d", days: 3 },
   { label: "7d", days: 7 },
   { label: "14d", days: 14 },
