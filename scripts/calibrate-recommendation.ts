@@ -2,6 +2,7 @@
 // hit-rate and mean realized 3d/7d return on the last 90d of TickerPerformance.
 // Run: npx tsx scripts/calibrate-recommendation.ts
 
+import "dotenv/config";
 import { prisma } from "@/lib/prisma";
 
 interface Row {
@@ -12,6 +13,7 @@ interface Row {
   hasCatalystSource: boolean;
   pndFlagged: boolean;
   price: number | null;
+  medianSignalAgeHrs: number | null;
   return3d: number | null;
   return7d: number | null;
 }
@@ -36,6 +38,7 @@ async function main() {
           sourceCount: true,
           pndFlagged: true,
           price: true,
+          medianSignalAgeHrs: true,
         },
       },
     },
@@ -76,6 +79,7 @@ async function main() {
         hasCatalystSource: catalystKeys.has(`${vt.scanId}|${vt.symbol}`),
         pndFlagged: vt.pndFlagged ?? false,
         price: vt.price,
+        medianSignalAgeHrs: vt.medianSignalAgeHrs,
         return3d: p.return3d,
         return7d: p.return7d,
       };
@@ -98,24 +102,72 @@ async function main() {
     );
   }
 
-  console.log("== Strong Buy candidates ==");
-  evaluate("CONFIRMED + catalyst + src>=3 + score>=70", (r) =>
-    r.stage === "CONFIRMED" && r.hasCatalystSource && r.sourceCount >= 3 && r.aiScore >= 70
+  // --- Emerging-focused taxonomy (2026-05-23 re-calibration) ---
+  // Product intent: surface emerging stocks. CONFIRMED = "consensus / already
+  // moved" — capped at Buy and only when signals are still fresh. Strong Buy
+  // is reserved for EARLY-stage signals (truly emerging) with a hard catalyst.
+  const isEmerging = (r: Row) => r.stage === "EARLY" || r.stage === "FORMING";
+  const signalsFresh = (r: Row) =>
+    r.medianSignalAgeHrs === null || r.medianSignalAgeHrs <= 6;
+
+  console.log("== Strong Buy candidates (EARLY only) ==");
+  evaluate("EARLY + catalyst + src>=2 + score>=70", (r) =>
+    r.stage === "EARLY" && r.hasCatalystSource && r.sourceCount >= 2 && r.aiScore >= 70
   );
-  evaluate("CONFIRMED + catalyst + src>=3 + score>=75", (r) =>
-    r.stage === "CONFIRMED" && r.hasCatalystSource && r.sourceCount >= 3 && r.aiScore >= 75
+  evaluate("EARLY + catalyst + src>=2 + score>=65", (r) =>
+    r.stage === "EARLY" && r.hasCatalystSource && r.sourceCount >= 2 && r.aiScore >= 65
   );
-  evaluate("CONFIRMED + catalyst + src>=2 + score>=70", (r) =>
-    r.stage === "CONFIRMED" && r.hasCatalystSource && r.sourceCount >= 2 && r.aiScore >= 70
+  evaluate("EARLY + catalyst + score>=70", (r) =>
+    r.stage === "EARLY" && r.hasCatalystSource && r.aiScore >= 70
+  );
+  evaluate("EARLY + catalyst + score>=65", (r) =>
+    r.stage === "EARLY" && r.hasCatalystSource && r.aiScore >= 65
+  );
+  evaluate("EARLY + score>=75", (r) => r.stage === "EARLY" && r.aiScore >= 75);
+  evaluate("EARLY + score>=80", (r) => r.stage === "EARLY" && r.aiScore >= 80);
+  evaluate("EARLY + catalyst + src>=2 + score>=70 + FRESH", (r) =>
+    r.stage === "EARLY" && r.hasCatalystSource && r.sourceCount >= 2 && r.aiScore >= 70 && signalsFresh(r)
   );
 
-  console.log("\n== Buy candidates ==");
-  evaluate("CONFIRMED + score>=60", (r) => r.stage === "CONFIRMED" && r.aiScore >= 60);
-  evaluate("CONFIRMED + score>=65", (r) => r.stage === "CONFIRMED" && r.aiScore >= 65);
-  evaluate("catalyst + src>=2 + score>=55", (r) => r.hasCatalystSource && r.sourceCount >= 2 && r.aiScore >= 55);
-  evaluate("catalyst + src>=2 + score>=50", (r) => r.hasCatalystSource && r.sourceCount >= 2 && r.aiScore >= 50);
+  console.log("\n== Buy candidates (EARLY + FORMING) ==");
+  evaluate("EARLY/FORMING + catalyst + src>=2 + score>=55", (r) =>
+    isEmerging(r) && r.hasCatalystSource && r.sourceCount >= 2 && r.aiScore >= 55
+  );
+  evaluate("EARLY/FORMING + catalyst + src>=2 + score>=60", (r) =>
+    isEmerging(r) && r.hasCatalystSource && r.sourceCount >= 2 && r.aiScore >= 60
+  );
+  evaluate("EARLY/FORMING + catalyst + score>=55", (r) =>
+    isEmerging(r) && r.hasCatalystSource && r.aiScore >= 55
+  );
+  evaluate("EARLY/FORMING + catalyst + score>=60", (r) =>
+    isEmerging(r) && r.hasCatalystSource && r.aiScore >= 60
+  );
+  evaluate("EARLY/FORMING + src>=2 + score>=60", (r) =>
+    isEmerging(r) && r.sourceCount >= 2 && r.aiScore >= 60
+  );
+  evaluate("EARLY/FORMING + src>=2 + score>=65", (r) =>
+    isEmerging(r) && r.sourceCount >= 2 && r.aiScore >= 65
+  );
+  evaluate("EARLY/FORMING + score>=65", (r) => isEmerging(r) && r.aiScore >= 65);
+  evaluate("EARLY/FORMING + score>=70", (r) => isEmerging(r) && r.aiScore >= 70);
   evaluate("FORMING + src>=2 + score>=60", (r) => r.stage === "FORMING" && r.sourceCount >= 2 && r.aiScore >= 60);
-  evaluate("FORMING + src>=2 + score>=55", (r) => r.stage === "FORMING" && r.sourceCount >= 2 && r.aiScore >= 55);
+  evaluate("FORMING + score>=60", (r) => r.stage === "FORMING" && r.aiScore >= 60);
+  evaluate("EARLY + score>=60", (r) => r.stage === "EARLY" && r.aiScore >= 60);
+  evaluate("EARLY + score>=65", (r) => r.stage === "EARLY" && r.aiScore >= 65);
+
+  console.log("\n== Buy (CONFIRMED soft-demotion, freshness-gated) ==");
+  evaluate("CONFIRMED + score>=60 + FRESH", (r) =>
+    r.stage === "CONFIRMED" && r.aiScore >= 60 && signalsFresh(r)
+  );
+  evaluate("CONFIRMED + score>=65 + FRESH", (r) =>
+    r.stage === "CONFIRMED" && r.aiScore >= 65 && signalsFresh(r)
+  );
+  evaluate("CONFIRMED + catalyst + src>=2 + score>=60 + FRESH", (r) =>
+    r.stage === "CONFIRMED" && r.hasCatalystSource && r.sourceCount >= 2 && r.aiScore >= 60 && signalsFresh(r)
+  );
+  // For comparison — same cuts without the freshness gate
+  evaluate("CONFIRMED + score>=60 (no fresh gate)", (r) => r.stage === "CONFIRMED" && r.aiScore >= 60);
+  evaluate("CONFIRMED + score>=65 (no fresh gate)", (r) => r.stage === "CONFIRMED" && r.aiScore >= 65);
 
   console.log("\n== Avoid candidates ==");
   evaluate("pndFlagged=true", (r) => r.pndFlagged);
@@ -128,6 +180,9 @@ async function main() {
   evaluate("EARLY stage", (r) => r.stage === "EARLY");
   evaluate("FORMING stage", (r) => r.stage === "FORMING");
   evaluate("CONFIRMED stage", (r) => r.stage === "CONFIRMED");
+  evaluate("EARLY/FORMING combined", isEmerging);
+  evaluate("EARLY + catalyst", (r) => r.stage === "EARLY" && r.hasCatalystSource);
+  evaluate("FORMING + catalyst", (r) => r.stage === "FORMING" && r.hasCatalystSource);
 
   await prisma.$disconnect();
 }

@@ -1,22 +1,38 @@
-// Deterministic recommendation derivation. Replaces the LLM-chosen
+// Deterministic recommendation derivation. Replaces any LLM-chosen
 // recommendation label with a rule-based function calibrated against
 // realized 7d returns over the last 90d of TickerPerformance.
 //
-// Calibration (run 2026-05-22, 25,116 perf rows, no corp actions):
-//   Strong Buy (CONFIRMED+catalyst+src>=3+score>=70): n=18,  mean7d=+5.72%, hit7d=75.0%
-//   Buy A (CONFIRMED+score>=60):                      n=136, mean7d=+2.50%, hit7d=61.1%
-//   Buy B (catalyst+src>=2+score>=55):                n=303, mean7d=+2.52%, hit7d=62.4%
-//   Avoid (pndFlagged):                               n=731, hit7d=36.8%
-//   Avoid (price<$0.12):                              n=472, hit7d=33.4%
-//   Baseline (all rows):                              n=25116, hit7d=47.8%
+// Rule v2 (2026-05-23) — emerging-focused:
+//   The product surfaces emerging stocks; consensus tickers are "already
+//   moved" and capped at Buy with a freshness gate. Strong Buy is reserved
+//   for the "we caught it while it was still emerging AND smart-money is
+//   real" zone — FORMING-stage signals with a hard catalyst (insider /
+//   options / congress) plus multi-source corroboration.
 //
-// FORMING+src>=2+score>=60 (mean7d=+1.52%, hit7d=60.4%) was tested as a
-// third Buy path and rejected — it cleared hit_rate but failed the mean
-// return bar (+2% required). Those signals fall through to Watch.
+// Calibration (run 2026-05-23, 25,573 perf rows, no corp actions):
+//   Strong Buy (FORMING + catalyst + src>=2 + score>=60):
+//     n~109, mean7d=+2.17%, hit7d=65.0%
+//   Buy A (EARLY/FORMING + catalyst + src>=2 + score>=55):
+//     n=169, mean7d=+2.49%, hit7d=63.0%
+//   Buy B (FORMING + src>=2 + score>=60):
+//     n=158, mean7d=+1.56%, hit7d=60.4%
+//   Buy C (CONFIRMED + score>=60 + FRESH ≤6h):
+//     n=111, mean7d=+2.44%, hit7d=61.2%
+//   Avoid (pndFlagged):                   n=732, hit7d=36.9%
+//   Avoid (price<$0.12):                  n=484, hit7d=33.2%
+//   Baseline (all rows):                  n=25573, hit7d=47.9%
 //
-// aiScore<20+no_catalyst was tested as an Avoid path and rejected —
-// hit7d=49.0% is at baseline, so calling these Avoid would overstate
-// confidence. Those signals also fall through to Watch.
+// EARLY-stage paths were tested and rejected:
+//   - "EARLY + catalyst + src>=2 + score>=70" yielded n=0 — by stage
+//     definition, multi-source corroboration promotes a ticker out of EARLY
+//     into FORMING, so the path is structurally unreachable.
+//   - "EARLY + catalyst + score>=70" yielded n=266, mean7d=-0.23%, hit7d=43.1%
+//     — actively below baseline. High-AI-score EARLY signals appear to skew
+//     toward pump dynamics rather than durable moves.
+//   - "EARLY + score>=80" yielded n=139, mean7d=+0.25%, hit7d=48.4% — at
+//     baseline; no edge worth labeling.
+//   EARLY signals therefore default to Watch: brand-aligned exposure on the
+//   dashboard without a recommendation label the data cannot support.
 
 import type { TickerStage } from "@/generated/prisma/client";
 
@@ -34,13 +50,14 @@ export interface RecommendationInput {
 }
 
 /** Bump when rule semantics change so downstream consumers can detect drift. */
-export const RECOMMENDATION_RULE_VERSION = 1;
+export const RECOMMENDATION_RULE_VERSION = 2;
 
 /**
  * Derives the recommendation label from quantitative inputs. Pure function —
  * same input always returns the same output. No DB, no I/O, no AI.
  *
- * Order: hard-Avoid wins, then Strong Buy, then Buy paths, else Watch.
+ * Order: hard-Avoid wins, then Strong Buy, then Buy paths in priority order,
+ * else Watch.
  */
 export function deriveRecommendation(ctx: RecommendationInput): Recommendation {
   // --- Hard Avoid (override everything) ---
@@ -50,23 +67,44 @@ export function deriveRecommendation(ctx: RecommendationInput): Recommendation {
   if (ctx.pndFlagged) return "Avoid";
   if (ctx.price !== null && ctx.price < 0.12) return "Avoid";
 
-  // --- Strong Buy (rare by design) ---
   const signalsFresh = ctx.medianSignalAgeHrs === null || ctx.medianSignalAgeHrs <= 6;
+
+  // --- Strong Buy (rare by design) ---
+  // FORMING stage = emerging with cross-source momentum. Catalyst = real,
+  // verifiable smart-money signal (insider buy / unusual options / congress).
+  // Two sources of corroboration filter out single-platform pump dynamics.
   if (
-    ctx.stage === "CONFIRMED" &&
+    ctx.stage === "FORMING" &&
     ctx.hasCatalystSource &&
-    ctx.sourceCount >= 3 &&
-    ctx.aiScore >= 70 &&
-    signalsFresh
+    ctx.sourceCount >= 2 &&
+    ctx.aiScore >= 60
   ) {
     return "Strong Buy";
   }
 
   // --- Buy (any path matches) ---
-  // Path A: CONFIRMED stage with solid score.
-  if (ctx.stage === "CONFIRMED" && ctx.aiScore >= 60) return "Buy";
-  // Path B: catalyst-led with corroboration.
-  if (ctx.hasCatalystSource && ctx.sourceCount >= 2 && ctx.aiScore >= 55) return "Buy";
+  // Path A: catalyst-led EARLY/FORMING (any pre-consensus stage with hard
+  // catalyst + multi-source — note EARLY+src>=2 is structurally rare).
+  if (
+    (ctx.stage === "EARLY" || ctx.stage === "FORMING") &&
+    ctx.hasCatalystSource &&
+    ctx.sourceCount >= 2 &&
+    ctx.aiScore >= 55
+  ) {
+    return "Buy";
+  }
+
+  // Path B: FORMING with broad social momentum and decent score.
+  if (ctx.stage === "FORMING" && ctx.sourceCount >= 2 && ctx.aiScore >= 60) {
+    return "Buy";
+  }
+
+  // Path C: CONFIRMED soft-demotion. Consensus stage = already moved; only
+  // labeled Buy when signals are still fresh enough that the move may not
+  // be exhausted.
+  if (ctx.stage === "CONFIRMED" && ctx.aiScore >= 60 && signalsFresh) {
+    return "Buy";
+  }
 
   // --- Watch (default) ---
   return "Watch";
