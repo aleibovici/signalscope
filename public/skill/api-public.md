@@ -63,7 +63,7 @@ Cross-scan trending tickers (last 30 days).
 | sortBy | string | appearances | Sort: `appearances`, `opportunityScore`, `aiScore`, `price`, `return`, `marketCap` |
 | source | string | — | Filter by signal source: `REDDIT`, `TWITTER`, `STOCKTWITS`, `SEC_INSIDER`, `CONGRESS`, `VOLUME_SPIKE`, `OPTIONS_FLOW` |
 | hidePnd | boolean | false | Hide pump-and-dump flagged tickers |
-| returnPeriod | string | 7d | Return period for sort/display: `1d`, `3d`, `7d`, `30d` |
+| returnPeriod | string | 7d | Return period for sort/display: `3d`, `7d`, `14d`, `30d` |
 | near52wLow | boolean | false | Only show tickers within 20% of 52-week low |
 
 **Response:** `{ tickers: [...], total, summary: { totalTrending, risingCount, fallingCount, stableCount, avgScore } }` — each ticker includes `opportunityScore` and `aiScore` ([definitions](#opportunity-score-vs-signal-confidence-ai)). `summary.avgScore` is the mean **AI** (`aiScore`) over the filtered trending set, not Opportunity.

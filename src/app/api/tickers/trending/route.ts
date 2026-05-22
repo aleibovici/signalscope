@@ -7,6 +7,7 @@ import { paginationSchema } from "@/lib/validators";
 import { TTLCache } from "@/lib/cache";
 import { withX402Logged, x402RouteConfigs, hasAuthCredentials, X402_ENABLED } from "@/lib/x402";
 import { stageLabel, stageToDb } from "@/lib/stage-labels";
+import { returnFieldForPeriod } from "@/lib/return-period";
 
 export const trendingCache = new TTLCache<unknown>(5 * 60 * 1000);
 
@@ -28,17 +29,9 @@ const trendingSchema = paginationSchema.extend({
   sortBy: z.enum(["appearances", "aiScore", "opportunityScore", "price", "return", "marketCap"]).default("appearances"),
   source: z.string().transform((v) => v.split(",").filter((s): s is typeof SOURCES[number] => (SOURCES as readonly string[]).includes(s))).optional(),
   hidePnd: z.coerce.boolean().default(false),
-  returnPeriod: z.enum(["1d", "3d", "7d", "14d", "30d"]).default("7d"),
+  returnPeriod: z.enum(["3d", "7d", "14d", "30d"]).default("7d"),
   near52wLow: z.coerce.boolean().default(false),
 });
-
-const RETURN_FIELD_MAP: Record<string, "return1d" | "return3d" | "return7d" | "return14d" | "return30d"> = {
-  "1d": "return1d",
-  "3d": "return3d",
-  "7d": "return7d",
-  "14d": "return14d",
-  "30d": "return30d",
-};
 
 function computeTrend(scores: number[]): "rising" | "falling" | "stable" {
   if (scores.length < 2) return "stable";
@@ -243,7 +236,7 @@ async function handleTrending(request: NextRequest) {
   }
 
   // Build sorted results
-  const returnField = RETURN_FIELD_MAP[returnPeriod];
+  const returnField = returnFieldForPeriod(returnPeriod);
   const sortedSymbols = filteredSymbols
     .filter((s) => latestBySymbol.has(s))
     .sort((a, b) => {

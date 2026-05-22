@@ -26,16 +26,18 @@ export interface TrendingSummary {
   avgScore: number;
 }
 
+import type { ReturnPeriod } from "@/lib/return-period";
+
 export interface TrendingFilters {
   minAppearances?: number;
   stage?: string[];
   trend?: string[];
   sector?: string[];
   marketCap?: Array<"micro" | "small" | "mid" | "large">;
-  sortBy?: "appearances" | "aiScore" | "price" | "return" | "marketCap";
+  sortBy?: "appearances" | "aiScore" | "opportunityScore" | "price" | "return" | "marketCap";
   source?: string[];
   hidePnd?: boolean;
-  returnPeriod?: "1d" | "3d" | "7d" | "14d" | "30d";
+  returnPeriod?: ReturnPeriod;
   near52wLow?: boolean;
 }
 

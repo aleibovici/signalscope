@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useScans, useScanDetail, type ValidatedTickerData } from "@/hooks/use-scans";
@@ -11,15 +11,13 @@ import { ScanSelector } from "@/components/dashboard/scan-selector";
 import { StageTabs } from "@/components/dashboard/stage-tabs";
 import { SignalCard, SignalRowHeader } from "@/components/dashboard/signal-card";
 import { SignalRowTable } from "@/components/dashboard/signal-row-table";
+import { ViewModeToggle } from "@/components/dashboard/view-mode-toggle";
 import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
+import { useSignalRowView } from "@/hooks/use-signal-row-view";
 import {
-  defaultSortDir,
-  loadRowSort,
-  saveRowSort,
+  DASHBOARD_ROW_SORT_KEY,
   sortTickers,
-  type SignalRowSortDir,
-  type SignalRowSortKey,
 } from "@/lib/signal-row-sort";
 
 function timeAgo(dateStr: string): string {
@@ -42,7 +40,6 @@ function downloadWatchlistCSV(symbols: Set<string>) {
 }
 
 const VALID_STAGES = new Set(["Emerging", "Building", "Consensus"]);
-const VIEW_MODE_KEY = "signalscope_view_mode";
 
 function setCookieStage(stage: string) {
   document.cookie = `dashboard_stage=${encodeURIComponent(stage)}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
@@ -55,9 +52,10 @@ function DashboardContent() {
     searchParams.get("scanId")
   );
   const [selectedStage, setSelectedStage] = useState("Emerging");
-  const [viewMode, setViewMode] = useState<"card" | "row">("card");
-  const [sortKey, setSortKey] = useState<SignalRowSortKey | null>(null);
-  const [sortDir, setSortDir] = useState<SignalRowSortDir>("desc");
+  const { viewMode, toggleViewMode, sortKey, sortDir, handleSort } = useSignalRowView({
+    viewModeKey: "signalscope_view_mode",
+    sortStorageKey: DASHBOARD_ROW_SORT_KEY,
+  });
 
   // Restore stage from cookie after hydration to avoid SSR mismatch
   useEffect(() => {
@@ -71,39 +69,7 @@ function DashboardContent() {
     }
   }, []);
 
-  // Restore view mode and row sort from localStorage after hydration
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(VIEW_MODE_KEY);
-      if (saved === "row" || saved === "card") setViewMode(saved);
-      const savedSort = loadRowSort();
-      setSortKey(savedSort.key);
-      setSortDir(savedSort.dir);
-    } catch {
-      // localStorage unavailable — keep default
-    }
-  }, []);
-
-  const handleSort = useCallback((key: SignalRowSortKey) => {
-    if (sortKey === key) {
-      const next = sortDir === "desc" ? "asc" : "desc";
-      setSortDir(next);
-      saveRowSort(key, next);
-      return;
-    }
-    const nextDir = defaultSortDir(key);
-    setSortKey(key);
-    setSortDir(nextDir);
-    saveRowSort(key, nextDir);
-  }, [sortKey, sortDir]);
-
-  function toggleViewMode() {
-    const next = viewMode === "card" ? "row" : "card";
-    setViewMode(next);
-    try { localStorage.setItem(VIEW_MODE_KEY, next); } catch { /* ignore */ }
-  }
-
-useScrollRestore("dashboard");
+  useScrollRestore("dashboard");
 
   const { data: scansData } = useScans(1, 1);
   const { data: scanDetail, isLoading, isError } = useScanDetail(selectedScanId);
@@ -165,30 +131,7 @@ useScrollRestore("dashboard");
           )}
         </div>
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <button
-            onClick={toggleViewMode}
-            title={viewMode === "card" ? "Switch to row view" : "Switch to card view"}
-            className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
-          >
-            {viewMode === "card" ? (
-              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <line x1="8" y1="6" x2="21" y2="6" />
-                <line x1="8" y1="12" x2="21" y2="12" />
-                <line x1="8" y1="18" x2="21" y2="18" />
-                <line x1="3" y1="6" x2="3.01" y2="6" />
-                <line x1="3" y1="12" x2="3.01" y2="12" />
-                <line x1="3" y1="18" x2="3.01" y2="18" />
-              </svg>
-            ) : (
-              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <rect x="3" y="3" width="7" height="7" />
-                <rect x="14" y="3" width="7" height="7" />
-                <rect x="3" y="14" width="7" height="7" />
-                <rect x="14" y="14" width="7" height="7" />
-              </svg>
-            )}
-            {viewMode === "card" ? "Rows" : "Cards"}
-          </button>
+          <ViewModeToggle viewMode={viewMode} onToggle={toggleViewMode} className="rounded-md" />
           {session?.user && bookmarkedSymbols.size > 0 && (
             <button
               onClick={() => downloadWatchlistCSV(bookmarkedSymbols)}
