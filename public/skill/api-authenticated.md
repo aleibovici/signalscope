@@ -92,7 +92,7 @@ Remove from watchlist.
 
 Watchlist symbols enriched with latest ticker data, performance, and signal sources.
 
-**Response:** `{ tickers: [{ symbol, name, aiScore, opportunityScore, stage, price, marketCap, catalyst, recommendation, report, signalCount, sourceCount, return7d, sources, ... }] }` — full latest validated row per symbol ([two scores](api-public.md#opportunity-score-vs-signal-confidence-ai)).
+**Response:** `{ tickers: [{ symbol, name, aiScore, opportunityScore, stage, price, marketCap, catalyst, recommendation, report, signalCount, sourceCount, return7d, sources, ... }] }` — full latest validated row per symbol ([two scores](api-public.md#opportunity-score-vs-signal-confidence-ai)). `recommendation` is computed by a deterministic rule, not the AI — see [How recommendation is computed](api-public.md#how-recommendation-is-computed).
 
 ---
 

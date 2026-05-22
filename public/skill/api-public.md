@@ -140,6 +140,19 @@ Generate an AI report and trade setup for a ticker. Cached after first generatio
 
 Returns 404 if the ticker has never been validated. Trade setup is only generated for `Buy` or `Strong Buy` recommendations.
 
+### How `recommendation` is computed
+
+The `recommendation` field is **not chosen by the AI**. It is derived by a deterministic rule over the ticker's score, stage, source mix, catalyst presence, and pump-and-dump flags. The LLM writes only the prose (`catalyst`, `risks`, `report`). This eliminates drift between the score and the label and makes the label backtestable.
+
+| Label | Rule |
+|---|---|
+| **Strong Buy** | `stage = CONFIRMED` AND has catalyst source (SEC insider, congress, or unusual options) AND `sourceCount ≥ 3` AND `aiScore ≥ 70` AND `medianSignalAgeHrs ≤ 6` |
+| **Buy** | `stage = CONFIRMED` AND `aiScore ≥ 60`  —or—  has catalyst source AND `sourceCount ≥ 2` AND `aiScore ≥ 55` |
+| **Avoid** | `stage = FILTERED`  —or—  `pndFlagged = true`  —or—  `price < $0.12` |
+| **Watch** | none of the above (default) |
+
+Thresholds were calibrated against 25k+ `TickerPerformance` rows over 90 days. Strong Buy hit 75% positive 7-day return in calibration; the two Buy paths each cleared +2.5% mean 7-day return and 61%+ hit rate; each Avoid path showed sub-baseline hit rates (33–37% vs ~48% baseline).
+
 ---
 
 ## GET /api/scans
