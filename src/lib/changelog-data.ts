@@ -10,13 +10,20 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-05-22",
-    title: "Free-tier API keys",
+    title: "Free-tier API keys and deterministic recommendations",
     changes: [
       {
         category: "new",
         items: [
           "API keys are now available to all users — no Pro subscription required.",
           "Free plan: 10 API calls per calendar month (resets on the 1st). Pro plan: 1,000 calls/day.",
+        ],
+      },
+      {
+        category: "improved",
+        items: [
+          "Strong Buy / Buy / Watch / Avoid is now derived from a deterministic rule over AI score, stage, source mix, catalyst presence, and pump-and-dump flags. The AI still writes the catalyst, risks, and analysis prose, but no longer picks the label — eliminating drift between the score and the recommendation.",
+          "Thresholds were calibrated against 25,000+ TickerPerformance rows from the last 90 days; each Buy path cleared a +2.5% mean 7-day return and 61%+ hit rate before being locked.",
         ],
       },
     ],
