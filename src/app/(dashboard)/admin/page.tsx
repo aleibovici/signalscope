@@ -23,14 +23,6 @@ const STAGE_TEXT: Record<string, string> = {
   Unscored:  "text-stage-unscored",
 };
 
-const STAGE_COLOR_VAR: Record<string, string> = {
-  Emerging:  "var(--color-stage-early)",
-  Building:  "var(--color-stage-forming)",
-  Consensus: "var(--color-stage-confirmed)",
-  Filtered:  "var(--color-stage-filtered)",
-  Unscored:  "var(--color-stage-unscored)",
-};
-
 const SOURCE_LABELS: Record<string, string> = {
   REDDIT:       "Reddit",
   TWITTER:      "Twitter / X",
@@ -95,36 +87,6 @@ function MetricRow({
   );
 }
 
-function BarRow({
-  label,
-  value,
-  max,
-  colorVar,
-  textClass,
-}: {
-  label: string;
-  value: number;
-  max: number;
-  colorVar: string;
-  textClass?: string;
-}) {
-  const pct = max > 0 ? Math.max(2, (value / max) * 100) : 0;
-  return (
-    <div className="flex items-center gap-2 py-[3px] text-xs">
-      <span className={`w-[76px] shrink-0 truncate ${textClass ?? "text-secondary"}`}>{label}</span>
-      <div className="h-[5px] flex-1 overflow-hidden rounded-full bg-surface-muted">
-        <div
-          className="h-full rounded-full transition-[width] duration-slow"
-          style={{ width: `${pct}%`, backgroundColor: colorVar }}
-        />
-      </div>
-      <span className={`w-9 shrink-0 text-right font-mono tabular-nums font-semibold ${textClass ?? "text-primary"}`}>
-        {value}
-      </span>
-    </div>
-  );
-}
-
 export default function AdminPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -154,14 +116,9 @@ export default function AdminPage() {
     queryClient.invalidateQueries({ queryKey: ["admin-x-usage"] });
   }
 
-  const stageTotal = data
-    ? Object.values(data.tickers.byStage).reduce((a, b) => a + b, 0)
-    : 0;
-
   const sourceEntries = data
     ? Object.entries(data.signals.bySource).sort((a, b) => b[1] - a[1])
     : [];
-  const maxSource = sourceEntries.length > 0 ? sourceEntries[0][1] : 1;
 
   const proPct =
     data && data.users.total > 0
@@ -351,15 +308,13 @@ export default function AdminPage() {
                 </span>
               </CardHead>
               <div className="px-4 py-3">
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   {STAGE_ORDER.map((stage) => (
-                    <BarRow
+                    <MetricRow
                       key={stage}
                       label={stageLabel(stage)}
                       value={data.tickers.byStage[stage] ?? 0}
-                      max={stageTotal}
-                      colorVar={STAGE_COLOR_VAR[stage]}
-                      textClass={STAGE_TEXT[stage]}
+                      valueClass={STAGE_TEXT[stage]}
                     />
                   ))}
                 </div>
@@ -385,15 +340,12 @@ export default function AdminPage() {
               </span>
             </CardHead>
             <div className="px-4 py-3">
-              <div className="grid gap-x-8 gap-y-1 sm:grid-cols-2">
+              <div className="grid gap-x-8 gap-y-0.5 sm:grid-cols-2">
                 {sourceEntries.map(([source, count]) => (
-                  <BarRow
+                  <MetricRow
                     key={source}
                     label={SOURCE_LABELS[source] ?? source}
                     value={count}
-                    max={maxSource}
-                    colorVar="var(--color-info)"
-                    textClass="text-secondary"
                   />
                 ))}
               </div>
