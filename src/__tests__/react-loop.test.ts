@@ -97,7 +97,7 @@ describe("buildUserMessage", () => {
 });
 
 describe("validateTradeSetup", () => {
-  it("returns valid trade setup with all fields", () => {
+  it("extracts draft fields from a full legacy LLM shape", () => {
     const ts = {
       entryLo: 10,
       entryHi: 11,
@@ -108,24 +108,21 @@ describe("validateTradeSetup", () => {
       riskReward: "1:2",
       confidence: "Medium",
     };
-    expect(validateTradeSetup(ts)).toEqual(ts);
+    expect(validateTradeSetup(ts)).toEqual({
+      entryLo: 10,
+      entryHi: 11,
+      confidence: "Medium",
+    });
   });
 
-  it("accepts minimal LLM shape (entryLo/entryHi/confidence only) and fills placeholders", () => {
-    // The LLM emits only the three fields it owns; bracket math is filled by
-    // applyAnchoredBracket downstream. Placeholders here must NOT block the
-    // tradeSetup from being returned.
+  it("accepts minimal LLM shape (entryLo/entryHi/confidence only)", () => {
     const ts = { entryLo: 4.5, entryHi: 4.65, confidence: "Medium" };
     const result = validateTradeSetup(ts);
-    expect(result).toBeDefined();
-    expect(result!.entryLo).toBe(4.5);
-    expect(result!.entryHi).toBe(4.65);
-    expect(result!.confidence).toBe("Medium");
-    expect(result!.stopLoss).toBe(0);
-    expect(result!.target1).toBe(0);
-    expect(result!.target2).toBe(0);
-    expect(result!.timeframe).toBe("");
-    expect(result!.riskReward).toBe("");
+    expect(result).toEqual({
+      entryLo: 4.5,
+      entryHi: 4.65,
+      confidence: "Medium",
+    });
   });
 
   it("accepts entryLo/entryHi only and defaults confidence to Medium", () => {

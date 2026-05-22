@@ -82,15 +82,19 @@ export interface PndAiResult {
   reasoning?: string;
 }
 
-export interface TradeSetup {
+/** LLM-owned fields only — bracket math is filled by applyAnchoredBracket(). */
+export interface TradeSetupDraft {
   entryLo: number;
   entryHi: number;
+  confidence: "Low" | "Medium" | "High";
+}
+
+export interface TradeSetup extends TradeSetupDraft {
   stopLoss: number;
   target1: number;
   target2: number;
   timeframe: string;
   riskReward: string;
-  confidence: "Low" | "Medium" | "High";
 }
 
 export interface TickerReport {
@@ -99,6 +103,11 @@ export interface TickerReport {
   recommendation: string;
   report: string;
   tradeSetup?: TradeSetup;
+}
+
+/** LLM output before finalizeReport — bracket fields not yet computed. */
+export interface UnfinalizedTickerReport extends Omit<TickerReport, "tradeSetup"> {
+  tradeSetup?: TradeSetupDraft;
 }
 
 export interface NoveltyContext {

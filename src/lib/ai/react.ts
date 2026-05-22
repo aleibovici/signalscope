@@ -2,7 +2,7 @@ import { chatJSON } from "@/lib/ai";
 import type { AiCostContext } from "@/lib/ai/types";
 import { TOOL_REGISTRY, TOOL_DEFINITIONS } from "@/lib/harvester/report-tools";
 import type { ToolName, ToolResult } from "@/lib/harvester/report-tools";
-import type { TickerReport } from "@/lib/harvester/types";
+import type { TickerReport, TradeSetupDraft, UnfinalizedTickerReport } from "@/lib/harvester/types";
 
 const DEFAULT_MAX_ITERATIONS = 5;
 const DEFAULT_TIMEOUT_MS = 25_000;
@@ -135,7 +135,7 @@ function parseReACTResponse(content: string): ReACTResponse | null {
  * accept partial shapes and fill placeholders here — dropping the setup only
  * when the entry range is missing or invalid.
  */
-function validateTradeSetup(ts: unknown): TickerReport["tradeSetup"] | undefined {
+function validateTradeSetup(ts: unknown): TradeSetupDraft | undefined {
   if (!ts || typeof ts !== "object") return undefined;
   const t = ts as Record<string, unknown>;
   if (
@@ -147,23 +147,18 @@ function validateTradeSetup(ts: unknown): TickerReport["tradeSetup"] | undefined
     return undefined;
   }
   const confidenceRaw = typeof t.confidence === "string" ? t.confidence.trim() : "";
-  const confidence: "Low" | "Medium" | "High" =
+  const confidence: TradeSetupDraft["confidence"] =
     confidenceRaw === "High" || confidenceRaw === "Medium" || confidenceRaw === "Low"
       ? confidenceRaw
       : "Medium";
   return {
     entryLo: t.entryLo,
     entryHi: t.entryHi,
-    stopLoss: typeof t.stopLoss === "number" && Number.isFinite(t.stopLoss) ? t.stopLoss : 0,
-    target1: typeof t.target1 === "number" && Number.isFinite(t.target1) ? t.target1 : 0,
-    target2: typeof t.target2 === "number" && Number.isFinite(t.target2) ? t.target2 : 0,
-    timeframe: typeof t.timeframe === "string" ? t.timeframe : "",
-    riskReward: typeof t.riskReward === "string" ? t.riskReward : "",
     confidence,
   };
 }
 
-function toTickerReport(fa: FinalAnswerResponse): TickerReport {
+function toTickerReport(fa: FinalAnswerResponse): UnfinalizedTickerReport {
   return {
     catalyst: fa.catalyst,
     risks: fa.risks,
@@ -174,7 +169,7 @@ function toTickerReport(fa: FinalAnswerResponse): TickerReport {
   };
 }
 
-export async function chatReACT(config: ChatReACTConfig): Promise<TickerReport> {
+export async function chatReACT(config: ChatReACTConfig): Promise<UnfinalizedTickerReport> {
   const maxIterations = config.maxIterations ?? DEFAULT_MAX_ITERATIONS;
   const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const startTime = Date.now();

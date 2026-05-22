@@ -4,6 +4,12 @@
 
 import "dotenv/config";
 import { prisma } from "@/lib/prisma";
+import type { TickerStage } from "@/generated/prisma/client";
+import {
+  HARD_CATALYST_SOURCES,
+  RECOMMENDATION_RULE_PATHS,
+  type RecommendationInput,
+} from "@/lib/harvester/recommendation";
 
 interface Row {
   symbol: string;
@@ -16,6 +22,18 @@ interface Row {
   medianSignalAgeHrs: number | null;
   return3d: number | null;
   return7d: number | null;
+}
+
+function rowToInput(r: Row): RecommendationInput {
+  return {
+    aiScore: r.aiScore,
+    stage: r.stage as TickerStage,
+    sourceCount: r.sourceCount,
+    hasCatalystSource: r.hasCatalystSource,
+    pndFlagged: r.pndFlagged,
+    price: r.price,
+    medianSignalAgeHrs: r.medianSignalAgeHrs,
+  };
 }
 
 async function main() {
@@ -44,9 +62,6 @@ async function main() {
     },
   });
 
-  // ValidatedTicker has no direct signals relation; query Signal separately
-  // and key by `${scanId}|${symbol}` to build the catalyst-source set.
-  const CATALYST = new Set(["SEC_INSIDER", "OPTIONS_FLOW", "CONGRESS"]);
   const vtPairs = perf
     .map((p) => p.validatedTicker)
     .filter((vt): vt is NonNullable<typeof vt> => vt !== null);
@@ -58,13 +73,13 @@ async function main() {
     where: {
       scanId: { in: scanIds },
       symbol: { in: symbols },
-      source: { in: ["SEC_INSIDER", "OPTIONS_FLOW", "CONGRESS"] },
+      source: { in: [...HARD_CATALYST_SOURCES] },
     },
     select: { scanId: true, symbol: true, source: true },
   });
   const catalystKeys = new Set<string>();
   for (const s of sigs) {
-    if (CATALYST.has(s.source)) catalystKeys.add(`${s.scanId}|${s.symbol}`);
+    if (HARD_CATALYST_SOURCES.has(s.source)) catalystKeys.add(`${s.scanId}|${s.symbol}`);
   }
 
   const rows: Row[] = perf
@@ -102,27 +117,14 @@ async function main() {
     );
   }
 
-  // --- Emerging-focused taxonomy (2026-05-23 re-calibration) ---
-  // Product intent: surface emerging stocks. CONFIRMED = "consensus / already
-  // moved" — capped at Buy and only when signals are still fresh. Strong Buy
-  // is reserved for FORMING-stage signals with a hard catalyst.
   const isEmerging = (r: Row) => r.stage === "EARLY" || r.stage === "FORMING";
   const signalsFresh = (r: Row) =>
     r.medianSignalAgeHrs === null || r.medianSignalAgeHrs <= 6;
 
-  console.log("== Locked v2 rules (must match deriveRecommendation) ==");
-  evaluate("Strong Buy: FORMING + catalyst + src>=2 + score>=60", (r) =>
-    r.stage === "FORMING" && r.hasCatalystSource && r.sourceCount >= 2 && r.aiScore >= 60
-  );
-  evaluate("Buy A: EARLY/FORMING + catalyst + src>=2 + score>=55", (r) =>
-    isEmerging(r) && r.hasCatalystSource && r.sourceCount >= 2 && r.aiScore >= 55
-  );
-  evaluate("Buy B: FORMING + src>=2 + score>=60", (r) =>
-    r.stage === "FORMING" && r.sourceCount >= 2 && r.aiScore >= 60
-  );
-  evaluate("Buy C: CONFIRMED + score>=60 + FRESH", (r) =>
-    r.stage === "CONFIRMED" && r.aiScore >= 60 && signalsFresh(r)
-  );
+  console.log("== Locked v2 rules (from RECOMMENDATION_RULE_PATHS) ==");
+  for (const rule of RECOMMENDATION_RULE_PATHS) {
+    evaluate(rule.label, (r) => rule.match(rowToInput(r)));
+  }
 
   console.log("\n== Strong Buy candidates (exploratory — EARLY paths rejected in v2) ==");
   evaluate("EARLY + catalyst + src>=2 + score>=70", (r) =>
@@ -179,7 +181,6 @@ async function main() {
   evaluate("CONFIRMED + catalyst + src>=2 + score>=60 + FRESH", (r) =>
     r.stage === "CONFIRMED" && r.hasCatalystSource && r.sourceCount >= 2 && r.aiScore >= 60 && signalsFresh(r)
   );
-  // For comparison — same cuts without the freshness gate
   evaluate("CONFIRMED + score>=60 (no fresh gate)", (r) => r.stage === "CONFIRMED" && r.aiScore >= 60);
   evaluate("CONFIRMED + score>=65 (no fresh gate)", (r) => r.stage === "CONFIRMED" && r.aiScore >= 65);
 
