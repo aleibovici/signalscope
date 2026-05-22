@@ -105,12 +105,26 @@ async function main() {
   // --- Emerging-focused taxonomy (2026-05-23 re-calibration) ---
   // Product intent: surface emerging stocks. CONFIRMED = "consensus / already
   // moved" — capped at Buy and only when signals are still fresh. Strong Buy
-  // is reserved for EARLY-stage signals (truly emerging) with a hard catalyst.
+  // is reserved for FORMING-stage signals with a hard catalyst.
   const isEmerging = (r: Row) => r.stage === "EARLY" || r.stage === "FORMING";
   const signalsFresh = (r: Row) =>
     r.medianSignalAgeHrs === null || r.medianSignalAgeHrs <= 6;
 
-  console.log("== Strong Buy candidates (EARLY only) ==");
+  console.log("== Locked v2 rules (must match deriveRecommendation) ==");
+  evaluate("Strong Buy: FORMING + catalyst + src>=2 + score>=60", (r) =>
+    r.stage === "FORMING" && r.hasCatalystSource && r.sourceCount >= 2 && r.aiScore >= 60
+  );
+  evaluate("Buy A: EARLY/FORMING + catalyst + src>=2 + score>=55", (r) =>
+    isEmerging(r) && r.hasCatalystSource && r.sourceCount >= 2 && r.aiScore >= 55
+  );
+  evaluate("Buy B: FORMING + src>=2 + score>=60", (r) =>
+    r.stage === "FORMING" && r.sourceCount >= 2 && r.aiScore >= 60
+  );
+  evaluate("Buy C: CONFIRMED + score>=60 + FRESH", (r) =>
+    r.stage === "CONFIRMED" && r.aiScore >= 60 && signalsFresh(r)
+  );
+
+  console.log("\n== Strong Buy candidates (exploratory — EARLY paths rejected in v2) ==");
   evaluate("EARLY + catalyst + src>=2 + score>=70", (r) =>
     r.stage === "EARLY" && r.hasCatalystSource && r.sourceCount >= 2 && r.aiScore >= 70
   );

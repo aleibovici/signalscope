@@ -13,12 +13,12 @@ vi.mock("@/lib/harvester/report-tools", () => ({
   TOOL_DEFINITIONS: [],
 }));
 
-const mockGetTradeBracket = vi.fn();
+const mockResolveTradeBracket = vi.fn();
 vi.mock("@/lib/anchors", async () => {
   const actual = await vi.importActual<typeof import("@/lib/anchors")>("@/lib/anchors");
   return {
     ...actual,
-    getTradeBracket: (...args: unknown[]) => mockGetTradeBracket(...args),
+    resolveTradeBracket: (...args: unknown[]) => mockResolveTradeBracket(...args),
   };
 });
 
@@ -108,7 +108,7 @@ function mockReACTReport(body: Record<string, unknown>) {
 describe("report pipeline — recommendation v2 integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetTradeBracket.mockResolvedValue(anchoredBracket);
+    mockResolveTradeBracket.mockResolvedValue(anchoredBracket);
   });
 
   describe("generateTickerReport (single-shot)", () => {
@@ -218,7 +218,7 @@ describe("report pipeline — recommendation v2 integration", () => {
       expect(result.tradeSetup!.stopLoss).toBe(9.46); // 9.85 * 0.96
       expect(result.tradeSetup!.timeframe).toBe("up to 7 days");
       expect(result.tradeSetup!.riskReward).toBe("1:1.5");
-      expect(mockGetTradeBracket).toHaveBeenCalledWith(TickerStage.FORMING);
+      expect(mockResolveTradeBracket).toHaveBeenCalledWith(TickerStage.FORMING);
     });
 
     it("strips tradeSetup when computed recommendation is Watch even if LLM emitted one", async () => {
@@ -281,6 +281,31 @@ describe("report pipeline — recommendation v2 integration", () => {
         TickerStage.FORMING,
       );
       expect(congressResult.recommendation).toBe("Strong Buy");
+    });
+
+    it("does not treat volume spike alone as a hard catalyst (Buy B at most, not Strong Buy)", async () => {
+      mockSingleShotReport({ ...proseOnly, tradeSetup: minimalTradeSetup });
+
+      const volumeSpikeAgg = catalystAgg({
+        signals: [
+          { symbol: "TEST", source: "REDDIT", title: "Chatter" },
+          { symbol: "TEST", source: "VOLUME_SPIKE", title: "2x avg volume" },
+        ],
+      });
+
+      const result = await generateTickerReport(
+        "TEST",
+        volumeSpikeAgg,
+        fundamentals,
+        65,
+        undefined,
+        undefined,
+        undefined,
+        TickerStage.FORMING,
+      );
+
+      expect(result.recommendation).toBe("Buy");
+      expect(result.recommendation).not.toBe("Strong Buy");
     });
   });
 

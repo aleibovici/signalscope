@@ -5,12 +5,12 @@ import { TTLCache } from "@/lib/cache";
 const WINDOW_DAYS = 90;
 const MIN_SAMPLE = 10;
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
-export const STOP_R_R_RATIO = 1 / 1.5; // stop pct = target pct / 1.5
+const STOP_R_R_RATIO = 1 / 1.5; // stop pct = target pct / 1.5
 
 // Fallback when the rolling window has too few samples (e.g. fresh deploy, new stage).
 // Numbers from a one-time analysis of production return7d (Buy/Strong Buy, 90d, P90).
 // FILTERED/UNSCORED never have a tradeSetup, so they share EARLY's conservative fallback.
-export const FALLBACK_TARGET_PCT: Record<TickerStage, number> = {
+const FALLBACK_TARGET_PCT: Record<TickerStage, number> = {
   EARLY: 0.06,
   FORMING: 0.15,
   CONFIRMED: 0.15,
@@ -116,20 +116,37 @@ async function computeBracketsByStage(): Promise<Map<TickerStage, TradeBracket>>
  * Cached for 1 hour. Falls back to hardcoded numbers when sample < 10
  * or when P90 is non-positive (no edge in this stage right now).
  */
+function fallbackTradeBracket(stage: TickerStage): TradeBracket {
+  const targetPct = FALLBACK_TARGET_PCT[stage];
+  return {
+    targetPct,
+    stopPct: -targetPct * STOP_R_R_RATIO,
+    source: "fallback",
+    sampleSize: 0,
+  };
+}
+
 export async function getTradeBracket(stage: TickerStage): Promise<TradeBracket> {
   const cached = bracketCache.get("all");
   if (cached?.get(stage)) return cached.get(stage)!;
 
   const fresh = await computeBracketsByStage();
   bracketCache.set("all", fresh);
-  return (
-    fresh.get(stage) ?? {
-      targetPct: FALLBACK_TARGET_PCT[stage],
-      stopPct: -FALLBACK_TARGET_PCT[stage] * STOP_R_R_RATIO,
-      source: "fallback",
-      sampleSize: 0,
-    }
-  );
+  return fresh.get(stage) ?? fallbackTradeBracket(stage);
+}
+
+/** Like getTradeBracket but never throws — uses per-stage fallback on DB errors. */
+export async function resolveTradeBracket(stage: TickerStage): Promise<TradeBracket> {
+  try {
+    return await getTradeBracket(stage);
+  } catch (err) {
+    const fallback = FALLBACK_TARGET_PCT[stage];
+    console.warn(
+      `[anchors] bracket lookup failed, using ${(fallback * 100).toFixed(0)}% fallback for ${stage}:`,
+      err instanceof Error ? err.message : err,
+    );
+    return fallbackTradeBracket(stage);
+  }
 }
 
 /** Test-only: clear the cache so subsequent calls re-query. */

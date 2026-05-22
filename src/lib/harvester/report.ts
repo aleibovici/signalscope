@@ -1,9 +1,14 @@
 import { chatJSON } from "@/lib/ai";
 import type { AiCostContext } from "@/lib/ai/types";
 import { chatReACT, validateTradeSetup } from "@/lib/ai/react";
-import { getTradeBracket, holdDaysForStage, FALLBACK_TARGET_PCT, STOP_R_R_RATIO } from "@/lib/anchors";
+import { resolveTradeBracket, holdDaysForStage } from "@/lib/anchors";
 import { TickerStage } from "@/generated/prisma/client";
-import { deriveRecommendation, recommendationHasTradeSetup, type Recommendation } from "./recommendation";
+import {
+  buildRecommendationInput,
+  deriveRecommendation,
+  hasHardCatalyst,
+  recommendationHasTradeSetup,
+} from "./recommendation";
 import type { AggregatedSymbol, FundamentalData, NoveltyContext, SignalType, TickerReport, TradeSetup } from "./types";
 
 /**
@@ -25,20 +30,7 @@ export async function applyAnchoredBracket(
     return undefined;
   }
 
-  let bracket: { targetPct: number; stopPct: number };
-  try {
-    bracket = await getTradeBracket(stage);
-  } catch (err) {
-    // DB unavailable — fall back to the same hardcoded per-stage percentages
-    // that getTradeBracket uses when its sample is too small. Keeps target /
-    // stop sensible rather than persisting placeholder zeros from the LLM.
-    const fallback = FALLBACK_TARGET_PCT[stage];
-    console.warn(
-      `[report] anchor lookup failed, using ${(fallback * 100).toFixed(0)}% fallback for ${stage}:`,
-      err instanceof Error ? err.message : err,
-    );
-    bracket = { targetPct: fallback, stopPct: -fallback * STOP_R_R_RATIO };
-  }
+  const bracket = await resolveTradeBracket(stage);
   const holdDays = holdDaysForStage(stage);
   const entryMid = (setup.entryLo + setup.entryHi) / 2;
   const target1 = round2(entryMid * (1 + bracket.targetPct));
@@ -62,12 +54,13 @@ function round2(x: number): number {
   return Math.round(x * 100) / 100;
 }
 
-const CATALYST_SOURCES = new Set(["SEC_INSIDER", "SEC_FILING", "CONGRESS", "OPTIONS_FLOW", "VOLUME_SPIKE"]);
+/** Broader set for LLM context sampling — includes volume spike / SEC filing for prose. */
+const CONTEXT_CATALYST_SOURCES = new Set(["SEC_INSIDER", "SEC_FILING", "CONGRESS", "OPTIONS_FLOW", "VOLUME_SPIKE"]);
 
 /** Pick up to `limit` sample signals, prioritizing catalyst sources so they aren't cut off */
 function pickDiverseSample(signals: AggregatedSymbol["signals"], limit: number) {
-  const catalyst = signals.filter((s) => CATALYST_SOURCES.has(s.source));
-  const social = signals.filter((s) => !CATALYST_SOURCES.has(s.source));
+  const catalyst = signals.filter((s) => CONTEXT_CATALYST_SOURCES.has(s.source));
+  const social = signals.filter((s) => !CONTEXT_CATALYST_SOURCES.has(s.source));
   // Take all catalyst signals first (up to limit), fill remainder with social
   const picked = [...catalyst.slice(0, limit), ...social.slice(0, Math.max(0, limit - catalyst.length))];
   return picked.slice(0, limit);
@@ -83,7 +76,6 @@ function buildTickerContext(
   novelty?: NoveltyContext
 ): string {
   const uniqueSources = [...new Set(agg.signals.map((s) => s.source))];
-  const hasCatalystSource = uniqueSources.some((s) => CATALYST_SOURCES.has(s));
 
   return JSON.stringify({
     symbol,
@@ -91,7 +83,7 @@ function buildTickerContext(
     signalCount: agg.signals.length,
     sourceCount: agg.sourceCount,
     sources: uniqueSources,
-    hasCatalystSource,
+    hasCatalystSource: hasHardCatalyst(uniqueSources),
     subredditCount: agg.subredditCount,
     avgVelocity: agg.avgVelocity,
     aiScore,
@@ -174,6 +166,42 @@ Return JSON:
   }
 }`;
 
+async function finalizeReport(
+  raw: Pick<TickerReport, "catalyst" | "risks" | "report"> & { tradeSetup?: unknown },
+  agg: AggregatedSymbol,
+  fundamentals: FundamentalData | null,
+  aiScore: number,
+  stage: TickerStage,
+  pndFlagged: boolean,
+  symbol?: string,
+): Promise<TickerReport> {
+  const recommendation = deriveRecommendation(
+    buildRecommendationInput(agg, fundamentals, aiScore, stage, pndFlagged),
+  );
+
+  let tradeSetup: TradeSetup | undefined;
+  if (raw.tradeSetup !== undefined && raw.tradeSetup !== null) {
+    tradeSetup = validateTradeSetup(raw.tradeSetup);
+    if (!tradeSetup && symbol) {
+      console.warn(`Report for ${symbol} has invalid tradeSetup shape, dropping it`);
+    }
+  }
+  if (tradeSetup && !recommendationHasTradeSetup(recommendation)) {
+    tradeSetup = undefined;
+  }
+  if (tradeSetup) {
+    tradeSetup = await applyAnchoredBracket(tradeSetup, stage);
+  }
+
+  return {
+    catalyst: raw.catalyst,
+    risks: raw.risks,
+    report: raw.report,
+    recommendation,
+    tradeSetup,
+  };
+}
+
 export async function generateTickerReport(
   symbol: string,
   agg: AggregatedSymbol,
@@ -206,51 +234,11 @@ export async function generateTickerReport(
       return defaultReport(symbol);
     }
 
-    // Compute the recommendation deterministically server-side. Overrides any
-    // value the LLM may have included.
-    raw.recommendation = computeRecommendation(agg, fundamentals, aiScore, stage, pndFlagged);
-
-    // Validate optional tradeSetup — drop silently if malformed or if the
-    // computed recommendation doesn't warrant one.
-    if (raw.tradeSetup !== undefined && raw.tradeSetup !== null) {
-      raw.tradeSetup = validateTradeSetup(raw.tradeSetup);
-      if (!raw.tradeSetup) {
-        console.warn(`Report for ${symbol} has invalid tradeSetup shape, dropping it`);
-      }
-    }
-    if (raw.tradeSetup && !recommendationHasTradeSetup(raw.recommendation as Recommendation)) {
-      raw.tradeSetup = undefined;
-    }
-    if (raw.tradeSetup) {
-      raw.tradeSetup = await applyAnchoredBracket(raw.tradeSetup, stage);
-    }
-
-    return raw as TickerReport;
+    return finalizeReport(raw, agg, fundamentals, aiScore, stage, pndFlagged, symbol);
   } catch (err) {
     console.error(`Report generation for ${symbol} error:`, err);
     return defaultReport(symbol);
   }
-}
-
-function computeRecommendation(
-  agg: AggregatedSymbol,
-  fundamentals: FundamentalData | null,
-  aiScore: number,
-  stage: TickerStage,
-  pndFlagged: boolean,
-): Recommendation {
-  const sources = new Set(agg.signals.map((s) => s.source));
-  const hasCatalystSource =
-    sources.has("SEC_INSIDER") || sources.has("OPTIONS_FLOW") || sources.has("CONGRESS");
-  return deriveRecommendation({
-    aiScore,
-    stage,
-    sourceCount: agg.sourceCount,
-    hasCatalystSource,
-    pndFlagged,
-    price: fundamentals?.price ?? null,
-    medianSignalAgeHrs: agg.medianSignalAgeHrs,
-  });
 }
 
 export async function generateTickerReportReACT(
@@ -274,14 +262,7 @@ export async function generateTickerReportReACT(
       temperature: 0.4,
       context,
     });
-    report.recommendation = computeRecommendation(agg, fundamentals, aiScore, stage, pndFlagged);
-    if (report.tradeSetup && !recommendationHasTradeSetup(report.recommendation as Recommendation)) {
-      report.tradeSetup = undefined;
-    }
-    if (report.tradeSetup) {
-      report.tradeSetup = await applyAnchoredBracket(report.tradeSetup, stage);
-    }
-    return report;
+    return finalizeReport(report, agg, fundamentals, aiScore, stage, pndFlagged, symbol);
   } catch (err) {
     console.warn(`[react] ReACT failed for ${symbol}, falling back to single-shot:`, err instanceof Error ? err.message : err);
     return generateTickerReport(symbol, agg, fundamentals, aiScore, signalType, novelty, context, stage, pndFlagged);

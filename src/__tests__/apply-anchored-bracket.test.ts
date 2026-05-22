@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const mockGetTradeBracket = vi.fn();
+const mockResolveTradeBracket = vi.fn();
 vi.mock("@/lib/anchors", async () => {
   const actual = await vi.importActual<typeof import("@/lib/anchors")>("@/lib/anchors");
   return {
     ...actual,
-    getTradeBracket: (...args: unknown[]) => mockGetTradeBracket(...args),
+    resolveTradeBracket: (...args: unknown[]) => mockResolveTradeBracket(...args),
   };
 });
 
@@ -14,7 +14,7 @@ import { TickerStage } from "@/generated/prisma/client";
 import type { TradeSetup } from "@/lib/harvester/types";
 
 beforeEach(() => {
-  mockGetTradeBracket.mockReset();
+  mockResolveTradeBracket.mockReset();
 });
 
 const aiSetup = (overrides: Partial<TradeSetup> = {}): TradeSetup => ({
@@ -32,7 +32,7 @@ const aiSetup = (overrides: Partial<TradeSetup> = {}): TradeSetup => ({
 
 describe("applyAnchoredBracket", () => {
   it("overrides AI target/stop with anchor-derived values", async () => {
-    mockGetTradeBracket.mockResolvedValueOnce({
+    mockResolveTradeBracket.mockResolvedValueOnce({
       targetPct: 0.06,
       stopPct: -0.04,
       source: "anchor",
@@ -53,7 +53,7 @@ describe("applyAnchoredBracket", () => {
   });
 
   it("preserves AI entryLo/entryHi unchanged", async () => {
-    mockGetTradeBracket.mockResolvedValueOnce({
+    mockResolveTradeBracket.mockResolvedValueOnce({
       targetPct: 0.06,
       stopPct: -0.04,
       source: "anchor",
@@ -65,7 +65,7 @@ describe("applyAnchoredBracket", () => {
   });
 
   it("sets timeframe from stage hold-days (EARLY = 5)", async () => {
-    mockGetTradeBracket.mockResolvedValueOnce({
+    mockResolveTradeBracket.mockResolvedValueOnce({
       targetPct: 0.06,
       stopPct: -0.04,
       source: "anchor",
@@ -76,7 +76,7 @@ describe("applyAnchoredBracket", () => {
   });
 
   it("sets timeframe from stage hold-days (CONFIRMED = 7)", async () => {
-    mockGetTradeBracket.mockResolvedValueOnce({
+    mockResolveTradeBracket.mockResolvedValueOnce({
       targetPct: 0.15,
       stopPct: -0.1,
       source: "anchor",
@@ -87,7 +87,7 @@ describe("applyAnchoredBracket", () => {
   });
 
   it("emits riskReward as 1:1.5 (the invariant ratio)", async () => {
-    mockGetTradeBracket.mockResolvedValueOnce({
+    mockResolveTradeBracket.mockResolvedValueOnce({
       targetPct: 0.06,
       stopPct: -0.04,
       source: "anchor",
@@ -98,7 +98,7 @@ describe("applyAnchoredBracket", () => {
   });
 
   it("preserves AI confidence", async () => {
-    mockGetTradeBracket.mockResolvedValueOnce({
+    mockResolveTradeBracket.mockResolvedValueOnce({
       targetPct: 0.06,
       stopPct: -0.04,
       source: "anchor",
@@ -111,7 +111,7 @@ describe("applyAnchoredBracket", () => {
   it("drops setup entirely when entry range is missing", async () => {
     const result = await applyAnchoredBracket(undefined, TickerStage.EARLY);
     expect(result).toBeUndefined();
-    expect(mockGetTradeBracket).not.toHaveBeenCalled();
+    expect(mockResolveTradeBracket).not.toHaveBeenCalled();
   });
 
   it("drops setup when entryLo is invalid (NaN)", async () => {
@@ -132,14 +132,13 @@ describe("applyAnchoredBracket", () => {
     expect(result).toBeUndefined();
   });
 
-  it("falls back to per-stage FALLBACK_TARGET_PCT when anchor lookup throws (EARLY = 6%)", async () => {
-    // DB unavailable. Must still produce sensible numbers — never persist
-    // the LLM's placeholder zeros (entryLo=99, entryHi=101 → midpoint 100):
-    //   FALLBACK_TARGET_PCT.EARLY = 0.06
-    //   target1  = 100 * (1 + 0.06)        = 106
-    //   target2  = 100 * (1 + 0.06 * 1.5)  = 109
-    //   stopLoss = 100 * (1 - 0.06/1.5)    = 96
-    mockGetTradeBracket.mockRejectedValueOnce(new Error("DB unavailable"));
+  it("uses per-stage fallback bracket when resolveTradeBracket returns EARLY fallback (6%)", async () => {
+    mockResolveTradeBracket.mockResolvedValueOnce({
+      targetPct: 0.06,
+      stopPct: -0.04,
+      source: "fallback",
+      sampleSize: 0,
+    });
     const result = await applyAnchoredBracket(aiSetup(), TickerStage.EARLY);
     expect(result).toBeDefined();
     expect(result!.target1).toBe(106);
@@ -149,24 +148,28 @@ describe("applyAnchoredBracket", () => {
     expect(result!.riskReward).toBe("1:1.5");
   });
 
-  it("falls back to per-stage FALLBACK_TARGET_PCT when anchor lookup throws (CONFIRMED = 15%)", async () => {
-    mockGetTradeBracket.mockRejectedValueOnce(new Error("DB unavailable"));
+  it("uses per-stage fallback bracket when resolveTradeBracket returns CONFIRMED fallback (15%)", async () => {
+    mockResolveTradeBracket.mockResolvedValueOnce({
+      targetPct: 0.15,
+      stopPct: -0.1,
+      source: "fallback",
+      sampleSize: 0,
+    });
     const result = await applyAnchoredBracket(aiSetup(), TickerStage.CONFIRMED);
     expect(result).toBeDefined();
-    // 100 * 1.15 = 115
     expect(result!.target1).toBe(115);
-    // 100 * (1 + 0.15 * 1.5) = 122.5
     expect(result!.target2).toBe(122.5);
-    // 100 * (1 - 0.10) = 90
     expect(result!.stopLoss).toBe(90);
     expect(result!.timeframe).toBe("up to 7 days");
   });
 
-  it("overrides LLM placeholder zeros even when the anchor lookup fails", async () => {
-    // Mirrors the new LLM contract: it emits only entryLo/entryHi/confidence
-    // (plus zero placeholders for the rest). On DB error, those zeros must
-    // NOT be persisted — the fallback bracket has to do the math.
-    mockGetTradeBracket.mockRejectedValueOnce(new Error("DB unavailable"));
+  it("overrides LLM placeholder zeros with resolved bracket values", async () => {
+    mockResolveTradeBracket.mockResolvedValueOnce({
+      targetPct: 0.06,
+      stopPct: -0.04,
+      source: "fallback",
+      sampleSize: 0,
+    });
     const placeholder: TradeSetup = {
       entryLo: 99,
       entryHi: 101,
@@ -185,7 +188,7 @@ describe("applyAnchoredBracket", () => {
   });
 
   it("uses different brackets for different stages", async () => {
-    mockGetTradeBracket
+    mockResolveTradeBracket
       .mockResolvedValueOnce({ targetPct: 0.06, stopPct: -0.04, source: "anchor", sampleSize: 50 })
       .mockResolvedValueOnce({ targetPct: 0.15, stopPct: -0.1, source: "anchor", sampleSize: 20 });
 
