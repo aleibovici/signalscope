@@ -62,6 +62,7 @@ async function handleReport(request: NextRequest, upperSymbol: string, userId?: 
     novelty,
     { trigger: "on-demand", symbol: upperSymbol, userId },
     ticker.stage,
+    ticker.pndFlagged ?? false,
   );
 
   // Persist the report to the DB

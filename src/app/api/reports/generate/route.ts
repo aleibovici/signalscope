@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
           novelty,
           { trigger: "batch-report", scanId: ticker.scanId, symbol: ticker.symbol },
           ticker.stage,
+          ticker.pndFlagged ?? false,
         );
 
         await prisma.validatedTicker.update({

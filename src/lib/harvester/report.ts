@@ -3,6 +3,7 @@ import type { AiCostContext } from "@/lib/ai/types";
 import { chatReACT, validateTradeSetup } from "@/lib/ai/react";
 import { getTradeBracket, holdDaysForStage } from "@/lib/anchors";
 import { TickerStage } from "@/generated/prisma/client";
+import { deriveRecommendation, recommendationHasTradeSetup, type Recommendation } from "./recommendation";
 import type { AggregatedSymbol, FundamentalData, NoveltyContext, SignalType, TickerReport, TradeSetup } from "./types";
 
 /**
@@ -128,7 +129,7 @@ export const REPORT_SYSTEM_PROMPT = `You are a senior equity analyst. Generate a
 HARD RULES:
 - If an insider buy (Form 4) or unusual options activity exists, LEAD WITH THAT in the catalyst field. It is the most important signal.
 - Prioritize REAL catalysts (SEC filings, earnings, FDA, partnerships, contracts) over social media buzz. If the only signal is Reddit/StockTwits chatter with no verifiable catalyst, say so directly.
-- Be direct about confidence level. Do NOT hype weak signals. If evidence is thin, say "Low confidence — social signal only, no verifiable catalyst." A "Watch" or "Avoid" recommendation is fine and often correct.
+- Be direct about confidence level. Do NOT hype weak signals. If evidence is thin, say "Low confidence — social signal only, no verifiable catalyst."
 - Never use vague hype language like "could be huge" or "massive potential." State what is known and what is speculation.
 
 Catalyst field format — extract actual values from sampleSignals (title + body fields contain the date, name, and amount). Never output literal placeholder text like [date] or [name].
@@ -144,25 +145,21 @@ Also analyze:
 - Signal novelty: first appearance (novel) signals may represent early detection before consensus; recurring signals (3+ appearances) may be stale unless a new catalyst type has appeared
 - Key risks and downside scenarios
 
-Recommendation guidance:
-- Strong Buy: Real catalyst + insider/options confirmation + multi-source. Rare.
-- Buy: Real catalyst with at least 2 corroborating sources. Also appropriate for strong multi-source social consensus (3+ subreddits or cross-platform agreement) with high velocity and favorable fundamentals, even without an institutional catalyst.
-- Watch: Interesting signal but needs more confirmation or catalyst is unverified. Single-source social signals without strong engagement belong here.
-- Avoid: P&D risk indicators, deteriorating fundamentals, or single low-quality social mention with no engagement.
+IMPORTANT: Check the "sources" array in the input — it shows ALL source types that contributed signals, not just the sample. A ticker with signals from 3+ sources or 3+ subreddits represents genuine cross-platform consensus, not mere hype. Do not dismiss multi-source social consensus as "pure social hype" — coordinated independent discovery across platforms is a meaningful signal.
 
-IMPORTANT: Check the "sources" array in the input — it shows ALL source types that contributed signals, not just the sample. A ticker with signals from 3+ sources or 3+ subreddits represents genuine cross-platform consensus, not mere hype. Do not dismiss multi-source social consensus as "pure social hype" — coordinated independent discovery across platforms is a meaningful signal. Reserve "Avoid" for genuinely weak setups (single source, low engagement, bad fundamentals, P&D flags), not for well-corroborated emerging signals.
-
-Trade setup rules (ONLY for Buy or Strong Buy — omit tradeSetup entirely for Watch or Avoid):
-- entryLo/entryHi: tight range around current price or a technical level (typically within 2-5% of current price). Always include these two numbers.
+Trade setup rules:
+- entryLo/entryHi: tight range around current price or a technical level (typically within 2-5% of current price). Always include these two numbers when you can derive a technically sound entry; otherwise omit tradeSetup entirely.
 - stopLoss, target1, target2, riskReward, timeframe: DO NOT GENERATE these — they are computed server-side from production performance data anchored to the stock's stage. Any numbers or strings you provide will be discarded. Set numerics to 0 and timeframe to "" or omit them entirely.
 - confidence: "High" = insider/congress + multi-source; "Medium" = real catalyst, fewer sources; "Low" = speculative setup.
-- If you cannot derive a technically sound entry range (entryLo/entryHi), omit tradeSetup entirely even for Buy.
+
+Server-side post-processing (informational, not your job):
+- The Strong Buy / Buy / Watch / Avoid recommendation label is computed deterministically server-side from the ticker's score, stage, source mix, catalyst presence, and P&D flags. Do not pick it — do not emit a "recommendation" field.
+- If the computed recommendation is Watch or Avoid, the tradeSetup is dropped server-side.
 
 Return JSON:
 {
   "catalyst": "1-2 sentence catalyst summary — lead with insider/options if present",
   "risks": "1-2 sentence key risks — be specific",
-  "recommendation": "Strong Buy|Buy|Watch|Avoid",
   "report": "3-5 paragraph analysis. Begin each paragraph with a bold section label followed by an em-dash, e.g. '**Catalyst** — ', '**Technical Setup** — ', '**Short Interest** — ', '**Risk Factors** — ', '**Outlook** — '. Labels should match the content; these exact names are not required. State confidence level explicitly.",
   "tradeSetup": {
     "entryLo": <number>,
@@ -185,6 +182,7 @@ export async function generateTickerReport(
   novelty?: NoveltyContext,
   context?: AiCostContext,
   stage: TickerStage = TickerStage.EARLY,
+  pndFlagged: boolean = false,
 ): Promise<TickerReport> {
   try {
     const response = await chatJSON({
@@ -201,21 +199,29 @@ export async function generateTickerReport(
       !raw ||
       typeof raw.catalyst !== "string" ||
       typeof raw.risks !== "string" ||
-      typeof raw.recommendation !== "string" ||
       typeof raw.report !== "string"
     ) {
       console.warn(`Report for ${symbol} returned invalid structure, using default`);
       return defaultReport(symbol);
     }
 
-    // Validate optional tradeSetup — drop silently if malformed
+    // Compute the recommendation deterministically server-side. Overrides any
+    // value the LLM may have included.
+    raw.recommendation = computeRecommendation(agg, fundamentals, aiScore, stage, pndFlagged);
+
+    // Validate optional tradeSetup — drop silently if malformed or if the
+    // computed recommendation doesn't warrant one.
     if (raw.tradeSetup !== undefined && raw.tradeSetup !== null) {
       raw.tradeSetup = validateTradeSetup(raw.tradeSetup);
       if (!raw.tradeSetup) {
         console.warn(`Report for ${symbol} has invalid tradeSetup shape, dropping it`);
-      } else {
-        raw.tradeSetup = await applyAnchoredBracket(raw.tradeSetup, stage);
       }
+    }
+    if (raw.tradeSetup && !recommendationHasTradeSetup(raw.recommendation as Recommendation)) {
+      raw.tradeSetup = undefined;
+    }
+    if (raw.tradeSetup) {
+      raw.tradeSetup = await applyAnchoredBracket(raw.tradeSetup, stage);
     }
 
     return raw as TickerReport;
@@ -223,6 +229,27 @@ export async function generateTickerReport(
     console.error(`Report generation for ${symbol} error:`, err);
     return defaultReport(symbol);
   }
+}
+
+function computeRecommendation(
+  agg: AggregatedSymbol,
+  fundamentals: FundamentalData | null,
+  aiScore: number,
+  stage: TickerStage,
+  pndFlagged: boolean,
+): Recommendation {
+  const sources = new Set(agg.signals.map((s) => s.source));
+  const hasCatalystSource =
+    sources.has("SEC_INSIDER") || sources.has("OPTIONS_FLOW") || sources.has("CONGRESS");
+  return deriveRecommendation({
+    aiScore,
+    stage,
+    sourceCount: agg.sourceCount,
+    hasCatalystSource,
+    pndFlagged,
+    price: fundamentals?.price ?? null,
+    medianSignalAgeHrs: agg.medianSignalAgeHrs,
+  });
 }
 
 export async function generateTickerReportReACT(
@@ -235,6 +262,7 @@ export async function generateTickerReportReACT(
   novelty?: NoveltyContext,
   context?: AiCostContext,
   stage: TickerStage = TickerStage.EARLY,
+  pndFlagged: boolean = false,
 ): Promise<TickerReport> {
   try {
     const report = await chatReACT({
@@ -245,13 +273,17 @@ export async function generateTickerReportReACT(
       temperature: 0.4,
       context,
     });
+    report.recommendation = computeRecommendation(agg, fundamentals, aiScore, stage, pndFlagged);
+    if (report.tradeSetup && !recommendationHasTradeSetup(report.recommendation as Recommendation)) {
+      report.tradeSetup = undefined;
+    }
     if (report.tradeSetup) {
       report.tradeSetup = await applyAnchoredBracket(report.tradeSetup, stage);
     }
     return report;
   } catch (err) {
     console.warn(`[react] ReACT failed for ${symbol}, falling back to single-shot:`, err instanceof Error ? err.message : err);
-    return generateTickerReport(symbol, agg, fundamentals, aiScore, signalType, novelty, context, stage);
+    return generateTickerReport(symbol, agg, fundamentals, aiScore, signalType, novelty, context, stage, pndFlagged);
   }
 }
 
