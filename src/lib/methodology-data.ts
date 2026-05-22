@@ -150,22 +150,22 @@ export const recommendationLevels: RecommendationLevel[] = [
   {
     level: "Strong Buy",
     color: "bg-green-600 text-white dark:bg-green-700 dark:text-white",
-    desc: "Real catalyst + insider/options + multi-source corroboration (rare).",
+    desc: "Consensus stage with a verifiable catalyst (insider buy, congressional trade, or unusual options flow), three or more corroborating sources, AI score 70+, and fresh signals (median age ≤ 6h). Rare by design — the calibration sample over the last 90 days hit a 75% positive 7-day rate.",
   },
   {
     level: "Buy",
     color: "bg-green-100 text-green-800 dark:bg-green-950/50 dark:text-green-300",
-    desc: "Real catalyst with ≥2 corroborating sources.",
+    desc: "Either Consensus stage with AI score 60+, or a verifiable catalyst with two or more sources and AI score 55+. Both paths cleared a +2.5% mean 7-day return and 61%+ hit rate in calibration.",
   },
   {
     level: "Watch",
     color: "bg-yellow-100 text-yellow-800 dark:bg-amber-950/40 dark:text-amber-300",
-    desc: "Interesting signal that needs further confirmation before acting.",
+    desc: "Interesting signal but does not yet meet the Buy thresholds. The default label — most signals start here.",
   },
   {
     level: "Avoid",
     color: "bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300",
-    desc: "No verifiable catalyst, pure hype, or P&D risk indicators.",
+    desc: "Flagged by the pump-and-dump filter, price under $0.12, AI score under 20 with no catalyst source, or Filtered stage. All four paths showed sub-baseline hit rates in calibration.",
   },
 ];
 
@@ -190,7 +190,8 @@ export const scoringDescription =
   "can score above 50. First-appearance tickers receive a +5–10 novelty boost; tickers " +
   "seen 3+ times or older than 7 days receive a staleness penalty. Signal freshness is " +
   "also tracked — stale consensus (median signal age ≥6 h) is excluded from the highest stage. " +
-  "This AI score reflects how strong the evidence is, not how much upside is left; Opportunity Score (see above) captures early-mover potential separately.";
+  "This AI score reflects how strong the evidence is, not how much upside is left; Opportunity Score (see above) captures early-mover potential separately. " +
+  "The final recommendation label (Strong Buy / Buy / Watch / Avoid) is then derived from a deterministic rule over the score, stage, source mix, catalyst presence, and pump-and-dump flags — the AI writes the narrative but does not choose the label, eliminating drift between the score and the recommendation.";
 
 export const pndDescription =
   "Every candidate is checked against 13 statistical flags before scoring. Flags are split into " +
