@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   deriveRecommendation,
+  recommendationHasTradeSetup,
   type RecommendationInput,
 } from "@/lib/harvester/recommendation";
 
@@ -139,5 +140,17 @@ describe("deriveRecommendation", () => {
   it("is deterministic — same input always produces same output", () => {
     const i = input({ stage: "CONFIRMED", aiScore: 62, sourceCount: 2 });
     expect(deriveRecommendation(i)).toBe(deriveRecommendation(i));
+  });
+});
+
+describe("recommendationHasTradeSetup", () => {
+  it("returns true for Buy and Strong Buy", () => {
+    expect(recommendationHasTradeSetup("Buy")).toBe(true);
+    expect(recommendationHasTradeSetup("Strong Buy")).toBe(true);
+  });
+
+  it("returns false for Watch and Avoid", () => {
+    expect(recommendationHasTradeSetup("Watch")).toBe(false);
+    expect(recommendationHasTradeSetup("Avoid")).toBe(false);
   });
 });
