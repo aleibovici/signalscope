@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   defaultSortDir,
   loadRowSort,
@@ -26,13 +26,18 @@ function readViewMode(viewModeKey: string): "card" | "row" {
 }
 
 export function useSignalRowView({ viewModeKey, sortStorageKey }: UseSignalRowViewOptions) {
-  const [viewMode, setViewMode] = useState<"card" | "row">(() => readViewMode(viewModeKey));
-  const [sortKey, setSortKey] = useState<SignalRowSortKey | null>(() =>
-    sortStorageKey ? loadRowSort(sortStorageKey).key : null,
-  );
-  const [sortDir, setSortDir] = useState<SignalRowSortDir>(() =>
-    sortStorageKey ? loadRowSort(sortStorageKey).dir : "desc",
-  );
+  // Defaults must match SSR; restore from localStorage after hydration.
+  const [viewMode, setViewMode] = useState<"card" | "row">("card");
+  const [sortKey, setSortKey] = useState<SignalRowSortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SignalRowSortDir>("desc");
+
+  useEffect(() => {
+    setViewMode(readViewMode(viewModeKey));
+    if (!sortStorageKey) return;
+    const saved = loadRowSort(sortStorageKey);
+    setSortKey(saved.key);
+    setSortDir(saved.dir);
+  }, [viewModeKey, sortStorageKey]);
 
   const toggleViewMode = useCallback(() => {
     setViewMode((prev) => {
