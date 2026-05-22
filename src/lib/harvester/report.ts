@@ -187,19 +187,17 @@ async function finalizeReport(
     buildRecommendationInput(agg, fundamentals, aiScore, stage, pndFlagged),
   );
 
-  let tradeSetup: TradeSetupDraft | undefined;
+  let draft: TradeSetupDraft | undefined;
   if (raw.tradeSetup !== undefined && raw.tradeSetup !== null) {
-    tradeSetup = validateTradeSetup(raw.tradeSetup);
-    if (!tradeSetup && symbol) {
+    draft = validateTradeSetup(raw.tradeSetup);
+    if (!draft && symbol) {
       console.warn(`Report for ${symbol} has invalid tradeSetup shape, dropping it`);
     }
   }
-  if (tradeSetup && !recommendationHasTradeSetup(recommendation)) {
-    tradeSetup = undefined;
+  if (draft && !recommendationHasTradeSetup(recommendation)) {
+    draft = undefined;
   }
-  if (tradeSetup) {
-    tradeSetup = await applyAnchoredBracket(tradeSetup, stage);
-  }
+  const tradeSetup = draft ? await applyAnchoredBracket(draft, stage) : undefined;
 
   return {
     catalyst: raw.catalyst,
