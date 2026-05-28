@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-error";
 import { getBrokerClient, isConfigured } from "@/lib/brokers/factory";
+import { executeForTickers } from "@/lib/brokers/executor";
 import { holdDaysForStage, HOLD_DAYS_BY_STAGE } from "@/lib/anchors";
 import { TickerStage } from "@/generated/prisma/client";
 
@@ -189,6 +190,29 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Execute trades for any Buy/Strong Buy tickers in the latest scan not yet ordered.
+    // This catches tickers that got reports after the reports/generate batch ran.
+    let tradeExecutions = 0;
+    const latestScan = await prisma.scan.findFirst({
+      where: { status: "COMPLETED" },
+      orderBy: { startedAt: "desc" },
+    });
+    if (latestScan) {
+      const buyTickers = await prisma.validatedTicker.findMany({
+        where: { scanId: latestScan.id, recommendation: { in: ["Buy", "Strong Buy"] } },
+        orderBy: { opportunityScore: "desc" },
+      });
+      if (buyTickers.length > 0) {
+        const execResults = await executeForTickers(buyTickers);
+        tradeExecutions = execResults.filter((r) => r.status === "placed").length;
+        const summary = execResults.reduce(
+          (acc, r) => { acc[r.status] = (acc[r.status] ?? 0) + 1; return acc; },
+          {} as Record<string, number>,
+        );
+        console.log(`[broker/sync] Trade execution: ${JSON.stringify(summary)}`);
+      }
+    }
+
     return NextResponse.json({
       status: "ok",
       provider: client.provider,
@@ -197,6 +221,7 @@ export async function POST(req: NextRequest) {
       positionsClosed,
       timeExits,
       staleCancelled,
+      tradeExecutions,
     });
   } catch (err) {
     return handleApiError(err, "brokers/sync");

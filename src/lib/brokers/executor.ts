@@ -1,9 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { getBrokerClient } from "./factory";
+import { resolveTradeBracket } from "@/lib/anchors";
 import type { ValidatedTicker } from "@/generated/prisma/client";
 
 const POSITION_SIZE_USD = 1000;
 const PROVIDER = process.env.BROKER_PROVIDER ?? "alpaca";
+const round2 = (n: number) => Math.round(n * 100) / 100;
 
 export interface ExecutionResult {
   symbol: string;
@@ -32,12 +34,8 @@ export async function executeForTickers(tickers: ValidatedTicker[]): Promise<Exe
   const client = getBrokerClient();
 
   for (const ticker of tickers) {
-    const { id, symbol, tradeSetupEntryHi, tradeSetupStopLoss, tradeSetupTarget1 } = ticker;
+    const { id, symbol } = ticker;
 
-    if (!tradeSetupEntryHi || !tradeSetupStopLoss || !tradeSetupTarget1) {
-      results.push({ symbol, status: "skipped", reason: "incomplete trade setup" });
-      continue;
-    }
     if (orderedTickerIds.has(id)) {
       results.push({ symbol, status: "skipped", reason: "order already placed for this ticker" });
       continue;
@@ -47,9 +45,26 @@ export async function executeForTickers(tickers: ValidatedTicker[]): Promise<Exe
       continue;
     }
 
-    const qty = Math.floor(POSITION_SIZE_USD / tradeSetupEntryHi);
+    let entryLimit = ticker.tradeSetupEntryHi;
+    let stopPrice = ticker.tradeSetupStopLoss;
+    let targetPrice = ticker.tradeSetupTarget1;
+
+    if (!entryLimit || !stopPrice || !targetPrice) {
+      // No AI-generated trade setup — build bracket from current price with a 0.5% buffer
+      if (!ticker.price || ticker.price <= 0) {
+        results.push({ symbol, status: "skipped", reason: "no trade setup and no price for fallback bracket" });
+        continue;
+      }
+      const bracket = await resolveTradeBracket(ticker.stage);
+      entryLimit = round2(ticker.price * 1.005);
+      stopPrice = round2(entryLimit * (1 + bracket.stopPct));
+      targetPrice = round2(entryLimit * (1 + bracket.targetPct));
+      console.log(`[broker/executor] ${symbol} — fallback bracket (price=$${ticker.price}, entry=$${entryLimit})`);
+    }
+
+    const qty = Math.floor(POSITION_SIZE_USD / entryLimit);
     if (qty < 1) {
-      results.push({ symbol, status: "skipped", reason: `price $${tradeSetupEntryHi} too high for $${POSITION_SIZE_USD} leg` });
+      results.push({ symbol, status: "skipped", reason: `price $${entryLimit} too high for $${POSITION_SIZE_USD} leg` });
       continue;
     }
 
@@ -57,9 +72,9 @@ export async function executeForTickers(tickers: ValidatedTicker[]): Promise<Exe
       const { clientOrderId, brokerOrderId } = await client.placeBracketOrder({
         symbol,
         qty,
-        entryLimit: tradeSetupEntryHi,
-        stopPrice: tradeSetupStopLoss,
-        targetPrice: tradeSetupTarget1,
+        entryLimit,
+        stopPrice,
+        targetPrice,
       });
 
       await prisma.$transaction([
@@ -71,7 +86,7 @@ export async function executeForTickers(tickers: ValidatedTicker[]): Promise<Exe
             orderType: "LMT",
             side: "BUY",
             quantity: qty,
-            limitPrice: tradeSetupEntryHi,
+            limitPrice: entryLimit,
             cOID: clientOrderId,
             brokerOrderId: brokerOrderId ?? null,
             ibkrStatus: "Submitted",
@@ -86,7 +101,7 @@ export async function executeForTickers(tickers: ValidatedTicker[]): Promise<Exe
             orderType: "STP",
             side: "SELL",
             quantity: qty,
-            stopPrice: tradeSetupStopLoss,
+            stopPrice,
             parentOrderId: clientOrderId,
             ibkrStatus: "PendingSubmit",
             provider: PROVIDER,
@@ -100,7 +115,7 @@ export async function executeForTickers(tickers: ValidatedTicker[]): Promise<Exe
             orderType: "LMT",
             side: "SELL",
             quantity: qty,
-            limitPrice: tradeSetupTarget1,
+            limitPrice: targetPrice,
             parentOrderId: clientOrderId,
             ibkrStatus: "PendingSubmit",
             provider: PROVIDER,
@@ -113,14 +128,14 @@ export async function executeForTickers(tickers: ValidatedTicker[]): Promise<Exe
         create: {
           symbol,
           quantity: qty,
-          avgCost: tradeSetupEntryHi,
+          avgCost: entryLimit,
           openedAt: new Date(),
           syncedAt: new Date(),
           provider: PROVIDER,
         },
         update: {
           quantity: qty,
-          avgCost: tradeSetupEntryHi,
+          avgCost: entryLimit,
           closedAt: null,
           openedAt: new Date(),
           syncedAt: new Date(),
@@ -130,7 +145,7 @@ export async function executeForTickers(tickers: ValidatedTicker[]): Promise<Exe
 
       openSymbols.add(symbol);
       results.push({ symbol, status: "placed", clientOrderId });
-      console.log(`[broker/executor] ✓ ${symbol} — ${qty} sh @ $${tradeSetupEntryHi}, stop $${tradeSetupStopLoss}, target $${tradeSetupTarget1} [${PROVIDER}]`);
+      console.log(`[broker/executor] ✓ ${symbol} — ${qty} sh @ $${entryLimit}, stop $${stopPrice}, target $${targetPrice} [${PROVIDER}]`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[broker/executor] ✗ ${symbol} — ${msg}`);
@@ -142,7 +157,7 @@ export async function executeForTickers(tickers: ValidatedTicker[]): Promise<Exe
           orderType: "LMT",
           side: "BUY",
           quantity: qty,
-          limitPrice: tradeSetupEntryHi,
+          limitPrice: entryLimit,
           ibkrStatus: "Error",
           errorMessage: msg,
           provider: PROVIDER,

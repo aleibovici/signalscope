@@ -32,6 +32,8 @@ export function useSignalRowView({ viewModeKey, sortStorageKey }: UseSignalRowVi
   const [sortDir, setSortDir] = useState<SignalRowSortDir>("desc");
 
   useEffect(() => {
+    // localStorage is only available client-side; this effect runs after hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setViewMode(readViewMode(viewModeKey));
     if (!sortStorageKey) return;
     const saved = loadRowSort(sortStorageKey);

@@ -122,18 +122,25 @@ describe("executeForTickers", () => {
     );
   });
 
-  it("skips ticker with incomplete trade setup (no stop loss)", async () => {
+  it("uses fallback bracket when trade setup is incomplete (no stop loss)", async () => {
     const tickers = [makeTicker({ tradeSetupStopLoss: null })];
     const results = await executeForTickers(tickers);
-
-    expect(results[0].status).toBe("skipped");
-    expect(results[0].reason).toContain("incomplete trade setup");
+    // Fallback bracket from current price — still placed, not skipped
+    expect(results[0].status).toBe("placed");
   });
 
-  it("skips ticker with incomplete trade setup (no entryHi)", async () => {
+  it("uses fallback bracket when trade setup is incomplete (no entryHi)", async () => {
     const tickers = [makeTicker({ tradeSetupEntryHi: null })];
     const results = await executeForTickers(tickers);
+    // Fallback bracket from current price — still placed, not skipped
+    expect(results[0].status).toBe("placed");
+  });
+
+  it("skips ticker with no trade setup and no price", async () => {
+    const tickers = [makeTicker({ tradeSetupEntryHi: null, tradeSetupStopLoss: null, tradeSetupTarget1: null, price: null })];
+    const results = await executeForTickers(tickers);
     expect(results[0].status).toBe("skipped");
+    expect(results[0].reason).toContain("no price");
   });
 
   it("skips ticker where price is too high for $1000 position", async () => {
