@@ -114,15 +114,11 @@ export async function POST(req: NextRequest) {
     let brokerResults: { symbol: string; status: string; reason?: string }[] = [];
     if (process.env.ALPACA_API_KEY && process.env.ALPACA_SECRET_KEY) {
       try {
-        // Re-fetch tickers with updated trade setup fields post-report
+        // Re-fetch all Buy/Strong Buy tickers from the scan — recommendation is the quality gate
         const updatedTickers = await prisma.validatedTicker.findMany({
           where: {
             scanId: latestScan.id,
-            stage: { in: ["EARLY", "FORMING"] },
-            tradeSetupEntryHi: { not: null },
-            tradeSetupStopLoss: { not: null },
-            tradeSetupTarget1: { not: null },
-            aiScore: { gte: 70 },
+            recommendation: { in: ["Buy", "Strong Buy"] },
           },
           orderBy: { opportunityScore: "desc" },
         });

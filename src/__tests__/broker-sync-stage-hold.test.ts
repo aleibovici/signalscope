@@ -11,6 +11,8 @@ const mockBrokerOrderCreate = vi.fn().mockResolvedValue({});
 const mockBrokerPositionFindMany = vi.fn();
 const mockBrokerPositionUpsert = vi.fn().mockResolvedValue({});
 const mockBrokerPositionUpdate = vi.fn().mockResolvedValue({});
+const mockScanFindFirst = vi.fn().mockResolvedValue(null);
+const mockValidatedTickerFindMany = vi.fn().mockResolvedValue([]);
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -24,6 +26,12 @@ vi.mock("@/lib/prisma", () => ({
       findMany: (...a: unknown[]) => mockBrokerPositionFindMany(...a),
       upsert: (...a: unknown[]) => mockBrokerPositionUpsert(...a),
       update: (...a: unknown[]) => mockBrokerPositionUpdate(...a),
+    },
+    scan: {
+      findFirst: (...a: unknown[]) => mockScanFindFirst(...a),
+    },
+    validatedTicker: {
+      findMany: (...a: unknown[]) => mockValidatedTickerFindMany(...a),
     },
   },
 }));
@@ -82,6 +90,8 @@ beforeEach(() => {
   mockBrokerPositionFindMany.mockReset();
   mockBrokerPositionUpsert.mockReset().mockResolvedValue({});
   mockBrokerPositionUpdate.mockReset().mockResolvedValue({});
+  mockScanFindFirst.mockReset().mockResolvedValue(null);
+  mockValidatedTickerFindMany.mockReset().mockResolvedValue([]);
   mockListOpenOrders.mockReset().mockResolvedValue([]);
   mockListPositions.mockReset().mockResolvedValue([]);
   mockPlaceMarketSell.mockReset().mockResolvedValue(undefined);
