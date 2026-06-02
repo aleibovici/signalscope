@@ -6,7 +6,13 @@ import { reconstructAggregatedSymbol } from "@/lib/reconstruct-aggregated";
 import type { SignalType } from "@/lib/harvester/types";
 import { executeForTickers } from "@/lib/brokers/executor";
 
-const BATCH_SIZE = 10;
+// FORMING tickers first (Buy/Strong Buy eligible), then EARLY — prevents high-scoring
+// single-source EARLY tickers (insider/congress with sourceCount=1) from crowding out
+// FORMING multi-source tickers that are the only realistic path to a Buy recommendation.
+const EARLY_FORMING_BATCH_SIZE = 10;
+// CONFIRMED tickers qualify for Buy C (score>=60 + fresh) but are excluded from the
+// EARLY/FORMING batch query. Process them separately so Buy C recommendations are generated.
+const CONFIRMED_BATCH_SIZE = 5;
 
 export async function POST(req: NextRequest) {
   try {
@@ -35,23 +41,37 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: "no_scan", generated: 0, skipped: 0, errors: [] });
     }
 
-    // Find top tickers by opportunityScore that are missing reports
-    const tickers = await prisma.validatedTicker.findMany({
+    // EARLY/FORMING batch: FORMING sorted first (F > E desc) so multi-source Building tickers
+    // are not displaced by high-scoring single-source Emerging tickers.
+    const earlyFormingTickers = await prisma.validatedTicker.findMany({
       where: {
         scanId: latestScan.id,
         stage: { in: ["EARLY", "FORMING"] },
-        catalyst: null, // no report yet
+        catalyst: null,
+      },
+      orderBy: [{ stage: "desc" }, { aiScore: "desc" }, { opportunityScore: "desc" }],
+      take: EARLY_FORMING_BATCH_SIZE,
+    });
+
+    // CONFIRMED batch: separate pass so Buy C candidates (score>=60 + fresh) are not skipped.
+    const confirmedTickers = await prisma.validatedTicker.findMany({
+      where: {
+        scanId: latestScan.id,
+        stage: "CONFIRMED",
+        catalyst: null,
       },
       orderBy: [{ aiScore: "desc" }, { opportunityScore: "desc" }],
-      take: BATCH_SIZE,
+      take: CONFIRMED_BATCH_SIZE,
     });
+
+    const tickers = [...earlyFormingTickers, ...confirmedTickers];
 
     if (tickers.length === 0) {
       console.log("[reports/generate] No tickers need reports");
       return NextResponse.json({ status: "completed", scanId: latestScan.id, generated: 0, skipped: 0, errors: [] });
     }
 
-    console.log(`[reports/generate] Generating reports for ${tickers.length} tickers: ${tickers.map((t) => t.symbol).join(", ")}`);
+    console.log(`[reports/generate] Generating reports for ${tickers.length} tickers: ${tickers.map((t) => t.symbol).join(", ")} (${earlyFormingTickers.length} EARLY/FORMING, ${confirmedTickers.length} CONFIRMED)`);
 
     let generated = 0;
     let skipped = 0;
