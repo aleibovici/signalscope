@@ -9,6 +9,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-06-02",
+    title: "Fix batch report generation to surface Buy and Strong Buy recommendations",
+    changes: [
+      {
+        category: "fixed",
+        items: [
+          "Batch report generation now processes Confirmed-stage tickers (up to 5) in a separate pass so Buy recommendations from the Buy C path (Consensus + score≥60 + fresh signals) are generated each morning alongside the Emerging/Building batch.",
+          "Within the Emerging/Building batch, Building (Forming) tickers now sort before Emerging (Early) tickers. Previously, high-scoring single-source insider and congress signals in Emerging stage were crowding out multi-source Building tickers — the only realistic path to Strong Buy — from the 10-ticker batch.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-05-23",
     title: "Emerging-focused recommendations and restored trade setups",
     changes: [
