@@ -5,6 +5,7 @@ import { handleApiError } from "@/lib/api-error";
 import { generateTickerReportReACT } from "@/lib/harvester/report";
 import { reconstructAggregatedSymbol } from "@/lib/reconstruct-aggregated";
 import type { SignalType } from "@/lib/harvester/types";
+import { ACTIONABLE_MARKET_CAP_MAX } from "@/lib/harvester/recommendation";
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Stage priority for the digest: Emerging (EARLY) → Building (FORMING) → Consensus (CONFIRMED).
-    // Within each stage, same tie-break as the dashboard: aiScore desc, then opportunityScore desc.
+    // Within each stage, rank opportunities first so large, high-confidence names do not crowd out breakouts.
     const STAGE_PRIORITY: Record<string, number> = { EARLY: 0, FORMING: 1, CONFIRMED: 2 };
 
     // Fetch full ticker rows — needed for both report generation and email
@@ -41,6 +42,10 @@ export async function POST(req: NextRequest) {
         aiScore: { gte: 50 },
         pndFlagged: false,
         stage: { in: ["EARLY", "FORMING", "CONFIRMED"] },
+        OR: [
+          { marketCap: null },
+          { marketCap: { lte: ACTIONABLE_MARKET_CAP_MAX } },
+        ],
       },
     });
 
@@ -48,9 +53,9 @@ export async function POST(req: NextRequest) {
       .sort((a, b) => {
         const stageDiff = (STAGE_PRIORITY[a.stage] ?? 9) - (STAGE_PRIORITY[b.stage] ?? 9);
         if (stageDiff !== 0) return stageDiff;
-        const scoreDiff = b.aiScore - a.aiScore;
-        if (scoreDiff !== 0) return scoreDiff;
-        return (b.opportunityScore ?? 0) - (a.opportunityScore ?? 0);
+        const opportunityDiff = (b.opportunityScore ?? 0) - (a.opportunityScore ?? 0);
+        if (opportunityDiff !== 0) return opportunityDiff;
+        return b.aiScore - a.aiScore;
       })
       .slice(0, 6);
 
@@ -111,6 +116,10 @@ export async function POST(req: NextRequest) {
       where: {
         scanId: scan.id,
         stage: { in: ["EARLY", "FORMING", "CONFIRMED"] },
+        OR: [
+          { marketCap: null },
+          { marketCap: { lte: ACTIONABLE_MARKET_CAP_MAX } },
+        ],
       },
     });
 

@@ -142,16 +142,16 @@ Returns 404 if the ticker has never been validated. Trade setup is only generate
 
 ### How `recommendation` is computed
 
-The `recommendation` field is **not chosen by the AI**. It is derived by a deterministic rule over the ticker's score, stage, source mix, catalyst presence, and pump-and-dump flags. The LLM writes only the prose (`catalyst`, `risks`, `report`). This eliminates drift between the score and the label and makes the label backtestable.
+The `recommendation` field is **not chosen by the AI**. It is derived by a deterministic rule over the ticker's score, stage, source mix, catalyst presence, market-cap tier, and pump-and-dump flags. The LLM writes only the prose (`catalyst`, `risks`, `report`). This eliminates drift between the score and the label and makes the label backtestable.
 
 | Label | Rule |
 |---|---|
-| **Strong Buy** | `stage = CONFIRMED` AND has catalyst source (SEC insider, congress, or unusual options) AND `sourceCount ≥ 3` AND `aiScore ≥ 70` AND `medianSignalAgeHrs ≤ 6` |
-| **Buy** | `stage = CONFIRMED` AND `aiScore ≥ 60`  —or—  has catalyst source AND `sourceCount ≥ 2` AND `aiScore ≥ 55` |
+| **Strong Buy** | `stage = FORMING` AND `marketCap ≤ $10B` (or unknown) AND has catalyst source (SEC insider, congress, or unusual options) AND `sourceCount ≥ 2` AND `aiScore ≥ 60` |
+| **Buy** | `marketCap ≤ $10B` (or unknown) AND one of: `stage = EARLY/FORMING` with catalyst source, `sourceCount ≥ 2`, `aiScore ≥ 55`; `stage = FORMING`, `sourceCount ≥ 2`, `aiScore ≥ 60`; or `stage = CONFIRMED`, `aiScore ≥ 60`, `medianSignalAgeHrs ≤ 6` |
 | **Avoid** | `stage = FILTERED`  —or—  `pndFlagged = true`  —or—  `price < $0.12` |
 | **Watch** | none of the above (default) |
 
-Thresholds were calibrated against 25k+ `TickerPerformance` rows over 90 days. Strong Buy hit 75% positive 7-day return in calibration; the two Buy paths each cleared +2.5% mean 7-day return and 61%+ hit rate; each Avoid path showed sub-baseline hit rates (33–37% vs ~48% baseline).
+Thresholds were calibrated against 25k+ `TickerPerformance` rows over 90 days, then capped below the large-cap tier so actionable labels stay focused on emerging breakouts rather than consensus blue-chip chatter. Strong Buy hit 65% positive 7-day return in calibration; Buy paths cleared 60%+ hit rates; each Avoid path showed sub-baseline hit rates (33–37% vs ~48% baseline).
 
 ---
 
@@ -179,7 +179,7 @@ Get scan detail with validated tickers. No authentication required.
 |-------|------|---------|-------------|
 | includeFiltered | boolean | false | Include FILTERED (P&D flagged) tickers |
 
-**Response:** `{ scan: { ... }, tickers: [{ id, symbol, aiScore, opportunityScore, stage, price, ... }] }` — tickers are ordered by `aiScore` descending (`opportunityScore` as tiebreaker).
+**Response:** `{ scan: { ... }, tickers: [{ id, symbol, aiScore, opportunityScore, stage, price, ... }] }` — tickers are ordered by `opportunityScore` descending (`aiScore` as tiebreaker).
 
 ---
 

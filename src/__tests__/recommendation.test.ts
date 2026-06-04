@@ -10,7 +10,7 @@ import {
   type Recommendation,
   type RecommendationInput,
 } from "@/lib/harvester/recommendation";
-import type { AggregatedSymbol, FundamentalData } from "@/lib/harvester/types";
+import type { AggregatedSymbol } from "@/lib/harvester/types";
 
 function input(overrides: Partial<RecommendationInput> = {}): RecommendationInput {
   return {
@@ -20,18 +20,29 @@ function input(overrides: Partial<RecommendationInput> = {}): RecommendationInpu
     hasCatalystSource: false,
     pndFlagged: false,
     price: 5,
+    marketCap: 500_000_000,
     medianSignalAgeHrs: 4,
     ...overrides,
   };
 }
 
-/** Golden matrix — one assertion per locked v2 path and key negative case. */
-describe("deriveRecommendation — v2 decision matrix", () => {
+/** Golden matrix — one assertion per locked v3 path and key negative case. */
+describe("deriveRecommendation — v3 decision matrix", () => {
   const cases: [string, Partial<RecommendationInput>, Recommendation][] = [
     ["Strong Buy: FORMING + catalyst + src2 + score 62", { stage: "FORMING", hasCatalystSource: true, sourceCount: 2, aiScore: 62 }, "Strong Buy"],
     ["Buy A: EARLY + catalyst + src2 + score 57", { stage: "EARLY", hasCatalystSource: true, sourceCount: 2, aiScore: 57 }, "Buy"],
     ["Buy B: FORMING social momentum", { stage: "FORMING", hasCatalystSource: false, sourceCount: 2, aiScore: 62 }, "Buy"],
     ["Buy C: CONFIRMED fresh", { stage: "CONFIRMED", aiScore: 62, medianSignalAgeHrs: 2 }, "Buy"],
+    [
+      "Watch: large-cap FORMING catalyst",
+      { stage: "FORMING", hasCatalystSource: true, sourceCount: 2, aiScore: 80, marketCap: 50_000_000_000 },
+      "Watch",
+    ],
+    [
+      "Watch: large-cap CONFIRMED fresh",
+      { stage: "CONFIRMED", aiScore: 80, medianSignalAgeHrs: 2, marketCap: 50_000_000_000 },
+      "Watch",
+    ],
     ["Watch: CONFIRMED stale", { stage: "CONFIRMED", aiScore: 80, medianSignalAgeHrs: 10 }, "Watch"],
     ["Watch: EARLY high score social-only", { stage: "EARLY", hasCatalystSource: false, sourceCount: 1, aiScore: 90 }, "Watch"],
     ["Avoid: pndFlagged", { pndFlagged: true, stage: "FORMING", hasCatalystSource: true, sourceCount: 3, aiScore: 90 }, "Avoid"],
@@ -195,8 +206,8 @@ describe("recommendationHasTradeSetup", () => {
 });
 
 describe("RECOMMENDATION_RULE_VERSION", () => {
-  it("is 2 after the emerging-focused rule change", () => {
-    expect(RECOMMENDATION_RULE_VERSION).toBe(2);
+  it("is 3 after the large-cap executable-label gate", () => {
+    expect(RECOMMENDATION_RULE_VERSION).toBe(3);
   });
 });
 

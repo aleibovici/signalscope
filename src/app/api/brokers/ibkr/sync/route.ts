@@ -7,6 +7,7 @@ import { getBrokerClient, isConfigured } from "@/lib/brokers/factory";
 import { executeForTickers } from "@/lib/brokers/executor";
 import { holdDaysForStage, HOLD_DAYS_BY_STAGE } from "@/lib/anchors";
 import { TickerStage } from "@/generated/prisma/client";
+import { ACTIONABLE_MARKET_CAP_MAX } from "@/lib/harvester/recommendation";
 
 // ML model trained on 1d/3d/7d horizons only — holds past 7d use stale alpha.
 // Hold-day defaults come from anchors.ts (stage-tiered: EARLY 5d, FORMING/CONFIRMED 7d).
@@ -190,7 +191,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Execute trades for any Buy/Strong Buy tickers in the latest scan not yet ordered.
+    // Execute trades for actionable Buy/Strong Buy tickers in the latest scan not yet ordered.
     // This catches tickers that got reports after the reports/generate batch ran.
     let tradeExecutions = 0;
     const latestScan = await prisma.scan.findFirst({
@@ -199,7 +200,15 @@ export async function POST(req: NextRequest) {
     });
     if (latestScan) {
       const buyTickers = await prisma.validatedTicker.findMany({
-        where: { scanId: latestScan.id, recommendation: { in: ["Buy", "Strong Buy"] } },
+        where: {
+          scanId: latestScan.id,
+          recommendation: { in: ["Buy", "Strong Buy"] },
+          stage: { in: ["EARLY", "FORMING"] },
+          OR: [
+            { marketCap: null },
+            { marketCap: { lte: ACTIONABLE_MARKET_CAP_MAX } },
+          ],
+        },
         orderBy: { opportunityScore: "desc" },
       });
       if (buyTickers.length > 0) {

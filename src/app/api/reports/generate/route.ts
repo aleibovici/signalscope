@@ -5,6 +5,7 @@ import { generateTickerReportReACT } from "@/lib/harvester/report";
 import { reconstructAggregatedSymbol } from "@/lib/reconstruct-aggregated";
 import type { SignalType } from "@/lib/harvester/types";
 import { executeForTickers } from "@/lib/brokers/executor";
+import { ACTIONABLE_MARKET_CAP_MAX } from "@/lib/harvester/recommendation";
 
 // FORMING tickers first (Buy/Strong Buy eligible), then EARLY — prevents high-scoring
 // single-source EARLY tickers (insider/congress with sourceCount=1) from crowding out
@@ -43,13 +44,21 @@ export async function POST(req: NextRequest) {
 
     // EARLY/FORMING batch: FORMING sorted first (F > E desc) so multi-source Building tickers
     // are not displaced by high-scoring single-source Emerging tickers.
+    const actionableCapFilter = {
+      OR: [
+        { marketCap: null },
+        { marketCap: { lte: ACTIONABLE_MARKET_CAP_MAX } },
+      ],
+    } as const;
+
     const earlyFormingTickers = await prisma.validatedTicker.findMany({
       where: {
         scanId: latestScan.id,
         stage: { in: ["EARLY", "FORMING"] },
+        ...actionableCapFilter,
         catalyst: null,
       },
-      orderBy: [{ stage: "desc" }, { aiScore: "desc" }, { opportunityScore: "desc" }],
+      orderBy: [{ stage: "desc" }, { opportunityScore: "desc" }, { aiScore: "desc" }],
       take: EARLY_FORMING_BATCH_SIZE,
     });
 
@@ -58,9 +67,10 @@ export async function POST(req: NextRequest) {
       where: {
         scanId: latestScan.id,
         stage: "CONFIRMED",
+        ...actionableCapFilter,
         catalyst: null,
       },
-      orderBy: [{ aiScore: "desc" }, { opportunityScore: "desc" }],
+      orderBy: [{ opportunityScore: "desc" }, { aiScore: "desc" }],
       take: CONFIRMED_BATCH_SIZE,
     });
 
@@ -134,11 +144,17 @@ export async function POST(req: NextRequest) {
     let brokerResults: { symbol: string; status: string; reason?: string }[] = [];
     if (process.env.ALPACA_API_KEY && process.env.ALPACA_SECRET_KEY) {
       try {
-        // Re-fetch all Buy/Strong Buy tickers from the scan — recommendation is the quality gate
+        // Re-fetch actionable Buy/Strong Buy tickers from the scan.
+        // Stage/cap guards protect rows labeled before the current recommendation rule.
         const updatedTickers = await prisma.validatedTicker.findMany({
           where: {
             scanId: latestScan.id,
             recommendation: { in: ["Buy", "Strong Buy"] },
+            stage: { in: ["EARLY", "FORMING"] },
+            OR: [
+              { marketCap: null },
+              { marketCap: { lte: ACTIONABLE_MARKET_CAP_MAX } },
+            ],
           },
           orderBy: { opportunityScore: "desc" },
         });

@@ -49,11 +49,13 @@ export function computeOpportunityScore(input: OpportunityScoreInput): number {
   else if (input.avgVelocity >= 1.5) score += 8;
   else if (input.avgVelocity >= 1.0) score += 4;
 
-  // --- Price / market cap (0-15) ---
+  // --- Price / market cap (-20 to +15) ---
   if (input.marketCap != null) {
     if (input.marketCap < 50_000_000) score += 15;
     else if (input.marketCap < 300_000_000) score += 12;
     else if (input.marketCap < 2_000_000_000) score += 6;
+    else if (input.marketCap >= 50_000_000_000) score -= 20;
+    else if (input.marketCap >= 10_000_000_000) score -= 12;
   }
 
   // --- Near 52-week low (0-10) ---
