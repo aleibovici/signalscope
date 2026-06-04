@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
         { marketCap: null },
         { marketCap: { lte: ACTIONABLE_MARKET_CAP_MAX } },
       ],
-    } as const;
+    };
 
     const earlyFormingTickers = await prisma.validatedTicker.findMany({
       where: {
