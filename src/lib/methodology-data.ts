@@ -150,12 +150,12 @@ export const recommendationLevels: RecommendationLevel[] = [
   {
     level: "Strong Buy",
     color: "bg-green-600 text-white dark:bg-green-700 dark:text-white",
-    desc: "Building stage with a verifiable catalyst (insider buy, congressional trade, or unusual options flow), two or more corroborating sources, and AI score 60+. The 'caught it while it's still emerging and the smart-money signal is real' zone — the calibration sample over the last 90 days hit a 65% positive 7-day rate at +2.2% mean return.",
+    desc: "Building stage below the large-cap tier with a verifiable catalyst (insider buy, congressional trade, or unusual options flow), two or more corroborating sources, and AI score 60+. The 'caught it while it's still emerging and the smart-money signal is real' zone — the calibration sample over the last 90 days hit a 65% positive 7-day rate at +2.2% mean return.",
   },
   {
     level: "Buy",
     color: "bg-green-100 text-green-800 dark:bg-green-950/50 dark:text-green-300",
-    desc: "One of three paths: Emerging or Building stage with a verifiable catalyst, two or more sources, and AI score 55+ (calibration: +2.5% mean 7-day, 63% hit rate); Building stage with two or more sources and AI score 60+ (calibration: +1.6% / 60% hit); or Consensus stage with AI score 60+ but only when signals are still fresh (median age ≤ 6h, calibration: +2.4% / 61% hit). Consensus is capped at Buy because by the time a ticker reaches consensus the move is largely played out.",
+    desc: "One of three paths, all below the large-cap tier: Emerging or Building stage with a verifiable catalyst, two or more sources, and AI score 55+ (calibration: +2.5% mean 7-day, 63% hit rate); Building stage with two or more sources and AI score 60+ (calibration: +1.6% / 60% hit); or Consensus stage with AI score 60+ but only when signals are still fresh (median age ≤ 6h, calibration: +2.4% / 61% hit). Consensus is capped at Buy because by the time a ticker reaches consensus the move is largely played out.",
   },
   {
     level: "Watch",
@@ -191,7 +191,7 @@ export const scoringDescription =
   "seen 3+ times or older than 7 days receive a staleness penalty. Signal freshness is " +
   "also tracked — stale consensus (median signal age ≥6 h) is excluded from the highest stage. " +
   "This AI score reflects how strong the evidence is, not how much upside is left; Opportunity Score (see above) captures early-mover potential separately. " +
-  "The final recommendation label (Strong Buy / Buy / Watch / Avoid) is then derived from a deterministic rule over the score, stage, source mix, catalyst presence, and pump-and-dump flags — the AI writes the narrative but does not choose the label, eliminating drift between the score and the recommendation.";
+  "The final recommendation label (Strong Buy / Buy / Watch / Avoid) is then derived from a deterministic rule over the score, stage, source mix, catalyst presence, market-cap tier, and pump-and-dump flags — the AI writes the narrative but does not choose the label, eliminating drift between the score and the recommendation.";
 
 export const pndDescription =
   "Every candidate is checked against 13 statistical flags before scoring. Flags are split into " +

@@ -89,6 +89,35 @@ describe("computeOpportunityScore", () => {
     expect(micro).toBeGreaterThan(large);
   });
 
+  it("penalizes mega-caps enough that fresh chatter does not look like an emerging breakout", () => {
+    const megaCap = computeOpportunityScore({
+      aiScore: 35,
+      firstSeenDaysAgo: null,
+      priorAppearances: 0,
+      avgVelocity: 3.0,
+      price: 250,
+      marketCap: 150_000_000_000,
+      wk52Lo: 200,
+      wk52Hi: 260,
+      medianSignalAgeHrs: 1,
+      shortFloat: 0.02,
+      sourceCount: 3,
+      stage: "FORMING",
+      totalUpvotes: 500,
+      totalComments: 50,
+    });
+    const smallCap = computeOpportunityScore({
+      ...baseInput,
+      aiScore: 45,
+      firstSeenDaysAgo: 2,
+      avgVelocity: 2.0,
+      marketCap: 250_000_000,
+      medianSignalAgeHrs: 2,
+    });
+
+    expect(megaCap).toBeLessThan(smallCap);
+  });
+
   it("clamps to [0, 100]", () => {
     // Minimum possible
     const minScore = computeOpportunityScore({

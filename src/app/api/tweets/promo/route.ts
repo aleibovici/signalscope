@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-error";
 import { generateAndPostPromoTweet, type PromoStats } from "@/lib/twitter/promo";
+import { ACTIONABLE_MARKET_CAP_MAX } from "@/lib/harvester/recommendation";
 
 /**
  * POST /api/tweets/promo
@@ -95,6 +96,10 @@ export async function POST(req: NextRequest) {
           scanId: latestScan.id,
           stage: { in: ["EARLY", "FORMING", "CONFIRMED"] },
           recommendation: { notIn: ["Avoid"] },
+          OR: [
+            { marketCap: null },
+            { marketCap: { lte: ACTIONABLE_MARKET_CAP_MAX } },
+          ],
         },
         orderBy: { opportunityScore: "desc" },
         take: 5,

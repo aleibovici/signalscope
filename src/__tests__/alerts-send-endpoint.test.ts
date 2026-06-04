@@ -79,7 +79,7 @@ describe("POST /api/alerts/send", () => {
     expect(mockSendTickerAlerts).not.toHaveBeenCalled();
   });
 
-  it("prioritises EARLY > FORMING > CONFIRMED, then aiScore then opportunityScore within stage, top 6", async () => {
+  it("prioritises EARLY > FORMING > CONFIRMED, then opportunityScore then aiScore within stage, top 6", async () => {
     mockScanFindFirst.mockResolvedValue({ id: "scan_1" });
     // Unsorted like DB — route applies stage + dashboard-style tie-breaks
     mockValidatedTickerFindMany.mockResolvedValue([
@@ -88,7 +88,7 @@ describe("POST /api/alerts/send", () => {
         price: 400,
         aiScore: 90,
         aiReasoning: "Strong momentum",
-        catalyst: null,
+        catalyst: "Options flow",
         signalType: "options_flow",
         stage: "CONFIRMED",
         opportunityScore: 70,
@@ -131,6 +131,10 @@ describe("POST /api/alerts/send", () => {
     expect(findManyCall.where.stage).toEqual({ in: ["EARLY", "FORMING", "CONFIRMED"] });
     expect(findManyCall.where.aiScore).toEqual({ gte: 50 });
     expect(findManyCall.where.pndFlagged).toBe(false);
+    expect(findManyCall.where.OR).toEqual([
+      { marketCap: null },
+      { marketCap: { lte: 10_000_000_000 } },
+    ]);
     expect(findManyCall.select).toBeUndefined(); // full row fetch, no select
     expect(findManyCall.orderBy).toBeUndefined();
     expect(findManyCall.take).toBeUndefined();
@@ -142,25 +146,25 @@ describe("POST /api/alerts/send", () => {
     expect(alertTickers[0].aiReasoning).toBe("Multi-source convergence");
   });
 
-  it("within the same stage, sorts by opportunityScore when aiScore ties", async () => {
+  it("within the same stage, sorts by opportunityScore before aiScore", async () => {
     mockScanFindFirst.mockResolvedValue({ id: "scan_1" });
     mockValidatedTickerFindMany.mockResolvedValue([
       {
-        symbol: "LOWOPP",
+        symbol: "HIGH_AI_LOW_OPP",
         price: 10,
-        aiScore: 80,
+        aiScore: 95,
         aiReasoning: "r1",
-        catalyst: null,
+        catalyst: "r1",
         signalType: "reddit",
         stage: "EARLY",
         opportunityScore: 10,
       },
       {
-        symbol: "HIGHOPP",
+        symbol: "LOW_AI_HIGH_OPP",
         price: 11,
-        aiScore: 80,
+        aiScore: 60,
         aiReasoning: "r2",
-        catalyst: null,
+        catalyst: "r2",
         signalType: "reddit",
         stage: "EARLY",
         opportunityScore: 50,
@@ -173,8 +177,8 @@ describe("POST /api/alerts/send", () => {
     expect(res.status).toBe(200);
 
     const alertTickers = mockSendTickerAlerts.mock.calls[0][0];
-    expect(alertTickers[0].symbol).toBe("HIGHOPP");
-    expect(alertTickers[1].symbol).toBe("LOWOPP");
+    expect(alertTickers[0].symbol).toBe("LOW_AI_HIGH_OPP");
+    expect(alertTickers[1].symbol).toBe("HIGH_AI_LOW_OPP");
   });
 
   it("sends empty alert when no tickers qualify", async () => {

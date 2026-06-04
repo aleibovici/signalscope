@@ -9,6 +9,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-06-05",
+    title: "Breakout picks re-focused below large caps",
+    changes: [
+      {
+        category: "fixed",
+        items: [
+          "Buy and Strong Buy labels now exclude large-cap tickers above $10B market cap, demoting them to Watch instead of treating broad blue-chip chatter as an actionable breakout.",
+          "Paper-trading execution now has defense-in-depth guards: it only places orders for Emerging or Building stage Buy/Strong Buy rows and skips large-cap rows even if they were labeled before this rule change.",
+          "Default dashboard, alert, and report-generation ordering now ranks by Opportunity Score before AI confidence so early breakout setups are not crowded out by high-confidence mega-cap names.",
+        ],
+      },
+    ],
+  },
+  {
     date: "2026-06-02",
     title: "Fix batch report generation to surface Buy and Strong Buy recommendations",
     changes: [

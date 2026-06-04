@@ -51,7 +51,7 @@ const sampleAgg: AggregatedSymbol = {
 
 const sampleFundamentals: FundamentalData = {
   price: 175,
-  marketCap: 2_800_000_000_000,
+  marketCap: 2_800_000_000,
   shortFloat: 0.01,
   fiftyTwoWeekRange: "140.00 - 200.00",
   name: "Apple Inc.",
@@ -69,12 +69,13 @@ const sampleNovelty: NoveltyContext = {
 // Note: recommendation is intentionally absent — the LLM no longer emits it.
 // The deterministic deriveRecommendation() in src/lib/harvester/recommendation.ts
 // computes it from the same inputs the rest of the pipeline uses. For the
-// sampleAgg below (SEC_INSIDER + REDDIT, sourceCount=2) with aiScore=75 used
-// in tests, the rule produces "Buy" via the catalyst-led path.
+// sampleAgg below (SEC_INSIDER + REDDIT, sourceCount=2, market cap below the
+// large-cap tier) with aiScore=75 used in tests, the rule produces "Buy" via
+// the catalyst-led path.
 const reportResponse = {
   action: "final_answer",
   catalyst: "CEO purchased $500K of stock — insider buying signals confidence.",
-  risks: "Large-cap, limited upside from current level.",
+  risks: "Execution risk if insider signal fails to attract follow-through.",
   report: "Apple shows insider buying confirmation alongside social momentum. The CEO purchase of $500K is notable. Multiple sources corroborate interest. Technical setup looks favorable near 52-week range midpoint.",
   tradeSetup: {
     entryLo: 173,

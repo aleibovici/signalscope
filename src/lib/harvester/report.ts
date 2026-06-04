@@ -159,7 +159,7 @@ Trade setup rules — you emit EXACTLY three fields, the server computes the res
 - DO NOT emit stopLoss, target1, target2, timeframe, or riskReward. They are computed server-side from production performance data anchored to the stock's stage. Anything you put there will be discarded.
 
 Server-side post-processing (informational, not your job):
-- The Strong Buy / Buy / Watch / Avoid recommendation label is computed deterministically server-side from the ticker's score, stage, source mix, catalyst presence, and P&D flags. Do not pick it — do not emit a "recommendation" field.
+- The Strong Buy / Buy / Watch / Avoid recommendation label is computed deterministically server-side from the ticker's score, stage, source mix, catalyst presence, market-cap tier, and P&D flags. Do not pick it — do not emit a "recommendation" field.
 - If the computed recommendation is Watch or Avoid, the tradeSetup is dropped server-side.
 
 Return JSON:

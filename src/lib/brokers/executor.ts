@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getBrokerClient } from "./factory";
 import { resolveTradeBracket } from "@/lib/anchors";
 import type { ValidatedTicker } from "@/generated/prisma/client";
+import { ACTIONABLE_MARKET_CAP_MAX } from "@/lib/harvester/recommendation";
 
 const POSITION_SIZE_USD = 1000;
 const PROVIDER = process.env.BROKER_PROVIDER ?? "alpaca";
@@ -35,6 +36,19 @@ export async function executeForTickers(tickers: ValidatedTicker[]): Promise<Exe
 
   for (const ticker of tickers) {
     const { id, symbol } = ticker;
+
+    if (ticker.stage !== "EARLY" && ticker.stage !== "FORMING") {
+      results.push({ symbol, status: "skipped", reason: `stage ${ticker.stage} is not eligible for broker execution` });
+      continue;
+    }
+    if (ticker.marketCap != null && ticker.marketCap > ACTIONABLE_MARKET_CAP_MAX) {
+      results.push({
+        symbol,
+        status: "skipped",
+        reason: `market cap $${ticker.marketCap} exceeds actionable cap $${ACTIONABLE_MARKET_CAP_MAX}`,
+      });
+      continue;
+    }
 
     if (orderedTickerIds.has(id)) {
       results.push({ symbol, status: "skipped", reason: "order already placed for this ticker" });

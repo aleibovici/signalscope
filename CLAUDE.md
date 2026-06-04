@@ -54,9 +54,9 @@ Sources (8 in parallel) → Aggregate by symbol → Fetch fundamentals for ALL s
   → stage: EARLY/FORMING/CONFIRMED/FILTERED                       → stage: UNSCORED
   └──────────────────────────────── DB ───────────────────────────────────────┘
   Reports + Trade Setups generated ON-DEMAND when users view ticker detail page
-  (or batch pre-generated for top 10 EARLY/FORMING tickers via POST /api/reports/generate)
+  (or batch pre-generated for top 10 opportunity-ranked EARLY/FORMING tickers via POST /api/reports/generate)
   ↓ AI writes catalyst/risks/report prose; recommendation (Strong Buy/Buy/Watch/Avoid)
-    is computed deterministically server-side from aiScore + stage + sources + P&D flags
+    is computed deterministically server-side from aiScore + stage + sources + market-cap tier + P&D flags
 ```
 
 - `index.ts` — `fetchSignals()` (source fetching), `processSignals()` (AI scoring, P&D filter, DB writes); includes `extractTxIdsFromUrls()` and `deduplicateCongressSignals()` for Congress dedup
@@ -66,7 +66,7 @@ Sources (8 in parallel) → Aggregate by symbol → Fetch fundamentals for ALL s
 - `pnd-filter.ts` — Pump & dump detection (statistical flags + AI fallback)
 - `fundamentals.ts` — Yahoo Finance v8 for price/market cap
 - `report.ts` — AI-generated ticker report prose (catalyst, risks, narrative) + trade setup entry range. On-demand via `POST /api/tickers/[symbol]/report`, batch via `POST /api/reports/generate`. The `recommendation` label is computed deterministically server-side via `recommendation.ts` (not picked by the LLM); target/stop are anchored via `anchors.ts`
-- `recommendation.ts` — `deriveRecommendation()` pure function mapping (`aiScore`, `stage`, `sourceCount`, `hasCatalystSource`, `pndFlagged`, `price`, `medianSignalAgeHrs`) → `Strong Buy | Buy | Watch | Avoid`. Thresholds calibrated against `TickerPerformance` via `scripts/calibrate-recommendation.ts`. `RECOMMENDATION_RULE_VERSION` bumps when semantics change
+- `recommendation.ts` — `deriveRecommendation()` pure function mapping (`aiScore`, `stage`, `sourceCount`, `hasCatalystSource`, `pndFlagged`, `price`, `marketCap`, `medianSignalAgeHrs`) → `Strong Buy | Buy | Watch | Avoid`. Thresholds calibrated against `TickerPerformance` via `scripts/calibrate-recommendation.ts`; actionable Buy/Strong Buy labels are capped below the large-cap tier. `RECOMMENDATION_RULE_VERSION` bumps when semantics change
 
 Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs to Cloud Run (`/api/harvest/ingest`) for processing
 

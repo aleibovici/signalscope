@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-error";
 import { tweetTickerBatch, selectDiversifiedTickers, type TickerDetail } from "@/lib/twitter/post";
+import { ACTIONABLE_MARKET_CAP_MAX } from "@/lib/harvester/recommendation";
 
 /**
  * POST /api/tweets/post
@@ -40,6 +41,10 @@ export async function POST(req: NextRequest) {
         stage: { in: ["EARLY", "FORMING"] },
         catalyst: { not: null },
         recommendation: { not: null, notIn: ["Avoid"] },
+        OR: [
+          { marketCap: null },
+          { marketCap: { lte: ACTIONABLE_MARKET_CAP_MAX } },
+        ],
       },
       orderBy: { opportunityScore: "desc" },
       take: 30, // fetch more so diversified selection has enough per tier
