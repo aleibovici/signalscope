@@ -140,10 +140,20 @@ export async function POST(req: NextRequest) {
             await client.placeMarketSell(pos.symbol, pos.quantity);
           }
 
-          if (parentOrder) {
+          // Always create an EXIT_TIMEOUT guard record to prevent duplicate sells on
+          // subsequent sync runs while the market sell order is still pending. Requires
+          // a validatedTickerId — use the parent order when available, otherwise fall
+          // back to any order for this symbol.
+          const orderForGuard = parentOrder ?? await prisma.brokerOrder.findFirst({
+            where: { symbol: pos.symbol },
+            select: { validatedTickerId: true },
+            orderBy: { placedAt: "desc" },
+          });
+
+          if (orderForGuard) {
             await prisma.brokerOrder.create({
               data: {
-                validatedTickerId: parentOrder.validatedTickerId,
+                validatedTickerId: orderForGuard.validatedTickerId,
                 symbol: pos.symbol,
                 role: "EXIT_TIMEOUT",
                 orderType: "MKT",
@@ -153,6 +163,8 @@ export async function POST(req: NextRequest) {
                 provider: client.provider,
               },
             });
+          } else {
+            console.warn(`[broker/sync] No order record found for ${pos.symbol} — EXIT_TIMEOUT guard not created`);
           }
 
           timeExits++;
