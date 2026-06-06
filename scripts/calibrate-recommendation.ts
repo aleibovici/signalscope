@@ -19,6 +19,7 @@ interface Row {
   hasCatalystSource: boolean;
   pndFlagged: boolean;
   price: number | null;
+  marketCap: number | null;
   medianSignalAgeHrs: number | null;
   return3d: number | null;
   return7d: number | null;
@@ -32,6 +33,7 @@ function rowToInput(r: Row): RecommendationInput {
     hasCatalystSource: r.hasCatalystSource,
     pndFlagged: r.pndFlagged,
     price: r.price,
+    marketCap: r.marketCap,
     medianSignalAgeHrs: r.medianSignalAgeHrs,
   };
 }
@@ -56,6 +58,7 @@ async function main() {
           sourceCount: true,
           pndFlagged: true,
           price: true,
+          marketCap: true,
           medianSignalAgeHrs: true,
         },
       },
@@ -94,6 +97,7 @@ async function main() {
         hasCatalystSource: catalystKeys.has(`${vt.scanId}|${vt.symbol}`),
         pndFlagged: vt.pndFlagged ?? false,
         price: vt.price,
+        marketCap: vt.marketCap,
         medianSignalAgeHrs: vt.medianSignalAgeHrs,
         return3d: p.return3d,
         return7d: p.return7d,
