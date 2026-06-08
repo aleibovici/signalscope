@@ -43,7 +43,7 @@
   },
   "devDependencies": {
     "@remotion/cli": "^4.0.462",
-    "@remotion/eslint-plugin": "^4.0.459",
+    "@remotion/eslint-plugin": "^4.0.473",
     "@remotion/player": "^4.0.462",
     "@remotion/renderer": "^4.0.462",
     "@tailwindcss/postcss": "^4",
