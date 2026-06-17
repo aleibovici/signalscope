@@ -27,6 +27,13 @@
 //   exposed that fresh CONFIRMED/large-cap rows could still get actionable
 //   labels. Mega/large caps are now demoted to Watch so the product stays
 //   focused on emerging breakouts rather than consensus blue-chip chatter.
+//
+// Rule v4 (2026-06-18) — raise market-cap cap from $10B → $1T.
+//   The $10B cap was blocking all strong catalyst signals (INTC/AMD/GE
+//   CONFIRMED with aiScore 65-75) while small-cap signals stayed below the
+//   55-60 aiScore threshold. Dead zone: no Buy signals for 13 days.
+//   $1T keeps true mega-caps (AAPL/NVDA/MSFT/GOOGL/AMZN ≥ $1.5T) at Watch
+//   while restoring Buy eligibility for large-cap catalyst-backed signals.
 
 import type { TickerStage } from "@/generated/prisma/client";
 import type { AggregatedSymbol, FundamentalData, Source } from "./types";
@@ -35,8 +42,10 @@ export type Recommendation = "Strong Buy" | "Buy" | "Watch" | "Avoid";
 
 /** Insider / options / congress — the only sources that count as a hard catalyst for rec rules. */
 export const HARD_CATALYST_SOURCES = new Set<Source>(["SEC_INSIDER", "OPTIONS_FLOW", "CONGRESS"]);
-/** Large-cap threshold used by peer-context buckets; above this is no longer an actionable breakout label. */
-export const ACTIONABLE_MARKET_CAP_MAX = 10_000_000_000;
+/** Large-cap threshold used by peer-context buckets; above this is no longer an actionable breakout label.
+ *  Set to $1T to block only true mega-caps (AAPL/NVDA/MSFT/GOOGL/AMZN) while allowing large-caps
+ *  with genuine catalyst signals (INTC, AMD, GE, AVGO etc.) to surface as Buy recommendations. */
+export const ACTIONABLE_MARKET_CAP_MAX = 1_000_000_000_000;
 
 export function hasHardCatalyst(sources: Iterable<Source>): boolean {
   for (const source of sources) {
@@ -161,7 +170,7 @@ export function buildRecommendationInput(
 }
 
 /** Bump when rule semantics change so downstream consumers can detect drift. */
-export const RECOMMENDATION_RULE_VERSION = 3;
+export const RECOMMENDATION_RULE_VERSION = 4;
 
 /**
  * Derives the recommendation label from quantitative inputs. Pure function —
