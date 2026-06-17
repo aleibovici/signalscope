@@ -133,7 +133,7 @@ describe("POST /api/alerts/send", () => {
     expect(findManyCall.where.pndFlagged).toBe(false);
     expect(findManyCall.where.OR).toEqual([
       { marketCap: null },
-      { marketCap: { lte: 10_000_000_000 } },
+      { marketCap: { lte: 1_000_000_000_000 } },
     ]);
     expect(findManyCall.select).toBeUndefined(); // full row fetch, no select
     expect(findManyCall.orderBy).toBeUndefined();

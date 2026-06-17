@@ -34,14 +34,24 @@ describe("deriveRecommendation — v3 decision matrix", () => {
     ["Buy B: FORMING social momentum", { stage: "FORMING", hasCatalystSource: false, sourceCount: 2, aiScore: 62 }, "Buy"],
     ["Buy C: CONFIRMED fresh", { stage: "CONFIRMED", aiScore: 62, medianSignalAgeHrs: 2 }, "Buy"],
     [
-      "Watch: large-cap FORMING catalyst",
-      { stage: "FORMING", hasCatalystSource: true, sourceCount: 2, aiScore: 80, marketCap: 50_000_000_000 },
+      "Watch: mega-cap FORMING catalyst",
+      { stage: "FORMING", hasCatalystSource: true, sourceCount: 2, aiScore: 80, marketCap: 2_000_000_000_000 },
       "Watch",
     ],
     [
-      "Watch: large-cap CONFIRMED fresh",
-      { stage: "CONFIRMED", aiScore: 80, medianSignalAgeHrs: 2, marketCap: 50_000_000_000 },
+      "Watch: mega-cap CONFIRMED fresh",
+      { stage: "CONFIRMED", aiScore: 80, medianSignalAgeHrs: 2, marketCap: 2_000_000_000_000 },
       "Watch",
+    ],
+    [
+      "Strong Buy: large-cap ($500B) FORMING catalyst score>=60 — not mega-cap",
+      { stage: "FORMING", hasCatalystSource: true, sourceCount: 2, aiScore: 65, marketCap: 500_000_000_000 },
+      "Strong Buy",
+    ],
+    [
+      "Buy C: large-cap ($800B) CONFIRMED fresh score>=60 — not mega-cap",
+      { stage: "CONFIRMED", aiScore: 65, medianSignalAgeHrs: 2, marketCap: 800_000_000_000 },
+      "Buy",
     ],
     ["Watch: CONFIRMED stale", { stage: "CONFIRMED", aiScore: 80, medianSignalAgeHrs: 10 }, "Watch"],
     ["Watch: EARLY high score social-only", { stage: "EARLY", hasCatalystSource: false, sourceCount: 1, aiScore: 90 }, "Watch"],
@@ -206,8 +216,8 @@ describe("recommendationHasTradeSetup", () => {
 });
 
 describe("RECOMMENDATION_RULE_VERSION", () => {
-  it("is 3 after the large-cap executable-label gate", () => {
-    expect(RECOMMENDATION_RULE_VERSION).toBe(3);
+  it("is 4 after raising the cap to $1T (restoring large-cap catalyst signals)", () => {
+    expect(RECOMMENDATION_RULE_VERSION).toBe(4);
   });
 });
 

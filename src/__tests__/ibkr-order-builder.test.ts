@@ -143,8 +143,8 @@ describe("executeForTickers", () => {
     expect(results[0].reason).toContain("no price");
   });
 
-  it("skips large-cap ticker even when recommendation is actionable", async () => {
-    const tickers = [makeTicker({ marketCap: 50_000_000_000 })];
+  it("skips mega-cap ticker even when recommendation is actionable", async () => {
+    const tickers = [makeTicker({ marketCap: 2_000_000_000_000 })];
     const results = await executeForTickers(tickers);
     expect(results[0].status).toBe("skipped");
     expect(results[0].reason).toContain("market cap");
