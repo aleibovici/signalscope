@@ -55,7 +55,7 @@
     "@vitest/coverage-v8": "^4.1.9",
     "dotenv": "^17.4.2",
     "eslint": "^10.6.0",
-    "eslint-config-next": "16.2.9",
+    "eslint-config-next": "16.2.10",
     "remotion": "^4.0.484",
     "tailwindcss": "^4",
     "tsx": "^4.23.0",
