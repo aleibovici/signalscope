@@ -770,7 +770,7 @@ export default function LoginPage({ heroPreview }: LoginPageProps = {}) {
             Not financial advice. SignalScope is a research tool — always do your own due diligence before making investment decisions.
           </p>
           <p className="mt-2 text-center text-xs text-zinc-700 sm:text-left">
-            &copy; {new Date().getFullYear()} Andre Leibovici. Released under the MIT License.
+            &copy; {new Date().getFullYear()} SignalScope contributors. Released under the MIT License.
           </p>
         </div>
       </footer>

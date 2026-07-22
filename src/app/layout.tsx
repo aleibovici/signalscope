@@ -247,19 +247,30 @@ export default async function RootLayout({
 }>) {
   const session = await auth();
   const isAdmin = session?.user?.role === "admin";
-  const gtmBootstrap = `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  const rawGtmId = process.env.NEXT_PUBLIC_GTM_ID?.trim() || "";
+  const rawGa4Id = process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID?.trim() || "";
+  const gtmId = /^GTM-[A-Z0-9]+$/i.test(rawGtmId) ? rawGtmId : "";
+  const ga4MeasurementId = /^G-[A-Z0-9]+$/i.test(rawGa4Id) ? rawGa4Id : "";
+  const gtmBootstrap = gtmId
+    ? `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
             new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
             j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-          })(window,document,'script','dataLayer','GTM-M2CSNXL7');`;
-  const gtmScript = isAdmin
-    ? `window['ga-disable-G-TFSF1MJ97V']=true;${gtmBootstrap}`
-    : gtmBootstrap;
+          })(window,document,'script','dataLayer','${gtmId}');`
+    : "";
+  const gtmScript =
+    gtmBootstrap && isAdmin && ga4MeasurementId
+      ? `window['ga-disable-${ga4MeasurementId}']=true;${gtmBootstrap}`
+      : gtmBootstrap;
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="preconnect" href="https://www.googletagmanager.com" />
-        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        {gtmId ? (
+          <>
+            <link rel="preconnect" href="https://www.googletagmanager.com" />
+            <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+          </>
+        ) : null}
         <link
           rel="alternate"
           type="application/rss+xml"
@@ -274,20 +285,26 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Script id="gtm" strategy="afterInteractive">
-          {gtmScript}
-        </Script>
-        <noscript>
-          <iframe
-            src="https://www.googletagmanager.com/ns.html?id=GTM-M2CSNXL7"
-            height="0"
-            width="0"
-            style={{ display: "none", visibility: "hidden" }}
-          />
-        </noscript>
-        <Suspense fallback={null}>
-          <GoogleAnalyticsPageView />
-        </Suspense>
+        {gtmScript ? (
+          <Script id="gtm" strategy="afterInteractive">
+            {gtmScript}
+          </Script>
+        ) : null}
+        {gtmId ? (
+          <noscript>
+            <iframe
+              src={`https://www.googletagmanager.com/ns.html?id=${gtmId}`}
+              height="0"
+              width="0"
+              style={{ display: "none", visibility: "hidden" }}
+            />
+          </noscript>
+        ) : null}
+        {gtmId ? (
+          <Suspense fallback={null}>
+            <GoogleAnalyticsPageView />
+          </Suspense>
+        ) : null}
         <a
           href="#main-scroll"
           className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:shadow dark:focus:bg-zinc-900 dark:focus:text-zinc-100"

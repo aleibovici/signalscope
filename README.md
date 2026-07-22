@@ -143,4 +143,4 @@ npm test
 
 ## License
 
-[MIT](LICENSE) — Copyright (c) 2026 Andre Leibovici
+[MIT](LICENSE) — Copyright (c) 2026 SignalScope contributors

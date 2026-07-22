@@ -1,19 +1,19 @@
-const GA4_MEASUREMENT_ID = "G-TFSF1MJ97V";
-
 /**
  * Send a server-side event to GA4 via the Measurement Protocol.
  * Fire-and-forget — never blocks the caller.
+ * No-ops unless both NEXT_PUBLIC_GA4_MEASUREMENT_ID and GA4_API_SECRET are set.
  */
 export function sendGA4Event(
   clientId: string,
   eventName: string,
   params?: Record<string, string | number | boolean>
 ): void {
+  const measurementId = process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID;
   const apiSecret = process.env.GA4_API_SECRET;
-  if (!apiSecret) return;
+  if (!measurementId || !apiSecret) return;
 
   fetch(
-    `https://www.google-analytics.com/mp/collect?measurement_id=${GA4_MEASUREMENT_ID}&api_secret=${apiSecret}`,
+    `https://www.google-analytics.com/mp/collect?measurement_id=${measurementId}&api_secret=${apiSecret}`,
     {
       method: "POST",
       body: JSON.stringify({
