@@ -1,7 +1,7 @@
 ---
 name: signalscope-api
 description: >
-  Interact with the SignalScope stock breakout signal detection API at localhost:3000.
+  Interact with the SignalScope stock breakout signal detection API (your deployment base URL, e.g. http://localhost:3000).
   Query scans, signals, trending tickers, performance data, and manage portfolios and
   watchlists. Use when the user asks about stock signals, breakout candidates, or wants
   to check or manage their SignalScope data.
@@ -67,7 +67,7 @@ curl -I http://localhost:3000/api/tickers/trending
 # Step 2 — Decode payment details
 echo "eyJ4NDAyVmVyc2lvbi..." | base64 -d
 # → { "accepts": [{ "scheme": "exact", "network": "eip155:8453",
-#      "amount": "10000", "asset": "0x833589f...", "payTo": "0x948B..." }] }
+#      "amount": "10000", "asset": "0x833589f...", "payTo": "0xYOUR_WALLET_ADDRESS" }] }
 
 # Step 3 — Retry with payment proof (handled by x402 client library)
 curl -H "X-PAYMENT: <payment-proof>" http://localhost:3000/api/tickers/trending
@@ -75,7 +75,7 @@ curl -H "X-PAYMENT: <payment-proof>" http://localhost:3000/api/tickers/trending
 
 ### Option 2 — API key (for registered users)
 
-1. Log in at localhost:3000 and go to your Profile page
+1. Log in to your deployment and go to your Profile page
 2. Click "Generate API Key" and copy the key (shown only once)
 3. Include it in all requests as an `x-api-key` header
 
@@ -258,7 +258,7 @@ Example 402 response header (base64-decoded):
     "network": "eip155:8453",
     "amount": "10000",
     "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-    "payTo": "0x948BfF906cbBbB85EF20EA48BE5d54a783699F9e",
+    "payTo": "0xYOUR_WALLET_ADDRESS",
     "maxTimeoutSeconds": 300,
     "extra": { "name": "USD Coin", "version": "2" }
   }]

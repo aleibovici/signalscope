@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import type { Subscription, SubscriptionStatus } from "@/generated/prisma/client";
+import { absoluteUrl } from "@/lib/site-url";
 
 const ACTIVE_STATUSES: SubscriptionStatus[] = ["ACTIVE", "PAST_DUE"];
 
-const STRIPE_PORTAL_URL = "http://localhost:3000/api/stripe/portal";
+const STRIPE_PORTAL_URL = absoluteUrl("/api/stripe/portal");
 const APPLE_MANAGE_URL = "https://apps.apple.com/account/subscriptions";
 
 export async function getUserSubscription(

@@ -1,97 +1,146 @@
 # SignalScope
 
-SignalScope is a stock breakout signal detection platform. It ingests multi-source market signals, scores opportunities with AI, filters pump-and-dump patterns, and serves validated tickers through dashboard UI and API endpoints.
+SignalScope is an open-source stock breakout signal detection platform. It harvests signals from multiple sources (Reddit, X/Twitter, StockTwits, SEC insider filings, congressional trades, volume spikes, options flow, Polymarket), scores them with AI, filters pump-and-dump candidates, and presents validated tickers in a dashboard with portfolio tracking and APIs.
 
-## Tech Stack
+This project was formerly a closed-source hosted product. It is now released under the [MIT License](LICENSE) for self-hosting anywhere (laptop, VPS, Kubernetes, or any cloud).
 
-- Next.js 16 (App Router) + React 19 + TypeScript 5
-- PostgreSQL + Prisma 7
-- TanStack React Query + Zod validation
-- Auth.js v5 (session auth), Bearer JWT for mobile, and API key auth
+**Maintainer contact:** use [GitHub Issues](https://github.com/aleibovici/signalscope/issues) and [Security Advisories](https://github.com/aleibovici/signalscope/security). There is no project support mailbox.
 
-## Key Codepaths
+## Architecture: web app vs harvester
 
-- `src/lib/harvester/` - signal collection, aggregation, AI scoring, and P&D filtering
-- `src/app/api/` - API routes used by web UI, mobile clients, and scheduler jobs
-- `src/app/(dashboard)/` - authenticated product UI (signals, ticker detail, portfolio, watchlist, paper trading)
-- `src/hooks/` - frontend data-access hooks (React Query)
-- `src/lib/paper-trading-returns.ts` + `src/lib/spy-benchmark.ts` - simulated P&L marks and SPY benchmark for `GET /api/paper-trading`
-- `public/skill/` - API docs used by agent clients ([Opportunity vs AI confidence](public/skill/api-public.md#opportunity-score-vs-signal-confidence-ai); `GET /api/methodology` returns `scoreComparison` JSON for the same)
+SignalScope runs as **two processes**:
 
-## Local Development Setup
+```text
+Signal sources ──► Harvester container ──POST /api/harvest/ingest──► Web app (Next.js)
+                                                                      │
+                                                                      ▼
+                                                                 PostgreSQL
+                                                                      │
+                                                         Dashboard UI + public/API
+```
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
-2. Configure environment variables (`DATABASE_URL`, `AUTH_SECRET`, AI provider keys, and optional scheduler keys).
-3. Start PostgreSQL (Docker is supported):
-   ```bash
-   docker compose up db
-   ```
-4. Generate Prisma client and run migrations:
-   ```bash
-   npm run db:generate
-   npm run db:migrate
-   npm run db:seed
-   ```
-5. Run the app:
-   ```bash
-   npm run dev
-   ```
-6. Open `http://localhost:3000`.
+| Runtime | What it is | Entry points |
+|---------|------------|--------------|
+| **Web app** | Next.js UI, Auth, REST APIs, AI scoring/P&D on ingest, DB writes, optional scheduled jobs (snapshots, reports, alerts) | `Dockerfile`, `docker compose` service `web`, or `npm run dev` |
+| **Harvester** | Separate Node process that **fetches** raw signals from external sources, then POSTs them to the web app ingest endpoint | `Dockerfile.harvester`, compose profile `harvest`, `npm run harvest` → `scripts/run-harvest-remote.ts` |
 
-## Portfolio + Price Workflow (recently updated)
+Why separate? Some sources block datacenter IPs. The harvester can run on a network that can reach those sources while the web app runs on any host. The harvester is **optional** for UI development if you already have data (seed + prior scans).
 
-### Add position from ticker detail page
+Auth for ingest: header `x-harvest-key` must match `HARVEST_API_KEY` on the web app. Set `HARVEST_ENDPOINT_URL` on the harvester to your web app’s ingest URL (e.g. `http://localhost:3000/api/harvest/ingest`).
 
-- UI entrypoint: `src/app/(dashboard)/ticker/[symbol]/page.tsx` (`+ Position` button)
-- Modal: `src/components/dashboard/add-position-modal.tsx`
-- Payload path: `useAddPosition()` -> `POST /api/portfolio`
-- Current modal behavior: only `entryPrice` is collected; symbol is inherited from the current ticker context.
+## Repository map
 
-### Position verification behavior
+- `src/app/` — App Router UI and API routes
+- `src/lib/harvester/` — Signal pipeline (fetch helpers, scoring, P&D, DB write) used by ingest processing
+- `scripts/run-harvest-remote.ts` — Harvester entry (fetch locally, POST to web)
+- `prisma/` — Schema, migrations, seed
+- `public/skill/` — API docs for humans and agent clients
+- `docker-compose.yml` — Postgres + web; harvester via `--profile harvest`
+- `docker-compose.harvest.yml` — Standalone harvester against a remote ingest URL
 
-- `POST /api/portfolio` and `PATCH /api/portfolio/:id` call `verifyPriceAgainstSnapshot()`.
-- A position is marked `verified: true` when the submitted price is within 5% of the latest snapshot for that symbol.
-- If no snapshot exists, verification defaults to `true` (no baseline to compare against).
+## Prerequisites
 
-### Price refresh behavior
+- Node.js 22+
+- Docker (recommended for Postgres)
+- At least one AI provider key (`OPENAI_API_KEY` and/or `ANTHROPIC_API_KEY`) for scoring and reports
 
-- Portfolio page refresh button (`src/app/(dashboard)/portfolio/page.tsx`) triggers React Query `refetch()` of `GET /api/portfolio`.
-- `GET /api/portfolio` fetches current prices for open symbols and computes `gainPct` server-side.
-- Ticker detail card refresh button calls `GET /api/prices?symbols=...` and shows a `live` badge when refreshed data is present.
+## Quick start (web app + database)
 
-### Paper trading (simulated book)
+```bash
+git clone https://github.com/aleibovici/signalscope.git
+cd signalscope
+cp .env.example .env
+```
 
-- UI: `src/app/(dashboard)/paper-trading/page.tsx`; data: `src/hooks/use-paper-trading.ts` → `GET /api/paper-trading?minScore=…` (allowed: 60, 70, 80, 90; default 70).
-- API: `src/app/api/paper-trading/route.ts` builds one synthetic $1,000 leg per distinct symbol from recent `TickerPerformance` (validated ticker AI score ≥ threshold, stage not FILTERED/UNSCORED, no corporate-action flag). Marks use `src/lib/paper-trading-returns.ts` (7d hold / snapshot horizons); aggregate return is compared to SPY over the same calendar window via `src/lib/spy-benchmark.ts`.
+Edit `.env` and set at least:
 
-## API Constraints Worth Remembering
+- `AUTH_SECRET` — `openssl rand -base64 32`
+- `DATABASE_URL` — default in `.env.example` matches Docker Postgres below
+- `NEXT_PUBLIC_APP_URL` — `http://localhost:3000` for local dev
+- `OPENAI_API_KEY` and/or `ANTHROPIC_API_KEY`
 
-- `addPositionSchema`:
-  - `symbol`: 1-10 chars, normalized to uppercase
-  - `entryPrice`: positive number
-  - `shares`: optional positive number
-  - `notes`: optional, max 500 chars
-- `updatePositionSchema`:
-  - closing requires both `status: "CLOSED"` and `closePrice`
-  - `closePrice` cannot be set unless status is `CLOSED`
-- `GET /api/prices`:
-  - requires `symbols` query param
-  - accepts 1-50 comma-separated symbols
-  - in-memory cache TTL is 5 minutes
+```bash
+docker compose up db -d
+npm install
+npm run db:generate
+npm run db:migrate
+npm run db:seed
+npm run dev
+```
 
-## Quality Checks
+Open `http://localhost:3000`.
+
+**Local seed login** (credentials provider login id — local only, not a contact address):
+
+- Login id: `dev@localhost`
+- Password: `password123`
+- Role: admin
+
+Do not use this seed against a shared or production database.
+
+### Docker: web + DB
+
+```bash
+docker compose up --build
+```
+
+## Running the harvester
+
+1. Web app must be running and reachable from the harvester host.
+2. Set the same secret on both sides:
+
+```bash
+# on the web app (.env)
+HARVEST_API_KEY=<openssl rand -base64 32>
+
+# on the harvester
+HARVEST_API_KEY=<same value>
+HARVEST_ENDPOINT_URL=http://localhost:3000/api/harvest/ingest
+```
+
+Optional source credentials (e.g. `X_BEARER_TOKEN`) improve coverage; many sources work without paid APIs.
+
+**npm (same machine as the repo):**
+
+```bash
+npm run harvest
+```
+
+**Docker Compose profile (uses `Dockerfile.harvester`):**
+
+```bash
+docker compose --profile harvest run --rm harvester
+```
+
+**Against a remote web app:**
+
+```bash
+docker compose -f docker-compose.harvest.yml --env-file .env run --rm harvester
+```
+
+## Optional integrations
+
+All of these are env-gated; omit the vars to disable:
+
+- Stripe subscriptions
+- Resend outbound notifications (`RESEND_API_KEY` + `EMAIL_FROM` — you supply a verified sender for your own mail provider; none is bundled)
+- x402 pay-per-call (`X402_WALLET_ADDRESS`)
+- Broker paper trading (Alpaca, etc.)
+- X/Twitter posting and follow automation
+
+## Tests and lint
 
 ```bash
 npm run lint
 npm test
 ```
 
-## Troubleshooting
+## Contributing and security
 
-- **401 on authenticated routes**: ensure session, Bearer token, or `x-api-key` is present.
-- **Validation error when closing a position**: include `closePrice` with `status: "CLOSED"`.
-- **Price appears stale**: `GET /api/prices` uses a 5-minute server cache.
-- **Unexpectedly verified position**: if no snapshot exists for a symbol, verification intentionally returns `true`.
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- [SECURITY.md](SECURITY.md) — report vulnerabilities via GitHub Security Advisories
+
+## License
+
+[MIT](LICENSE) — Copyright (c) 2026 Andre Leibovici

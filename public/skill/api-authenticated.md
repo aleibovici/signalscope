@@ -6,7 +6,7 @@ These endpoints manage user account data (portfolio, watchlist, profile, API key
 x-api-key: sk_sig_your_key_here
 ```
 
-Generate your API key at localhost:3000/profile.
+Generate your API key on the Profile page of your deployment.
 Rate limits: free plan 10 calls/calendar month; Pro plan 1,000 calls/day.
 
 ### Opportunity score vs signal confidence (AI)

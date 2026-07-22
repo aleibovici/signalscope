@@ -4,6 +4,9 @@ import { notFound } from "next/navigation";
 import { PublicPageLayout } from "@/components/public-page-layout";
 import { MlEvolutionDiagram } from "@/components/blog/ml-evolution-diagram";
 import { blogPosts } from "@/lib/blog-data";
+import { absoluteUrl, getSiteUrl } from "@/lib/site-url";
+
+const siteUrl = getSiteUrl();
 
 export function generateStaticParams() {
   return blogPosts.map((post) => ({ slug: post.slug }));
@@ -20,9 +23,9 @@ export async function generateMetadata({
   return {
     title: post.title,
     description: post.description,
-    alternates: { canonical: `http://localhost:3000/blog/${post.slug}` },
+    alternates: { canonical: absoluteUrl(`/blog/${post.slug}`) },
     openGraph: {
-      url: `http://localhost:3000/blog/${post.slug}`,
+      url: absoluteUrl(`/blog/${post.slug}`),
       title: `${post.title} — SignalScope`,
       description: post.description,
       type: "article",
@@ -40,7 +43,6 @@ export async function generateMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      site: "@signalscopes",
       title: `${post.title} — SignalScope`,
       description: post.description,
       images: ["/opengraph-image"],
@@ -79,29 +81,29 @@ export default async function BlogPostPage({
     "@type": "BlogPosting",
     headline: post.title,
     description: post.description,
-    image: "http://localhost:3000/opengraph-image",
+    image: absoluteUrl("/opengraph-image"),
     datePublished: post.date,
     dateModified: post.date,
     author: { "@type": "Organization", name: "SignalScope" },
     publisher: {
       "@type": "Organization",
       name: "SignalScope",
-      url: "http://localhost:3000",
+      url: siteUrl,
       logo: {
         "@type": "ImageObject",
-        url: "http://localhost:3000/apple-touch-icon.png",
+        url: absoluteUrl("/apple-touch-icon.png"),
       },
     },
-    mainEntityOfPage: `http://localhost:3000/blog/${post.slug}`,
+    mainEntityOfPage: absoluteUrl(`/blog/${post.slug}`),
   };
 
   const jsonLdBreadcrumb = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: "http://localhost:3000" },
-      { "@type": "ListItem", position: 2, name: "Blog", item: "http://localhost:3000/blog" },
-      { "@type": "ListItem", position: 3, name: post.title, item: `http://localhost:3000/blog/${post.slug}` },
+      { "@type": "ListItem", position: 1, name: "Home", item: siteUrl },
+      { "@type": "ListItem", position: 2, name: "Blog", item: absoluteUrl("/blog") },
+      { "@type": "ListItem", position: 3, name: post.title, item: absoluteUrl(`/blog/${post.slug}`) },
     ],
   };
 

@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // factories (plain `const mockFn = vi.fn()` is NOT accessible there).
 const mocks = vi.hoisted(() => {
   process.env.RESEND_API_KEY = "re_test_key";
+  process.env.EMAIL_FROM = "SignalScope Test";
   return {
     batchSend: vi.fn(),
     perfFindMany: vi.fn(),

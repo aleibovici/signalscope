@@ -1,10 +1,18 @@
 import { ImageResponse } from "next/og";
+import { getSiteUrl } from "@/lib/site-url";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const revalidate = 86400; // cache for 24 hours
 
 export default function OgImage() {
+  let hostname = "SignalScope";
+  try {
+    hostname = new URL(getSiteUrl()).hostname;
+  } catch {
+    // keep brand fallback
+  }
+
   return new ImageResponse(
     (
       <div
@@ -144,7 +152,7 @@ export default function OgImage() {
             letterSpacing: "0.5px",
           }}
         >
-          localhost:3000
+          {hostname}
         </div>
       </div>
     ),

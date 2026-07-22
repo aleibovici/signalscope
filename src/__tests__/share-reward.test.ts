@@ -98,12 +98,12 @@ describe("buildTweetIntentUrl", () => {
     expect(url).toMatch(/^https:\/\/twitter\.com\/intent\/tweet\?text=/);
   });
 
-  it("encodes signalscopes mention in the URL", () => {
+  it("encodes SignalScope hashtag in the URL", () => {
     const url = buildTweetIntentUrl();
-    expect(decodeURIComponent(url)).toContain("@signalscopes");
+    expect(decodeURIComponent(url)).toContain("#SignalScope");
   });
 
-  it("encodes localhost:3000 link in the URL", () => {
+  it("encodes app URL in the tweet text", () => {
     const url = buildTweetIntentUrl();
     expect(decodeURIComponent(url)).toContain("localhost:3000");
   });

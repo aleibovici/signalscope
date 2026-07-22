@@ -1,11 +1,5 @@
 import type { Metadata } from "next";
 import { stageLabel } from "@/lib/stage-labels";
-
-export const metadata: Metadata = {
-  title: "Methodology",
-  alternates: { canonical: "http://localhost:3000/how-it-works" },
-  robots: { index: false, follow: false },
-};
 import {
   pipelineSteps,
   signalSources,
@@ -26,6 +20,13 @@ import {
   scoreExplainerMethodologyTitle,
   scoreExplainerMethodologyBody,
 } from "@/lib/score-explainer";
+import { absoluteUrl } from "@/lib/site-url";
+
+export const metadata: Metadata = {
+  title: "Methodology",
+  alternates: { canonical: absoluteUrl("/how-it-works") },
+  robots: { index: false, follow: false },
+};
 
 // Arc gauge — semicircle (same geometry as signal card)
 const ARC_LENGTH = Math.PI * 32;

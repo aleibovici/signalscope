@@ -5,6 +5,7 @@ import { signIn, useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { trackConversion } from "@/lib/analytics";
+import { absoluteUrl } from "@/lib/site-url";
 /* ------------------------------------------------------------------ */
 /*  Login Page / Landing Page                                          */
 /* ------------------------------------------------------------------ */
@@ -639,7 +640,7 @@ export default function LoginPage({ heroPreview }: LoginPageProps = {}) {
 
               <div className="max-w-full min-w-0 overflow-x-auto rounded-lg border border-white/10 bg-black/50 px-4 py-3 font-mono text-xs text-zinc-300 wrap-anywhere">
                 <span className="text-zinc-600"># Agent hits endpoint → gets 402 → pays → gets data</span>{"\n"}
-                <span className="text-sky-400">curl</span> http://localhost:3000/api/tickers/trending{"\n"}
+                <span className="text-sky-400">curl</span> {absoluteUrl("/api/tickers/trending")}{"\n"}
                 <span className="text-zinc-600">→ HTTP 402  payment-required: ey...</span>
               </div>
 
@@ -763,14 +764,13 @@ export default function LoginPage({ heroPreview }: LoginPageProps = {}) {
               <Link href="/privacy" className="hover:text-zinc-300 transition-colors touch-manipulation">Privacy</Link>
               <a href="/skill/SKILL.md" target="_blank" className="hover:text-zinc-300 transition-colors touch-manipulation">API Docs</a>
               <a href="https://x402.org" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 transition-colors touch-manipulation">x402 Protocol</a>
-              <a href="https://x.com/signalscopes" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 transition-colors touch-manipulation">𝕏 @signalscopes</a>
             </div>
           </div>
           <p className="mt-4 text-center text-xs leading-relaxed text-zinc-600 sm:text-left">
             Not financial advice. SignalScope is a research tool — always do your own due diligence before making investment decisions.
           </p>
           <p className="mt-2 text-center text-xs text-zinc-700 sm:text-left">
-            &copy; {new Date().getFullYear()} SignalScope. All rights reserved.
+            &copy; {new Date().getFullYear()} Andre Leibovici. Released under the MIT License.
           </p>
         </div>
       </footer>

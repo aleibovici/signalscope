@@ -1,9 +1,12 @@
 #!/bin/zsh
-# SignalScope harvest cron — runs locally, POSTs signals to Cloud Run for processing
+# SignalScope harvest cron — runs locally, POSTs signals to your web app for processing
 # Schedule: 8:30 AM ET Mon–Fri (12:30 UTC in EST / 13:30 UTC in EDT)
-# Add to crontab: 30 12 * * 1-5 /Users/andre/Downloads/signalscope/scripts/harvest-cron.sh
+# Add to crontab: 30 12 * * 1-5 /path/to/signalscope/scripts/harvest-cron.sh
 
 set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Only run on US Eastern weekdays (Mon=1 .. Fri=5)
 US_DOW=$(TZ=America/New_York date +%u)
@@ -11,7 +14,6 @@ if (( US_DOW > 5 )); then
   exit 0
 fi
 
-DIR="/Users/andre/Downloads/signalscope"
 LOG_DIR="$DIR/logs"
 LOG_FILE="$LOG_DIR/harvest-$(date +%Y-%m-%d).log"
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { getSiteUrl } from "@/lib/site-url";
 
-const BASE = "http://localhost:3000";
+const BASE = getSiteUrl();
 
 export function GET() {
   const body = {

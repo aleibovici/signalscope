@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
+import { getSiteUrl } from "@/lib/site-url";
+
+const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
   title: "Login",
   description: "Sign in to your SignalScope dashboard — view live AI-scored breakout signals, manage your portfolio, and track signal performance.",
   alternates: {
-    canonical: "http://localhost:3000",
+    canonical: siteUrl,
   },
   openGraph: {
-    url: "http://localhost:3000",
+    url: siteUrl,
     title: "SignalScope — Stock Breakout Signal Detection",
     description: "Find breakout stock candidates before market consensus. AI-scored signals from Reddit, X/Twitter, SEC filings, options flow with net premium tracking, and volume spikes — with cross-scan trending, ML backtesting, and an AI Agent Skill.",
     images: [

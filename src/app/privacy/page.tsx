@@ -1,15 +1,24 @@
 import type { Metadata } from "next";
 import { PublicPageLayout } from "@/components/public-page-layout";
+import { absoluteUrl, getSiteUrl } from "@/lib/site-url";
+
+const siteUrl = getSiteUrl();
+let siteHostname = "SignalScope";
+try {
+  siteHostname = new URL(siteUrl).hostname;
+} catch {
+  // keep brand fallback
+}
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description:
     "SignalScope privacy policy — what we collect, how we use it, and that we do not share your data with others.",
   alternates: {
-    canonical: "http://localhost:3000/privacy",
+    canonical: absoluteUrl("/privacy"),
   },
   openGraph: {
-    url: "http://localhost:3000/privacy",
+    url: absoluteUrl("/privacy"),
     title: "Privacy Policy — SignalScope",
     description:
       "SignalScope privacy policy — what we collect, how we use it, and that we do not share your data with others.",
@@ -35,8 +44,8 @@ export default function PrivacyPage() {
 
         <p className="mt-6 text-zinc-300">
           SignalScope (&quot;we&quot;, &quot;us&quot;) runs{" "}
-          <a href="http://localhost:3000" className="text-sky-400 hover:underline">
-            localhost:3000
+          <a href={siteUrl} className="text-sky-400 hover:underline">
+            {siteHostname}
           </a>
           . This page is a short summary of how we handle information. If you use the service, you
           agree to this policy.
@@ -74,8 +83,8 @@ export default function PrivacyPage() {
         <h2 className="mt-10 text-xl font-semibold text-white">Your choices</h2>
         <p className="mt-3 text-zinc-300">
           You can update preferences in the app where available. For access, correction, or deletion
-          requests, contact us using the email on your account or any contact option we publish on the
-          site.
+          requests related to a self-hosted deployment, contact the operator of that deployment.
+          For this open-source project, use GitHub Issues on the SignalScope repository.
         </p>
 
         <h2 className="mt-10 text-xl font-semibold text-white">Changes</h2>
@@ -85,8 +94,8 @@ export default function PrivacyPage() {
 
         <h2 className="mt-10 text-xl font-semibold text-white">Contact</h2>
         <p className="mt-3 text-zinc-300">
-          Privacy questions: use the email associated with your SignalScope account or a contact
-          method listed on the site.
+          Project questions and privacy topics for the open-source codebase: open an issue on the
+          GitHub repository. Do not expect a product support mailbox — there is none.
         </p>
       </article>
     </PublicPageLayout>

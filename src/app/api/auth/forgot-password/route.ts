@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getClientIP, isRateLimited } from "@/lib/rate-limit";
 import { sendPasswordResetEmail } from "@/lib/email/password-reset";
+import { absoluteUrl } from "@/lib/site-url";
 
 const forgotSchema = z.object({
   email: z.string().email(),
@@ -70,8 +71,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-    const resetUrl = `${baseUrl}/reset-password?token=${rawToken}`;
+    const resetUrl = absoluteUrl(`/reset-password?token=${rawToken}`);
 
     await sendPasswordResetEmail(user.email, resetUrl);
 
