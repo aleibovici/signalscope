@@ -60,7 +60,7 @@ describe("buildEmailHtml — section headers", () => {
 describe("buildEmailHtml — ticker row", () => {
   it("links the symbol to the ticker page", () => {
     const html = buildEmailHtml([makeTicker({ symbol: "NVDA" })]);
-    expect(html).toContain('href="https://signalscopes.com/ticker/NVDA"');
+    expect(html).toContain('href="http://localhost:3000/ticker/NVDA"');
     expect(html).toContain(">NVDA<");
   });
 
@@ -222,11 +222,11 @@ describe("buildEmailHtml — edge cases", () => {
 
   it("includes unsubscribe link in footer", () => {
     const html = buildEmailHtml([makeTicker()]);
-    expect(html).toContain("https://signalscopes.com/profile");
+    expect(html).toContain("http://localhost:3000/profile");
   });
 
   it("includes dashboard link", () => {
     const html = buildEmailHtml([makeTicker()]);
-    expect(html).toContain("https://signalscopes.com");
+    expect(html).toContain("http://localhost:3000");
   });
 });

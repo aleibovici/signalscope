@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getStripe, PRICE_IDS } from "@/lib/stripe";
 import { hasActiveSubscription } from "@/lib/subscription";
+import { getSiteUrl } from "@/lib/site-url";
 
 export const SHARE_REWARD_TRIAL_DAYS = 30;
 
@@ -8,14 +9,16 @@ export const SHARE_REWARD_TRIAL_DAYS = 30;
 /*  Tweet intent                                                       */
 /* ------------------------------------------------------------------ */
 
-const TWEET_TEXT = `I use @signalscopes to spot breakout stocks before the crowd — AI scoring, pump & dump filtering, 8 signal sources.
+function buildTweetText(): string {
+  return `I use SignalScope to spot breakout stocks before the crowd — AI scoring, pump & dump filtering, 8 signal sources.
 
-Free dashboard + weekly digest: https://signalscopes.com
+Free dashboard + weekly digest: ${getSiteUrl()}
 
 #SignalScope #stocks #trading`;
+}
 
 export function buildTweetIntentUrl(): string {
-  return `https://twitter.com/intent/tweet?text=${encodeURIComponent(TWEET_TEXT)}`;
+  return `https://twitter.com/intent/tweet?text=${encodeURIComponent(buildTweetText())}`;
 }
 
 /* ------------------------------------------------------------------ */

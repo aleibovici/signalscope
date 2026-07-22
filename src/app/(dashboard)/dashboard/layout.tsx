@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
+import { absoluteUrl } from "@/lib/site-url";
 
 export const metadata: Metadata = {
   title: "Live Signals",
   description:
     "Real-time AI-scored stock breakout signals from Reddit, X/Twitter, SEC insider filings, congressional trades, options flow with net premium tracking, and volume spikes. Filter by stage: Emerging, Building, or Consensus.",
-  alternates: { canonical: "https://signalscopes.com/dashboard" },
+  alternates: { canonical: absoluteUrl("/dashboard") },
   openGraph: {
-    url: "https://signalscopes.com/dashboard",
+    url: absoluteUrl("/dashboard"),
     title: "Live Signals — SignalScope",
     description:
       "Real-time AI-scored stock breakout signals from 8 sources including options flow with net premium tracking. Filter by stage, track your watchlist, and spot breakouts before market consensus.",

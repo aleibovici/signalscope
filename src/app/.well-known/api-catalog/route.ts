@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { getSiteUrl } from "@/lib/site-url";
 
-const BASE = "https://signalscopes.com";
+const BASE = getSiteUrl();
 
 export function GET() {
   const body = {

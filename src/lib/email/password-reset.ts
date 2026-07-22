@@ -4,6 +4,11 @@ const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
 
+function getEmailFrom(): string | null {
+  const from = process.env.EMAIL_FROM?.trim();
+  return from || null;
+}
+
 export function buildPasswordResetHtml(resetUrl: string): string {
   return `
 <!DOCTYPE html>
@@ -40,15 +45,20 @@ export async function sendPasswordResetEmail(
   email: string,
   resetUrl: string
 ): Promise<boolean> {
+  const emailFrom = getEmailFrom();
   if (!resend) {
     console.log("[email] RESEND_API_KEY not set — skipping password reset email");
+    return false;
+  }
+  if (!emailFrom) {
+    console.log("[email] EMAIL_FROM not set — skipping password reset email");
     return false;
   }
 
   const html = buildPasswordResetHtml(resetUrl);
 
   const { error } = await resend.emails.send({
-    from: "SignalScope <alerts@signalscopes.com>",
+    from: emailFrom,
     to: email,
     subject: "Reset your SignalScope password",
     html,

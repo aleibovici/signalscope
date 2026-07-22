@@ -3,6 +3,7 @@ import { randomBytes, createHash } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
+import { absoluteUrl } from "@/lib/site-url";
 
 export async function GET() {
   try {
@@ -39,7 +40,7 @@ export async function POST() {
     return NextResponse.json({
       key: raw,
       prefix,
-      skill: "https://signalscopes.com/skill/SKILL.md",
+      skill: absoluteUrl("/skill/SKILL.md"),
     });
   } catch (err) {
     return handleApiError(err, "POST /api/user/api-key");

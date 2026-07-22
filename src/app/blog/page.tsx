@@ -2,14 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PublicPageLayout } from "@/components/public-page-layout";
 import { blogPosts } from "@/lib/blog-data";
+import { absoluteUrl, getSiteUrl } from "@/lib/site-url";
+
+const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
   title: "Blog",
   description:
     "Articles on stock breakout signal detection, pump-and-dump filtering, SEC insider analysis, congressional trades, and ML-driven backtesting.",
-  alternates: { canonical: "https://signalscopes.com/blog" },
+  alternates: { canonical: absoluteUrl("/blog") },
   openGraph: {
-    url: "https://signalscopes.com/blog",
+    url: absoluteUrl("/blog"),
     title: "Blog — SignalScope",
     description:
       "Articles on stock breakout signal detection, pump-and-dump filtering, SEC insider analysis, congressional trades, and ML-driven backtesting.",
@@ -32,11 +35,11 @@ export default function BlogIndex() {
     name: "SignalScope Blog",
     description:
       "Articles on stock breakout signal detection, pump-and-dump filtering, and ML-driven backtesting.",
-    url: "https://signalscopes.com/blog",
+    url: absoluteUrl("/blog"),
     publisher: {
       "@type": "Organization",
       name: "SignalScope",
-      url: "https://signalscopes.com",
+      url: siteUrl,
     },
   };
 
@@ -44,8 +47,8 @@ export default function BlogIndex() {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: "https://signalscopes.com" },
-      { "@type": "ListItem", position: 2, name: "Blog", item: "https://signalscopes.com/blog" },
+      { "@type": "ListItem", position: 1, name: "Home", item: siteUrl },
+      { "@type": "ListItem", position: 2, name: "Blog", item: absoluteUrl("/blog") },
     ],
   };
 

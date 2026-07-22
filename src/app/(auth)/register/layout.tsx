@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
+import { absoluteUrl } from "@/lib/site-url";
 
 export const metadata: Metadata = {
   title: "Sign Up",
   description: "Create a free SignalScope account — AI-scored breakout signals from 8 sources, pump-and-dump filtering, XGBoost ML backtesting, and portfolio tracking.",
   alternates: {
-    canonical: "https://signalscopes.com/register",
+    canonical: absoluteUrl("/register"),
   },
   openGraph: {
-    url: "https://signalscopes.com/register",
+    url: absoluteUrl("/register"),
     title: "Sign Up — SignalScope",
     description: "Create a free SignalScope account — AI-scored breakout signals from 8 sources, pump-and-dump filtering, XGBoost ML backtesting, and portfolio tracking.",
     images: [

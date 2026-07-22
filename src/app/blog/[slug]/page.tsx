@@ -4,6 +4,9 @@ import { notFound } from "next/navigation";
 import { PublicPageLayout } from "@/components/public-page-layout";
 import { MlEvolutionDiagram } from "@/components/blog/ml-evolution-diagram";
 import { blogPosts } from "@/lib/blog-data";
+import { absoluteUrl, getSiteUrl } from "@/lib/site-url";
+
+const siteUrl = getSiteUrl();
 
 export function generateStaticParams() {
   return blogPosts.map((post) => ({ slug: post.slug }));
@@ -20,9 +23,9 @@ export async function generateMetadata({
   return {
     title: post.title,
     description: post.description,
-    alternates: { canonical: `https://signalscopes.com/blog/${post.slug}` },
+    alternates: { canonical: absoluteUrl(`/blog/${post.slug}`) },
     openGraph: {
-      url: `https://signalscopes.com/blog/${post.slug}`,
+      url: absoluteUrl(`/blog/${post.slug}`),
       title: `${post.title} — SignalScope`,
       description: post.description,
       type: "article",
@@ -40,7 +43,6 @@ export async function generateMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      site: "@signalscopes",
       title: `${post.title} — SignalScope`,
       description: post.description,
       images: ["/opengraph-image"],
@@ -79,29 +81,29 @@ export default async function BlogPostPage({
     "@type": "BlogPosting",
     headline: post.title,
     description: post.description,
-    image: "https://signalscopes.com/opengraph-image",
+    image: absoluteUrl("/opengraph-image"),
     datePublished: post.date,
     dateModified: post.date,
     author: { "@type": "Organization", name: "SignalScope" },
     publisher: {
       "@type": "Organization",
       name: "SignalScope",
-      url: "https://signalscopes.com",
+      url: siteUrl,
       logo: {
         "@type": "ImageObject",
-        url: "https://signalscopes.com/apple-touch-icon.png",
+        url: absoluteUrl("/apple-touch-icon.png"),
       },
     },
-    mainEntityOfPage: `https://signalscopes.com/blog/${post.slug}`,
+    mainEntityOfPage: absoluteUrl(`/blog/${post.slug}`),
   };
 
   const jsonLdBreadcrumb = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: "https://signalscopes.com" },
-      { "@type": "ListItem", position: 2, name: "Blog", item: "https://signalscopes.com/blog" },
-      { "@type": "ListItem", position: 3, name: post.title, item: `https://signalscopes.com/blog/${post.slug}` },
+      { "@type": "ListItem", position: 1, name: "Home", item: siteUrl },
+      { "@type": "ListItem", position: 2, name: "Blog", item: absoluteUrl("/blog") },
+      { "@type": "ListItem", position: 3, name: post.title, item: absoluteUrl(`/blog/${post.slug}`) },
     ],
   };
 

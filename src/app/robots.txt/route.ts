@@ -1,4 +1,7 @@
-const BODY = `# Content-Signal declares AI/search usage preferences per contentsignals.org
+import { absoluteUrl } from "@/lib/site-url";
+
+export function GET() {
+  const body = `# Content-Signal declares AI/search usage preferences per contentsignals.org
 Content-Signal: search=yes, ai-input=yes, ai-train=no
 
 User-Agent: *
@@ -29,11 +32,10 @@ Disallow: /paper-trading
 Disallow: /results
 Disallow: /api/
 
-Sitemap: https://signalscopes.com/sitemap.xml
+Sitemap: ${absoluteUrl("/sitemap.xml")}
 `;
 
-export function GET() {
-  return new Response(BODY, {
+  return new Response(body, {
     headers: {
       "content-type": "text/plain; charset=utf-8",
       "cache-control": "public, max-age=3600",

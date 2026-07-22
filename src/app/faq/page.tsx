@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
 import { PublicPageLayout } from "@/components/public-page-layout";
 import { faqItems } from "@/lib/faq-data";
+import { absoluteUrl, getSiteUrl } from "@/lib/site-url";
+
+const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
   title: "FAQ",
   description:
     "Frequently asked questions about SignalScope — how breakout signals work, AI scoring, LightGBM backtesting, pump-and-dump filtering, data freshness, API access, and more.",
-  alternates: { canonical: "https://signalscopes.com/faq" },
+  alternates: { canonical: absoluteUrl("/faq") },
   openGraph: {
-    url: "https://signalscopes.com/faq",
+    url: absoluteUrl("/faq"),
     title: "FAQ — SignalScope",
     description:
       "Frequently asked questions about SignalScope — how breakout signals work, AI scoring, LightGBM backtesting, pump-and-dump filtering, data freshness, API access, and more.",
@@ -41,8 +44,8 @@ export default function FaqPage() {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: "https://signalscopes.com" },
-      { "@type": "ListItem", position: 2, name: "FAQ", item: "https://signalscopes.com/faq" },
+      { "@type": "ListItem", position: 1, name: "Home", item: siteUrl },
+      { "@type": "ListItem", position: 2, name: "FAQ", item: absoluteUrl("/faq") },
     ],
   };
 

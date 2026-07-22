@@ -9,6 +9,7 @@ import {
   verifyTransactionJWS,
 } from "@/lib/apple-iap";
 import { getSubscriptionForApi, hasActiveStripeSub } from "@/lib/subscription";
+import { getSiteUrl } from "@/lib/site-url";
 
 const bodySchema = z.object({
   signedTransaction: z.string().min(20),
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
       {
         error: "stripe_active",
         message:
-          "You already have an active subscription on the web. Cancel it at signalscopes.com before subscribing on iOS.",
+          `You already have an active subscription on the web. Cancel it at ${getSiteUrl()} before subscribing on iOS.`,
       },
       { status: 409 }
     );

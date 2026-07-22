@@ -62,7 +62,7 @@ describe("composePerformanceTweet", () => {
 
   it("includes link to ticker page", () => {
     const tweet = composePerformanceTweet(makeHit({ symbol: "AAPL" }));
-    expect(tweet).toContain("https://signalscopes.com/ticker/AAPL");
+    expect(tweet).toContain("http://localhost:3000/ticker/AAPL");
   });
 
   it("includes 📈 emoji", () => {
@@ -136,7 +136,7 @@ describe("composePerformanceSummary", () => {
 
   it("includes performance page link", () => {
     const tweet = composePerformanceSummary([makeHit()]);
-    expect(tweet).toContain("https://signalscopes.com/performance");
+    expect(tweet).toContain("http://localhost:3000/performance");
   });
 
   it("includes hashtags", () => {

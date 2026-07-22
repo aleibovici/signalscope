@@ -37,8 +37,8 @@ describe("buildWeeklyDigestHtml", () => {
     );
     expect(html).toContain("$TSLA");
     expect(html).toContain("$AAPL");
-    expect(html).toContain("signalscopes.com/ticker/TSLA");
-    expect(html).toContain("signalscopes.com/ticker/AAPL");
+    expect(html).toContain("localhost:3000/ticker/TSLA");
+    expect(html).toContain("localhost:3000/ticker/AAPL");
   });
 
   it("includes the AI score", () => {
@@ -82,14 +82,14 @@ describe("buildWeeklyDigestHtml", () => {
   it("shows upgrade CTA for free users", () => {
     const html = buildWeeklyDigestHtml([makeTicker()], 25, false);
     expect(html).toContain("Upgrade to Pro");
-    expect(html).toContain("signalscopes.com/subscription");
+    expect(html).toContain("localhost:3000/subscription");
     expect(html).toContain("25 signals were detected");
   });
 
   it("shows dashboard link for subscribers", () => {
     const html = buildWeeklyDigestHtml([makeTicker()], 25, true);
     expect(html).toContain("View all 25 signals");
-    expect(html).toContain("signalscopes.com/dashboard");
+    expect(html).toContain("localhost:3000/dashboard");
     expect(html).not.toContain("Upgrade to Pro");
   });
 
@@ -104,7 +104,7 @@ describe("buildWeeklyDigestHtml", () => {
 
   it("includes unsubscribe link", () => {
     const html = buildWeeklyDigestHtml([makeTicker()], 10, false);
-    expect(html).toContain("signalscopes.com/profile");
+    expect(html).toContain("localhost:3000/profile");
     expect(html).toContain("profile settings");
   });
 

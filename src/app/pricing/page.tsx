@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PublicPageLayout } from "@/components/public-page-layout";
+import { absoluteUrl, getSiteUrl } from "@/lib/site-url";
+
+const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
   title: "Pricing",
   description:
     "SignalScope pricing. Free dashboard with watchlist, portfolio tracking, API key access (10 calls/month), and weekly digest. Pro at $2.99/mo or $29.99/yr unlocks AI reports, 1,000 API calls/day, and real-time email alerts. AI agents can pay per call via x402 micropayments — no account required.",
-  alternates: { canonical: "https://signalscopes.com/pricing" },
+  alternates: { canonical: absoluteUrl("/pricing") },
   openGraph: {
-    url: "https://signalscopes.com/pricing",
+    url: absoluteUrl("/pricing"),
     title: "Pricing — SignalScope",
     description:
       "Free dashboard, Pro at $2.99/mo ($29.99/yr), or x402 pay-per-call for AI agents.",
@@ -77,11 +80,11 @@ export default function PricingPage() {
     "@graph": [
       {
         "@type": "Product",
-        "@id": "https://signalscopes.com/pricing#product",
+        "@id": `${absoluteUrl("/pricing")}#product`,
         name: "SignalScope",
         description:
           "Stock breakout signal detection — AI-scored signals from 8 sources with pump-and-dump filtering, ML backtesting, and an AI Agent Skill.",
-        image: "https://signalscopes.com/opengraph-image",
+        image: absoluteUrl("/opengraph-image"),
         brand: { "@type": "Organization", name: "SignalScope" },
         offers: [
           {
@@ -90,7 +93,7 @@ export default function PricingPage() {
             price: "0",
             priceCurrency: "USD",
             availability: "https://schema.org/InStock",
-            url: "https://signalscopes.com/register",
+            url: absoluteUrl("/register"),
           },
           {
             "@type": "Offer",
@@ -105,7 +108,7 @@ export default function PricingPage() {
               unitCode: "MON",
             },
             availability: "https://schema.org/InStock",
-            url: "https://signalscopes.com/pricing",
+            url: absoluteUrl("/pricing"),
           },
           {
             "@type": "Offer",
@@ -120,7 +123,7 @@ export default function PricingPage() {
               unitCode: "ANN",
             },
             availability: "https://schema.org/InStock",
-            url: "https://signalscopes.com/pricing",
+            url: absoluteUrl("/pricing"),
           },
           {
             "@type": "Offer",
@@ -130,15 +133,15 @@ export default function PricingPage() {
             availability: "https://schema.org/InStock",
             description:
               "Per-call USDC micropayments on Base (L2). No account required.",
-            url: "https://signalscopes.com/skill/SKILL.md",
+            url: absoluteUrl("/skill/SKILL.md"),
           },
         ],
       },
       {
         "@type": "BreadcrumbList",
         itemListElement: [
-          { "@type": "ListItem", position: 1, name: "Home", item: "https://signalscopes.com" },
-          { "@type": "ListItem", position: 2, name: "Pricing", item: "https://signalscopes.com/pricing" },
+          { "@type": "ListItem", position: 1, name: "Home", item: siteUrl },
+          { "@type": "ListItem", position: 2, name: "Pricing", item: absoluteUrl("/pricing") },
         ],
       },
     ],

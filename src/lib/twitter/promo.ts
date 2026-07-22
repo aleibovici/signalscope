@@ -1,4 +1,5 @@
 import { chatJSON } from "@/lib/ai";
+import { absoluteUrl, getSiteUrl } from "@/lib/site-url";
 import { postTweet, type TweetResult } from "./post";
 
 /* ------------------------------------------------------------------ */
@@ -83,7 +84,7 @@ export const PROMO_TOPICS = [
   },
   {
     id: "methodology",
-    angle: "Full methodology transparency: how signals are scored, how P&D detection works, what each stage means. No black box — the entire approach is documented at signalscopes.com/methodology.",
+    angle: "Full methodology transparency: how signals are scored, how P&D detection works, what each stage means. No black box — the entire approach is documented on the methodology page.",
     path: "/methodology",
   },
   {
@@ -131,7 +132,7 @@ export function pickTopic(date: Date, slot: number): PromoTopic {
 /*  AI tweet generation                                                */
 /* ------------------------------------------------------------------ */
 
-const SYSTEM_PROMPT = `You are the social media voice of SignalScope (signalscopes.com), a stock breakout signal detection platform.
+const SYSTEM_PROMPT = `You are the social media voice of SignalScope (${getSiteUrl()}), a stock breakout signal detection platform.
 
 Your job: write a single tweet (max 230 chars to leave room for a URL) promoting a specific feature or capability.
 
@@ -224,7 +225,7 @@ export async function generateAndPostPromoTweet(
   const statsContext = stats ? buildStatsContext(stats) : "";
   const cashtagContext = stats?.trendingSymbols ? buildCashtagContext(stats.trendingSymbols) : "";
 
-  const deepLink = `https://signalscopes.com${topic.path}`;
+  const deepLink = absoluteUrl(topic.path);
 
   const userMessage = `Write a promotional tweet about this SignalScope feature:
 

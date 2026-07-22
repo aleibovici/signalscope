@@ -53,8 +53,8 @@ describe("GET /blog/feed.xml", () => {
   it("includes correct slugs in item links and GUIDs", async () => {
     const res = await GET();
     const xml = await res.text();
-    expect(xml).toContain("https://signalscopes.com/blog/test-post-one");
-    expect(xml).toContain("https://signalscopes.com/blog/test-post-two");
+    expect(xml).toContain("http://localhost:3000/blog/test-post-one");
+    expect(xml).toContain("http://localhost:3000/blog/test-post-two");
   });
 
   it("wraps title and description in CDATA to handle special characters", async () => {
@@ -92,7 +92,7 @@ describe("GET /blog/feed.xml", () => {
   it("includes atom:link self-reference", async () => {
     const res = await GET();
     const xml = await res.text();
-    expect(xml).toContain('href="https://signalscopes.com/blog/feed.xml"');
+    expect(xml).toContain('href="http://localhost:3000/blog/feed.xml"');
     expect(xml).toContain('rel="self"');
   });
 });

@@ -1,7 +1,8 @@
 import { blogPosts } from "@/lib/blog-data";
 import { NextResponse } from "next/server";
+import { getSiteUrl } from "@/lib/site-url";
 
-const BASE_URL = "https://signalscopes.com";
+const BASE_URL = getSiteUrl();
 
 export const revalidate = 86400; // cache for 24 hours
 
@@ -27,8 +28,6 @@ export function GET() {
     <link>${BASE_URL}/blog</link>
     <description>Insights on stock breakout signals, AI scoring, pump-and-dump detection, congressional trades, and market analysis from the SignalScope team.</description>
     <language>en-us</language>
-    <managingEditor>hello@signalscopes.com (SignalScope)</managingEditor>
-    <webMaster>hello@signalscopes.com (SignalScope)</webMaster>
     <lastBuildDate>${new Date(blogPosts[0]?.date ?? new Date()).toUTCString()}</lastBuildDate>
     <atom:link href="${BASE_URL}/blog/feed.xml" rel="self" type="application/rss+xml" />
     <image>

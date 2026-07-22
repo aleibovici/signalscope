@@ -1,10 +1,11 @@
 import type { MetadataRoute } from "next";
 import { blogPosts } from "@/lib/blog-data";
 import { prisma } from "@/lib/prisma";
+import { getSiteUrl } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
 
-const BASE_URL = "https://signalscopes.com";
+const BASE_URL = getSiteUrl();
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Top non-filtered tickers detected in the last 30 days

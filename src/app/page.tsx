@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { getSiteUrl } from "@/lib/site-url";
 import LoginPage from "./(auth)/login/page";
 import { HeroTrendingPreview } from "@/components/hero-trending-preview";
 
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
   description:
     "Find breakout stock candidates before market consensus. SignalScope monitors Reddit, X/Twitter, StockTwits, SEC insider filings, congressional trades, options flow, volume spikes, and Polymarket — scored by AI, filtered for pump-and-dumps, with LightGBM backtesting and an AI Agent Skill. Pay-per-call API access via x402 micropayments — no account required.",
   alternates: {
-    canonical: "https://signalscopes.com",
+    canonical: getSiteUrl(),
   },
 };
 

@@ -1,10 +1,16 @@
 import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
 import { STAGE_LABELS } from "@/lib/stage-labels";
+import { absoluteUrl } from "@/lib/site-url";
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
+
+function getEmailFrom(): string | null {
+  const from = process.env.EMAIL_FROM?.trim();
+  return from || null;
+}
 
 /* ------------------------------------------------------------------ */
 /*  Free weekly digest — sent to ALL users, not just subscribers       */
@@ -47,7 +53,7 @@ export function buildWeeklyDigestHtml(
     return `
       <tr>
         <td style="padding:8px 12px;${t.catalyst ? "" : "border-bottom:1px solid #e5e7eb;"}">
-          <a href="https://signalscopes.com/ticker/${t.symbol}" style="color:#2563eb;font-weight:600;text-decoration:none;">$${t.symbol}</a>
+          <a href="${absoluteUrl(`/ticker/${t.symbol}`)}" style="color:#2563eb;font-weight:600;text-decoration:none;">$${t.symbol}</a>
           <span style="font-size:11px;color:${stageColor};margin-left:6px;">${stageLabel}</span>
         </td>
         <td style="padding:8px 12px;${t.catalyst ? "" : "border-bottom:1px solid #e5e7eb;"}">
@@ -60,12 +66,12 @@ export function buildWeeklyDigestHtml(
 
   const ctaSection = isSubscriber
     ? `<p style="margin:16px 0 8px;font-size:13px;color:#6b7280;">
-        <a href="https://signalscopes.com/dashboard" style="color:#2563eb;text-decoration:none;">View all ${totalAvailable} signals on your dashboard →</a>
+        <a href="${absoluteUrl("/dashboard")}" style="color:#2563eb;text-decoration:none;">View all ${totalAvailable} signals on your dashboard →</a>
       </p>`
     : `<div style="margin:16px 0;padding:12px;background:#eff6ff;border-radius:6px;border:1px solid #bfdbfe;">
         <p style="margin:0 0 4px;font-weight:600;font-size:14px;color:#1d4ed8;">Want the full picture?</p>
         <p style="margin:0;font-size:13px;color:#1e40af;">Pro subscribers get daily alerts, AI trade setups with entry/exit levels, and API access. ${totalAvailable} signals were detected this week.</p>
-        <p style="margin:8px 0 0;"><a href="https://signalscopes.com/subscription" style="display:inline-block;padding:6px 16px;background:#2563eb;color:#fff;border-radius:4px;text-decoration:none;font-size:13px;font-weight:600;">Upgrade to Pro →</a></p>
+        <p style="margin:8px 0 0;"><a href="${absoluteUrl("/subscription")}" style="display:inline-block;padding:6px 16px;background:#2563eb;color:#fff;border-radius:4px;text-decoration:none;font-size:13px;font-weight:600;">Upgrade to Pro →</a></p>
       </div>`;
 
   return `
@@ -93,7 +99,7 @@ export function buildWeeklyDigestHtml(
       ${ctaSection}
       <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;">
         You're receiving this free weekly digest because you have a SignalScope account.
-        To unsubscribe, disable email alerts in your <a href="https://signalscopes.com/profile" style="color:#9ca3af;">profile settings</a>.
+        To unsubscribe, disable email alerts in your <a href="${absoluteUrl("/profile")}" style="color:#9ca3af;">profile settings</a>.
       </p>
     </div>
   </div>
@@ -110,8 +116,13 @@ export async function sendWeeklyDigest(): Promise<{
   skipped: number;
   tickerCount: number;
 }> {
+  const emailFrom = getEmailFrom();
   if (!resend) {
     console.log("[email/weekly] RESEND_API_KEY not set — skipping weekly digest");
+    return { sent: 0, skipped: 0, tickerCount: 0 };
+  }
+  if (!emailFrom) {
+    console.log("[email/weekly] EMAIL_FROM not set — skipping weekly digest");
     return { sent: 0, skipped: 0, tickerCount: 0 };
   }
 
@@ -227,7 +238,7 @@ export async function sendWeeklyDigest(): Promise<{
   for (const user of users) {
     const isSub = user.subscription && ACTIVE_STATUSES.includes(user.subscription.status);
     const email = {
-      from: "SignalScope <digest@signalscopes.com>",
+      from: emailFrom,
       to: user.email,
       subject,
       html: isSub ? subscriberHtml : freeHtml,

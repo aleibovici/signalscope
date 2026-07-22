@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // factories (plain `const mockFn = vi.fn()` is NOT accessible there).
 const mocks = vi.hoisted(() => {
   process.env.RESEND_API_KEY = "re_test_key";
+  process.env.EMAIL_FROM = "SignalScope Test";
   return {
     batchSend: vi.fn(),
     perfFindMany: vi.fn(),
@@ -269,7 +270,7 @@ describe("sendWeeklyDigest", () => {
 
     expect(mocks.batchSend).toHaveBeenCalledTimes(1);
     const batch = mocks.batchSend.mock.calls[0][0] as Array<{ html: string }>;
-    expect(batch[0].html).toContain("signalscopes.com/dashboard");
+    expect(batch[0].html).toContain("localhost:3000/dashboard");
     expect(batch[0].html).not.toContain("Upgrade to Pro");
   });
 

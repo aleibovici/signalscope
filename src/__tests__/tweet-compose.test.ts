@@ -130,7 +130,7 @@ describe("composeTickerTweet", () => {
 
   it("includes link to ticker page", () => {
     const tweet = composeTickerTweet(makeTicker({ symbol: "NVDA" }));
-    expect(tweet).toContain("https://signalscopes.com/ticker/NVDA");
+    expect(tweet).toContain("http://localhost:3000/ticker/NVDA");
   });
 
   it("handles long catalyst by truncating", () => {

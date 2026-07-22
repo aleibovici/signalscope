@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+import { absoluteUrl, getSiteUrl } from "@/lib/site-url";
+
+const siteUrl = getSiteUrl();
 
 const STAGE_LABELS: Record<string, string> = {
   EARLY: "Emerging",
@@ -71,13 +74,13 @@ export async function generateMetadata({
     title,
     description,
     alternates: {
-      canonical: `https://signalscopes.com/ticker/${upper}`,
+      canonical: absoluteUrl(`/ticker/${upper}`),
     },
     openGraph: {
       title,
       description,
       type: "article",
-      url: `https://signalscopes.com/ticker/${upper}`,
+      url: absoluteUrl(`/ticker/${upper}`),
     },
     twitter: {
       card: "summary_large_image",
@@ -138,31 +141,31 @@ export default async function TickerLayout({
                 "@type": "ListItem",
                 position: 1,
                 name: "Home",
-                item: "https://signalscopes.com",
+                item: siteUrl,
               },
               {
                 "@type": "ListItem",
                 position: 2,
                 name: "Signals",
-                item: "https://signalscopes.com/dashboard",
+                item: absoluteUrl("/dashboard"),
               },
               {
                 "@type": "ListItem",
                 position: 3,
                 name: `$${upper}`,
-                item: `https://signalscopes.com/ticker/${upper}`,
+                item: absoluteUrl(`/ticker/${upper}`),
               },
             ],
           },
           {
             "@type": "WebPage",
-            "@id": `https://signalscopes.com/ticker/${upper}`,
-            url: `https://signalscopes.com/ticker/${upper}`,
+            "@id": absoluteUrl(`/ticker/${upper}`),
+            url: absoluteUrl(`/ticker/${upper}`),
             name: `$${upper} — ${ticker.recommendation ?? "Watch"} | SignalScope`,
             description: `${ticker.name ?? upper} — ${ticker.recommendation ?? "Watch"} signal with Opportunity Score ${ticker.opportunityScore}/100`,
             dateModified: ticker.createdAt.toISOString(),
-            isPartOf: { "@id": "https://signalscopes.com/#website" },
-            publisher: { "@id": "https://signalscopes.com/#organization" },
+            isPartOf: { "@id": `${siteUrl}/#website` },
+            publisher: { "@id": `${siteUrl}/#organization` },
           },
         ],
       }

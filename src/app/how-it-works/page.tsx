@@ -20,13 +20,16 @@ import {
   scoreExplainerMethodologyTitle,
   scoreExplainerMethodologyBody,
 } from "@/lib/score-explainer";
+import { absoluteUrl, getSiteUrl } from "@/lib/site-url";
+
+const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
   title: "Methodology",
   description: methodologyDescription,
-  alternates: { canonical: "https://signalscopes.com/how-it-works" },
+  alternates: { canonical: absoluteUrl("/how-it-works") },
   openGraph: {
-    url: "https://signalscopes.com/how-it-works",
+    url: absoluteUrl("/how-it-works"),
     title: "Methodology — SignalScope",
     description: methodologyDescription,
     images: [
@@ -40,7 +43,6 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    site: "@signalscopes",
     title: "Methodology — SignalScope",
     description: methodologyDescription,
     images: ["/opengraph-image"],
@@ -81,8 +83,8 @@ export default function PublicMethodologyPage() {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: "https://signalscopes.com" },
-      { "@type": "ListItem", position: 2, name: "Methodology", item: "https://signalscopes.com/how-it-works" },
+      { "@type": "ListItem", position: 1, name: "Home", item: siteUrl },
+      { "@type": "ListItem", position: 2, name: "Methodology", item: absoluteUrl("/how-it-works") },
     ],
   };
 
@@ -91,16 +93,16 @@ export default function PublicMethodologyPage() {
     "@type": "TechArticle",
     headline: "SignalScope Methodology — How AI-Scored Stock Breakout Signals Work",
     description: methodologyDescription,
-    url: "https://signalscopes.com/how-it-works",
-    image: "https://signalscopes.com/opengraph-image",
-    author: { "@type": "Organization", name: "SignalScope", url: "https://signalscopes.com" },
+    url: absoluteUrl("/how-it-works"),
+    image: absoluteUrl("/opengraph-image"),
+    author: { "@type": "Organization", name: "SignalScope", url: siteUrl },
     publisher: {
       "@type": "Organization",
       name: "SignalScope",
-      url: "https://signalscopes.com",
-      logo: { "@type": "ImageObject", url: "https://signalscopes.com/apple-touch-icon.png" },
+      url: siteUrl,
+      logo: { "@type": "ImageObject", url: absoluteUrl("/apple-touch-icon.png") },
     },
-    mainEntityOfPage: "https://signalscopes.com/how-it-works",
+    mainEntityOfPage: absoluteUrl("/how-it-works"),
   };
 
   return (

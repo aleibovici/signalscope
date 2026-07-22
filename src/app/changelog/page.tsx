@@ -1,16 +1,19 @@
 import type { Metadata } from "next";
 import { PublicPageLayout } from "@/components/public-page-layout";
 import { changelog } from "@/lib/changelog-data";
+import { absoluteUrl, getSiteUrl } from "@/lib/site-url";
+
+const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
   title: "Changelog",
   description:
     "What's new in SignalScope — improvements, new signal sources, ML updates, and bug fixes.",
   alternates: {
-    canonical: "https://signalscopes.com/changelog",
+    canonical: absoluteUrl("/changelog"),
   },
   openGraph: {
-    url: "https://signalscopes.com/changelog",
+    url: absoluteUrl("/changelog"),
     title: "Changelog — SignalScope",
     description:
       "What's new in SignalScope — improvements, new signal sources, ML updates, and bug fixes.",
@@ -51,8 +54,8 @@ export default function ChangelogPage() {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: "https://signalscopes.com" },
-      { "@type": "ListItem", position: 2, name: "Changelog", item: "https://signalscopes.com/changelog" },
+      { "@type": "ListItem", position: 1, name: "Home", item: siteUrl },
+      { "@type": "ListItem", position: 2, name: "Changelog", item: absoluteUrl("/changelog") },
     ],
   };
 

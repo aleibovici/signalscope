@@ -28,9 +28,9 @@ docker compose up db         # PostgreSQL only
 docker compose up            # Web app + DB
 ```
 
-Docker (production harvester — fetches locally, processes on Cloud Run):
+Docker (harvester — fetches locally, POSTs to your web app ingest URL):
 ```bash
-docker compose -f docker-compose.harvest.yml --env-file .env.production run --rm harvester
+docker compose -f docker-compose.harvest.yml --env-file .env run --rm harvester
 ```
 
 ## Tech Stack
@@ -68,7 +68,7 @@ Sources (8 in parallel) → Aggregate by symbol → Fetch fundamentals for ALL s
 - `report.ts` — AI-generated ticker report prose (catalyst, risks, narrative) + trade setup entry range. On-demand via `POST /api/tickers/[symbol]/report`, batch via `POST /api/reports/generate`. The `recommendation` label is computed deterministically server-side via `recommendation.ts` (not picked by the LLM); target/stop are anchored via `anchors.ts`
 - `recommendation.ts` — `deriveRecommendation()` pure function mapping (`aiScore`, `stage`, `sourceCount`, `hasCatalystSource`, `pndFlagged`, `price`, `marketCap`, `medianSignalAgeHrs`) → `Strong Buy | Buy | Watch | Avoid`. Thresholds calibrated against `TickerPerformance` via `scripts/calibrate-recommendation.ts`; actionable Buy/Strong Buy labels are capped below the large-cap tier. `RECOMMENDATION_RULE_VERSION` bumps when semantics change
 
-Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs to Cloud Run (`/api/harvest/ingest`) for processing
+Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs to the web app (`/api/harvest/ingest`) for processing
 
 ### Twitter/X (`src/lib/twitter/`)
 
@@ -85,7 +85,7 @@ Entry point: `scripts/run-harvest-remote.ts` — Fetches signals locally, POSTs 
 
 - `src/lib/reconstruct-aggregated.ts` — Reconstructs `AggregatedSymbol`, `FundamentalData`, `NoveltyContext` from DB records (shared by report endpoints)
 - `src/lib/cache.ts` — `TTLCache<T>` in-memory cache with max-entries eviction
-- `src/lib/rate-limit.ts` — IP-based rate limiting; `getClientIP()` handles `X-Forwarded-For` for Cloud Run
+- `src/lib/rate-limit.ts` — IP-based rate limiting; `getClientIP()` handles `X-Forwarded-For` behind reverse proxies
 - `src/lib/price-verification.ts` — `verifyPriceAgainstSnapshot()` validates prices against latest `PriceSnapshot` (5% deviation threshold)
 - `src/lib/co-occurrence.ts` — `getCoOccurringSymbols()`, `getPairwiseEdges()`, `jaccardScore()` for ticker connections
 - `src/lib/spy-benchmark.ts` — `fetchSpyTotalReturnDecimal()` loads SPY adj. close bars from Yahoo Finance; cached ~45m via `TTLCache`
@@ -175,14 +175,14 @@ All data fetching hooks in `src/hooks/` using TanStack Query.
 
 Multi-user email/password auth via Auth.js v5. Mobile clients use Bearer token auth.
 
-- `auth.config.ts` — Edge-safe config; `trustHost: true` required for Cloud Run reverse proxy
+- `auth.config.ts` — Edge-safe config; `trustHost: true` for reverse-proxy deployments
 - `auth.ts` — Full NextAuth instance; exports `auth`, `handlers`, `getCurrentUserId()`, `getOptionalUserId()`
 - `getCurrentUserId()` is **async** — all callers must `await` it; checks `Authorization: Bearer` (mobile JWT) → `x-api-key` → Auth.js cookie session; throws 401 if unauthenticated
 - `getOptionalUserId()` — same lookup chain but returns `string | null` instead of throwing; use for routes that work for both guests and logged-in users (e.g. votes)
 - `mobile-jwt.ts` — HS256 JWT via `jose`, signing key `"mobile:" + AUTH_SECRET`, 15min access tokens, 30-day refresh tokens (DB-backed, rotation on use)
 - `src/proxy.ts` (middleware) — Protects dashboard routes and `/api/portfolio/**`, `/api/watchlist/**`, `/api/user/**`; Bearer/x-api-key bypass middleware (verified in route handlers)
 - Public routes: `/login`, `/register`, `/changelog`, `/api/auth/**`, `/api/health`, `/api/alerts/**`, `/api/harvest/**`, `/api/snapshots/**`, `/api/reports/**`
-- Seed user: `user@signalscope.dev` / `password123`
+- Local seed login id: `dev@localhost` / `password123` (local-only; not a contact mailbox)
 
 ### x402 Payment Protocol (`src/lib/x402.ts`)
 
@@ -234,15 +234,19 @@ AI_PROVIDER_PND=anthropic
 AI_PROVIDER_REPORT=anthropic
 AI_PROVIDER_PROMO=anthropic
 
-# Harvester
-HARVEST_ENDPOINT_URL=https://signalscopes.com/api/harvest/ingest
+# Public URL of this deployment
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Harvester (separate process; points at your web app ingest URL)
+HARVEST_ENDPOINT_URL=http://localhost:3000/api/harvest/ingest
 HARVEST_API_KEY=<openssl rand -base64 32>
 
 # Snapshots
 SNAPSHOT_API_KEY=<openssl rand -base64 32>
 
-# Optional: Email alerts via Resend
+# Optional: outbound notifications via Resend (operator supplies EMAIL_FROM)
 RESEND_API_KEY=re_...
+EMAIL_FROM=
 
 # Optional: Stripe subscriptions
 STRIPE_SECRET_KEY=sk_test_...
@@ -271,50 +275,35 @@ GOOGLE_SITE_VERIFICATION=...
 BING_SITE_VERIFICATION=...
 ```
 
-## GCP Deployment
+## Self-hosting
 
-### Architecture
+Primary path: Docker Compose (Postgres + web) on any host. The web app is a standard Next.js standalone container (`Dockerfile`) behind any reverse proxy. Set `NEXT_PUBLIC_APP_URL`, `DATABASE_URL`, `AUTH_SECRET`, and AI keys.
 
-- **Cloud Run** — web app (`signalscope-web`), Next.js standalone, port 3000
-- **Cloud SQL** — PostgreSQL 16 (`signalscope-db`, db-f1-micro), Unix socket
-- **Cloud Scheduler** — weekday ET jobs: reports + Alpaca orders (8:55 AM), email alerts (9:05 AM), portfolio alerts (9:07 AM), snapshots open (9:45 AM), midday (12:30 PM), close (4:05 PM); follow job weekdays (9AM); performance tweet daily (10 AM ET Mon–Fri); weekly digest (Sundays 10 AM ET)
-- **Secret Manager** — `DATABASE_URL`, `AUTH_SECRET`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `SNAPSHOT_API_KEY`, `RESEND_API_KEY`
-- **Artifact Registry** — Docker images (`signalscope` repo)
-- **GitHub Actions** — CI/CD on push to `main`; Workload Identity Federation for keyless auth
+### Harvester (separate container)
 
-### Harvester
+Some sources block datacenter IPs, so signal **fetching** often runs on a different network than the web app. The harvester (`Dockerfile.harvester` / `npm run harvest`) fetches sources, then POSTs to `POST /api/harvest/ingest` on the web app.
 
-Reddit blocks cloud IPs, so signal **fetching** runs locally. Processing runs on Cloud Run via `POST /api/harvest/ingest`.
-
-- **Cron**: `scripts/harvest-cron.sh` — runs at 8:30 AM ET Mon–Fri (1 hour before market open)
 - **Auth**: `x-harvest-key` header checked against `HARVEST_API_KEY`
+- **Env**: `HARVEST_ENDPOINT_URL` + `HARVEST_API_KEY` on the harvester; same `HARVEST_API_KEY` on the web app
 - **Retry**: one automatic retry; on failure saves to `/tmp/signalscope-harvest-{timestamp}.json`
+- **Cron helper**: `scripts/harvest-cron.sh` (repo-relative; optional)
 
 ### Snapshots (`src/lib/snapshots/`)
 
-Every run creates a `PriceSnapshot` row for all tickers within 30 days of detection. Returns (1d, 3d, 7d, 30d) computed from time-series with tolerance windows (1d: 18–48h, 3d: 54–120h, 7d: 120–264h, 30d: 600–888h) to handle weekends/holidays.
+Every run creates a `PriceSnapshot` row for all tickers within 30 days of detection. Returns (1d, 3d, 7d, 30d) computed from time-series with tolerance windows (1d: 18–48h, 3d: 54–120h, 7d: 120–264h, 30d: 600–888h) to handle weekends/holidays. Trigger via `POST /api/snapshots/collect` with `x-snapshot-key`.
 
 ### Source Status
 
 | Source | Status | Notes |
 |--------|--------|-------|
 | Reddit | Active | `old.reddit.com` JSON, sequential 1.5s delay, browser UA |
-| X/Twitter | Degraded | X API v2 Recent Search, requires Basic tier ($200/mo); credits depleted 2026-04-07 |
+| X/Twitter | Optional | X API v2 Recent Search; requires bearer token / paid tier |
 | SEC Insider | Active | OpenInsider HTML + EDGAR RSS, C-suite $50K+ purchases |
 | Congress | Active | CapitolTrades.com, deduplicates by transaction ID |
 | Volume Spike | Active | Yahoo Finance, 89 symbols, 2x avg volume threshold |
 | StockTwits | Active | TrendSpider mirror (direct access is Cloudflare-blocked) |
 | Options Flow | Active | Yahoo Finance options chain, unusual call volume/OTM/sweeps |
 | Polymarket | Active | Gamma API, stock price prediction markets with volume spikes |
-
-### CI/CD
-
-**IMPORTANT**: Always wait for `CI — Build & Push` to complete before triggering `Deploy to Cloud Run`. Deploying before build finishes deploys the previous image.
-
-```bash
-gh run list --workflow="CI — Build & Push" --limit 1
-gh workflow run "Deploy to Cloud Run" --ref main
-```
 
 ## Tests
 
@@ -357,16 +346,15 @@ All authenticated routes use `handleApiError()` from `src/lib/api-error.ts`:
 
 ## DB Extract Script (`scripts/extract.py`)
 
-Dumps every `public` table from production PostgreSQL to parquet under `scripts/output/`. Then `pg_dump`/`pg_restore` into local dev DB (`DATABASE_URL_DEV`). Used by external ML harness.
+Optional maintainer tool: dumps `public` tables to parquet under `scripts/output/`, optionally `pg_restore` into a local DB (`DATABASE_URL_DEV`). Not required for normal self-hosting.
 
 ```bash
 # Requires: pip install psycopg2-binary pandas pyarrow python-dotenv
 python scripts/extract.py          # full run
-python scripts/extract.py --no-restore  # skip dev DB overwrite
+python scripts/extract.py --no-restore  # skip local restore
 ```
 
-- Auto-starts/stops Cloud SQL Auth Proxy on port 5434
-- Refuses restore targets on port 5434 or Cloud SQL socket URLs
+- Optional Cloud SQL Auth Proxy path requires `GCP_PROJECT_ID` (no hardcoded project)
 - Output may include sensitive columns; treat `scripts/output/` accordingly
 
 ## Backtesting Experiment Log (`scripts/backtesting-experiments.md`)
@@ -378,16 +366,14 @@ Tracks ML model runs. Each row: commit hash, date, metrics, description.
 - `status: keep` = improved/matched best; `status: discard` = regression
 - Summarize long `features` columns to top features only
 
-## Deploy Workflow
-
-When the user says "deploy" or "deploy to production":
+## Release checklist (maintainers)
 
 1. **Update changelog** — Add to `src/lib/changelog-data.ts`
 2. **Lint** — `npm run lint`
 3. **Test** — `npm test`
 4. **Commit** — Stage and commit all changes
 5. **Push** — `git push origin main`
-6. **Deploy** — Wait for `CI — Build & Push`, then trigger `Deploy to Cloud Run`
+6. **Deploy** — Build/run the web container (and optional harvester) on your host; see README
 
 ## Path Alias
 

@@ -1,10 +1,16 @@
 import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
 import { STAGE_LABELS } from "@/lib/stage-labels";
+import { absoluteUrl, getSiteUrl } from "@/lib/site-url";
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
+
+function getEmailFrom(): string | null {
+  const from = process.env.EMAIL_FROM?.trim();
+  return from || null;
+}
 
 interface AlertTicker {
   symbol: string;
@@ -48,7 +54,7 @@ export function buildEmailHtml(tickers: AlertTicker[], totalAvailable?: number):
         return `
       <tr>
         <td style="padding:8px 12px;${summary ? "" : "border-bottom:1px solid #e5e7eb;"}">
-          <a href="https://signalscopes.com/ticker/${t.symbol}" style="color:#2563eb;font-weight:600;text-decoration:none;">${t.symbol}</a>
+          <a href="${absoluteUrl(`/ticker/${t.symbol}`)}" style="color:#2563eb;font-weight:600;text-decoration:none;">${t.symbol}</a>
         </td>
         <td style="padding:8px 12px;${summary ? "" : "border-bottom:1px solid #e5e7eb;"}">${t.aiScore}/100</td>
       </tr>${summaryRow}`;
@@ -56,7 +62,7 @@ export function buildEmailHtml(tickers: AlertTicker[], totalAvailable?: number):
       .join("");
 
     const moreLink = remaining > 0
-      ? `<tr><td colspan="2" style="padding:8px 12px;border-bottom:1px solid #e5e7eb;"><a href="https://signalscopes.com/dashboard" style="color:#2563eb;font-size:13px;text-decoration:none;">+${remaining} more emerging signal${remaining !== 1 ? "s" : ""} — view on dashboard →</a></td></tr>`
+      ? `<tr><td colspan="2" style="padding:8px 12px;border-bottom:1px solid #e5e7eb;"><a href="${absoluteUrl("/dashboard")}" style="color:#2563eb;font-size:13px;text-decoration:none;">+${remaining} more emerging signal${remaining !== 1 ? "s" : ""} — view on dashboard →</a></td></tr>`
       : "";
 
     return `
@@ -92,11 +98,11 @@ export function buildEmailHtml(tickers: AlertTicker[], totalAvailable?: number):
       </table>
       ${totalAvailable && totalAvailable > tickers.length ? `<p style="margin:16px 0 4px;font-size:13px;color:#6b7280;">Showing top ${tickers.length} of ${totalAvailable} signals.</p>` : ""}
       <p style="margin:8px 0;font-size:13px;color:#6b7280;">
-        <a href="https://signalscopes.com" style="color:#2563eb;text-decoration:none;">View all on dashboard →</a>
+        <a href="${getSiteUrl()}" style="color:#2563eb;text-decoration:none;">View all on dashboard →</a>
       </p>
       <p style="margin:0;font-size:12px;color:#9ca3af;">
         You're receiving this because email alerts are enabled on your SignalScope profile.
-        To unsubscribe, disable alerts in your <a href="https://signalscopes.com/profile" style="color:#9ca3af;">profile settings</a>.
+        To unsubscribe, disable alerts in your <a href="${absoluteUrl("/profile")}" style="color:#9ca3af;">profile settings</a>.
       </p>
     </div>
   </div>
@@ -108,8 +114,13 @@ export async function sendTickerAlerts(
   tickers: AlertTicker[],
   totalAvailable?: number
 ): Promise<void> {
+  const emailFrom = getEmailFrom();
   if (!resend) {
     console.log("[email] RESEND_API_KEY not set — skipping email alerts");
+    return;
+  }
+  if (!emailFrom) {
+    console.log("[email] EMAIL_FROM not set — skipping email alerts");
     return;
   }
 
@@ -141,7 +152,7 @@ export async function sendTickerAlerts(
   console.log(`[email] Sending digest to ${users.length} user(s)...`);
 
   const batch = users.map((user) => ({
-    from: "SignalScope Alerts <alerts@signalscopes.com>",
+    from: emailFrom,
     to: user.email,
     subject,
     html,
@@ -189,7 +200,7 @@ export function buildPortfolioAlertHtml(tickers: PortfolioAlertTicker[]): string
         (t) => `
       <tr>
         <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">
-          <a href="https://signalscopes.com/ticker/${t.symbol}" style="color:#2563eb;font-weight:600;text-decoration:none;">${t.symbol}</a>
+          <a href="${absoluteUrl(`/ticker/${t.symbol}`)}" style="color:#2563eb;font-weight:600;text-decoration:none;">${t.symbol}</a>
         </td>
         <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${t.aiScore}/100</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">$${t.entryPrice.toFixed(2)}</td>
@@ -227,11 +238,11 @@ export function buildPortfolioAlertHtml(tickers: PortfolioAlertTicker[]): string
         <tbody>${renderSection(STAGE_LABELS.CONFIRMED, confirmed, "#6b7280")}${renderSection(STAGE_LABELS.FORMING, forming, "#ca8a04")}</tbody>
       </table>
       <p style="margin:16px 0 8px;font-size:13px;color:#6b7280;">
-        <a href="https://signalscopes.com/portfolio" style="color:#2563eb;text-decoration:none;">View your portfolio →</a>
+        <a href="${absoluteUrl("/portfolio")}" style="color:#2563eb;text-decoration:none;">View your portfolio →</a>
       </p>
       <p style="margin:0;font-size:12px;color:#9ca3af;">
         You're receiving this because email alerts are enabled on your SignalScope profile.
-        To unsubscribe, disable alerts in your <a href="https://signalscopes.com/profile" style="color:#9ca3af;">profile settings</a>.
+        To unsubscribe, disable alerts in your <a href="${absoluteUrl("/profile")}" style="color:#9ca3af;">profile settings</a>.
       </p>
     </div>
   </div>
@@ -240,8 +251,13 @@ export function buildPortfolioAlertHtml(tickers: PortfolioAlertTicker[]): string
 }
 
 export async function sendPortfolioAlerts(): Promise<{ usersNotified: number; tickersMatched: number }> {
+  const emailFrom = getEmailFrom();
   if (!resend) {
     console.log("[email/portfolio] RESEND_API_KEY not set — skipping portfolio alerts");
+    return { usersNotified: 0, tickersMatched: 0 };
+  }
+  if (!emailFrom) {
+    console.log("[email/portfolio] EMAIL_FROM not set — skipping portfolio alerts");
     return { usersNotified: 0, tickersMatched: 0 };
   }
 
@@ -336,7 +352,7 @@ export async function sendPortfolioAlerts(): Promise<{ usersNotified: number; ti
     const subject = `SignalScope: ${matches.length} portfolio stock${matches.length !== 1 ? "s" : ""} gaining momentum — ${symbols}`;
 
     const { error } = await resend.emails.send({
-      from: "SignalScope Alerts <alerts@signalscopes.com>",
+      from: emailFrom,
       to: user.email,
       subject,
       html,

@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
+import { absoluteUrl } from "@/lib/site-url";
 
 export const metadata: Metadata = {
   title: "Results",
   description:
     "SignalScope paper trading results and signal performance. Live Alpaca account equity, trade win rates, weekly cohort breakdowns, and SPY-benchmarked returns.",
-  alternates: { canonical: "https://signalscopes.com/results/paper-trading" },
+  alternates: { canonical: absoluteUrl("/results/paper-trading") },
   openGraph: {
-    url: "https://signalscopes.com/results/paper-trading",
+    url: absoluteUrl("/results/paper-trading"),
     title: "Results — SignalScope",
     description:
       "Live paper trading results and signal quality metrics. Actual order fills, equity curve, win rates, and weekly cohort performance.",
