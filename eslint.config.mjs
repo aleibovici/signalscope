@@ -1,5 +1,4 @@
 import { defineConfig, globalIgnores } from "eslint/config";
-import remotion from "@remotion/eslint-plugin";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 
@@ -25,11 +24,6 @@ const eslintConfig = defineConfig([
         version: "19.2.3",
       },
     },
-  },
-  {
-    files: ["remotion/**/*.{ts,tsx}"],
-    plugins: remotion.flatPlugin.plugins,
-    rules: remotion.flatPlugin.rules,
   },
 ]);
 

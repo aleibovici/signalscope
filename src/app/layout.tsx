@@ -7,6 +7,7 @@ import { AppThemeProvider } from "@/lib/theme-provider";
 import { AuthSessionProvider } from "@/lib/session-provider";
 import { GoogleAnalyticsPageView } from "@/lib/google-analytics";
 import { auth } from "@/lib/auth";
+import { absoluteUrl, getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,6 +20,8 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl = getSiteUrl();
+
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -27,7 +30,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("http://localhost:3000"),
+  metadataBase: new URL(siteUrl),
   title: {
     default: "SignalScope — Stock Breakout Signal Detection",
     template: "%s — SignalScope",
@@ -68,12 +71,12 @@ export const metadata: Metadata = {
     },
   },
   alternates: {
-    canonical: "http://localhost:3000",
+    canonical: siteUrl,
   },
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "http://localhost:3000",
+    url: siteUrl,
     siteName: "SignalScope",
     title: "SignalScope — Stock Breakout Signal Detection",
     description: "Find breakout stock candidates before market consensus. AI-scored signals from Reddit, X/Twitter, SEC filings, options flow with net premium tracking, and volume spikes — with cross-scan trending, ML backtesting, and an AI Agent Skill. x402 pay-per-call API access, no account required.",
@@ -88,8 +91,6 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    site: "@signalscopes",
-    creator: "@signalscopes",
     title: "SignalScope — Stock Breakout Signal Detection",
     description: "Find breakout stock candidates before market consensus. AI-scored signals from Reddit, X/Twitter, SEC filings, options flow with net premium tracking, and volume spikes — with cross-scan trending, ML backtesting, and an AI Agent Skill. x402 pay-per-call API access, no account required.",
     images: ["/opengraph-image"],
@@ -125,40 +126,40 @@ const jsonLd = {
   "@graph": [
     {
       "@type": "Organization",
-      "@id": "http://localhost:3000/#organization",
+      "@id": `${siteUrl}/#organization`,
       "name": "SignalScope",
-      "url": "http://localhost:3000",
+      "url": siteUrl,
       "logo": {
         "@type": "ImageObject",
-        "url": "http://localhost:3000/apple-touch-icon.png",
+        "url": absoluteUrl("/apple-touch-icon.png"),
       },
     },
     {
       "@type": "WebSite",
-      "@id": "http://localhost:3000/#website",
-      "url": "http://localhost:3000",
+      "@id": `${siteUrl}/#website`,
+      "url": siteUrl,
       "name": "SignalScope",
       "description": "Stock breakout signal detection platform",
-      "publisher": { "@id": "http://localhost:3000/#organization" },
+      "publisher": { "@id": `${siteUrl}/#organization` },
       "potentialAction": {
         "@type": "SearchAction",
         "target": {
           "@type": "EntryPoint",
-          "urlTemplate": "http://localhost:3000/api/search?q={search_term_string}",
+          "urlTemplate": `${siteUrl}/api/search?q={search_term_string}`,
         },
         "query-input": "required name=search_term_string",
       },
     },
     {
       "@type": "SoftwareApplication",
-      "@id": "http://localhost:3000/#app",
+      "@id": `${siteUrl}/#app`,
       "name": "SignalScope",
-      "url": "http://localhost:3000",
+      "url": siteUrl,
       "applicationCategory": "FinanceApplication",
       "operatingSystem": "Web",
       "description":
         "Find breakout stock candidates before market consensus. SignalScope monitors public market signals from Reddit, X/Twitter, StockTwits, SEC insider filings, congressional trades, options flow with net premium tracking, volume spikes, and Polymarket prediction markets — scored by AI, filtered for pump-and-dumps, with cross-scan trending analysis, LightGBM backtesting, an AI Agent Skill, and x402 pay-per-call API access.",
-      "image": "http://localhost:3000/opengraph-image",
+      "image": absoluteUrl("/opengraph-image"),
       "brand": {
         "@type": "Brand",
         "name": "SignalScope",
@@ -169,7 +170,7 @@ const jsonLd = {
           "name": "Free",
           "price": "0",
           "priceCurrency": "USD",
-          "url": "http://localhost:3000/register",
+          "url": absoluteUrl("/register"),
           "availability": "https://schema.org/OnlineOnly",
           "shippingDetails": {
             "@type": "OfferShippingDetails",
@@ -192,7 +193,7 @@ const jsonLd = {
           "name": "Pro Monthly",
           "price": "2.99",
           "priceCurrency": "USD",
-          "url": "http://localhost:3000/pricing",
+          "url": absoluteUrl("/pricing"),
           "availability": "https://schema.org/OnlineOnly",
           "shippingDetails": {
             "@type": "OfferShippingDetails",
@@ -215,7 +216,7 @@ const jsonLd = {
           "name": "Pro Yearly",
           "price": "29.99",
           "priceCurrency": "USD",
-          "url": "http://localhost:3000/pricing",
+          "url": absoluteUrl("/pricing"),
           "availability": "https://schema.org/OnlineOnly",
           "shippingDetails": {
             "@type": "OfferShippingDetails",
@@ -234,7 +235,7 @@ const jsonLd = {
           },
         },
       ],
-      "publisher": { "@id": "http://localhost:3000/#organization" },
+      "publisher": { "@id": `${siteUrl}/#organization` },
     },
   ],
 };
@@ -263,7 +264,7 @@ export default async function RootLayout({
           rel="alternate"
           type="application/rss+xml"
           title="SignalScope Blog"
-          href="http://localhost:3000/blog/feed.xml"
+          href={absoluteUrl("/blog/feed.xml")}
         />
         <script
           type="application/ld+json"

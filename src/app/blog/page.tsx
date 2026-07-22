@@ -2,14 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PublicPageLayout } from "@/components/public-page-layout";
 import { blogPosts } from "@/lib/blog-data";
+import { absoluteUrl, getSiteUrl } from "@/lib/site-url";
+
+const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
   title: "Blog",
   description:
     "Articles on stock breakout signal detection, pump-and-dump filtering, SEC insider analysis, congressional trades, and ML-driven backtesting.",
-  alternates: { canonical: "http://localhost:3000/blog" },
+  alternates: { canonical: absoluteUrl("/blog") },
   openGraph: {
-    url: "http://localhost:3000/blog",
+    url: absoluteUrl("/blog"),
     title: "Blog — SignalScope",
     description:
       "Articles on stock breakout signal detection, pump-and-dump filtering, SEC insider analysis, congressional trades, and ML-driven backtesting.",
@@ -32,11 +35,11 @@ export default function BlogIndex() {
     name: "SignalScope Blog",
     description:
       "Articles on stock breakout signal detection, pump-and-dump filtering, and ML-driven backtesting.",
-    url: "http://localhost:3000/blog",
+    url: absoluteUrl("/blog"),
     publisher: {
       "@type": "Organization",
       name: "SignalScope",
-      url: "http://localhost:3000",
+      url: siteUrl,
     },
   };
 
@@ -44,8 +47,8 @@ export default function BlogIndex() {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: "http://localhost:3000" },
-      { "@type": "ListItem", position: 2, name: "Blog", item: "http://localhost:3000/blog" },
+      { "@type": "ListItem", position: 1, name: "Home", item: siteUrl },
+      { "@type": "ListItem", position: 2, name: "Blog", item: absoluteUrl("/blog") },
     ],
   };
 

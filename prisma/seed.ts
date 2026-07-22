@@ -16,6 +16,7 @@ async function main() {
     update: { passwordHash },
     create: {
       id: "user_1",
+      // Local-only auth login id for the credentials provider (not a contact mailbox).
       email: "dev@localhost",
       name: "Default User",
       username: "signal_hawk_001",
@@ -24,7 +25,7 @@ async function main() {
     },
   });
 
-  console.log("Seeded user:", user.email, "(password: password123)");
+  console.log("Seeded local login id:", user.email, "(password: password123)");
 }
 
 main()

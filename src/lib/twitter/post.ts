@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { absoluteUrl } from "@/lib/site-url";
 import { logXApiCall } from "./log";
 
 /* ------------------------------------------------------------------ */
@@ -292,7 +293,7 @@ function truncate(str: string, maxLen: number): string {
  */
 export function composeTickerTweet(t: TickerDetail, maxChars: number = 280): string {
   const emoji = recEmoji[t.recommendation] ?? "⚪";
-  const footer = `\n\nhttp://localhost:3000/ticker/${t.symbol}`;
+  const footer = `\n\n${absoluteUrl(`/ticker/${t.symbol}`)}`;
   // t.co shortens all URLs to 23 chars
   const footerLen = 2 + 23;
 

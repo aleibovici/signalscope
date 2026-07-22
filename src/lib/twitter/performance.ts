@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { absoluteUrl } from "@/lib/site-url";
 import { postTweet, type TweetResult } from "./post";
 
 /* ------------------------------------------------------------------ */
@@ -186,7 +187,7 @@ function truncate(str: string, maxLen: number): string {
  */
 export function composePerformanceTweet(hit: PerformanceHit, maxChars = 280): string {
   const pct = formatPct(hit.returnPct);
-  const footer = `\n\nhttp://localhost:3000/ticker/${hit.symbol}`;
+  const footer = `\n\n${absoluteUrl(`/ticker/${hit.symbol}`)}`;
   // t.co shortens all URLs to 23 chars
   const footerLen = 2 + 23;
 
@@ -232,7 +233,7 @@ export function composePerformanceTweet(hit: PerformanceHit, maxChars = 280): st
  * Composes a multi-ticker performance summary tweet (thread root).
  */
 export function composePerformanceSummary(hits: PerformanceHit[], maxChars = 280): string {
-  const footer = "\n\nhttp://localhost:3000/performance";
+  const footer = `\n\n${absoluteUrl("/performance")}`;
 
   const header = "📊 SignalScope track record — recent calls:\n";
 
