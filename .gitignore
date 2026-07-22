@@ -34,6 +34,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# local MCP config (may contain API keys; use .mcp.json.example as a template)
+.mcp.json
+
 # service account keys
 sa-key.json
 

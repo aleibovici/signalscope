@@ -1,7 +1,7 @@
 ---
 name: signalscope-api
 description: >
-  Interact with the SignalScope stock breakout signal detection API at signalscopes.com.
+  Interact with the SignalScope stock breakout signal detection API (your deployment base URL, e.g. http://localhost:3000).
   Query scans, signals, trending tickers, performance data, and manage portfolios and
   watchlists. Use when the user asks about stock signals, breakout candidates, or wants
   to check or manage their SignalScope data.
@@ -13,7 +13,7 @@ description: >
 
 SignalScope is a stock breakout signal detection platform. It monitors Reddit, X/Twitter, StockTwits, SEC insider filings, congressional trades, options flow (including net premium tracking), and volume spikes for signals, then scores them with AI, filters pump-and-dump candidates, and presents validated tickers with two scores: **Opportunity** (early-mover potential; used to sort the main signal list) and **signal confidence / AI score** (how strong the evidence is). High AI confidence does not always mean higher forward returns — it can indicate broad agreement and a move that is already priced in.
 
-**Base URL:** `https://signalscopes.com`
+**Base URL:** `http://localhost:3000`
 
 ## Authentication
 
@@ -60,22 +60,22 @@ Pay-per-call in USDC on Base (L2). No account or API key needed. Each request to
 # Example: x402 flow (most x402 clients handle this automatically)
 
 # Step 1 — Initial request returns 402
-curl -I https://signalscopes.com/api/tickers/trending
+curl -I http://localhost:3000/api/tickers/trending
 # → HTTP/1.1 402 Payment Required
 # → payment-required: eyJ4NDAyVmVyc2lvbi... (base64 JSON with payment details)
 
 # Step 2 — Decode payment details
 echo "eyJ4NDAyVmVyc2lvbi..." | base64 -d
 # → { "accepts": [{ "scheme": "exact", "network": "eip155:8453",
-#      "amount": "10000", "asset": "0x833589f...", "payTo": "0x948B..." }] }
+#      "amount": "10000", "asset": "0x833589f...", "payTo": "0xYOUR_WALLET_ADDRESS" }] }
 
 # Step 3 — Retry with payment proof (handled by x402 client library)
-curl -H "X-PAYMENT: <payment-proof>" https://signalscopes.com/api/tickers/trending
+curl -H "X-PAYMENT: <payment-proof>" http://localhost:3000/api/tickers/trending
 ```
 
 ### Option 2 — API key (for registered users)
 
-1. Log in at signalscopes.com and go to your Profile page
+1. Log in to your deployment and go to your Profile page
 2. Click "Generate API Key" and copy the key (shown only once)
 3. Include it in all requests as an `x-api-key` header
 
@@ -110,65 +110,65 @@ API keys provide access to all endpoints including account management (portfolio
 
 ```bash
 # Free: search for a ticker by symbol
-curl https://signalscopes.com/api/search?q=AAPL
+curl http://localhost:3000/api/search?q=AAPL
 
 # Paid ($0.005): get full ticker data with signals
 # (use an x402 client for automatic payment handling)
-curl -H "X-PAYMENT: <proof>" https://signalscopes.com/api/tickers/AAPL
+curl -H "X-PAYMENT: <proof>" http://localhost:3000/api/tickers/AAPL
 
 # Paid ($0.01): browse trending breakout signals
-curl -H "X-PAYMENT: <proof>" https://signalscopes.com/api/tickers/trending
+curl -H "X-PAYMENT: <proof>" http://localhost:3000/api/tickers/trending
 
 # Paid ($0.01): explore co-occurrence network
-curl -H "X-PAYMENT: <proof>" https://signalscopes.com/api/tickers/network
+curl -H "X-PAYMENT: <proof>" http://localhost:3000/api/tickers/network
 ```
 
 ### Check latest scan results (public — no auth needed)
 
 ```bash
 # Get recent scans
-curl https://signalscopes.com/api/scans?limit=5
+curl http://localhost:3000/api/scans?limit=5
 
 # Get tickers from a specific scan
-curl https://signalscopes.com/api/scans/SCAN_ID
+curl http://localhost:3000/api/scans/SCAN_ID
 
 # Include filtered (P&D flagged) tickers
-curl "https://signalscopes.com/api/scans/SCAN_ID?includeFiltered=true"
+curl "http://localhost:3000/api/scans/SCAN_ID?includeFiltered=true"
 ```
 
 ### Find trending tickers
 
 ```bash
 # Tickers appearing in 2+ scans (default)
-curl -H "x-api-key: $KEY" https://signalscopes.com/api/tickers/trending
+curl -H "x-api-key: $KEY" http://localhost:3000/api/tickers/trending
 
 # Only rising tickers with 3+ appearances
-curl -H "x-api-key: $KEY" "https://signalscopes.com/api/tickers/trending?minAppearances=3&trend=rising"
+curl -H "x-api-key: $KEY" "http://localhost:3000/api/tickers/trending?minAppearances=3&trend=rising"
 
 # Filter by stage
-curl -H "x-api-key: $KEY" "https://signalscopes.com/api/tickers/trending?stage=Consensus"
+curl -H "x-api-key: $KEY" "http://localhost:3000/api/tickers/trending?stage=Consensus"
 
 # Advanced: micro-cap tickers sorted by return, hiding P&D flagged
-curl -H "x-api-key: $KEY" "https://signalscopes.com/api/tickers/trending?marketCap=micro&sortBy=return&hidePnd=true"
+curl -H "x-api-key: $KEY" "http://localhost:3000/api/tickers/trending?marketCap=micro&sortBy=return&hidePnd=true"
 
 # Tickers near 52-week low from Reddit
-curl -H "x-api-key: $KEY" "https://signalscopes.com/api/tickers/trending?near52wLow=true&source=REDDIT"
+curl -H "x-api-key: $KEY" "http://localhost:3000/api/tickers/trending?near52wLow=true&source=REDDIT"
 ```
 
 ### Deep-dive a specific ticker
 
 ```bash
 # Latest data + raw signals
-curl -H "x-api-key: $KEY" https://signalscopes.com/api/tickers/AAPL
+curl -H "x-api-key: $KEY" http://localhost:3000/api/tickers/AAPL
 
 # Historical appearances across scans
-curl -H "x-api-key: $KEY" https://signalscopes.com/api/tickers/AAPL/history
+curl -H "x-api-key: $KEY" http://localhost:3000/api/tickers/AAPL/history
 
 # Price performance (1d/3d/7d/30d returns)
-curl -H "x-api-key: $KEY" https://signalscopes.com/api/tickers/AAPL/performance
+curl -H "x-api-key: $KEY" http://localhost:3000/api/tickers/AAPL/performance
 
 # Price-correlated tickers (sorted by absolute price correlation)
-curl -H "x-api-key: $KEY" https://signalscopes.com/api/tickers/AAPL/related
+curl -H "x-api-key: $KEY" http://localhost:3000/api/tickers/AAPL/related
 
 # Generate AI report + trade setup ($0.05 via x402; NOT available via API key)
 # Use x402 payment or a browser session for this endpoint
@@ -178,61 +178,61 @@ curl -H "x-api-key: $KEY" https://signalscopes.com/api/tickers/AAPL/related
 
 ```bash
 # List positions
-curl -H "x-api-key: $KEY" https://signalscopes.com/api/portfolio
+curl -H "x-api-key: $KEY" http://localhost:3000/api/portfolio
 
 # Add a position
 curl -X POST -H "x-api-key: $KEY" -H "Content-Type: application/json" \
   -d '{"symbol":"AAPL","entryPrice":185.50,"shares":10}' \
-  https://signalscopes.com/api/portfolio
+  http://localhost:3000/api/portfolio
 
 # Close a position
 curl -X PATCH -H "x-api-key: $KEY" -H "Content-Type: application/json" \
   -d '{"status":"CLOSED","closePrice":192.00}' \
-  https://signalscopes.com/api/portfolio/POSITION_ID
+  http://localhost:3000/api/portfolio/POSITION_ID
 
 # Delete a position
-curl -X DELETE -H "x-api-key: $KEY" https://signalscopes.com/api/portfolio/POSITION_ID
+curl -X DELETE -H "x-api-key: $KEY" http://localhost:3000/api/portfolio/POSITION_ID
 ```
 
 ### Manage watchlist
 
 ```bash
 # List watchlist
-curl -H "x-api-key: $KEY" https://signalscopes.com/api/watchlist
+curl -H "x-api-key: $KEY" http://localhost:3000/api/watchlist
 
 # Add to watchlist
 curl -X POST -H "x-api-key: $KEY" -H "Content-Type: application/json" \
   -d '{"symbol":"TSLA"}' \
-  https://signalscopes.com/api/watchlist
+  http://localhost:3000/api/watchlist
 
 # Remove from watchlist
-curl -X DELETE -H "x-api-key: $KEY" https://signalscopes.com/api/watchlist/TSLA
+curl -X DELETE -H "x-api-key: $KEY" http://localhost:3000/api/watchlist/TSLA
 ```
 
 ### Manage API key
 
 ```bash
 # Check if you have an active key
-curl -H "x-api-key: $KEY" https://signalscopes.com/api/user/api-key
+curl -H "x-api-key: $KEY" http://localhost:3000/api/user/api-key
 
 # Generate a new key (revokes existing)
-curl -X POST -H "x-api-key: $KEY" https://signalscopes.com/api/user/api-key
+curl -X POST -H "x-api-key: $KEY" http://localhost:3000/api/user/api-key
 
 # Revoke your key
-curl -X DELETE -H "x-api-key: $KEY" https://signalscopes.com/api/user/api-key
+curl -X DELETE -H "x-api-key: $KEY" http://localhost:3000/api/user/api-key
 ```
 
 ### Check platform performance
 
 ```bash
 # 7-day performance breakdown by stage, type, and score range
-curl -H "x-api-key: $KEY" https://signalscopes.com/api/performance?days=7
+curl -H "x-api-key: $KEY" http://localhost:3000/api/performance?days=7
 
 # Platform stats
-curl -H "x-api-key: $KEY" https://signalscopes.com/api/stats
+curl -H "x-api-key: $KEY" http://localhost:3000/api/stats
 
 # Current prices for specific symbols
-curl -H "x-api-key: $KEY" "https://signalscopes.com/api/prices?symbols=AAPL,TSLA,NVDA"
+curl -H "x-api-key: $KEY" "http://localhost:3000/api/prices?symbols=AAPL,TSLA,NVDA"
 ```
 
 ## Error Handling
@@ -252,13 +252,13 @@ Example 402 response header (base64-decoded):
 {
   "x402Version": 2,
   "error": "Payment required",
-  "resource": { "url": "https://signalscopes.com/api/tickers/trending", "description": "..." },
+  "resource": { "url": "http://localhost:3000/api/tickers/trending", "description": "..." },
   "accepts": [{
     "scheme": "exact",
     "network": "eip155:8453",
     "amount": "10000",
     "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-    "payTo": "0x948BfF906cbBbB85EF20EA48BE5d54a783699F9e",
+    "payTo": "0xYOUR_WALLET_ADDRESS",
     "maxTimeoutSeconds": 300,
     "extra": { "name": "USD Coin", "version": "2" }
   }]

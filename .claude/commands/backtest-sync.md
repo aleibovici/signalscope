@@ -4,11 +4,11 @@ Weekly workflow: read the latest ML backtest research outputs and update P&D fil
 
 ## Research Inputs
 
-Read both files from the autoresearch harness:
+Read both files from the autoresearch harness (set `AUTORESEARCH_DIR` to your local harness checkout):
 
-1. **`/Users/andre/Downloads/autoresearch-macos/findings.json`** — Current best model state: performance metrics, feature importance rankings, P&D flag analysis (per-flag avg returns, direction, effectiveness), thresholds, actionable recommendations, and model architecture details.
+1. **`$AUTORESEARCH_DIR/findings.json`** — Current best model state: performance metrics, feature importance rankings, P&D flag analysis (per-flag avg returns, direction, effectiveness), thresholds, actionable recommendations, and model architecture details.
 
-2. **`/Users/andre/Downloads/autoresearch-macos/results.tsv`** — Full experiment log: every model run with commit, mean IC, per-horizon ICs, feature counts, top features, source rankings, key thresholds, P&D findings, and keep/discard status. The last `keep` row is the current production model.
+2. **`$AUTORESEARCH_DIR/results.tsv`** — Full experiment log: every model run with commit, mean IC, per-horizon ICs, feature counts, top features, source rankings, key thresholds, P&D findings, and keep/discard status. The last `keep` row is the current production model.
 
 ## Files to Update
 

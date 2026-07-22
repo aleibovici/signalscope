@@ -6,7 +6,7 @@ These endpoints manage user account data (portfolio, watchlist, profile, API key
 x-api-key: sk_sig_your_key_here
 ```
 
-Generate your API key at signalscopes.com/profile.
+Generate your API key on the Profile page of your deployment.
 Rate limits: free plan 10 calls/calendar month; Pro plan 1,000 calls/day.
 
 ### Opportunity score vs signal confidence (AI)
@@ -171,7 +171,7 @@ Get metadata for your current API key (does not reveal the key itself).
 
 Generate a new API key. Revokes any existing key. The full key is shown only once.
 
-**Response:** `{ key: "sk_sig_...", prefix: "sk_sig_abcdef...", skill: "https://signalscopes.com/skill/SKILL.md" }`
+**Response:** `{ key: "sk_sig_...", prefix: "sk_sig_abcdef...", skill: "http://localhost:3000/skill/SKILL.md" }`
 
 ### DELETE /api/user/api-key
 

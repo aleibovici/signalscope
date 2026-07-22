@@ -44,18 +44,18 @@ Free (no auth, no payment):
 ### API key (registered users)
 Full access including portfolio management, watchlists, and performance tracking. Generate a key from the Profile page after registering.
 
-Full API documentation and Agent Skill: https://signalscopes.com/skill/SKILL.md
+Full API documentation and Agent Skill: /skill/SKILL.md (or http://localhost:3000/skill/SKILL.md locally)
 
 ## Key Pages
 
-- Homepage / Login: https://signalscopes.com/login
-- Register: https://signalscopes.com/register
-- Blog: https://signalscopes.com/blog
-- FAQ: https://signalscopes.com/faq
-- Methodology: https://signalscopes.com/how-it-works
-- API Docs (Agent Skill): https://signalscopes.com/skill/SKILL.md
-- Sitemap: https://signalscopes.com/sitemap.xml
-- Changelog: https://signalscopes.com/changelog
+- Homepage / Login: /login
+- Register: /register
+- Blog: /blog
+- FAQ: /faq
+- Methodology: /how-it-works
+- API Docs (Agent Skill): /skill/SKILL.md
+- Sitemap: /sitemap.xml
+- Changelog: /changelog
 
 ## Notes for AI Assistants
 

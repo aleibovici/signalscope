@@ -1,11 +1,11 @@
 """
-Extract the full production database into local parquet files (one file per table).
+Extract a remote/source database into local parquet files (one file per table).
 
 Discovers every `public` base table, runs `SELECT *` with no row or column filtering,
 and writes `scripts/output/<TableName>.parquet` plus `manifest.json` with row counts.
 
-Then replaces your **local** development database with a `pg_dump` / `pg_restore` clone
-of production (schema + data). The restore target is **`DATABASE_URL_DEV`** (or
+Then optionally replaces your **local** development database with a `pg_dump` /
+`pg_restore` clone (schema + data). The restore target is **`DATABASE_URL_DEV`** (or
 `--restore-url`), and must point to localhost / `host.docker.internal` (not Cloud SQL).
 Requires PostgreSQL client tools (`pg_dump`, `pg_restore`) on `PATH`.
 
@@ -13,10 +13,13 @@ Requires PostgreSQL client tools (`pg_dump`, `pg_restore`) on `PATH`.
 A single file would require denormalizing joins (duplicated rows, huge files) or dropping
 tables. Per-table files mirror the schema and are easy to load selectively for ML.
 
-Automatically starts Cloud SQL Auth Proxy, runs parquet export + `pg_dump`, restores
-into dev, then stops the proxy.
+When using the Cloud SQL Auth Proxy path, set `GCP_PROJECT_ID` (required; no default).
+Optionally set `GCP_REGION`, `GCP_INSTANCE_NAME`, `GCP_DB_USER`, `GCP_DB_NAME`.
+The script starts the proxy, runs parquet export + `pg_dump`, restores into dev, then
+stops the proxy.
 
 Usage:
+    export GCP_PROJECT_ID=your-gcp-project
     python extract.py
     python extract.py --no-restore   # parquet only, skip dev DB overwrite
 
@@ -24,7 +27,7 @@ Dependencies (venv recommended): pip install -r scripts/requirements.txt
 
 Security: exports include sensitive columns (e.g. password hashes, API key material,
 refresh tokens). Treat `scripts/output/` like credentials. Restoring to dev copies
-production credentials into your local DB.
+source-DB credentials into your local DB.
 """
 
 import argparse
@@ -55,14 +58,29 @@ load_dotenv(PROJECT_ROOT / ".env.local")
 OUTPUT_DIR = Path(__file__).parent / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
-# Cloud SQL connection details
-GCP_PROJECT = os.environ.get("GCP_PROJECT_ID", "signalscope-488702")
+# Cloud SQL connection details (require GCP_PROJECT_ID when using the proxy path)
 GCP_REGION = os.environ.get("GCP_REGION", "us-central1")
-INSTANCE_NAME = "signalscope-db"
-INSTANCE_CONNECTION = f"{GCP_PROJECT}:{GCP_REGION}:{INSTANCE_NAME}"
+INSTANCE_NAME = os.environ.get("GCP_INSTANCE_NAME", "signalscope-db")
 PROXY_PORT = 5434
-DB_USER = "signalscope"
-DB_NAME = "signalscope"
+DB_USER = os.environ.get("GCP_DB_USER", "signalscope")
+DB_NAME = os.environ.get("GCP_DB_NAME", "signalscope")
+
+
+def require_gcp_project() -> str:
+    """Return GCP_PROJECT_ID or exit with a clear error (no hardcoded prod project)."""
+    project = (os.environ.get("GCP_PROJECT_ID") or "").strip()
+    if not project:
+        print(
+            "ERROR: GCP_PROJECT_ID is required when using the Cloud SQL Auth Proxy path.\n"
+            "  Export your project id, e.g.: export GCP_PROJECT_ID=your-gcp-project\n"
+            "  Optional: GCP_REGION (default us-central1), GCP_INSTANCE_NAME, GCP_DB_USER, GCP_DB_NAME"
+        )
+        sys.exit(1)
+    return project
+
+
+def instance_connection_name() -> str:
+    return f"{require_gcp_project()}:{GCP_REGION}:{INSTANCE_NAME}"
 
 LIST_PUBLIC_TABLES = """
 SELECT table_name
@@ -246,13 +264,14 @@ def start_cloud_sql_proxy() -> subprocess.Popen | None:
         print("  or: gcloud components install cloud-sql-proxy")
         sys.exit(1)
 
+    connection = instance_connection_name()
     proxy_name = Path(proxy_bin).name
     if proxy_name == "cloud-sql-proxy":
         # v2 syntax
-        cmd = [proxy_bin, f"--port={PROXY_PORT}", INSTANCE_CONNECTION]
+        cmd = [proxy_bin, f"--port={PROXY_PORT}", connection]
     else:
         # v1 syntax
-        cmd = [proxy_bin, f"-instances={INSTANCE_CONNECTION}=tcp:{PROXY_PORT}"]
+        cmd = [proxy_bin, f"-instances={connection}=tcp:{PROXY_PORT}"]
 
     print(f"Starting Cloud SQL proxy ({proxy_name})...")
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

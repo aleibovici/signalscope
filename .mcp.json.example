@@ -1,4 +1,5 @@
 {
+  "$comment": "Copy to .mcp.json locally. Set stitch headers.X-Goog-Api-Key to your Stitch API key (leave empty or omit the header if unused).",
   "mcpServers": {
     "cloudflare": {
       "command": "npx",
@@ -12,7 +13,7 @@
       "type": "http",
       "url": "https://stitch.googleapis.com/mcp",
       "headers": {
-        "X-Goog-Api-Key": "AQ.Ab8RN6KtuRcYJnW_ecnHMpnf5DvgDRowe100Q85kaztu_kAXiA"
+        "X-Goog-Api-Key": ""
       }
     }
   }
