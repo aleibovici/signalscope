@@ -10,7 +10,7 @@ Most endpoints can be accessed two ways:
 ```
 x-api-key: sk_sig_your_key_here
 ```
-Generate your API key at localhost:3000/profile.
+Generate your API key on the Profile page of your deployment.
 
 **Free** endpoints (no auth, no payment): `/api/search`, `/api/health`.
 

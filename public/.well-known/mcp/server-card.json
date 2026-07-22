@@ -18,10 +18,10 @@
   "authentication": {
     "required": true,
     "schemes": ["bearer", "apiKey"],
-    "description": "Requires a SignalScope API key (sk_sig_*) or Bearer token. Generate one at http://localhost:3000/profile"
+    "description": "Requires a SignalScope API key (sk_sig_*) or Bearer token. Generate one on the Profile page of your deployment"
   },
   "links": {
-    "documentation": "http://localhost:3000/skill/SKILL.md",
+    "documentation": "/skill/SKILL.md",
     "npm": "https://www.npmjs.com/package/signalscope-mcp",
     "repository": "https://github.com/signalscope/cursor-plugin"
   }

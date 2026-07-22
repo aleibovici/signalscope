@@ -1,5 +1,5 @@
 """
-PostgreSQL performance analysis for SignalScope production.
+PostgreSQL performance analysis for SignalScope.
 
 Connects via Cloud SQL Auth Proxy (same pattern as extract.py) and queries
 pg_stat_statements, pg_stat_user_tables, pg_stat_user_indexes, and related
@@ -13,11 +13,12 @@ views to surface:
   6. Table sizes
 
 Usage:
+    export GCP_PROJECT_ID=your-gcp-project
     python scripts/pg_perf.py            # full report
     python scripts/pg_perf.py --top 20   # show top 20 per section (default: 10)
 
 Dependencies: pip install psycopg2-binary python-dotenv
-Requires: cloud-sql-proxy on PATH, DB_PASSWORD in .env / .env.production
+Requires: GCP_PROJECT_ID, cloud-sql-proxy on PATH, DB_PASSWORD in .env / .env.production
 """
 
 import argparse
@@ -39,13 +40,28 @@ load_dotenv(PROJECT_ROOT / ".env")
 load_dotenv(PROJECT_ROOT / ".env.production")
 load_dotenv(PROJECT_ROOT / ".env.local")
 
-GCP_PROJECT = os.environ.get("GCP_PROJECT_ID", "signalscope-488702")
 GCP_REGION = os.environ.get("GCP_REGION", "us-central1")
-INSTANCE_NAME = "signalscope-db"
-INSTANCE_CONNECTION = f"{GCP_PROJECT}:{GCP_REGION}:{INSTANCE_NAME}"
+INSTANCE_NAME = os.environ.get("GCP_INSTANCE_NAME", "signalscope-db")
 PROXY_PORT = 5434
-DB_USER = "signalscope"
-DB_NAME = "signalscope"
+DB_USER = os.environ.get("GCP_DB_USER", "signalscope")
+DB_NAME = os.environ.get("GCP_DB_NAME", "signalscope")
+
+
+def require_gcp_project() -> str:
+    """Return GCP_PROJECT_ID or exit with a clear error (no hardcoded prod project)."""
+    project = (os.environ.get("GCP_PROJECT_ID") or "").strip()
+    if not project:
+        print(
+            "ERROR: GCP_PROJECT_ID is required when using the Cloud SQL Auth Proxy path.\n"
+            "  Export your project id, e.g.: export GCP_PROJECT_ID=your-gcp-project\n"
+            "  Optional: GCP_REGION (default us-central1), GCP_INSTANCE_NAME, GCP_DB_USER, GCP_DB_NAME"
+        )
+        sys.exit(1)
+    return project
+
+
+def instance_connection_name() -> str:
+    return f"{require_gcp_project()}:{GCP_REGION}:{INSTANCE_NAME}"
 
 YELLOW = "\033[93m"
 RED = "\033[91m"
@@ -90,11 +106,12 @@ def start_cloud_sql_proxy() -> subprocess.Popen | None:
     if not proxy_bin:
         print("ERROR: cloud-sql-proxy not found. Install: brew install cloud-sql-proxy")
         sys.exit(1)
+    connection = instance_connection_name()
     proxy_name = Path(proxy_bin).name
     if proxy_name == "cloud-sql-proxy":
-        cmd = [proxy_bin, f"--port={PROXY_PORT}", INSTANCE_CONNECTION]
+        cmd = [proxy_bin, f"--port={PROXY_PORT}", connection]
     else:
-        cmd = [proxy_bin, f"-instances={INSTANCE_CONNECTION}=tcp:{PROXY_PORT}"]
+        cmd = [proxy_bin, f"-instances={connection}=tcp:{PROXY_PORT}"]
     print(f"Starting Cloud SQL proxy ({proxy_name})...")
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     for _ in range(30):
