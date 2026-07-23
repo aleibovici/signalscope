@@ -1,0 +1,464 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String          @id @default(cuid())
+  email        String          @unique
+  username     String?         @unique
+  name         String?
+  passwordHash String?
+  role         String          @default("user")
+  emailAlerts  Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  lastActiveAt         DateTime?
+  deletedAt            DateTime?
+  stripeCustomerId String?        @unique
+  positions      UserPosition[]
+  watchlist      UserWatchlist[]
+  votes          UserVote[]
+  refreshTokens  RefreshToken[]
+  apiKeys        ApiKey[]
+  subscription   Subscription?
+  passwordResetTokens PasswordResetToken[]
+}
+
+model Scan {
+  id               String            @id @default(cuid())
+  status           ScanStatus        @default(RUNNING)
+  startedAt        DateTime          @default(now())
+  completedAt      DateTime?
+  signalCount      Int               @default(0)
+  validatedCount   Int               @default(0)
+  filteredCount    Int               @default(0)
+  aiCost           Float             @default(0)
+  scanOfHighConv   Int?
+  scanOfConvDelta  Float?
+  regimeSkipped    Boolean           @default(false)
+  error            String?
+  signals          Signal[]
+  validatedTickers ValidatedTicker[]
+
+  @@index([startedAt])
+  @@index([status])
+}
+
+enum ScanStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model Signal {
+  id            String       @id @default(cuid())
+  scanId        String
+  scan          Scan         @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  symbol        String
+  source        SignalSource
+  title         String?
+  body          String?      @db.Text
+  url           String?
+  author        String?
+  authorAge     Int?
+  authorKarma   Int?
+  upvotes       Int?
+  commentCount  Int?
+  velocityScore Float        @default(0)
+  sentiment     String?
+  pndFlagged    Boolean      @default(false)
+  pndFlags      String[]
+  pndScore      Int          @default(0)
+  subreddit     String?
+  postAge       Float?
+  sortType      String?
+  flair         String?
+  purchaseValue Float?
+  insiderTitle  String?
+  volumeRatio   Float?
+  followerCount Int?
+  retweetCount  Int?
+  likeCount     Int?
+  tweetType     String?
+  marketProbability Float?
+  marketVolume24hr  Float?
+  marketLiquidity   Float?
+  marketEndDate     String?
+  netPremium        Float?
+  callPremiumRatio  Float?
+  createdAt     DateTime     @default(now())
+
+  @@index([scanId, symbol])
+  @@index([scanId, velocityScore(sort: Desc)])
+  @@index([symbol])
+  @@index([symbol, source])
+}
+
+enum SignalSource {
+  REDDIT
+  STOCKTWITS
+  SEC_INSIDER
+  SEC_FILING
+  OPTIONS_FLOW
+  VOLUME_SPIKE
+  TWITTER
+  CONGRESS
+  POLYMARKET
+}
+
+model ValidatedTicker {
+  id             String      @id @default(cuid())
+  scanId         String
+  scan           Scan        @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  symbol         String
+  price          Float?
+  marketCap      Float?
+  shortFloat     Float?
+  catalyst       String?     @db.Text
+  risks          String?     @db.Text
+  recommendation String?
+  report         String?     @db.Text
+  aiScore          Int         @default(0)
+  opportunityScore Int         @default(0)
+  stage          TickerStage @default(EARLY)
+  signalCount    Int         @default(0)
+  sourceCount    Int         @default(0)
+  avgSentiment   Float?
+  signalType       String?     // insider_buy | options_flow | multi_source | reddit_velocity
+  fiftyTwoWkRange  String?     // e.g. "12.50 - 45.00"
+  wk52Lo           Float?      // 52-week low (numeric, for ML features + stage logic)
+  wk52Hi           Float?      // 52-week high (numeric)
+  exchange         String?     // NYSE, NASDAQ, OTC, etc.
+  firstSeenDaysAgo    Int?        // null = truly novel, 0 = first seen today, N = days ago
+  priorAppearances   Int         @default(0) // count of previous ValidatedTicker rows in 30d window
+  weightedSourceScore Float?
+  avgVelocity         Float?
+  totalUpvotes        Int?
+  totalComments       Int?
+  subredditCount      Int?
+  risingCount         Int?
+  freshCount          Int?
+  recentCount         Int?
+  commentDerivedCount Int?
+  staleCount          Int?
+  aiReasoning         String?     @db.Text
+  sector              String?
+  floatShares         Float?
+  name                String?
+  pndFlagged          Boolean     @default(false)
+  pndFlags            String[]
+  pndScore            Int         @default(0)
+  rawAiScore          Int?
+  pndAiConfidence     Int?
+  pndAiReasoning      String?     @db.Text
+  medianSignalAgeHrs  Float?      // median post age (hours) of social signals at harvest time
+  netPremium          Float?      // call premium - put premium in $ (positive = bullish)
+  callPremiumRatio    Float?      // call premium / (call + put premium), 0-1
+  tradeSetupEntryLo    Float?     // Entry range low price
+  tradeSetupEntryHi    Float?     // Entry range high price
+  tradeSetupStopLoss   Float?     // Stop loss price
+  tradeSetupTarget1    Float?     // First target price
+  tradeSetupTarget2    Float?     // Second / extended target price
+  tradeSetupTimeframe  String?    // e.g. "3-5 days", "1-2 weeks"
+  tradeSetupRiskReward String?    // e.g. "1:2.5"
+  tradeSetupConfidence String?    // "Low" | "Medium" | "High"
+  createdAt           DateTime    @default(now())
+  performance      TickerPerformance?
+  priceSnapshots   PriceSnapshot[]
+  brokerOrders     BrokerOrder[]
+
+  @@unique([scanId, symbol])
+  @@index([symbol])
+  @@index([stage])
+  @@index([createdAt])
+  @@index([createdAt(sort: Desc), stage])
+  @@index([symbol, createdAt(sort: Desc)])
+  @@index([scanId, stage, createdAt])
+}
+
+model TickerPerformance {
+  id                String          @id @default(cuid())
+  validatedTickerId String          @unique
+  validatedTicker   ValidatedTicker @relation(fields: [validatedTickerId], references: [id], onDelete: Cascade)
+  symbol            String
+  detectionPrice    Float
+
+  price1d           Float?
+  price3d           Float?
+  price7d           Float?
+  price14d          Float?
+  price30d          Float?
+  return1d          Float?
+  return3d          Float?
+  return7d          Float?
+  return14d         Float?
+  return30d         Float?
+  snapped1dAt       DateTime?
+  snapped3dAt       DateTime?
+  snapped7dAt       DateTime?
+  snapped14dAt      DateTime?
+  snapped30dAt      DateTime?
+
+  corporateActionDetected Boolean @default(false)
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([symbol])
+  @@index([createdAt])
+}
+
+model PriceSnapshot {
+  id                String          @id @default(cuid())
+  validatedTickerId String
+  validatedTicker   ValidatedTicker @relation(fields: [validatedTickerId], references: [id], onDelete: Cascade)
+  symbol            String
+  price             Float
+  createdAt         DateTime        @default(now())
+
+  @@index([validatedTickerId, createdAt])
+  @@index([symbol, createdAt])
+}
+
+enum TickerStage {
+  EARLY
+  FORMING
+  CONFIRMED
+  FILTERED
+  UNSCORED
+}
+
+model UserPosition {
+  id         String         @id @default(cuid())
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  symbol     String
+  entryPrice Float
+  shares     Float?
+  notes      String?
+  status     PositionStatus @default(OPEN)
+  verified   Boolean        @default(true)
+  openedAt   DateTime       @default(now())
+  closedAt   DateTime?
+  closePrice Float?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@index([userId, status])
+  @@index([symbol])
+}
+
+enum PositionStatus {
+  OPEN
+  CLOSED
+}
+
+model UserWatchlist {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  symbol    String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, symbol])
+  @@index([userId])
+}
+
+model UserVote {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  symbol    String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, symbol])
+  @@index([symbol])
+  @@index([userId])
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revokedAt DateTime?
+  deviceId  String?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model ApiKey {
+  id                 String    @id @default(cuid())
+  key                String    @unique
+  prefix             String
+  userId             String
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastUsedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  revokedAt          DateTime?
+  monthlyCallCount   Int       @default(0)
+  monthlyWindowStart DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model Subscription {
+  id                         String                @id @default(cuid())
+  userId                     String                @unique
+  user                       User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  provider                   SubscriptionProvider  @default(STRIPE)
+
+  stripeSubscriptionId       String?               @unique
+  stripePriceId              String?
+
+  appleOriginalTransactionId String?               @unique
+  appleProductId             String?
+  appleEnvironment           String?
+  appleAutoRenewStatus       Boolean?
+  appleExpirationIntent      Int?
+
+  status                     SubscriptionStatus    @default(ACTIVE)
+  currentPeriodStart         DateTime
+  currentPeriodEnd           DateTime
+  cancelAtPeriodEnd          Boolean               @default(false)
+  canceledAt                 DateTime?
+  createdAt                  DateTime              @default(now())
+  updatedAt                  DateTime              @updatedAt
+
+  @@index([status])
+  @@index([provider])
+}
+
+enum SubscriptionProvider {
+  STRIPE
+  APPLE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
+}
+
+model X402Payment {
+  id           String   @id @default(cuid())
+  endpoint     String   // "trending" | "ticker" | "report" | "history" | "performance" | "related" | "network"
+  amountUsd    String   // e.g. "0.01"
+  payerAddress String?  // EVM wallet address (from EIP-3009 payload, best-effort)
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([endpoint])
+}
+
+model AiCostLog {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
+  callPoint    String   // "scoring" | "pnd" | "report"
+  trigger      String   // "harvest" | "on-demand" | "batch-report"
+  provider     String   // "openai" | "anthropic"
+  model        String
+  inputTokens  Int
+  outputTokens Int
+  cost         Float
+  scanId       String?  // set for harvest + batch-report triggers
+  symbol       String?  // set for pnd + report call points
+  userId       String?  // set for on-demand trigger
+
+  @@index([createdAt])
+  @@index([scanId])
+  @@index([trigger, createdAt])
+  @@index([callPoint, createdAt])
+}
+
+model XApiLog {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
+  endpoint     String   // "search/recent"
+  method       String   // "GET"
+  action       String   // "harvest"
+  count        Int      @default(1) // number of API calls in this batch
+  statusCode   Int?     // HTTP response status
+  responseBody String?  // optional: cached response value (e.g. resolved user ID)
+
+  @@index([createdAt])
+  @@index([action, createdAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([expiresAt])
+}
+
+// Broker Paper Trading Integration (multi-broker ready)
+
+model BrokerOrder {
+  id                String   @id @default(cuid())
+  validatedTickerId String
+  validatedTicker   ValidatedTicker @relation(fields: [validatedTickerId], references: [id])
+  symbol            String
+  role              BrokerOrderRole
+  parentOrderId     String?
+  orderType         String   // LMT | STP | MKT
+  side              String   // BUY | SELL
+  quantity          Int
+  limitPrice        Float?
+  stopPrice         Float?
+  cOID              String?  @unique  // client order id (UUID) for parent orders
+  brokerOrderId     String?           // broker-assigned order ID (UUID for Alpaca, int for IBKR)
+  ibkrOrderId       Int?              // legacy IBKR int order ID — unused for Alpaca
+  ibkrStatus        String   @default("PendingSubmit")
+  filledQty         Int      @default(0)
+  avgFillPrice      Float?
+  provider          String   @default("alpaca") // "alpaca" | "ibkr"
+  placedAt          DateTime @default(now())
+  filledAt          DateTime?
+  cancelledAt       DateTime?
+  errorMessage      String?  @db.Text
+
+  @@index([validatedTickerId])
+  @@index([symbol, ibkrStatus])
+  @@index([role, ibkrStatus])
+  @@index([placedAt])
+}
+
+model BrokerPosition {
+  symbol        String   @id
+  quantity      Int
+  avgCost       Float
+  marketPrice   Float?
+  marketValue   Float?
+  unrealizedPnl Float?
+  realizedPnl   Float    @default(0)
+  openedAt      DateTime
+  closedAt      DateTime?
+  syncedAt      DateTime
+  provider      String   @default("alpaca") // "alpaca" | "ibkr"
+
+  @@index([closedAt])
+  @@index([provider])
+}
+
+enum BrokerOrderRole {
+  PARENT
+  STOP
+  TARGET
+  EXIT_TIMEOUT
+}

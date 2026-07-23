@@ -1,0 +1,250 @@
+import { chatJSON } from "@/lib/ai";
+import type { AggregatedSymbol, AiScoreResult, FundamentalData, NoveltyContext } from "./types";
+
+export async function scoreSymbolBatch(
+  symbols: AggregatedSymbol[],
+  fundamentalsMap?: Map<string, FundamentalData>,
+  noveltyMap?: Map<string, NoveltyContext>,
+  scanId?: string
+): Promise<AiScoreResult[]> {
+  if (symbols.length === 0) return [];
+
+  const symbolSummaries = symbols.map((s) => {
+    const fundamentals = fundamentalsMap?.get(s.symbol);
+    const novelty = noveltyMap?.get(s.symbol);
+    return {
+      symbol: s.symbol,
+      sourceCount: s.sourceCount,
+      subredditCount: s.subredditCount,
+      signalCount: s.signals.length,
+      totalUpvotes: s.totalUpvotes,
+      totalComments: s.totalComments,
+      avgVelocity: s.avgVelocity,
+      momentum: s.momentum,
+      sampleTitles: s.signals
+        .slice(0, 3)
+        .map((sig) => sig.title)
+        .filter(Boolean),
+      sources: [...new Set(s.signals.map((sig) => sig.source))],
+      ...(fundamentals
+        ? {
+            price: fundamentals.price,
+            marketCap: fundamentals.marketCap,
+            shortFloat: fundamentals.shortFloat,
+            exchange: fundamentals.exchange,
+            fiftyTwoWeekRange: fundamentals.fiftyTwoWeekRange,
+          }
+        : {}),
+      ...(novelty
+        ? {
+            isNovel: novelty.isNovel,
+            daysSinceFirstSeen: novelty.daysSinceFirstSeen,
+            priorAppearances: novelty.priorAppearances,
+          }
+        : {}),
+      medianSignalAgeHrs: s.medianSignalAgeHrs,
+    };
+  });
+
+  try {
+    const response = await chatJSON({
+      callPoint: "scoring",
+      tier: "mini",
+      temperature: 0.3,
+      systemPrompt: `You are a stock signal analyst. Score each symbol from 0-100 based on breakout potential.
+
+HARD RULES:
+- Tickers with REAL catalysts (SEC filings, earnings, FDA, partnerships, contracts, insider buys, unusual options flow) ALWAYS score higher than pure social media signals.
+- A ticker with only Reddit/StockTwits mentions and no verifiable catalyst should NEVER score above 50.
+- If an insider buy (Form 4 open market purchase) or unusual options activity exists, that is the strongest signal — weight it heavily.
+- Be direct about confidence level. If evidence is thin or speculative, score low and say so. Do NOT hype weak signals.
+- A low score is not a failure — it's honest. Most signals are noise.
+
+Scoring guidance:
+- 80-100: Real catalyst + multi-source corroboration + insider/options confirmation
+- 60-79: Real catalyst + at least 2 sources, or strong insider/options signal alone
+- 40-49: Social buzz with some catalyst indicators but not confirmed — high velocity + strong engagement can push toward 45-49 but NEVER above 50 without a verifiable catalyst
+- 20-39: Social-only signal, no verifiable catalyst
+- 0-19: Likely noise or pump attempt
+
+Also consider:
+- Short float % — high short interest + real catalyst = squeeze candidate
+- Price relative to 52-week range
+- Exchange quality — NYSE/NASDAQ preferred over OTC
+- Pre-consensus (first appearance) vs already widely discussed
+- avgVelocity measures signal momentum: 3 = rising, 2 = hot/very fresh (<3h), 1.5 = trending/comment-derived, 1 = recent (<12h), 0.5 = older. Flair-based multiplier applied on top (DD=1.5x, News=1.4x, Meme=0.5x, etc.).
+  High velocity (≥2.0) with multiple mentions = potential early breakout. Weight this as a positive signal.
+- momentum breakdown (risingCount, freshCount, recentCount, commentDerivedCount, staleCount) shows the composition behind avgVelocity.
+  Multiple rising signals = strong trending evidence. commentDerivedCount > 0 means organic discussion (tickers mentioned in comments, not just post titles). High staleCount dilutes the signal.
+- Signal × options flow interaction: tickers with both social signals AND unusual options activity strongly outperform — apply +5 to +8 boost when OPTIONS_FLOW is present alongside other sources.
+- priorAppearances (negative predictor): tickers seen many times before underperform — the more prior appearances, the more the alpha has been extracted. Weight staleness penalty heavily.
+- Rising signal fraction (risingCount / total signals): if most signals are rising/trending (rising_frac > 0.5), apply +3 to +5 boost. If mostly stale (staleCount > risingCount + freshCount), apply -3 to -5 penalty.
+- staleCount is a strong negative predictor. Many stale signals = the move already happened. Weight this penalty heavily.
+- subredditCount = number of unique subreddits mentioning the ticker. 3+ subreddits = broad consensus across communities (stronger signal, +3-5 boost). 1 subreddit = possible echo chamber (weaker).
+- Multi-source corroboration is one of the strongest bullish signals — apply +3 to +5 boost for 2+ sources, +5 to +8 for 3+ sources.
+- High upvote-to-comment ratio (>5:1) with significant upvotes (>100) suggests strong conviction — apply +5 to +8 boost.
+- CRITICAL: High comment count alone is NOT positive engagement — ML shows it predicts worse 7d returns. When totalComments > 150 with ratio < 2:1, this is peak hype — apply -8 to -10 penalty, signal is likely already played out.
+- High-velocity Reddit signals (avgVelocity >= 2.5) are a strong source-level predictor: apply +3 to +5.
+- A high-velocity social signal with real engagement (high upvotes, comments) can reach 45-49 without a confirmed catalyst — it may be the FIRST signal before institutional confirmation arrives, but social alone NEVER exceeds 50.
+
+Signal age (medianSignalAgeHrs field — median age of social signals in hours):
+- medianSignalAgeHrs < 3: Fresh signals — potential early breakout, no penalty.
+- medianSignalAgeHrs 3-6: Moderately fresh — no penalty but note the move may have started.
+- medianSignalAgeHrs 6-12: Stale signals — apply -3 to -5 penalty. Price has likely already moved.
+- medianSignalAgeHrs > 12: Very stale — apply -5 to -10 penalty. By the time signals are this old, the initial momentum is exhausted and you're buying at or near the top.
+- null: Non-social signals (insider, congress) — no age penalty, these are filed disclosures.
+
+Historical weighted source score momentum:
+- Tickers whose historical weighted source score is trending upward relative to the scan average outperform. This captures improving multi-source momentum over time.
+- If a ticker has appeared before with broad, growing source coverage, apply +2 to +3 boost.
+- If a ticker has only ever appeared from a single source historically, apply -2 to -3 penalty.
+
+Source delta (negative when extreme):
+- A large positive source_delta (many more sources than usual) is a NEGATIVE predictor — the signal may be overhyped when every source suddenly picks it up. Apply -2 to -3 penalty when sourceCount far exceeds the ticker's historical norm.
+
+Signal novelty (check isNovel, daysSinceFirstSeen, priorAppearances fields):
+- Novel tickers (first appearance, isNovel=true): apply +3 to +5 boost — potential early signal, but unproven.
+- daysSinceFirstSeen 3-5 days: SWEET SPOT — apply +5 to +8 boost. ML shows tickers validated over 3+ days have the best near-term returns. The signal has proven staying power.
+- 1-2 prior appearances in last few days: no penalty, signal is still forming.
+- 3+ appearances or 7+ days old: apply -5 to -15 staleness penalty — signal may be played out. More appearances = worse returns. Be aggressive with this penalty.
+- Exception: a stale ticker with a NEW catalyst type (e.g. insider buy appearing for first time on a previously social-only ticker) should NOT be penalized.
+
+Historical P&D reputation (log_pnd_interact — #2 most predictive ML feature, importance 0.132):
+- log_pnd_interact = log(hist_pnd_mean × pnd_flag_count) compounds persistent P&D history with current P&D flag activity. It is the second-strongest predictor in the latest LGBM backtest (pool_627 May-03 dataset, 308 features / 13 non-zero, val_ic=0.156, deflated=0.129; realized test_ic=0.043 on Apr14-26 scans). Repeated P&D flagging across scans warrants an aggressive -5 to -10 penalty, pushed to -10 when prior P&D history exists.
+- micro_cap_no_catalyst remains a meaningfully bearish flag (-4.7% avg 7d) and still drives part of the model, but it is no longer the single dominant feature; the interaction with prior P&D history matters more than the flag in isolation.
+- sudden_spike is bearish (-4.1% avg 7d). All-new posts with zero engagement = artificial.
+- Scan-level context is the dominant model component: scan_avg_signal (#1, 0.175), scan_size (#3, 0.123), log_marketCap (#4, 0.114), and hist_pnd_x_scan_sz (#5, 0.114) together carry ~53% of model weight. The model collapses without scan-level features — a ticker's score should be calibrated against the broader scan context, not just its own attributes.
+
+Float (shortFloat, log_floatShares — both active LGBM features):
+- shortFloat is a key ML feature. High short interest (>= 15%) with a real catalyst = squeeze candidate (+3 to +5). Without a catalyst, high short interest alone is informational, not bullish.
+- Low float stocks underperform across all horizons. Tickers with very low float (< 5M shares) should receive -2 to -3 penalty unless a real catalyst justifies the illiquidity.
+- shortFloat × rising_frac interaction: high short float PLUS a majority of rising/fresh signals is a meaningful setup — don't over-penalize when both are present.
+
+Price quality (check price field):
+- price < $0.12: heavy penalty (-10 to -15). Sub-dime stocks almost never generate positive returns at any horizon. Score should rarely exceed 20 without an exceptional catalyst.
+- price $0.12-$0.20: moderate penalty (-5 to -8). Sub-$0.20 has poor 3d returns. Social-only tickers in this range need exceptional evidence.
+- price $0.20-$0.52: mild penalty (-2 to -3). Low-priced stocks need stronger evidence.
+- price > $0.52: no price penalty. This is the threshold for reliable 7d follow-through.
+
+Momentum / 52-week high proximity (check price and wk52Hi fields):
+- price / wk52Hi >= 0.95 (within 5% of 52W high): momentum signal, apply +3 to +5 boost. Stocks near their 52-week high consistently outperform beaten-down stocks on 1d and 7d horizons.
+- price / wk52Hi >= 0.85 (within 15%): mild momentum signal, +1 to +2 boost.
+- Do NOT penalize stocks near their high — momentum is a positive predictor across all horizons.
+
+Reddit comment engagement (check totalComments field):
+- totalComments 30-100: moderate positive signal (+3 to +5) — genuine discussion indicates organic interest, especially for 3d returns.
+- totalComments > 150 with low upvote ratio: still apply the peak hype penalty as described above.
+
+Volume Spike source (n_volume_spike feature is a key ML signal — presence, not count):
+- When VOLUME_SPIKE is among the signal sources, treat it as corroborating evidence equal in weight to OPTIONS_FLOW. Apply +3 to +5 when it appears alongside social signals.
+
+Return JSON: { "scores": [{ "symbol": "X", "score": 0-100, "sentiment": "bullish|bearish|neutral", "reasoning": "brief — state confidence level and what the score is based on" }] }`,
+      userMessage: JSON.stringify(symbolSummaries),
+      context: scanId ? { trigger: "harvest" as const, scanId } : undefined,
+    });
+
+    const parsed = JSON.parse(response.content);
+    const rawScores = Array.isArray(parsed?.scores) ? parsed.scores : null;
+    if (!rawScores) {
+      console.warn("AI scoring returned unexpected structure, using heuristic fallback");
+      return symbols.map((s) => defaultScore(s, noveltyMap?.get(s.symbol)));
+    }
+
+    // Map back to input symbols — use heuristic fallback for any missing/malformed entries
+    return symbols.map((s) => {
+      const item = rawScores.find(
+        (r: unknown) =>
+          typeof r === "object" && r !== null && (r as Record<string, unknown>).symbol === s.symbol
+      ) as AiScoreResult | undefined;
+      if (!item || typeof item.score !== "number" || typeof item.sentiment !== "string") {
+        return defaultScore(s, noveltyMap?.get(s.symbol));
+      }
+
+      // Enforce social-only cap: tickers without a catalyst source (SEC_INSIDER/OPTIONS_FLOW/CONGRESS)
+      // should never score above 50, regardless of what the AI returns
+      const sources = new Set(s.signals.map((sig) => sig.source));
+      const hasCatalystSource = sources.has("SEC_INSIDER") || sources.has("OPTIONS_FLOW") || sources.has("CONGRESS");
+      const maxScore = hasCatalystSource ? 100 : 50;
+
+      const rawScore = Math.max(0, Math.round(item.score));
+      return {
+        symbol: s.symbol,
+        score: Math.min(maxScore, rawScore),
+        rawScore,
+        sentiment: item.sentiment,
+        reasoning: typeof item.reasoning === "string" ? item.reasoning : "",
+      };
+    });
+  } catch (err) {
+    console.error("AI scoring error:", err);
+    return symbols.map((s) => defaultScore(s, noveltyMap?.get(s.symbol)));
+  }
+}
+
+export function defaultScore(s: AggregatedSymbol, novelty?: NoveltyContext): AiScoreResult {
+  const sources = new Set(s.signals.map((sig) => sig.source));
+  const hasInsider = sources.has("SEC_INSIDER");
+  const hasOptions = sources.has("OPTIONS_FLOW");
+  const hasCongress = sources.has("CONGRESS");
+  const hasCatalystSource = hasInsider || hasOptions || hasCongress;
+
+  // Insider/options/congress signals get a strong base; pure social caps at 50
+  let base: number;
+  if (hasCatalystSource && s.sourceCount >= 3) {
+    base = 65; // multi-source with real catalyst
+  } else if (hasInsider) {
+    base = 55; // insider buy alone is a strong signal
+  } else if (hasCongress) {
+    base = 52; // congressional buy — strong signal, slightly below insider
+  } else if (hasOptions) {
+    base = 50; // unusual options alone
+  } else {
+    base = Math.min(s.sourceCount * 15, 40); // social-only, capped low
+  }
+
+  const engagement = Math.min(Math.log2(s.totalUpvotes + 1) * 2.0, 10);
+  const velocityBoost = Math.min(s.avgVelocity * 3, 10);
+
+  // Rising fraction boost/penalty (ML #2 feature): ratio of rising signals to total
+  const totalSignals = s.signals.length || 1;
+  const risingFrac = s.momentum.risingCount / totalSignals;
+  const staleFrac = s.momentum.staleCount / totalSignals;
+  const risingAdj = risingFrac > 0.5 ? 4 : staleFrac > 0.5 ? -4 : 0;
+
+  // Comment-heavy penalty: high comments with low upvote ratio = peak hype (ML: comments negatively predict 7d returns)
+  let commentAdj = 0;
+  if (s.totalComments > 150 && s.totalUpvotes / (s.totalComments || 1) < 2) {
+    commentAdj = -5;
+  } else if (s.totalUpvotes > 100 && s.totalUpvotes / (s.totalComments || 1) > 5) {
+    commentAdj = 3;
+  }
+
+  // Novelty adjustment: +5 for novel, -10 for stale
+  let noveltyAdj = 0;
+  if (novelty?.isNovel) {
+    noveltyAdj = 5;
+  } else if (novelty && (novelty.priorAppearances >= 3 || (novelty.daysSinceFirstSeen != null && novelty.daysSinceFirstSeen >= 7))) {
+    noveltyAdj = -10;
+  }
+
+  // Signal age penalty: stale signals have already moved, penalize late detection
+  let stalenessAdj = 0;
+  if (s.medianSignalAgeHrs != null) {
+    if (s.medianSignalAgeHrs > 12) stalenessAdj = -8;
+    else if (s.medianSignalAgeHrs > 6) stalenessAdj = -4;
+  }
+
+  const raw = base + engagement + velocityBoost + noveltyAdj + stalenessAdj + commentAdj + risingAdj;
+  const rawScore = Math.round(raw);
+  const score = Math.min(rawScore, hasCatalystSource ? 100 : 50);
+
+  return {
+    symbol: s.symbol,
+    score,
+    rawScore,
+    sentiment: "neutral",
+    reasoning: hasCatalystSource
+      ? "Heuristic fallback — catalyst source detected"
+      : "Heuristic fallback — social-only, low confidence",
+  };
+}

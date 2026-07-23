@@ -1,0 +1,75 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUserId } from "@/lib/auth";
+import { handleApiError } from "@/lib/api-error";
+import { withX402Logged, x402RouteConfigs, hasAuthCredentials, X402_ENABLED } from "@/lib/x402";
+import { stageLabel } from "@/lib/stage-labels";
+
+async function handlePerformance(request: NextRequest, upper: string) {
+  const performances = await prisma.tickerPerformance.findMany({
+    where: { symbol: upper },
+    include: {
+      validatedTicker: {
+        select: {
+          createdAt: true,
+          aiScore: true,
+          stage: true,
+          scanId: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (performances.length === 0) {
+    return NextResponse.json({ latest: null, history: [] });
+  }
+
+  const mapped = performances.map((p) => ({
+    ...p,
+    validatedTicker: p.validatedTicker
+      ? { ...p.validatedTicker, stage: stageLabel(p.validatedTicker.stage) }
+      : p.validatedTicker,
+  }));
+
+  return NextResponse.json({
+    latest: mapped[0],
+    history: mapped,
+  });
+}
+
+const x402Handler = X402_ENABLED
+  ? withX402Logged(
+      (async (request: NextRequest) => {
+        const url = new URL(request.url);
+        const symbol = url.pathname.split("/")[3]?.toUpperCase();
+        if (!symbol) return NextResponse.json({ error: "Invalid path" }, { status: 400 });
+        return handlePerformance(request, symbol);
+      }) as (request: NextRequest) => Promise<NextResponse<unknown>>,
+      x402RouteConfigs.performance,
+      "performance",
+    )
+  : null;
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ symbol: string }> }
+) {
+  try {
+    const { symbol } = await params;
+    const upper = symbol.toUpperCase();
+
+    if (hasAuthCredentials(request)) {
+      await getCurrentUserId();
+      return await handlePerformance(request, upper);
+    }
+
+    if (request.headers.has("x-payment") && x402Handler) {
+      return x402Handler(request);
+    }
+
+    return await handlePerformance(request, upper);
+  } catch (err) {
+    return handleApiError(err, "GET /api/tickers/[symbol]/performance");
+  }
+}

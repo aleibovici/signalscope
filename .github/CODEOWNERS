@@ -1,0 +1,10 @@
+# Default reviewers for all changes. GitHub will request review automatically.
+* @aleibovici
+
+# Sensitive areas — always require maintainer review.
+/prisma/ @aleibovici
+/src/lib/auth.ts @aleibovici
+/src/lib/auth.config.ts @aleibovici
+/src/proxy.ts @aleibovici
+/.github/ @aleibovici
+/SECURITY.md @aleibovici

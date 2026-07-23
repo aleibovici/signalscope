@@ -1,0 +1,62 @@
+"use client";
+
+import { STAGE_LABELS } from "@/lib/stage-labels";
+
+const stages = [
+  { key: STAGE_LABELS.EARLY, label: STAGE_LABELS.EARLY },
+  { key: STAGE_LABELS.FORMING, label: STAGE_LABELS.FORMING },
+  { key: STAGE_LABELS.CONFIRMED, label: STAGE_LABELS.CONFIRMED },
+];
+
+const stageActiveColors: Record<string, string> = {
+  Emerging: "bg-emerald-500 text-white dark:bg-emerald-500 dark:text-white",
+  Building:  "bg-amber-500 text-white dark:bg-amber-500 dark:text-white",
+  Consensus: "bg-blue-500 text-white dark:bg-blue-500 dark:text-white",
+};
+
+const stageActiveCountColors: Record<string, string> = {
+  Emerging: "text-emerald-100",
+  Building:  "text-amber-100",
+  Consensus: "text-blue-100",
+};
+
+export function StageTabs({
+  selected,
+  onSelect,
+  counts,
+}: {
+  selected: string;
+  onSelect: (stage: string) => void;
+  counts?: Record<string, number>;
+}) {
+  return (
+    <div className="relative min-w-0 overflow-hidden">
+      <div className="flex gap-2 overflow-x-auto overscroll-x-contain">
+        {stages.map((stage) => (
+          <button
+            key={stage.key}
+            onClick={() => onSelect(stage.key)}
+            aria-pressed={selected === stage.key}
+            className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold transition-colors sm:px-5 sm:py-2 ${
+              selected === stage.key
+                ? stageActiveColors[stage.key] ?? "bg-blue-500 text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+            }`}
+          >
+            {stage.label}
+            {counts && counts[stage.key] !== undefined && (
+              <span className={`ml-2 tabular-nums font-medium ${
+                selected === stage.key
+                  ? (stageActiveCountColors[stage.key] ?? "text-blue-100")
+                  : "text-gray-400 dark:text-zinc-500"
+              }`}>
+                {counts[stage.key]}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-linear-to-l from-gray-50 dark:from-zinc-950 sm:hidden" />
+    </div>
+  );
+}

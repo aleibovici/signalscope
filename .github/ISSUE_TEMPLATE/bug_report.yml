@@ -1,0 +1,71 @@
+name: Bug report
+description: Report something that is broken or incorrect
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please do **not** use this form for security issues — use [Security Advisories](https://github.com/aleibovici/signalscope/security/advisories/new) instead.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the bug and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps to reproduce the behavior.
+      placeholder: |
+        1. Start the app with `npm run dev`
+        2. Go to ...
+        3. See error
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: Release tag, commit SHA, or "main".
+      placeholder: v0.1.0 or abc1234
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Area
+      options:
+        - Web app / dashboard
+        - API
+        - Harvester
+        - Database / Prisma
+        - Docker / deployment
+        - CI / tooling
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Node version, browser, Docker vs local, etc.
+      placeholder: macOS 15, Node 22, Chrome 138, local dev
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Paste relevant logs, stack traces, or screenshots.
+    validations:
+      required: false
