@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "ValidatedTicker" ADD COLUMN     "wk52Hi" DOUBLE PRECISION,
+ADD COLUMN     "wk52Lo" DOUBLE PRECISION;

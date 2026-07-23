@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "0.1.0",
+  "serverInfo": {
+    "name": "signalscope-mcp",
+    "version": "1.2.0",
+    "description": "MCP server for SignalScope — access stock breakout signals, portfolio tracking, watchlists, and market intelligence via 15+ tools.",
+    "homepage": "https://github.com/signalscope/cursor-plugin",
+    "license": "MIT"
+  },
+  "transport": {
+    "type": "stdio",
+    "command": "npx",
+    "args": ["-y", "signalscope-mcp"]
+  },
+  "capabilities": {
+    "tools": {}
+  },
+  "authentication": {
+    "required": true,
+    "schemes": ["bearer", "apiKey"],
+    "description": "Requires a SignalScope API key (sk_sig_*) or Bearer token. Generate one on the Profile page of your deployment"
+  },
+  "links": {
+    "documentation": "/skill/SKILL.md",
+    "npm": "https://www.npmjs.com/package/signalscope-mcp",
+    "repository": "https://github.com/signalscope/cursor-plugin"
+  }
+}

@@ -1,0 +1,344 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getOptionalUserId } from "@/lib/auth";
+import { handleApiError } from "@/lib/api-error";
+import { stageLabel } from "@/lib/stage-labels";
+
+const VALID_DAYS = new Set([1, 3, 7, 14, 30]);
+const HORIZONS = [1, 3, 7, 14, 30] as const;
+type ReturnCol = "return1d" | "return3d" | "return7d" | "return14d" | "return30d";
+type PriceCol = "price1d" | "price3d" | "price7d" | "price14d" | "price30d";
+
+interface PerformanceRecord {
+  symbol: string;
+  detectionPrice: number;
+  return1d: number | null;
+  return3d: number | null;
+  return7d: number | null;
+  return14d: number | null;
+  return30d: number | null;
+  price1d: number | null;
+  price3d: number | null;
+  price7d: number | null;
+  price14d: number | null;
+  price30d: number | null;
+  createdAt: Date;
+  validatedTicker: {
+    aiScore: number;
+    opportunityScore: number;
+    stage: string;
+    signalType: string | null;
+    recommendation: string | null;
+    createdAt: Date;
+  };
+}
+
+function computeStats(records: PerformanceRecord[], col: ReturnCol) {
+  const returns = records
+    .map((r) => r[col])
+    .filter((v): v is number => v !== null);
+  const count = returns.length;
+  if (count === 0) return { count: 0, winRate: 0, avgReturn: 0, medianReturn: 0 };
+  const wins = returns.filter((r) => r > 0).length;
+  const avgReturn = returns.reduce((a, b) => a + b, 0) / count;
+  const sorted = [...returns].sort((a, b) => a - b);
+  const mid = Math.floor(count / 2);
+  const medianReturn = count % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+  return { count, winRate: wins / count, avgReturn, medianReturn };
+}
+
+function getMonday(date: Date): string {
+  const d = new Date(date);
+  const day = d.getUTCDay();
+  const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1);
+  d.setUTCDate(diff);
+  return d.toISOString().slice(0, 10);
+}
+
+function formatWeekLabel(mondayStr: string): string {
+  const d = new Date(mondayStr + "T00:00:00Z");
+  const sun = new Date(d);
+  sun.setUTCDate(sun.getUTCDate() + 6);
+  const fmt = (dt: Date) =>
+    dt.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    });
+  return `${fmt(d)}–${fmt(sun)}`;
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    await getOptionalUserId();
+    const daysParam = request.nextUrl.searchParams.get("days");
+    const days = daysParam ? Number(daysParam) : 7;
+
+    if (!Number.isInteger(days) || !VALID_DAYS.has(days)) {
+      return NextResponse.json(
+        { error: "Invalid days parameter. Valid values: 1, 3, 7, 14, 30" },
+        { status: 400 },
+      );
+    }
+
+    const returnCol = `return${days}d` as ReturnCol;
+    const priceCol = `price${days}d` as PriceCol;
+
+    const AI_SCORE_THRESHOLD = 70;
+    const SCORING_CUTOFF = new Date("2026-03-16T00:00:00Z");
+
+    // Fetch performance records for high-confidence tickers (aiScore >= threshold, post scoring overhaul), deduped by symbol
+    const records: PerformanceRecord[] = await prisma.tickerPerformance.findMany(
+      {
+        where: {
+          detectionPrice: { gt: 0.01 },
+          corporateActionDetected: false,
+          validatedTicker: {
+            aiScore: { gte: AI_SCORE_THRESHOLD },
+            stage: { notIn: ["FILTERED", "UNSCORED"] },
+            createdAt: { gte: SCORING_CUTOFF },
+          },
+        },
+        distinct: ["symbol"],
+        include: {
+          validatedTicker: {
+            select: {
+              aiScore: true,
+              opportunityScore: true,
+              stage: true,
+              signalType: true,
+              recommendation: true,
+              createdAt: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "asc" },
+      },
+    );
+
+    if (records.length === 0) {
+      return NextResponse.json({
+        summary: {
+          totalTracked: 0,
+          current: { count: 0, winRate: 0, avgReturn: 0 },
+          prior: { count: 0, winRate: 0, avgReturn: 0 },
+        },
+        cohorts: [],
+        dailyReturns: [],
+        overall: { count: 0, winRate: 0, avgReturn: 0 },
+        confirmed: { count: 0, winRate: 0, avgReturn: 0 },
+        emerging: { count: 0, winRate: 0, avgReturn: 0 },
+        byStage: {},
+        byType: {},
+        byScoreRange: {},
+        byOpportunityScoreRange: {},
+        bestPerformers: [],
+        worstPerformers: [],
+      });
+    }
+
+    // --- Summary: current 30d vs prior 30d ---
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+
+    const recordsWithReturn = records.filter((r) => r[returnCol] !== null);
+
+    const currentRecords = records.filter(
+      (r) => r.validatedTicker.createdAt >= thirtyDaysAgo,
+    );
+    const priorRecords = records.filter(
+      (r) =>
+        r.validatedTicker.createdAt >= sixtyDaysAgo &&
+        r.validatedTicker.createdAt < thirtyDaysAgo,
+    );
+
+    const summary = {
+      totalTracked: recordsWithReturn.length,
+      current: computeStats(currentRecords, returnCol),
+      prior: computeStats(priorRecords, returnCol),
+    };
+
+    // --- Weekly cohorts (Buy/Strong Buy only) ---
+    const cohortMap = new Map<
+      string,
+      PerformanceRecord[]
+    >();
+    for (const r of records) {
+      const week = getMonday(r.validatedTicker.createdAt);
+      if (!cohortMap.has(week)) cohortMap.set(week, []);
+      cohortMap.get(week)!.push(r);
+    }
+
+    const cohorts = [...cohortMap.entries()]
+      .sort(([a], [b]) => b.localeCompare(a)) // newest first
+      .slice(0, 12)
+      .map(([weekStart, group]) => {
+        const stats: Record<string, { count: number; winRate: number; avgReturn: number; medianReturn: number }> = {};
+        for (const h of HORIZONS) {
+          const col: ReturnCol = `return${h}d`;
+          const s = computeStats(group, col);
+          if (s.count > 0) {
+            stats[`${h}d`] = s;
+          }
+        }
+
+        // Best pick for this cohort (use longest available horizon)
+        let bestPick: { symbol: string; returnPct: number; horizon: string } | null = null;
+        for (const h of ([14, 7, 3, 1] as const)) {
+          const col: ReturnCol = `return${h}d`;
+          const withReturn = group.filter((r) => r[col] !== null);
+          if (withReturn.length > 0) {
+            const best = withReturn.reduce((a, b) =>
+              (a[col] as number) > (b[col] as number) ? a : b,
+            );
+            bestPick = {
+              symbol: best.symbol,
+              returnPct: best[col] as number,
+              horizon: `${h}d`,
+            };
+            break;
+          }
+        }
+
+        return {
+          weekStart,
+          weekLabel: formatWeekLabel(weekStart),
+          count: group.length,
+          stats,
+          bestPick,
+        };
+      });
+
+    // --- Per-date average returns — Buy/Strong Buy signals only (simple, no rolling) ---
+    const withReturn = records
+      .filter((r) => r[returnCol] !== null)
+      .sort(
+        (a, b) =>
+          a.validatedTicker.createdAt.getTime() -
+          b.validatedTicker.createdAt.getTime(),
+      );
+
+    // Per-ticker returns (one entry per ticker, newest first)
+    const dailyReturns = withReturn.map((r) => ({
+      date: r.validatedTicker.createdAt.toISOString().slice(0, 10),
+      symbol: r.symbol,
+      avgReturn: r[returnCol] as number,
+      tradeCount: 1,
+      winCount: (r[returnCol] as number) > 0 ? 1 : 0,
+    })).reverse();
+
+    // --- Breakdowns (for selected horizon) ---
+    const overall = computeStats(recordsWithReturn, returnCol);
+    const confirmed = computeStats(recordsWithReturn.filter((r) => r.validatedTicker.stage === "CONFIRMED"), returnCol);
+    const emerging = computeStats(recordsWithReturn.filter((r) => r.validatedTicker.createdAt >= thirtyDaysAgo), returnCol);
+
+    // By stage (all stages — useful as a comparison tool)
+    const byStage: Record<string, ReturnType<typeof computeStats>> = {};
+    const stageGroups = new Map<string, PerformanceRecord[]>();
+    for (const r of recordsWithReturn) {
+      const stage = r.validatedTicker.stage;
+      if (!stageGroups.has(stage)) stageGroups.set(stage, []);
+      stageGroups.get(stage)!.push(r);
+    }
+    for (const s of ["EARLY", "FORMING", "CONFIRMED"] as const) {
+      const group = stageGroups.get(s);
+      if (group) byStage[stageLabel(s)] = computeStats(group, returnCol);
+    }
+
+    // By signal type
+    const byType: Record<string, ReturnType<typeof computeStats>> = {};
+    const typeGroups = new Map<string, PerformanceRecord[]>();
+    for (const r of recordsWithReturn) {
+      const type = r.validatedTicker.signalType ?? "unknown";
+      if (!typeGroups.has(type)) typeGroups.set(type, []);
+      typeGroups.get(type)!.push(r);
+    }
+    for (const [type, group] of typeGroups) {
+      byType[type] = computeStats(group, returnCol);
+    }
+
+    // By score range
+    const byScoreRange: Record<string, ReturnType<typeof computeStats>> = {};
+    const ranges = [
+      { label: "0-30", min: 0, max: 30 },
+      { label: "30-50", min: 30, max: 50 },
+      { label: "50-70", min: 50, max: 70 },
+      { label: "70-100", min: 70, max: 101 },
+    ];
+    const rangeGroups = new Map<string, PerformanceRecord[]>();
+    for (const r of recordsWithReturn) {
+      const score = r.validatedTicker.aiScore;
+      for (const range of ranges) {
+        if (score >= range.min && score < range.max) {
+          if (!rangeGroups.has(range.label)) rangeGroups.set(range.label, []);
+          rangeGroups.get(range.label)!.push(r);
+          break;
+        }
+      }
+    }
+    for (const range of ranges) {
+      const group = rangeGroups.get(range.label);
+      if (group) byScoreRange[range.label] = computeStats(group, returnCol);
+    }
+
+    // By opportunity score range
+    const byOpportunityScoreRange: Record<string, ReturnType<typeof computeStats>> = {};
+    const oppRanges = [
+      { label: "0-25", min: 0, max: 25 },
+      { label: "25-50", min: 25, max: 50 },
+      { label: "50-75", min: 50, max: 75 },
+      { label: "75-100", min: 75, max: 101 },
+    ];
+    const oppRangeGroups = new Map<string, PerformanceRecord[]>();
+    for (const r of recordsWithReturn) {
+      const oppScore = r.validatedTicker.opportunityScore;
+      for (const range of oppRanges) {
+        if (oppScore >= range.min && oppScore < range.max) {
+          if (!oppRangeGroups.has(range.label)) oppRangeGroups.set(range.label, []);
+          oppRangeGroups.get(range.label)!.push(r);
+          break;
+        }
+      }
+    }
+    for (const range of oppRanges) {
+      const group = oppRangeGroups.get(range.label);
+      if (group) byOpportunityScoreRange[range.label] = computeStats(group, returnCol);
+    }
+
+    // Best/Worst performers — Buy/Strong Buy signals from last 30 days
+    const sorted = [...recordsWithReturn]
+      .filter((r) => r.validatedTicker.createdAt >= thirtyDaysAgo)
+      .sort((a, b) => (b[returnCol] as number) - (a[returnCol] as number));
+
+    const mapPerformer = (r: PerformanceRecord) => ({
+      symbol: r.symbol,
+      return: r[returnCol] as number,
+      aiScore: r.validatedTicker.aiScore,
+      stage: stageLabel(r.validatedTicker.stage),
+      detectionPrice: r.detectionPrice,
+      currentPrice: r[priceCol] as number,
+      detectedAt: r.validatedTicker.createdAt.toISOString().slice(0, 10),
+    });
+
+    const bestPerformers = sorted.slice(0, 5).map(mapPerformer);
+    const worstPerformers = sorted.slice(-5).reverse().map(mapPerformer);
+
+    return NextResponse.json({
+      summary,
+      cohorts,
+      dailyReturns,
+      overall,
+      confirmed,
+      emerging,
+      byStage,
+      byType,
+      byScoreRange,
+      byOpportunityScoreRange,
+      bestPerformers,
+      worstPerformers,
+    });
+  } catch (err) {
+    return handleApiError(err, "performance");
+  }
+}

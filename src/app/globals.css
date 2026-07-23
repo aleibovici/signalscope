@@ -1,0 +1,298 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+/* ─── Semantic design tokens ──────────────────────────────────────────────────
+ *
+ * Define each token once here (light value as default, dark value overridden
+ * in [data-theme=dark]). Tailwind generates utility classes automatically:
+ *
+ *   text-primary        →  was: text-gray-900 dark:text-zinc-100
+ *   bg-surface-card     →  was: bg-white dark:bg-[#12181f]
+ *   border-default      →  was: border-gray-200 dark:border-zinc-800
+ *   shadow-card         →  adaptive card elevation
+ *   duration-base       →  200ms standard transition
+ *   rounded-card        →  8px standard card radius
+ *   etc.
+ *
+ * ── Text ──────────────────────────────────────────────────────────────────────
+ *   text-primary        page headings, bold labels
+ *   text-strong         price values, strong secondary labels
+ *   text-label          field labels, caption keys
+ *   text-secondary      supporting body copy, metadata
+ *   text-muted          placeholder / de-emphasised text
+ *
+ *   text-success / text-danger / text-warning / text-info
+ *
+ * ── Surfaces ──────────────────────────────────────────────────────────────────
+ *   bg-surface-card     primary card surface
+ *   bg-surface-overlay  modals, popovers, dropdowns
+ *   bg-surface-subtle   inset / tinted sections
+ *   bg-surface-muted    chip / pill / secondary button fill
+ *   bg-surface-input    form inputs
+ *
+ * ── Borders ───────────────────────────────────────────────────────────────────
+ *   border-default      card / section borders
+ *   border-input        input / interactive element border
+ *   border-strong       form fields, modal dividers
+ *
+ * ── Radius ────────────────────────────────────────────────────────────────────
+ *   rounded-xs / rounded-sm / rounded-card / rounded-xl-card / rounded-full-token
+ *
+ * ── Shadows ───────────────────────────────────────────────────────────────────
+ *   shadow-card         default card elevation (theme-adaptive)
+ *   shadow-card-hover   hover elevation
+ *   shadow-overlay      modals / popovers
+ *   shadow-focus        keyboard focus ring
+ *
+ * ── Motion ────────────────────────────────────────────────────────────────────
+ *   duration-fast / duration-base / duration-slow
+ *   ease-smooth / ease-spring
+ *
+ * ── Signal stage text colors ──────────────────────────────────────────────────
+ *   text-stage-early / text-stage-forming / text-stage-confirmed
+ *   text-stage-filtered / text-stage-unscored
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+:root,
+:root[data-theme="light"] {
+  /* base (used by body) */
+  --background: #ffffff;
+  --foreground: #171717;
+
+  /* text */
+  --color-primary:   #111827; /* gray-900 */
+  --color-strong:    #374151; /* gray-700 */
+  --color-label:     #4b5563; /* gray-600 */
+  --color-secondary: #6b7280; /* gray-500 */
+  --color-muted:     #9ca3af; /* gray-400 */
+
+  /* semantic text */
+  --color-success: #16a34a; /* green-600 */
+  --color-danger:  #dc2626; /* red-600   */
+  --color-warning: #ca8a04; /* yellow-600 */
+  --color-info:    #2563eb; /* blue-600  */
+
+  /* surfaces */
+  --color-surface-card:    #ffffff;
+  --color-surface-overlay: #ffffff;
+  --color-surface-subtle:  #f9fafb; /* gray-50  */
+  --color-surface-muted:   #f3f4f6; /* gray-100 */
+  --color-surface-input:   #ffffff;
+
+  /* borders */
+  --color-border-default: #e5e7eb; /* gray-200 */
+  --color-border-input:   #e5e7eb; /* gray-200 */
+  --color-border-strong:  #d1d5db; /* gray-300 */
+
+  /* signal stages */
+  --color-stage-early:     #16a34a; /* green-600  */
+  --color-stage-forming:   #ca8a04; /* yellow-600 */
+  --color-stage-confirmed: #2563eb; /* blue-600   */
+  --color-stage-filtered:  #ef4444; /* red-500    */
+  --color-stage-unscored:  #9ca3af; /* gray-400   */
+
+  /* shadows — light mode */
+  --shadow-card:       0 1px 2px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-overlay:    0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08);
+  --shadow-focus:      0 0 0 3px rgba(59,130,246,0.35);
+}
+
+:root[data-theme="dark"] {
+  /* Align with marketing / auth (zinc-950 family) */
+  --background: #09090b;
+  --foreground: #fafafa;
+
+  /* text */
+  --color-primary:   #f4f4f5; /* zinc-100 */
+  --color-strong:    #e4e4e7; /* zinc-200 */
+  --color-label:     #d4d4d8; /* zinc-300 */
+  --color-secondary: #a1a1aa; /* zinc-400 */
+  --color-muted:     #71717a; /* zinc-500 */
+
+  /* semantic text */
+  --color-success: #4ade80; /* green-400 */
+  --color-danger:  #f87171; /* red-400   */
+  --color-warning: #fbbf24; /* amber-400 */
+  --color-info:    #60a5fa; /* blue-400  */
+
+  /* surfaces */
+  --color-surface-card:    #12181f; /* custom dark blue-gray */
+  --color-surface-overlay: #18181b; /* zinc-900 */
+  --color-surface-subtle:  #18181b; /* zinc-900 */
+  --color-surface-muted:   #27272a; /* zinc-800 */
+  --color-surface-input:   #27272a; /* zinc-800 */
+
+  /* borders */
+  --color-border-default: #27272a; /* zinc-800 */
+  --color-border-input:   #3f3f46; /* zinc-700 */
+  --color-border-strong:  #52525b; /* zinc-600 */
+
+  /* signal stages */
+  --color-stage-early:     #4ade80; /* green-400 */
+  --color-stage-forming:   #fbbf24; /* amber-400 */
+  --color-stage-confirmed: #60a5fa; /* blue-400  */
+  --color-stage-filtered:  #f87171; /* red-400   */
+  --color-stage-unscored:  #71717a; /* zinc-500  */
+
+  /* shadows — dark mode */
+  --shadow-card:       0 1px 3px rgba(0,0,0,0.35);
+  --shadow-card-hover: 0 4px 16px rgba(0,0,0,0.50), 0 1px 4px rgba(0,0,0,0.40);
+  --shadow-overlay:    0 8px 32px rgba(0,0,0,0.60), 0 2px 8px rgba(0,0,0,0.40);
+  --shadow-focus:      0 0 0 3px rgba(96,165,250,0.35);
+}
+
+/* Register tokens with Tailwind so it generates utility classes */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* text */
+  --color-primary:   var(--color-primary);
+  --color-strong:    var(--color-strong);
+  --color-label:     var(--color-label);
+  --color-secondary: var(--color-secondary);
+  --color-muted:     var(--color-muted);
+
+  --color-success: var(--color-success);
+  --color-danger:  var(--color-danger);
+  --color-warning: var(--color-warning);
+  --color-info:    var(--color-info);
+
+  /* surfaces */
+  --color-surface-card:    var(--color-surface-card);
+  --color-surface-overlay: var(--color-surface-overlay);
+  --color-surface-subtle:  var(--color-surface-subtle);
+  --color-surface-muted:   var(--color-surface-muted);
+  --color-surface-input:   var(--color-surface-input);
+
+  /* borders */
+  --color-border-default: var(--color-border-default);
+  --color-border-input:   var(--color-border-input);
+  --color-border-strong:  var(--color-border-strong);
+
+  /* signal stages */
+  --color-stage-early:     var(--color-stage-early);
+  --color-stage-forming:   var(--color-stage-forming);
+  --color-stage-confirmed: var(--color-stage-confirmed);
+  --color-stage-filtered:  var(--color-stage-filtered);
+  --color-stage-unscored:  var(--color-stage-unscored);
+
+  /* ── Radius ── */
+  --radius-xs:        2px;
+  --radius-sm:        4px;
+  --radius-card:      8px;   /* replaces rounded-lg on cards */
+  --radius-card-xl:   12px;  /* replaces rounded-xl on signal cards */
+  --radius-2xl:       16px;
+  --radius-pill:      9999px;
+
+  /* ── Shadows (theme-adaptive via CSS vars) ── */
+  --shadow-card:       var(--shadow-card);
+  --shadow-card-hover: var(--shadow-card-hover);
+  --shadow-overlay:    var(--shadow-overlay);
+  --shadow-focus:      var(--shadow-focus);
+
+  /* ── Motion ── */
+  --duration-fast:   100ms;
+  --duration-base:   200ms;
+  --duration-slow:   350ms;
+  --ease-smooth:     cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-standard:   cubic-bezier(0.45, 0, 0.55, 1);
+}
+
+html,
+body {
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ─── Type scale ──────────────────────────────────────────────────────────────
+ * Named heading utilities with weight + tracking baked in. Use these on new
+ * components; existing text-* calls keep working. Sizes are responsive-ready
+ * via clamp so layouts hold up at any viewport without extra breakpoint classes.
+ * ─────────────────────────────────────────────────────────────────────────── */
+@utility type-display {
+  font-size: clamp(2rem, 1.6rem + 1.6vw, 3rem);       /* 32–48px */
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+@utility type-h1 {
+  font-size: clamp(1.5rem, 1.25rem + 0.9vw, 2rem);    /* 24–32px */
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+}
+@utility type-h2 {
+  font-size: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);  /* 20–24px */
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+@utility type-h3 {
+  font-size: 1.125rem;                                 /* 18px */
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  line-height: 1.35;
+}
+@utility type-body {
+  font-size: 0.875rem;                                 /* 14px */
+  font-weight: 400;
+  line-height: 1.55;
+}
+@utility type-caption {
+  font-size: 0.75rem;                                  /* 12px */
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.4;
+}
+@utility type-overline {
+  font-size: 0.6875rem;                                /* 11px */
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+/* ─── Numeric alignment ──────────────────────────────────────────────────────
+ * .num — tabular lining figures for any numeric value (prices, scores, %, counts).
+ * Use wherever digits need to align in columns or avoid width jitter on ticks.
+ * ─────────────────────────────────────────────────────────────────────────── */
+@utility num {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum", "lnum";
+}
+
+/* Prevent iOS input zoom on focus (inputs < 16px trigger zoom) */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* Smooth scrolling on iOS */
+* {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Hide scrollbar on mobile tab containers */
+.overflow-x-auto {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.overflow-x-auto::-webkit-scrollbar {
+  display: none;
+}

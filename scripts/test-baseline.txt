@@ -1,0 +1,18 @@
+SignalScope test baseline — 2026-05-23 (before code-quality refactor)
+
+Command: npm test
+Vitest: v4.1.5
+
+Result: PASS
+  Test Files: 80 passed (80)
+  Tests:      1238 passed (1238)
+  Duration:   ~3.5s
+
+---
+
+After code-quality refactor (same commit session)
+
+Result: PASS
+  Test Files: 80 passed (80)
+  Tests:      1218 passed (1218)  (−20 duplicate tests removed; behavior preserved)
+  Duration:   ~3.5s
