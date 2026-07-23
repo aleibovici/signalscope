@@ -1,0 +1,118 @@
+import type { Metadata } from "next";
+import { PublicPageLayout } from "@/components/public-page-layout";
+import { changelog } from "@/lib/changelog-data";
+import { absoluteUrl, getSiteUrl } from "@/lib/site-url";
+
+const siteUrl = getSiteUrl();
+
+export const metadata: Metadata = {
+  title: "Changelog",
+  description:
+    "What's new in SignalScope — improvements, new signal sources, ML updates, and bug fixes.",
+  alternates: {
+    canonical: absoluteUrl("/changelog"),
+  },
+  openGraph: {
+    url: absoluteUrl("/changelog"),
+    title: "Changelog — SignalScope",
+    description:
+      "What's new in SignalScope — improvements, new signal sources, ML updates, and bug fixes.",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "SignalScope — Stock Breakout Signal Detection",
+      },
+    ],
+  },
+};
+
+const categoryLabel: Record<string, string> = {
+  new: "New",
+  improved: "Improved",
+  fixed: "Fixed",
+};
+
+const categoryColor: Record<string, string> = {
+  new: "bg-sky-500/10 text-sky-300 border-sky-500/30",
+  improved: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30",
+  fixed: "bg-amber-500/10 text-amber-300 border-amber-500/30",
+};
+
+function formatDate(iso: string) {
+  return new Date(iso + "T00:00:00Z").toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+export default function ChangelogPage() {
+  const jsonLdBreadcrumb = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: siteUrl },
+      { "@type": "ListItem", position: 2, name: "Changelog", item: absoluteUrl("/changelog") },
+    ],
+  };
+
+  return (
+    <PublicPageLayout>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumb) }}
+      />
+      <div className="mb-10">
+        <h1 className="text-3xl font-bold text-white sm:text-4xl">Changelog</h1>
+        <p className="mt-2 text-zinc-400">
+          What&apos;s new — improvements, new signal sources, ML updates, and fixes.
+        </p>
+      </div>
+
+      <div className="space-y-10">
+        {changelog.map((entry) => (
+          <article
+            key={entry.date}
+            className="relative border-l-2 border-sky-500/30 pl-6"
+          >
+            {/* Timeline dot */}
+            <span className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-sky-400 bg-zinc-950" />
+
+            <time
+              dateTime={entry.date}
+              className="block text-xs font-semibold uppercase tracking-widest text-sky-400"
+            >
+              {formatDate(entry.date)}
+            </time>
+            <h2 className="mt-1 text-lg font-semibold text-white">
+              {entry.title}
+            </h2>
+
+            <div className="mt-4 space-y-4">
+              {entry.changes.map((group, groupIndex) => (
+                <div key={groupIndex}>
+                  <span
+                    className={`inline-block rounded border px-2 py-0.5 text-xs font-semibold ${categoryColor[group.category]}`}
+                  >
+                    {categoryLabel[group.category]}
+                  </span>
+                  <ul className="mt-2 space-y-1.5">
+                    {group.items.map((item, i) => (
+                      <li key={i} className="flex gap-2 text-sm text-zinc-300">
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-500" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </article>
+        ))}
+      </div>
+    </PublicPageLayout>
+  );
+}
