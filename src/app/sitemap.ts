@@ -1,0 +1,87 @@
+import type { MetadataRoute } from "next";
+import { blogPosts } from "@/lib/blog-data";
+import { prisma } from "@/lib/prisma";
+import { getSiteUrl } from "@/lib/site-url";
+
+export const dynamic = "force-dynamic";
+
+const BASE_URL = getSiteUrl();
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // Top non-filtered tickers detected in the last 30 days
+  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const tickers = await prisma.validatedTicker.findMany({
+    where: {
+      createdAt: { gte: cutoff },
+      stage: { notIn: ["FILTERED", "UNSCORED"] },
+    },
+    orderBy: { opportunityScore: "desc" },
+    select: { symbol: true, createdAt: true },
+    distinct: ["symbol"],
+    take: 200,
+  });
+
+  const tickerEntries: MetadataRoute.Sitemap = tickers.map((t) => ({
+    url: `${BASE_URL}/ticker/${t.symbol}`,
+    lastModified: t.createdAt,
+    changeFrequency: "daily",
+    priority: 0.6,
+  }));
+
+  const blogEntries: MetadataRoute.Sitemap = blogPosts.map((post) => ({
+    url: `${BASE_URL}/blog/${post.slug}`,
+    lastModified: new Date(post.date),
+    changeFrequency: "monthly",
+    priority: 0.7,
+  }));
+
+  // Static last-modified dates (update when content actually changes)
+  const SITE_CONTENT_DATE = new Date("2026-04-04");
+
+  return [
+    {
+      url: BASE_URL,
+      lastModified: SITE_CONTENT_DATE,
+      changeFrequency: "monthly",
+      priority: 1.0,
+    },
+    {
+      url: `${BASE_URL}/register`,
+      lastModified: SITE_CONTENT_DATE,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${BASE_URL}/blog`,
+      lastModified: new Date(blogPosts[0]?.date ?? SITE_CONTENT_DATE),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    ...blogEntries,
+    ...tickerEntries,
+    {
+      url: `${BASE_URL}/faq`,
+      lastModified: SITE_CONTENT_DATE,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${BASE_URL}/how-it-works`,
+      lastModified: SITE_CONTENT_DATE,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${BASE_URL}/changelog`,
+      lastModified: SITE_CONTENT_DATE,
+      changeFrequency: "weekly",
+      priority: 0.6,
+    },
+    {
+      url: `${BASE_URL}/privacy`,
+      lastModified: new Date("2026-04-03"),
+      changeFrequency: "yearly",
+      priority: 0.4,
+    },
+  ];
+}
