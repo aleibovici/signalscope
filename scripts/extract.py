@@ -1,27 +1,27 @@
 """
-Extract a remote/source database into local parquet files (one file per table).
+Extract a source database into local parquet files (one file per table).
 
 Discovers every `public` base table, runs `SELECT *` with no row or column filtering,
 and writes `scripts/output/<TableName>.parquet` plus `manifest.json` with row counts.
 
 Then optionally replaces your **local** development database with a `pg_dump` /
 `pg_restore` clone (schema + data). The restore target is **`DATABASE_URL_DEV`** (or
-`--restore-url`), and must point to localhost / `host.docker.internal` (not Cloud SQL).
-Requires PostgreSQL client tools (`pg_dump`, `pg_restore`) on `PATH`.
+`--restore-url`) and must point at localhost / `host.docker.internal`, never at the
+source database. Requires PostgreSQL client tools (`pg_dump`, `pg_restore`) on `PATH`.
 
 **Why one parquet per table:** Parquet is tabular; the database has many related tables.
 A single file would require denormalizing joins (duplicated rows, huge files) or dropping
 tables. Per-table files mirror the schema and are easy to load selectively for ML.
 
-When using the Cloud SQL Auth Proxy path, set `GCP_PROJECT_ID` (required; no default).
-Optionally set `GCP_REGION`, `GCP_INSTANCE_NAME`, `GCP_DB_USER`, `GCP_DB_NAME`.
-The script starts the proxy, runs parquet export + `pg_dump`, restores into dev, then
-stops the proxy.
+Connection: reads `DATABASE_URL` by default, so it works against local Postgres,
+Docker Compose, or any managed provider. Google Cloud SQL users who need the auth
+proxy can pass `--cloud-sql-proxy` (see `scripts/db_connect.py`).
 
 Usage:
-    export GCP_PROJECT_ID=your-gcp-project
-    python extract.py
-    python extract.py --no-restore   # parquet only, skip dev DB overwrite
+    python scripts/extract.py                          # DATABASE_URL, parquet + dev restore
+    python scripts/extract.py --no-restore             # parquet only
+    python scripts/extract.py --database-url postgresql://...
+    python scripts/extract.py --cloud-sql-proxy        # Google Cloud SQL auth proxy
 
 Dependencies (venv recommended): pip install -r scripts/requirements.txt
 
@@ -34,53 +34,28 @@ import argparse
 import json
 import os
 import shutil
-import signal
-import socket
 import subprocess
 import sys
 import tempfile
-import time
 from pathlib import Path
-from urllib.parse import quote_plus, unquote, urlparse
+from urllib.parse import urlparse
 
 import pandas as pd
 import psycopg2
-from dotenv import load_dotenv
 from psycopg2 import sql
 
-PROJECT_ROOT = Path(__file__).parent.parent
+from db_connect import (
+    PROXY_PORT,
+    add_connection_args,
+    load_env,
+    open_source_connection,
+    parse_postgres_url,
+)
 
-# Load from project root .env, fall back to .env.production, then .env.local
-load_dotenv(PROJECT_ROOT / ".env")
-load_dotenv(PROJECT_ROOT / ".env.production")
-load_dotenv(PROJECT_ROOT / ".env.local")
+load_env()
 
 OUTPUT_DIR = Path(__file__).parent / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
-
-# Cloud SQL connection details (require GCP_PROJECT_ID when using the proxy path)
-GCP_REGION = os.environ.get("GCP_REGION", "us-central1")
-INSTANCE_NAME = os.environ.get("GCP_INSTANCE_NAME", "signalscope-db")
-PROXY_PORT = 5434
-DB_USER = os.environ.get("GCP_DB_USER", "signalscope")
-DB_NAME = os.environ.get("GCP_DB_NAME", "signalscope")
-
-
-def require_gcp_project() -> str:
-    """Return GCP_PROJECT_ID or exit with a clear error (no hardcoded prod project)."""
-    project = (os.environ.get("GCP_PROJECT_ID") or "").strip()
-    if not project:
-        print(
-            "ERROR: GCP_PROJECT_ID is required when using the Cloud SQL Auth Proxy path.\n"
-            "  Export your project id, e.g.: export GCP_PROJECT_ID=your-gcp-project\n"
-            "  Optional: GCP_REGION (default us-central1), GCP_INSTANCE_NAME, GCP_DB_USER, GCP_DB_NAME"
-        )
-        sys.exit(1)
-    return project
-
-
-def instance_connection_name() -> str:
-    return f"{require_gcp_project()}:{GCP_REGION}:{INSTANCE_NAME}"
 
 LIST_PUBLIC_TABLES = """
 SELECT table_name
@@ -90,83 +65,40 @@ WHERE table_schema = 'public'
 ORDER BY table_name;
 """
 
-
-def parse_postgres_url(url: str) -> dict[str, str]:
-    """Parse postgresql:// URLs into pg_dump/pg_restore CLI args."""
-    p = urlparse(url)
-    if p.scheme not in ("postgresql", "postgres"):
-        raise ValueError(f"unsupported URL scheme: {p.scheme!r}")
-    host = p.hostname
-    if not host:
-        raise ValueError("connection URL must include a host (TCP), not a unix socket")
-    path = (p.path or "").lstrip("/")
-    dbname = path.split("?")[0] if path else ""
-    if not dbname:
-        raise ValueError("connection URL must include a database name in the path")
-    port = str(p.port or 5432)
-    user = unquote(p.username) if p.username else ""
-    password = unquote(p.password) if p.password else ""
-    return {
-        "host": host,
-        "port": port,
-        "user": user,
-        "password": password,
-        "dbname": dbname,
-    }
+LOCAL_HOSTS = ("localhost", "127.0.0.1", "::1", "host.docker.internal")
 
 
 def is_safe_restore_target(url: str) -> bool:
-    """True if URL looks like a local dev Postgres (not Cloud SQL / not the proxy port)."""
+    """True if the URL looks like a local dev Postgres (not a remote/proxied database)."""
     u = url.strip()
-    if not u:
-        return False
-    if "/cloudsql/" in u or "host=/cloudsql/" in u:
+    if not u or "/cloudsql/" in u:
         return False
     try:
         p = urlparse(u)
-    except Exception:
+    except ValueError:
         return False
     if p.scheme not in ("postgresql", "postgres"):
         return False
-    host = (p.hostname or "").lower()
-    if host not in ("localhost", "127.0.0.1", "::1", "host.docker.internal"):
+    if (p.hostname or "").lower() not in LOCAL_HOSTS:
         return False
     if (p.port or 5432) == PROXY_PORT:
         return False
-    path = (p.path or "").lstrip("/")
-    dbname = path.split("?")[0] if path else ""
+    dbname = (p.path or "").lstrip("/").split("?")[0]
     return bool(dbname)
 
 
 def resolve_restore_target_url(explicit_restore_url: str | None = None) -> tuple[str, str] | None:
     """
     URL and label for pg_restore.
-    Explicit --restore-url wins.
-    Else DATABASE_URL_DEV (optional second DB for harvester mirroring).
+    Explicit --restore-url wins, otherwise DATABASE_URL_DEV.
     """
-    if explicit_restore_url and explicit_restore_url.strip():
-        u = explicit_restore_url.strip()
-        if not is_safe_restore_target(u):
-            return None
-        return u, "--restore-url"
-
-    dev = os.environ.get("DATABASE_URL_DEV")
-    if dev and dev.strip():
-        u = dev.strip()
-        if not is_safe_restore_target(u):
-            return None
-        return u, "DATABASE_URL_DEV"
+    for candidate, label in (
+        ((explicit_restore_url or "").strip(), "--restore-url"),
+        ((os.environ.get("DATABASE_URL_DEV") or "").strip(), "DATABASE_URL_DEV"),
+    ):
+        if candidate:
+            return (candidate, label) if is_safe_restore_target(candidate) else None
     return None
-
-
-def assert_not_proxy_port(dev: dict[str, str]) -> None:
-    """Refuse to pg_restore onto the Cloud SQL proxy port (would overwrite production)."""
-    if dev["port"] == str(PROXY_PORT):
-        print(
-            f"ERROR: restore target must not use port {PROXY_PORT} "
-            "(Cloud SQL proxy / production). Point at your local Postgres (e.g. port 5432)."
-        )
-        sys.exit(1)
 
 
 def require_pg_tools() -> None:
@@ -176,25 +108,21 @@ def require_pg_tools() -> None:
             sys.exit(1)
 
 
-def dump_production_custom(dump_path: Path, db_password: str) -> None:
-    """Write a custom-format pg_dump of production (via localhost proxy)."""
-    env = {**os.environ, "PGPASSWORD": db_password}
+def dump_source_custom(dump_path: Path, source_url: str) -> None:
+    """Write a custom-format pg_dump of the source database."""
+    src = parse_postgres_url(source_url)
+    env = {**os.environ, "PGPASSWORD": src["password"]}
     cmd = [
         "pg_dump",
-        "-h",
-        "localhost",
-        "-p",
-        str(PROXY_PORT),
-        "-U",
-        DB_USER,
-        "-d",
-        DB_NAME,
+        "-h", src["host"],
+        "-p", src["port"],
+        "-U", src["user"],
+        "-d", src["dbname"],
         "-Fc",
         "--no-owner",
-        "-f",
-        str(dump_path),
+        "-f", str(dump_path),
     ]
-    print("Running pg_dump from production (via proxy)...")
+    print("Running pg_dump from the source database...")
     r = subprocess.run(cmd, env=env, capture_output=True, text=True)
     if r.returncode != 0:
         print(r.stderr or r.stdout or "(no output)")
@@ -207,14 +135,10 @@ def restore_dump_to_dev(dump_path: Path, dev: dict[str, str]) -> None:
     env = {**os.environ, "PGPASSWORD": dev["password"]}
     cmd = [
         "pg_restore",
-        "-h",
-        dev["host"],
-        "-p",
-        dev["port"],
-        "-U",
-        dev["user"],
-        "-d",
-        dev["dbname"],
+        "-h", dev["host"],
+        "-p", dev["port"],
+        "-U", dev["user"],
+        "-d", dev["dbname"],
         "--clean",
         "--if-exists",
         "--no-owner",
@@ -241,67 +165,6 @@ def restore_dump_to_dev(dump_path: Path, dev: dict[str, str]) -> None:
         print("pg_restore completed with warnings (exit code 1).")
     else:
         print("pg_restore completed successfully.")
-
-
-def port_is_open(port: int, timeout: float = 1.0) -> bool:
-    """Check if a TCP port is accepting connections on localhost."""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.settimeout(timeout)
-        return s.connect_ex(("127.0.0.1", port)) == 0
-
-
-def start_cloud_sql_proxy() -> subprocess.Popen | None:
-    """Start Cloud SQL Auth Proxy and wait for it to be ready."""
-    if port_is_open(PROXY_PORT):
-        print(f"Cloud SQL proxy already running on port {PROXY_PORT}")
-        return None
-
-    # Try cloud-sql-proxy (v2) first, fall back to cloud_sql_proxy (v1)
-    proxy_bin = shutil.which("cloud-sql-proxy") or shutil.which("cloud_sql_proxy")
-    if not proxy_bin:
-        print("ERROR: cloud-sql-proxy not found. Install it:")
-        print("  brew install cloud-sql-proxy")
-        print("  or: gcloud components install cloud-sql-proxy")
-        sys.exit(1)
-
-    connection = instance_connection_name()
-    proxy_name = Path(proxy_bin).name
-    if proxy_name == "cloud-sql-proxy":
-        # v2 syntax
-        cmd = [proxy_bin, f"--port={PROXY_PORT}", connection]
-    else:
-        # v1 syntax
-        cmd = [proxy_bin, f"-instances={connection}=tcp:{PROXY_PORT}"]
-
-    print(f"Starting Cloud SQL proxy ({proxy_name})...")
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-    # Wait up to 15s for proxy to be ready
-    for _i in range(30):
-        if proc.poll() is not None:
-            stderr = proc.stderr.read().decode() if proc.stderr else ""
-            print(f"ERROR: Cloud SQL proxy exited immediately.\n{stderr}")
-            sys.exit(1)
-        if port_is_open(PROXY_PORT, timeout=0.5):
-            print(f"Cloud SQL proxy ready on port {PROXY_PORT}")
-            return proc
-        time.sleep(0.5)
-
-    proc.terminate()
-    print("ERROR: Cloud SQL proxy failed to start within 15s")
-    sys.exit(1)
-
-
-def stop_cloud_sql_proxy(proc: subprocess.Popen | None):
-    """Gracefully stop the Cloud SQL Auth Proxy."""
-    if proc is None:
-        return
-    print("Stopping Cloud SQL proxy...")
-    proc.send_signal(signal.SIGTERM)
-    try:
-        proc.wait(timeout=5)
-    except subprocess.TimeoutExpired:
-        proc.kill()
 
 
 def export_public_schema(conn) -> dict[str, int]:
@@ -331,8 +194,36 @@ def export_public_schema(conn) -> dict[str, int]:
     return manifest
 
 
+def resolve_dev_connection(args) -> dict[str, str]:
+    """Validate and parse the pg_restore target, exiting with guidance if unusable."""
+    resolved = resolve_restore_target_url(args.restore_url)
+    if not resolved:
+        print("ERROR: No safe local database URL for pg_restore.")
+        print("  Set DATABASE_URL_DEV to your local Postgres")
+        print("  (e.g. postgresql://postgres:postgres@localhost:5432/signalscope), or pass --restore-url.")
+        print(f"  Non-local hosts and port {PROXY_PORT} are refused so the source DB is never overwritten.")
+        sys.exit(1)
+
+    restore_url, restore_label = resolved
+    require_pg_tools()
+    try:
+        dev = parse_postgres_url(restore_url)
+    except ValueError as e:
+        print(f"ERROR: invalid restore URL ({restore_label}): {e}")
+        sys.exit(1)
+
+    print(
+        f"Restore target: {restore_label} → "
+        f"{dev['user']}@{dev['host']}:{dev['port']}/{dev['dbname']}"
+    )
+    return dev
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Export production DB to parquet and optionally clone into dev.")
+    parser = argparse.ArgumentParser(
+        description="Export a PostgreSQL database to parquet and optionally clone it into your dev DB."
+    )
+    add_connection_args(parser)
     parser.add_argument(
         "--no-restore",
         action="store_true",
@@ -347,53 +238,13 @@ def main():
     )
     args = parser.parse_args()
 
-    db_password = os.environ.get("DB_PASSWORD")
-    if not db_password:
-        print("ERROR: DB_PASSWORD not found in .env.production")
-        sys.exit(1)
+    dev_conn = None if args.no_restore else resolve_dev_connection(args)
 
-    dev_conn: dict[str, str] | None = None
-    if not args.no_restore:
-        resolved = resolve_restore_target_url(args.restore_url)
-        if not resolved:
-            restore_raw = (args.restore_url or "").strip()
-            if restore_raw and not is_safe_restore_target(restore_raw):
-                print("ERROR: --restore-url is not a safe local URL (localhost / host.docker.internal, non-proxy port).")
-                print("  Refuses Cloud SQL and port 5434 (production proxy).")
-                sys.exit(1)
-            dev_raw = (os.environ.get("DATABASE_URL_DEV") or "").strip()
-            if dev_raw and not is_safe_restore_target(dev_raw):
-                print("ERROR: DATABASE_URL_DEV is set but is not a safe local URL (localhost / host.docker.internal, non-proxy port).")
-                print("  Refuses Cloud SQL and port 5434 (production proxy).")
-                sys.exit(1)
-            print("ERROR: No safe local database URL for pg_restore.")
-            print("  Set DATABASE_URL_DEV to your local Postgres (e.g. postgresql://postgres:postgres@localhost:5432/signalscope),")
-            print("  or pass --restore-url. URLs with Cloud SQL or port 5434 are refused.")
-            sys.exit(1)
-        restore_url, restore_label = resolved
-        require_pg_tools()
-        try:
-            dev_conn = parse_postgres_url(restore_url)
-        except ValueError as e:
-            print(f"ERROR: invalid restore URL ({restore_label}): {e}")
-            sys.exit(1)
-        assert_not_proxy_port(dev_conn)
-        print(
-            f"Restore target: {restore_label} → "
-            f"{dev_conn['user']}@{dev_conn['host']}:{dev_conn['port']}/{dev_conn['dbname']}"
-        )
-
-    proxy_proc = start_cloud_sql_proxy()
-
-    database_url = (
-        f"postgresql://{DB_USER}:{quote_plus(db_password)}"
-        f"@localhost:{PROXY_PORT}/{DB_NAME}"
-    )
-
+    source = open_source_connection(args)
     dump_path: Path | None = None
     try:
-        print("Connecting to database...")
-        conn = psycopg2.connect(database_url)
+        print(f"Connecting to database ({source.label})...")
+        conn = psycopg2.connect(source.url)
         try:
             manifest = export_public_schema(conn)
         finally:
@@ -402,19 +253,14 @@ def main():
         total_rows = sum(manifest.values())
         print(f"\nParquet export done. {len(manifest)} tables, {total_rows} total rows → {OUTPUT_DIR}")
 
-        if not args.no_restore:
-            fd, dump_name = tempfile.mkstemp(prefix="signalscope-prod-", suffix=".dump")
+        if dev_conn is not None:
+            fd, dump_name = tempfile.mkstemp(prefix="signalscope-export-", suffix=".dump")
             os.close(fd)
             dump_path = Path(dump_name)
             try:
-                dump_production_custom(dump_path, db_password)
+                dump_source_custom(dump_path, source.url)
             finally:
-                stop_cloud_sql_proxy(proxy_proc)
-                proxy_proc = None
-
-            if dev_conn is None:
-                print("ERROR: internal error: dev connection not configured")
-                sys.exit(1)
+                source.close()
             restore_dump_to_dev(dump_path, dev_conn)
     finally:
         if dump_path is not None and dump_path.exists():
@@ -422,7 +268,7 @@ def main():
                 dump_path.unlink()
             except OSError:
                 pass
-        stop_cloud_sql_proxy(proxy_proc)
+        source.close()
 
 
 if __name__ == "__main__":

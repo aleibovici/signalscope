@@ -1,8 +1,7 @@
 """
 PostgreSQL performance analysis for SignalScope.
 
-Connects via Cloud SQL Auth Proxy (same pattern as extract.py) and queries
-pg_stat_statements, pg_stat_user_tables, pg_stat_user_indexes, and related
+Queries pg_stat_statements, pg_stat_user_tables, pg_stat_user_indexes, and related
 views to surface:
 
   1. Slowest / most-expensive queries (total_time, mean_time)
@@ -12,56 +11,25 @@ views to surface:
   5. Cache hit rates (buffer pool efficiency)
   6. Table sizes
 
-Usage:
-    export GCP_PROJECT_ID=your-gcp-project
-    python scripts/pg_perf.py            # full report
-    python scripts/pg_perf.py --top 20   # show top 20 per section (default: 10)
+Connection: reads `DATABASE_URL` by default, so it works against local Postgres,
+Docker Compose, or any managed provider. Google Cloud SQL users who need the auth
+proxy can pass `--cloud-sql-proxy` (see `scripts/db_connect.py`).
 
-Dependencies: pip install psycopg2-binary python-dotenv
-Requires: GCP_PROJECT_ID, cloud-sql-proxy on PATH, DB_PASSWORD in .env / .env.production
+Usage:
+    python scripts/pg_perf.py                     # full report against DATABASE_URL
+    python scripts/pg_perf.py --top 20            # top 20 per section (default: 10)
+    python scripts/pg_perf.py --cloud-sql-proxy   # Google Cloud SQL auth proxy
+
+Dependencies: pip install -r scripts/requirements.txt
 """
 
 import argparse
-import os
-import shutil
-import signal
-import socket
-import subprocess
-import sys
-import time
-from pathlib import Path
-from urllib.parse import quote_plus
 
 import psycopg2
-from dotenv import load_dotenv
 
-PROJECT_ROOT = Path(__file__).parent.parent
-load_dotenv(PROJECT_ROOT / ".env")
-load_dotenv(PROJECT_ROOT / ".env.production")
-load_dotenv(PROJECT_ROOT / ".env.local")
+from db_connect import add_connection_args, load_env, open_source_connection
 
-GCP_REGION = os.environ.get("GCP_REGION", "us-central1")
-INSTANCE_NAME = os.environ.get("GCP_INSTANCE_NAME", "signalscope-db")
-PROXY_PORT = 5434
-DB_USER = os.environ.get("GCP_DB_USER", "signalscope")
-DB_NAME = os.environ.get("GCP_DB_NAME", "signalscope")
-
-
-def require_gcp_project() -> str:
-    """Return GCP_PROJECT_ID or exit with a clear error (no hardcoded prod project)."""
-    project = (os.environ.get("GCP_PROJECT_ID") or "").strip()
-    if not project:
-        print(
-            "ERROR: GCP_PROJECT_ID is required when using the Cloud SQL Auth Proxy path.\n"
-            "  Export your project id, e.g.: export GCP_PROJECT_ID=your-gcp-project\n"
-            "  Optional: GCP_REGION (default us-central1), GCP_INSTANCE_NAME, GCP_DB_USER, GCP_DB_NAME"
-        )
-        sys.exit(1)
-    return project
-
-
-def instance_connection_name() -> str:
-    return f"{require_gcp_project()}:{GCP_REGION}:{INSTANCE_NAME}"
+load_env()
 
 YELLOW = "\033[93m"
 RED = "\033[91m"
@@ -90,58 +58,10 @@ def bad(msg: str) -> None:
     print(f"  {RED}✗  {msg}{RESET}")
 
 
-# ─── proxy helpers (same as extract.py) ───────────────────────────────────────
-
-def port_is_open(port: int, timeout: float = 1.0) -> bool:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.settimeout(timeout)
-        return s.connect_ex(("127.0.0.1", port)) == 0
-
-
-def start_cloud_sql_proxy() -> subprocess.Popen | None:
-    if port_is_open(PROXY_PORT):
-        print(f"Cloud SQL proxy already running on port {PROXY_PORT}")
-        return None
-    proxy_bin = shutil.which("cloud-sql-proxy") or shutil.which("cloud_sql_proxy")
-    if not proxy_bin:
-        print("ERROR: cloud-sql-proxy not found. Install: brew install cloud-sql-proxy")
-        sys.exit(1)
-    connection = instance_connection_name()
-    proxy_name = Path(proxy_bin).name
-    if proxy_name == "cloud-sql-proxy":
-        cmd = [proxy_bin, f"--port={PROXY_PORT}", connection]
-    else:
-        cmd = [proxy_bin, f"-instances={connection}=tcp:{PROXY_PORT}"]
-    print(f"Starting Cloud SQL proxy ({proxy_name})...")
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    for _ in range(30):
-        if proc.poll() is not None:
-            stderr = proc.stderr.read().decode() if proc.stderr else ""
-            print(f"ERROR: Cloud SQL proxy exited.\n{stderr}")
-            sys.exit(1)
-        if port_is_open(PROXY_PORT, timeout=0.5):
-            print(f"Cloud SQL proxy ready on port {PROXY_PORT}\n")
-            return proc
-        time.sleep(0.5)
-    proc.terminate()
-    print("ERROR: Cloud SQL proxy failed to start within 15s")
-    sys.exit(1)
-
-
-def stop_cloud_sql_proxy(proc: subprocess.Popen | None) -> None:
-    if proc is None:
-        return
-    proc.send_signal(signal.SIGTERM)
-    try:
-        proc.wait(timeout=5)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-
-
 # ─── analysis queries ──────────────────────────────────────────────────────────
 
 def check_pg_stat_statements(cur, top: int) -> None:
-    """Requires pg_stat_statements extension (enabled by default on Cloud SQL)."""
+    """Requires the pg_stat_statements extension to be enabled on the server."""
     h("1. SLOW / EXPENSIVE QUERIES  (pg_stat_statements)")
 
     cur.execute("""
@@ -402,22 +322,13 @@ def _print_table(cols, rows, thresholds: dict | None = None) -> None:
 
 def main():
     parser = argparse.ArgumentParser(description="PostgreSQL performance analysis for SignalScope.")
+    add_connection_args(parser)
     parser.add_argument("--top", type=int, default=10, help="Rows per section (default: 10)")
     args = parser.parse_args()
 
-    db_password = os.environ.get("DB_PASSWORD")
-    if not db_password:
-        print("ERROR: DB_PASSWORD not found in .env / .env.production")
-        sys.exit(1)
-
-    proxy_proc = start_cloud_sql_proxy()
-    database_url = (
-        f"postgresql://{DB_USER}:{quote_plus(db_password)}"
-        f"@localhost:{PROXY_PORT}/{DB_NAME}"
-    )
-
+    source = open_source_connection(args)
     try:
-        conn = psycopg2.connect(database_url)
+        conn = psycopg2.connect(source.url)
         conn.autocommit = True
         cur = conn.cursor()
 
@@ -438,7 +349,7 @@ def main():
         cur.close()
         conn.close()
     finally:
-        stop_cloud_sql_proxy(proxy_proc)
+        source.close()
 
 
 if __name__ == "__main__":
