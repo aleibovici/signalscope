@@ -3,8 +3,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.harvester
+    # Source credentials (X_BEARER_TOKEN, ...) and HARVEST_* come from the env file.
+    # Pick one with: docker compose -f docker-compose.harvest.yml --env-file .env run --rm harvester
+    env_file:
+      - path: .env
+        required: false
     environment:
       HARVEST_ENDPOINT_URL: ${HARVEST_ENDPOINT_URL}
       HARVEST_API_KEY: ${HARVEST_API_KEY}
-      X_BEARER_TOKEN: ${X_BEARER_TOKEN}
     restart: "no"

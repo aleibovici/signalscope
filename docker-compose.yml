@@ -2,37 +2,72 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: signalscope
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-signalscope}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-signalscope}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Applies pending Prisma migrations, then exits. `web` waits for it to succeed.
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.harvester
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: ${COMPOSE_DATABASE_URL:-postgresql://postgres:postgres@db:5432/signalscope?schema=public}
+    command: ["npx", "prisma", "migrate", "deploy"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
 
   web:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:3000"
+    # Optional keys (AI providers, Stripe, Resend, ...) are read from .env when present.
+    env_file:
+      - path: .env
+        required: false
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/signalscope?schema=public
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      # Overrides any DATABASE_URL in .env, which points at localhost and would
+      # resolve to this container. Set COMPOSE_DATABASE_URL to use an external database.
+      DATABASE_URL: ${COMPOSE_DATABASE_URL:-postgresql://postgres:postgres@db:5432/signalscope?schema=public}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
+  # Optional: fetches signals and POSTs them to `web`.
+  # Run with: docker compose --profile harvest run --rm harvester
   harvester:
     build:
       context: .
       dockerfile: Dockerfile.harvester
+    env_file:
+      - path: .env
+        required: false
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/signalscope?schema=public
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      # `web` is reachable by service name inside the Compose network.
+      HARVEST_ENDPOINT_URL: ${COMPOSE_HARVEST_ENDPOINT_URL:-http://web:3000/api/harvest/ingest}
     depends_on:
-      - db
+      - web
     profiles:
-      - harvest  # Only run with: docker compose --profile harvest run harvester
+      - harvest
 
 volumes:
   pgdata:
