@@ -8,7 +8,7 @@ import { ACTIONABLE_MARKET_CAP_MAX } from "@/lib/harvester/recommendation";
  * POST /api/tweets/promo
  *
  * Generates and posts a single promotional tweet about a SignalScope feature.
- * Called 3x/day by a single Cloud Scheduler job (0 10,14,18 * * * ET).
+ * Called 3x/day by a single scheduled job (0 10,14,18 * * * ET).
  * Slot is derived from the current ET hour: 10→0, 14→1, 18→2.
  * Body `{ "slot": 0 | 1 | 2 }` still accepted for manual overrides.
  * Auth: x-snapshot-key header.

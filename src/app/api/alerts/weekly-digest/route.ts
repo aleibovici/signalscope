@@ -10,7 +10,7 @@ import { sendWeeklyDigest } from "@/lib/email/weekly-digest";
  * subscribers get a dashboard link.
  *
  * Auth: x-snapshot-key header.
- * Schedule: Sundays 10 AM ET via Cloud Scheduler.
+ * Schedule: Sundays 10 AM ET, driven by your scheduler of choice.
  */
 export async function POST(req: NextRequest) {
   try {

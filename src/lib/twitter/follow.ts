@@ -49,7 +49,7 @@ const FOLLOWER_CHECK_INTERVAL_MS = 12 * 60 * 60 * 1000;
 
 /**
  * GET /2/users/me — returns our authenticated user's numeric ID.
- * Persists to XApiLog so the resolved ID survives Cloud Run cold starts.
+ * Persists to XApiLog so the resolved ID survives process restarts.
  */
 async function getMyUserId(
   creds: TwitterCredentials
@@ -522,7 +522,7 @@ async function processUnfollows(
 
 /** Check which of our followed accounts have followed us back. */
 async function updateFollowBacks(myId: string): Promise<number> {
-  // Persist throttle in DB via XApiLog — survives Cloud Run cold starts
+  // Persist throttle in DB via XApiLog — survives process restarts
   const lastCheck = await prisma.xApiLog.findFirst({
     where: { action: "followers" },
     orderBy: { createdAt: "desc" },

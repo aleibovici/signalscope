@@ -1,4 +1,4 @@
-// Route kept at /api/brokers/ibkr/sync for backwards-compat with existing Cloud Scheduler job.
+// Route kept at /api/brokers/ibkr/sync for backwards-compat with existing scheduled jobs.
 // Internally uses the configured broker provider (currently Alpaca).
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";

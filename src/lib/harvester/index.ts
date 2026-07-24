@@ -457,7 +457,7 @@ export function deduplicateCongressSignals(signals: RawSignal[], seenTxIds: Set<
 
 /**
  * Process pre-fetched signals: aggregate, score, filter P&D, generate reports, write to DB.
- * This is the heavy work that can run on Cloud Run.
+ * This is the heavy work that runs on the web app host.
  */
 export async function processSignals(allSignals: RawSignal[]): Promise<string> {
   console.log("Processing signals...");

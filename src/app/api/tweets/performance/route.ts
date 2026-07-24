@@ -10,7 +10,7 @@ import { tweetPerformanceBatch } from "@/lib/twitter/performance";
  * proof of past successful calls.
  *
  * Auth: x-snapshot-key header.
- * Schedule: Once daily via Cloud Scheduler (e.g. 10 AM ET Mon-Fri).
+ * Schedule: Once daily via your scheduler (e.g. 10 AM ET Mon-Fri).
  */
 export async function POST(req: NextRequest) {
   try {

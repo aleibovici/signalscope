@@ -8,8 +8,8 @@ const attempts = new Map<string, { count: number; resetAt: number }>();
 const MAX_ENTRIES = 10_000;
 
 export function getClientIP(request: NextRequest): string {
-  // On Cloud Run / reverse proxies, each hop appends to X-Forwarded-For.
-  // The rightmost entry is the load balancer; the second-to-last is the real client IP.
+  // Behind a reverse proxy or load balancer each hop appends to X-Forwarded-For.
+  // The rightmost entry is the proxy; the second-to-last is the real client IP.
   const xForwardedFor = request.headers.get("x-forwarded-for");
   if (xForwardedFor) {
     const parts = xForwardedFor.split(",").map((s) => s.trim());

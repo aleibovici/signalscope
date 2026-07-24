@@ -2,7 +2,7 @@
  * Tests for the ET-hour → slot derivation logic in POST /api/tweets/promo.
  *
  * The route derives a slot (0, 1, or 2) from the current New York time so a
- * single Cloud Scheduler job can drive three distinct daily topics without
+ * single scheduled job can drive three distinct daily topics without
  * needing a body param.  An explicit body `{ slot }` still overrides the
  * derived value for manual runs.
  *

@@ -13,7 +13,7 @@ import { runFollowJob } from "@/lib/twitter/follow";
  * - Updates follow-back flags from our followers list
  *
  * Schedule every 30 min 9AM–6:30PM ET (20x/day) for ~100 follows/day.
- * Auth: x-snapshot-key header (same as other Cloud Scheduler endpoints).
+ * Auth: x-snapshot-key header (same as the other scheduled-job endpoints).
  */
 export async function POST(req: NextRequest) {
   try {

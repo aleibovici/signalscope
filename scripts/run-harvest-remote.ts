@@ -69,7 +69,7 @@ async function main() {
     harvestedAt: new Date().toISOString(),
   };
 
-  // 2. POST to Cloud Run for processing
+  // 2. POST to the web app for processing
   try {
     const result = await postSignals(payload);
     console.log(`Scan completed remotely: ${result.scanId}`);

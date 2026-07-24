@@ -2,6 +2,7 @@ import { Sidebar } from "@/components/dashboard/sidebar";
 import { MobileTabBar } from "@/components/dashboard/mobile-tab-bar";
 import { GuestBannerWrapper } from "@/components/dashboard/guest-banner-wrapper";
 import { Tour } from "@/components/dashboard/tour";
+import { getAppRevision } from "@/lib/revision";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const revision = process.env.K_REVISION ?? "local";
+  const revision = getAppRevision();
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-zinc-950">
