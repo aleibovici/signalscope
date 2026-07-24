@@ -22,7 +22,7 @@
 
 # misc
 .DS_Store
-*.pem
+Thumbs.db
 
 # debug
 npm-debug.log*
@@ -40,8 +40,17 @@ yarn-error.log*
 .vscode/
 .mcp.json
 
-# service account keys
+# credentials — never commit any of these
+*.pem
+*.key
+*.p8
+*.p12
+*.pfx
 sa-key.json
+credentials.json
+*-credentials.json
+service-account*.json
+secrets.*.json
 
 # vercel
 .vercel
@@ -65,7 +74,12 @@ scripts/output/
 # harvester logs
 /logs/
 
-# CI and Apple root certs (maintainer-local; not shipped in OSS tree)
-.github/
+# Apple root certs (maintainer-local)
 /certs/
+
+# database dumps
+*.dump
+*.sql.gz
+*.sqlite
+*.sqlite3
 

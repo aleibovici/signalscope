@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { blogPosts } from "@/lib/blog-data";
 import { absoluteUrl, getSiteUrl } from "@/lib/site-url";
-
-const INDEXNOW_KEY = "f8dd4b98a32e43dba4ffefb26738aecb";
+import { getIndexNowKey } from "@/lib/indexnow";
 
 function getHost(): string {
   return new URL(getSiteUrl()).hostname;
@@ -24,11 +23,18 @@ function getPublicUrls(): string[] {
 }
 
 // POST /api/indexnow — submit public URLs to IndexNow (Bing, Yandex)
-// Protected by CRON_SECRET so only trusted callers can trigger it
+// Protected by CRON_SECRET so only trusted callers can trigger it.
+// The key itself is per-deployment: set INDEXNOW_KEY to your own value, which is
+// published at /indexnow-key.txt (src/app/indexnow-key.txt/route.ts).
 export async function POST(req: Request) {
   const secret = req.headers.get("x-cron-secret");
   if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const key = getIndexNowKey();
+  if (!key) {
+    return NextResponse.json({ error: "INDEXNOW_KEY not configured" }, { status: 503 });
   }
 
   const host = getHost();
@@ -36,8 +42,8 @@ export async function POST(req: Request) {
 
   const body = {
     host,
-    key: INDEXNOW_KEY,
-    keyLocation: absoluteUrl(`/${INDEXNOW_KEY}.txt`),
+    key,
+    keyLocation: absoluteUrl("/indexnow-key.txt"),
     urlList,
   };
 
