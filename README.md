@@ -14,7 +14,7 @@ Every harvest run is stored in PostgreSQL with forward price snapshots (1d–30d
 | **Labels** | Deterministic Strong Buy / Buy / Watch / Avoid from score, stage, source mix, market-cap tier, and P&D flags |
 | **Backtesting** | Post-scan return tracking, LightGBM feature/threshold experiments, public methodology and result views |
 | **Product** | Cross-scan trending, on-demand AI ticker reports, watchlist, email alerts, x402 pay-per-call API |
-| **Ops** | Self-host with Docker; optional remote harvester when sources block datacenter IPs |
+| **Ops** | Runs locally or on any container host — no cloud provider required; optional remote harvester when sources block datacenter IPs |
 
 Released under the [MIT License](LICENSE). Questions and bug reports: [GitHub Issues](https://github.com/aleibovici/signalscope/issues). Security: [Security Advisories](https://github.com/aleibovici/signalscope/security).
 
@@ -51,6 +51,7 @@ Auth for ingest: header `x-harvest-key` must match `HARVEST_API_KEY` on the web 
 - `docker-compose.harvest.yml` — Standalone harvester against a remote ingest URL
 - `scripts/backtesting-experiments.md` — ML experiment log (LightGBM feature/threshold runs)
 - `scripts/extract.py` — Export Postgres tables to parquet for offline model training
+- `DEPLOYMENT.md` — Local, Docker, and container-host deployment plus scheduled jobs
 
 ## ML model training
 
@@ -61,8 +62,12 @@ The web app **collects and labels** data (signals, fundamentals, forward returns
 ## Prerequisites
 
 - Node.js 22+
-- Docker (recommended for Postgres)
+- PostgreSQL 16+ (Docker Compose provides one; a local install or any managed Postgres works too)
 - At least one AI provider key (`OPENAI_API_KEY` and/or `ANTHROPIC_API_KEY`) for scoring and reports
+
+SignalScope is cloud-agnostic: it needs a PostgreSQL URL and somewhere to run a
+Node 22 container. There are no provider SDKs, no managed-service dependencies,
+and no infrastructure-as-code tied to a specific cloud. See [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Quick start (web app + database)
 
@@ -96,13 +101,18 @@ Open `http://localhost:3000`.
 - Password: `password123`
 - Role: admin
 
-Do not use this seed against a shared or production database.
+The seed refuses to run against a non-local database host unless you set
+`SEED_ALLOW_REMOTE=1`, and `SEED_ADMIN_PASSWORD` overrides the default password.
 
-### Docker: web + DB
+### Docker: web + DB in one command
 
 ```bash
+cp .env.example .env
 docker compose up --build
 ```
+
+This starts Postgres, applies migrations, and serves the app on `http://localhost:3000`.
+Requires Docker Compose v2.24+.
 
 ## Running the harvester
 
@@ -147,6 +157,16 @@ All of these are env-gated; omit the vars to disable:
 - x402 pay-per-call (`X402_WALLET_ADDRESS`)
 - Broker paper trading (Alpaca, etc.)
 - X/Twitter posting and follow automation
+- Google Tag Manager / GA4 analytics (`NEXT_PUBLIC_GTM_ID`, `NEXT_PUBLIC_GA4_MEASUREMENT_ID`)
+- IndexNow submissions (`INDEXNOW_KEY` + `CRON_SECRET`)
+
+## Deployment and scheduled jobs
+
+[DEPLOYMENT.md](DEPLOYMENT.md) covers running the container anywhere, database
+migrations, reverse-proxy settings, and the recurring jobs (price snapshots, AI
+reports, alerts, broker sync). Every job is an HTTP endpoint guarded by a shared
+secret, so plain cron, systemd timers, Kubernetes CronJobs, GitHub Actions, or a
+managed scheduler all work.
 
 ## Tests and lint
 

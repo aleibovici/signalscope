@@ -21,9 +21,15 @@ Follow the [README](README.md) quick start (Postgres via Docker, env from `.env.
 
 Remember the **harvester is a separate process** from the web app. Most UI work does not require running the harvester.
 
+CI runs the same checks (`tsc --noEmit`, lint, tests, production build) on every pull request.
+
 ## Guidelines
 
-- Do not commit secrets, API keys, or `.env` files.
+- Do not commit secrets, API keys, or `.env` files. The same goes for database
+  dumps and `scripts/output/` — exports contain password hashes and API key
+  material, so treat them like credentials.
+- Keep the codebase host-agnostic. Provider-specific behaviour belongs behind an
+  environment variable or an opt-in flag, never as a hardcoded default.
 - Prefer small, reviewable PRs.
 - Match existing TypeScript, testing, and UI patterns in the repo.
 - Add or update Vitest coverage when changing behavior.

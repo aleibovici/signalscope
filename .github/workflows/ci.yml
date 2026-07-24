@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # The Prisma client is generated into src/generated and is not committed.
+      - run: npx prisma generate
+
+      - run: npx tsc --noEmit
+
+      - run: npm run lint
+
+      - run: npm test
+
+      # Uses placeholder values: the build must not require real credentials.
+      - run: npm run build
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/signalscope?schema=public
+          AUTH_SECRET: ci-placeholder-secret-not-used-at-runtime
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
