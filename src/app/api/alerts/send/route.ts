@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendTickerAlerts } from "@/lib/email";
 import { handleApiError } from "@/lib/api-error";
@@ -17,7 +18,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Endpoint not configured" }, { status: 503 });
     }
 
-    if (!snapshotKey || snapshotKey !== expectedKey) {
+    const bufKey = snapshotKey ? Buffer.from(snapshotKey, "utf8") : null;
+    const bufExpected = Buffer.from(expectedKey, "utf8");
+    const keyMatch =
+      bufKey !== null &&
+      bufKey.byteLength === bufExpected.byteLength &&
+      timingSafeEqual(bufKey, bufExpected);
+    if (!keyMatch) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

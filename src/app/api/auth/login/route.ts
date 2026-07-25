@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { createHash } from "crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getClientIP, isRateLimited } from "@/lib/rate-limit";
@@ -71,9 +72,10 @@ export async function POST(request: NextRequest) {
     });
 
     const refreshTokenValue = generateRefreshToken();
+    const refreshTokenHash = createHash("sha256").update(refreshTokenValue).digest("hex");
     await prisma.refreshToken.create({
       data: {
-        token: refreshTokenValue,
+        token: refreshTokenHash,
         userId: user.id,
         expiresAt: getRefreshTokenExpiry(),
         deviceId: deviceId ?? null,
