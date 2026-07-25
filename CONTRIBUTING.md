@@ -13,7 +13,7 @@ npm run lint
 npm test
 ```
 
-4. Open a PR against `main` describing the problem and solution.
+4. Open a PR against `main` using the PR template. We squash-merge contributor PRs to keep history readable.
 
 ## Development setup
 

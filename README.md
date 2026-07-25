@@ -48,6 +48,8 @@ Auth for ingest: header `x-harvest-key` must match `HARVEST_API_KEY` on the web 
 - `src/lib/harvester/` — Signal pipeline (fetch helpers, scoring, P&D, DB write) used by ingest processing
 - `scripts/run-harvest-remote.ts` — Harvester entry (fetch locally, POST to web)
 - `prisma/` — Schema, migrations, seed
+- `.github/` — CI, Dependabot, issue/PR templates, [open-source launch checklist](.github/OPEN_SOURCE_LAUNCH.md)
+- `docs/` — Documentation index ([docs/README.md](docs/README.md))
 - `public/skill/` — API docs for humans and agent clients
 - `docker-compose.yml` — Postgres + web; harvester via `--profile harvest`
 - `docker-compose.harvest.yml` — Standalone harvester against a remote ingest URL
