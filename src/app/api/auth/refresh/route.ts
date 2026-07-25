@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getClientIP, isRateLimited } from "@/lib/rate-limit";
@@ -42,8 +43,9 @@ export async function POST(request: NextRequest) {
 
     const { refreshToken: tokenValue } = parsed.data;
 
+    const tokenHash = createHash("sha256").update(tokenValue).digest("hex");
     const existing = await prisma.refreshToken.findUnique({
-      where: { token: tokenValue },
+      where: { token: tokenHash },
       include: { user: { select: { id: true, email: true, role: true } } },
     });
 
@@ -53,6 +55,7 @@ export async function POST(request: NextRequest) {
 
     // Token rotation: atomically revoke old token (only if still active) and issue new pair
     const newRefreshTokenValue = generateRefreshToken();
+    const newRefreshTokenHash = createHash("sha256").update(newRefreshTokenValue).digest("hex");
 
     const revoked = await prisma.refreshToken.updateMany({
       where: { id: existing.id, revokedAt: null },
@@ -66,7 +69,7 @@ export async function POST(request: NextRequest) {
 
     await prisma.refreshToken.create({
       data: {
-        token: newRefreshTokenValue,
+        token: newRefreshTokenHash,
         userId: existing.userId,
         expiresAt: getRefreshTokenExpiry(),
         deviceId: existing.deviceId,
@@ -81,7 +84,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       accessToken,
-      refreshToken: newRefreshTokenValue,
+      refreshToken: newRefreshTokenValue, // return raw value; only the hash is persisted
       expiresIn: 900,
     });
   } catch (error) {

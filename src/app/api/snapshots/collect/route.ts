@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 import { collectSnapshots } from "@/lib/snapshots";
 import { handleApiError } from "@/lib/api-error";
 
@@ -12,7 +13,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Endpoint not configured" }, { status: 503 });
     }
 
-    if (!snapshotKey || snapshotKey !== expectedKey) {
+    const keyMatch =
+      !!snapshotKey &&
+      snapshotKey.length === expectedKey.length &&
+      timingSafeEqual(Buffer.from(snapshotKey), Buffer.from(expectedKey));
+    if (!keyMatch) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

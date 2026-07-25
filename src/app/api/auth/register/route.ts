@@ -5,6 +5,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { generateUsername } from "@/lib/username-generator";
 import { getClientIP, isRateLimited } from "@/lib/rate-limit";
+import { createHash } from "crypto";
 import {
   signAccessToken,
   generateRefreshToken,
@@ -96,9 +97,10 @@ export async function POST(request: NextRequest) {
     });
 
     const refreshTokenValue = generateRefreshToken();
+    const refreshTokenHash = createHash("sha256").update(refreshTokenValue).digest("hex");
     await prisma.refreshToken.create({
       data: {
-        token: refreshTokenValue,
+        token: refreshTokenHash,
         userId: user.id,
         expiresAt: getRefreshTokenExpiry(),
         deviceId: deviceId ?? null,

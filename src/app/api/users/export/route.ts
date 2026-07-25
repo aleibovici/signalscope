@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { handleApiError } from "@/lib/api-error";
 
@@ -20,7 +21,11 @@ export async function GET(req: NextRequest) {
     if (!expectedKey) {
       return NextResponse.json({ error: "Endpoint not configured" }, { status: 503 });
     }
-    if (!snapshotKey || snapshotKey !== expectedKey) {
+    const keyMatch =
+      !!snapshotKey &&
+      snapshotKey.length === expectedKey.length &&
+      timingSafeEqual(Buffer.from(snapshotKey), Buffer.from(expectedKey));
+    if (!keyMatch) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
