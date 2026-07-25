@@ -57,10 +57,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Endpoint not configured" }, { status: 503 });
     }
 
+    const bufKey = harvestKey ? Buffer.from(harvestKey, "utf8") : null;
+    const bufExpected = Buffer.from(expectedKey, "utf8");
     const keyMatch =
-      !!harvestKey &&
-      harvestKey.length === expectedKey.length &&
-      timingSafeEqual(Buffer.from(harvestKey), Buffer.from(expectedKey));
+      bufKey !== null &&
+      bufKey.byteLength === bufExpected.byteLength &&
+      timingSafeEqual(bufKey, bufExpected);
     if (!keyMatch) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

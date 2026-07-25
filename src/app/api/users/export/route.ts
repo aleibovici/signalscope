@@ -21,10 +21,12 @@ export async function GET(req: NextRequest) {
     if (!expectedKey) {
       return NextResponse.json({ error: "Endpoint not configured" }, { status: 503 });
     }
+    const bufKey = snapshotKey ? Buffer.from(snapshotKey, "utf8") : null;
+    const bufExpected = Buffer.from(expectedKey, "utf8");
     const keyMatch =
-      !!snapshotKey &&
-      snapshotKey.length === expectedKey.length &&
-      timingSafeEqual(Buffer.from(snapshotKey), Buffer.from(expectedKey));
+      bufKey !== null &&
+      bufKey.byteLength === bufExpected.byteLength &&
+      timingSafeEqual(bufKey, bufExpected);
     if (!keyMatch) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
