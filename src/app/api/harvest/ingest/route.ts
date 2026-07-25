@@ -58,9 +58,10 @@ export async function POST(req: NextRequest) {
     }
 
     const keyMatch =
+      !!harvestKey &&
       harvestKey.length === expectedKey.length &&
       timingSafeEqual(Buffer.from(harvestKey), Buffer.from(expectedKey));
-    if (!harvestKey || !keyMatch) {
+    if (!keyMatch) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
