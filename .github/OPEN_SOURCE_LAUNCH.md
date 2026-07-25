@@ -74,6 +74,8 @@ gh api -X PATCH repos/aleibovici/signalscope \
   -H "Content-Type: application/json" --input - '{"allow_auto_merge": true}'
 ```
 
+The Dependabot auto-merge workflow (`.github/workflows/dependabot-auto-merge.yml`) checks this setting and skips gracefully while auto-merge is disabled.
+
 ### 5. Homepage URL (optional)
 
 Set in **Settings → General → About** if you have a public demo or docs site.
