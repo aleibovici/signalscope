@@ -46,10 +46,14 @@ export async function POST(request: NextRequest) {
     const tokenHash = createHash("sha256").update(tokenValue).digest("hex");
     const existing = await prisma.refreshToken.findUnique({
       where: { token: tokenHash },
-      include: { user: { select: { id: true, email: true, role: true } } },
+      include: { user: { select: { id: true, email: true, role: true, deletedAt: true } } },
     });
 
     if (!existing || existing.revokedAt || existing.expiresAt < new Date()) {
+      return NextResponse.json({ error: "Invalid or expired refresh token" }, { status: 401 });
+    }
+
+    if (existing.user.deletedAt) {
       return NextResponse.json({ error: "Invalid or expired refresh token" }, { status: 401 });
     }
 
