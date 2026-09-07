@@ -21,6 +21,16 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
+vi.mock("next/server", () => ({
+  NextResponse: {
+    json: vi.fn((body: unknown, init?: { status?: number }) => ({
+      body,
+      status: init?.status ?? 200,
+      json: async () => body,
+    })),
+  },
+}));
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -82,15 +92,6 @@ describe("handleApiError — rate limit mapping", () => {
 
   beforeEach(async () => {
     vi.resetModules();
-    vi.mock("next/server", () => ({
-      NextResponse: {
-        json: vi.fn((body: unknown, init?: { status?: number }) => ({
-          body,
-          status: init?.status ?? 200,
-          json: async () => body,
-        })),
-      },
-    }));
     const mod = await import("@/lib/api-error");
     handleApiError = mod.handleApiError;
   });
