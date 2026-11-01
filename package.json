@@ -44,7 +44,7 @@
     "stripe": "^22.6.1",
     "viem": "^2.56.3",
     "yahoo-finance2": "^4.0.2",
-    "zod": "^4.5.4"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
